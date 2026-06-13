@@ -10,12 +10,13 @@ export class NodeSqliteConnection implements DatabaseConnection {
     const { sql, parameters } = compiledQuery
     const params = (parameters as SQLValue[]).map(p => {
       if (typeof p === 'boolean') return p ? 1 : 0
+      if (p === undefined) return null
       return p as SQLInputValue
     })
     const stmt = this.db.prepare(sql)
-    const isSelect = /^\s*(select|pragma|with\s)/i.test(sql)
+    const returnsRows = /^\s*(select|pragma|with\s)/i.test(sql) || /\breturning\s/i.test(sql)
 
-    if (isSelect) {
+    if (returnsRows) {
       const rows = stmt.all(...params) as R[]
       return Promise.resolve({ rows })
     }
@@ -25,7 +26,7 @@ export class NodeSqliteConnection implements DatabaseConnection {
       rows: [],
       numAffectedRows: BigInt(changes ?? 0),
       insertId: BigInt(lastInsertRowid ?? 0),
-    })
+    } as QueryResult<R>)
   }
 
   async *streamQuery(): AsyncIterableIterator<never> {

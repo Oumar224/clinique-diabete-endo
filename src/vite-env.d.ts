@@ -1,8 +1,30 @@
 /// <reference types="vite/client" />
 
+interface UpdateInfo {
+  version: string
+  releaseNotes?: string
+  releaseDate?: string
+}
+
+interface DownloadProgress {
+  percent: number
+  bytesPerSecond: number
+  total: number
+  transferred: number
+}
+
 interface ElectronAPI {
   getVersion: () => Promise<string>
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
+  autoUpdater: {
+    checkForUpdates(): Promise<{ updateInfo: UpdateInfo }>
+    downloadUpdate(): Promise<void>
+    installUpdate(): Promise<void>
+    onUpdateAvailable(callback: (info: UpdateInfo) => void): () => void
+    onUpdateDownloaded(callback: (info: UpdateInfo) => void): () => void
+    onDownloadProgress(callback: (progress: DownloadProgress) => void): () => void
+    onError(callback: (error: Error) => void): () => void
+  }
 }
 
 interface Window {

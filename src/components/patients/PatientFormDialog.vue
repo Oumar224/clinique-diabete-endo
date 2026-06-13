@@ -90,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick } from 'vue'
+import { ref, reactive, nextTick, toRaw } from 'vue'
 import { ElMessage } from 'element-plus'
 import { showLoader, hideLoader } from '@/components/utils/AppLoader'
 import { createPatient, updatePatient } from '@/composables/usePatients'
@@ -205,14 +205,16 @@ async function submit() {
     const loader = showLoader(isEdit.value ? 'Enregistrement...' : 'Création...')
     try {
       if (isEdit.value && editId.value) {
-        await updatePatient({ ...form, id: editId.value } as PatientDto)
+        await updatePatient({ ...toRaw(form), id: editId.value })
         ElMessage.success('Patient mis à jour')
       } else {
-        await createPatient(form)
+        await createPatient(toRaw(form))
         ElMessage.success('Patient créé')
       }
       close()
       emit('saved')
+    } catch (e) {
+      ElMessage.error(`Erreur: ${(e as Error).message}`)
     } finally {
       hideLoader(loader)
     }

@@ -11,4 +11,5 @@ export interface PatientDto {
   mutuelle?: string
   medecin_traitant?: string
   allergies?: string[]
+  automerge_id?: string
 }

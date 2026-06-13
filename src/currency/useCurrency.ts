@@ -1,49 +1,42 @@
-import { ref, computed } from 'vue'
-import { getCurrencyDef, type CurrencyDef } from './currency.config'
+import { computed } from 'vue'
+import { useCurrencies } from '@/composables/useCurrencies'
 
-const currencyCode = ref('GNF')
-const loaded = ref(false)
+const {
+  currencies,
+  defaultCurrency,
+  formatCurrency,
+  setDefault,
+  loadDefault,
+  fetchCurrencies,
+} = useCurrencies()
 
-function formatWithIntl(amount: number, def: CurrencyDef): string {
-  try {
-    return new Intl.NumberFormat(def.locale, {
-      style: 'currency',
-      currency: def.code,
-      minimumFractionDigits: def.decimals,
-      maximumFractionDigits: def.decimals,
-    }).format(amount)
-  } catch {
-    return `${amount.toFixed(def.decimals)} ${def.symbol}`
-  }
+const currencyCode = computed(() => defaultCurrency.value)
+
+const CURRENCY_LOCALE: Record<string, string> = {
+  GNF: 'fr-FR',
+  EUR: 'fr-FR',
+  XOF: 'fr-FR',
+  USD: 'en-US',
 }
 
-export function useCurrency() {
-  const currencyDef = computed<CurrencyDef>(() => getCurrencyDef(currencyCode.value))
+const currencyDef = computed(() => {
+  const found = currencies.value.find(c => c.code === currencyCode.value)
+  if (found) {
+    return { code: found.code, symbol: found.symbol, locale: CURRENCY_LOCALE[found.code] || 'fr-FR', decimals: found.decimals }
+  }
+  return { code: 'GNF', symbol: 'GNF', locale: 'fr-FR', decimals: 0 }
+})
 
+export function useCurrency() {
   async function loadCurrency(): Promise<void> {
-    if (loaded.value) return
-    try {
-      const result = await window.electronAPI?.invoke('settings:get', { key: 'currency' }) as { value?: string }
-      if (result?.value) {
-        currencyCode.value = result.value
-      }
-    } catch {
-      // fallback to default GNF
+    await loadDefault()
+    if (currencies.value.length === 0) {
+      await fetchCurrencies()
     }
-    loaded.value = true
   }
 
   async function setCurrency(code: string): Promise<void> {
-    try {
-      await window.electronAPI?.invoke('settings:set', { key: 'currency', value: code })
-      currencyCode.value = code
-    } catch {
-      // silently fail
-    }
-  }
-
-  function formatCurrency(amount: number): string {
-    return formatWithIntl(amount, currencyDef.value)
+    await setDefault(code)
   }
 
   return {
@@ -51,6 +44,6 @@ export function useCurrency() {
     currencyDef,
     loadCurrency,
     setCurrency,
-    formatCurrency,
+    formatCurrency: (amount: number) => formatCurrency(amount),
   }
 }

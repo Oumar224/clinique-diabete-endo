@@ -8,10 +8,10 @@ export interface Patient {
   date_naissance: string
   nir: string
   telephone: string
-  email: string
-  adresse: string
-  mutuelle: string
-  medecin_traitant: string
+  email?: string
+  adresse?: string
+  mutuelle?: string
+  medecin_traitant?: string
   allergies: string[]
 }
 

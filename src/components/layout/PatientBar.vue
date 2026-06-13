@@ -32,6 +32,7 @@
 </template>
 
 <script setup lang="ts">
+import type { TabsPaneContext } from 'element-plus'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Close } from '@element-plus/icons-vue'
@@ -55,16 +56,17 @@ const initials = computed(() => {
   return `${activePatient.value.prenom[0]}${activePatient.value.nom[0]}`
 })
 
-function onTabClick(tab: { props: { name: string } }) {
+function onTabClick(pane: TabsPaneContext) {
   const patientId = activePatient.value?.id
-  if (patientId) {
+  const tabName = pane.props.name
+  if (patientId && tabName) {
     const tabRoutes: Record<string, string> = {
       infos: `/app/patients/${patientId}`,
       consultations: `/app/patients/${patientId}`,
       ordonnances: `/app/patients/${patientId}`,
       factures: `/app/patients/${patientId}/factures`,
     }
-    router.push(tabRoutes[tab.props.name])
+    router.push(tabRoutes[String(tabName)])
   }
 }
 </script>

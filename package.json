@@ -1,13 +1,12 @@
 {
   "name": "cde",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "CDE — Clinique Diabète & Endocrinologie : gestion clinique interne",
   "main": "dist-electron/main.js",
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "build:electron": "vue-tsc --noEmit && vite build && electron-builder",
+    "build": "vue-tsc --noEmit && vite build && electron-builder --win nsis --publish always",
     "preview": "vite preview",
     "lint": "eslint src/ electron/ --ext .ts,.vue",
     "typecheck": "vue-tsc --noEmit",
@@ -22,6 +21,7 @@
     "@iconify-json/mdi": "^1.1.0",
     "@iconify/vue": "^4.1.0",
     "bcryptjs": "^3.0.3",
+    "electron-updater": "^6.8.3",
     "element-plus": "^2.8.0",
     "kysely": "^0.28.0",
     "reflect-metadata": "^0.2.0",

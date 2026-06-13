@@ -87,19 +87,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onErrorCaptured } from 'vue'
 import { useRoute } from 'vue-router'
 import { Edit, Delete } from '@element-plus/icons-vue'
-import { ElMessageBox } from 'element-plus'
-import { getPatient, deletePatient, fetchPatients } from '@/composables/usePatients'
-import { usePatientContext, type Patient } from '@/composables/usePatientContext'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getPatient, deletePatient, fetchPatients, type PatientDto } from '@/composables/usePatients'
+import { usePatientContext } from '@/composables/usePatientContext'
 import PatientFormDialog from '@/components/patients/PatientFormDialog.vue'
 
 const route = useRoute()
 const { setActivePatient } = usePatientContext()
-const patient = ref<Patient | null>(null)
+const patient = ref<PatientDto | null>(null)
 const loading = ref(true)
 const formDialogRef = ref<InstanceType<typeof PatientFormDialog> | null>(null)
+
+onErrorCaptured((err) => {
+  ElMessage.error(`Erreur: ${(err as Error).message}`)
+  return false
+})
 
 onMounted(async () => {
   await loadPatient()
@@ -111,16 +116,26 @@ async function loadPatient() {
   try {
     const p = await getPatient(id)
     if (p) {
-      patient.value = p as Patient
-      setActivePatient(p as Patient)
+      patient.value = p
+      setActivePatient(p)
+    } else {
+      ElMessage.warning('Patient introuvable')
     }
+  } catch (e) {
+    ElMessage.error(`Erreur lors du chargement du patient: ${(e as Error).message}`)
+    patient.value = null
   } finally {
     loading.value = false
   }
 }
 
 function openEdit() {
-  if (patient.value) formDialogRef.value?.open(patient.value)
+  if (!patient.value) return
+  if (!formDialogRef.value) {
+    ElMessage.error('Erreur: le formulaire patient n\'est pas disponible')
+    return
+  }
+  formDialogRef.value.open(patient.value)
 }
 
 function onDelete() {
@@ -134,7 +149,11 @@ function onDelete() {
       await deletePatient(patient.value!.id)
       await fetchPatients()
       patient.value = null
-    } catch {}
+    } catch (e) {
+      ElMessage.error(`Erreur lors de la suppression: ${(e as Error).message}`)
+    }
+  }).catch(() => {
+    // user cancelled
   })
 }
 

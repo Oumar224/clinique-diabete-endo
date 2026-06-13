@@ -3,6 +3,7 @@ import * as InitialSchema from '../migrations/001-initial-schema'
 import * as FixUserSchema from '../migrations/002-fix-user-schema'
 import * as AddSettings from '../migrations/003-add-settings'
 import * as InvoiceSchema from '../migrations/004-invoice'
+import * as SettingsTables from '../migrations/005-settings-tables'
 
 class StaticMigrationProvider implements MigrationProvider {
   async getMigrations(): Promise<Record<string, Migration>> {
@@ -11,6 +12,7 @@ class StaticMigrationProvider implements MigrationProvider {
       '002-fix-user-schema': FixUserSchema,
       '003-add-settings': AddSettings,
       '004-invoice': InvoiceSchema,
+      '005-settings-tables': SettingsTables,
     }
   }
 }

@@ -1,7 +1,7 @@
 import { singleton, inject, container } from 'tsyringe'
 import path from 'node:path'
 import { app } from 'electron'
-import { Kysely } from 'kysely'
+import { Kysely, sql } from 'kysely'
 import { NodeSqliteDialect } from './driver/node-sqlite-dialect'
 import type { DB } from './entities/database'
 import { IAppDataSource } from './data-source'
@@ -24,8 +24,18 @@ export class AppDatabaseDatasource implements IAppDataSource<Kysely<DB>> {
   }
 
   async initialize(): Promise<Kysely<DB>> {
-    const migrationService = new MigrationService(this.instance as never)
-    await migrationService.runMigrations()
+    // Disable FK constraints during migration to avoid issues
+    // on existing databases where tables may be partially created
+    await sql`PRAGMA foreign_keys = OFF`.execute(this.instance)
+
+    try {
+      const migrationService = new MigrationService(this.instance as never)
+      await migrationService.runMigrations()
+    } catch (error) {
+      console.error('[CDE] Migration failed, continuing:', error)
+    }
+
+    await sql`PRAGMA foreign_keys = ON`.execute(this.instance)
 
     const seedService = new SeedService(this.instance as never)
     await seedService.seed()

@@ -11,6 +11,8 @@ export class SettingsService {
   }
 
   async setSetting(key: string, value: string): Promise<void> {
+    if (key == null) throw new Error('La clé de paramètre est requise')
+    if (value == null) throw new Error('La valeur du paramètre est requise')
     await sql`
       INSERT INTO app_settings (key, value) VALUES (${key}, ${value})
       ON CONFLICT(key) DO UPDATE SET value = ${value}

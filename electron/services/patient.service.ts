@@ -84,6 +84,7 @@ export class PatientService {
         mutuelle: entity.mutuelle ?? existing.mutuelle,
         medecin_traitant: entity.medecin_traitant ?? existing.medecin_traitant,
         allergies: entity.allergies ?? existing.allergies,
+        updated_at: new Date().toISOString(),
       })
       .where('id', '=', entity.id!)
       .execute()

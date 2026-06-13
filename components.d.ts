@@ -40,6 +40,7 @@ declare module 'vue' {
     PatientBar: typeof import('./src/components/layout/PatientBar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SideBar: typeof import('./src/components/layout/SideBar.vue')['default']
     TopBar: typeof import('./src/components/layout/TopBar.vue')['default']
   }
 }

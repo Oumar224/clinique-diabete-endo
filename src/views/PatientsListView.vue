@@ -63,14 +63,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onErrorCaptured } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { patients, fetchPatients, deletePatient } from '@/composables/usePatients'
 import type { PatientDto } from '@/composables/usePatients'
 import { usePatientContext } from '@/composables/usePatientContext'
-import type { Patient } from '@/composables/usePatientContext'
 import PatientFormDialog from '@/components/patients/PatientFormDialog.vue'
 
 const router = useRouter()
@@ -88,9 +87,16 @@ const filteredList = computed(() => {
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
+onErrorCaptured((err) => {
+  ElMessage.error(`Erreur: ${(err as Error).message}`)
+  return false
+})
+
 onMounted(async () => {
   try {
     await fetchPatients()
+  } catch (e) {
+    ElMessage.error(`Erreur lors du chargement des patients: ${(e as Error).message}`)
   } finally {
     loading.value = false
   }
@@ -103,6 +109,8 @@ function onSearch() {
     loading.value = true
     try {
       await fetchPatients(search.value)
+    } catch (e) {
+      ElMessage.error(`Erreur lors de la recherche: ${(e as Error).message}`)
     } finally {
       loading.value = false
     }
@@ -110,16 +118,26 @@ function onSearch() {
 }
 
 function onPatientClick(patient: PatientDto) {
-  setActivePatient(patient as Patient)
+  setActivePatient(patient)
   router.push(`/app/patients/${patient.id}`)
 }
 
 function openCreate() {
-  formDialogRef.value?.open()
+  if (!formDialogRef.value) {
+    console.error('[PatientsListView] formDialogRef is null — PatientFormDialog may have failed to mount')
+    ElMessage.error('Erreur: le formulaire patient n\'est pas disponible')
+    return
+  }
+  formDialogRef.value.open()
 }
 
 function openEdit(patient: PatientDto) {
-  formDialogRef.value?.open(patient as Patient)
+  if (!formDialogRef.value) {
+    console.error('[PatientsListView] formDialogRef is null — PatientFormDialog may have failed to mount')
+    ElMessage.error('Erreur: le formulaire patient n\'est pas disponible')
+    return
+  }
+  formDialogRef.value.open(patient)
 }
 
 function onDelete(patient: PatientDto) {
@@ -131,14 +149,20 @@ function onDelete(patient: PatientDto) {
     try {
       await deletePatient(patient.id)
       await fetchPatients(search.value)
-    } catch {}
+    } catch (e) {
+      ElMessage.error(`Erreur lors de la suppression: ${(e as Error).message}`)
+    }
+  }).catch(() => {
+    // user cancelled
   })
 }
 
 async function onSaved() {
   try {
     await fetchPatients(search.value)
-  } catch {}
+  } catch (e) {
+    ElMessage.error(`Erreur lors du rafraîchissement: ${(e as Error).message}`)
+  }
 }
 
 function calculateAge(dateStr: string): number {
