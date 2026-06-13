@@ -1,0 +1,16 @@
+provider: github
+owner: Oumar224
+repo: clinique-diabete-endo
+private: true
+win:
+  publisherName: "CDE"
+  signingHashAlgorithms: ['sha256']
+autoDownload: true
+autoInstallOnAppQuit: true
+allowDowngrade: false
+logger:
+  level: "info"
+  file: "updater.log"
+requestHeaders:
+  "Cache-Control": "no-cache"
+updaterCacheDirName: "cde-updater"
