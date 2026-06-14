@@ -36,6 +36,15 @@ export class SessionService {
     return token
   }
 
+  private computeStatutContrat(row: Record<string, unknown>): 'Actif' | 'Expiré' | 'Résilié' {
+    if (row.statut_resiliation === 'resilie') return 'Résilié'
+    if (row.date_fin_contrat) {
+      const end = new Date(row.date_fin_contrat as string)
+      if (end < new Date()) return 'Expiré'
+    }
+    return 'Actif'
+  }
+
   async validate(token: string): Promise<UserEntity | null> {
     const now = new Date().toISOString()
 
@@ -56,6 +65,14 @@ export class SessionService {
 
     if (!user) return null
 
+    // Check contract status
+    const statut = this.computeStatutContrat(user as Record<string, unknown>)
+    if (statut === 'Résilié' || statut === 'Expiré') {
+      // Invalidate the session and return null
+      await this.invalidate(token)
+      return null
+    }
+
     const entity = new UserEntity()
     entity.id = user.id as number
     entity.nom = user.nom as string
@@ -63,6 +80,17 @@ export class SessionService {
     entity.email = user.email as string
     entity.role = user.role as UserEntity['role']
     entity.service = user.service as string
+    entity.photo = user.photo as string | undefined
+    entity.telephone = user.telephone as string | undefined
+    entity.telephone_country_code = user.telephone_country_code as string | undefined
+    entity.fonction = user.fonction as string | undefined
+    entity.date_debut_contrat = user.date_debut_contrat as string | undefined
+    entity.date_fin_contrat = user.date_fin_contrat as string | undefined
+    entity.type_contrat = user.type_contrat as string | undefined
+    entity.statut_resiliation = user.statut_resiliation as string | undefined
+    entity.motif_resiliation = user.motif_resiliation as string | undefined
+    entity.date_resiliation = user.date_resiliation as string | undefined
+    entity.resilie_par = user.resilie_par as number | undefined
     entity.is_active = 1
     entity.is_validated = user.is_validated as number
     return entity

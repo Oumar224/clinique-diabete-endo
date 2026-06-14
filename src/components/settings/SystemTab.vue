@@ -72,14 +72,93 @@
         </el-button>
       </div>
     </div>
+
+    <!-- Configuration Email -->
+    <div class="systab__section">
+      <h2 class="systab__section-title">Configuration Email</h2>
+      <div class="systab__card" style="padding: 16px">
+        <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 14px; color: var(--cd-gray-600);">Statut :</span>
+          <el-tag v-if="emailConfig?.is_configured" type="success" size="small">Configuré</el-tag>
+          <el-tag v-else type="info" size="small">Non configuré</el-tag>
+        </div>
+
+        <el-collapse style="margin-bottom: 16px;">
+          <el-collapse-item title="Instructions" name="instructions">
+            <div style="padding: 8px 0; font-size: 13px; line-height: 1.6;">
+              <p><strong>Gmail :</strong> Utilisez un mot de passe d'application (App Password). Activez d'abord l'authentification à 2 facteurs dans votre compte Google, puis générez un mot de passe d'application.</p>
+              <p style="margin-top: 8px;"><strong>SendGrid :</strong> Créez une clé API SendGrid avec les permissions 'Mail Send'. Utilisez 'apikey' comme nom d'utilisateur et la clé API comme mot de passe.</p>
+              <p style="margin-top: 8px;"><strong>Général :</strong> Contactez votre administrateur réseau pour les paramètres SMTP de votre organisation. Les paramètres courants sont : Serveur: smtp.votredomaine.com, Port: 587 (STARTTLS) ou 465 (SSL).</p>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+
+        <el-form label-position="top" :model="emailForm">
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="SMTP Host">
+                <el-input v-model="emailForm.smtp_host" placeholder="smtp.gmail.com" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="SMTP Port">
+                <el-input-number
+                  v-model="emailForm.smtp_port"
+                  :min="1"
+                  :max="65535"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="SMTP Utilisateur">
+                <el-input v-model="emailForm.smtp_user" placeholder="utilisateur" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="Mot de passe SMTP">
+                <el-input v-model="emailForm.smtp_pass" type="password" show-password placeholder="Mot de passe ou clé API" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="Email expéditeur">
+                <el-input v-model="emailForm.sender_email" placeholder="noreply@clinique.com" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="Nom expéditeur (optionnel)">
+                <el-input v-model="emailForm.sender_name" placeholder="Clinique" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+
+        <div style="display: flex; gap: 12px; margin-top: 8px;">
+          <el-button :loading="testing" @click="handleTestEmail">Tester la configuration</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSaveEmail">Enregistrer</el-button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, reactive, onMounted, watch } from 'vue'
 import { User, Calendar, Money, Tools, Download, Upload } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import { useSystemInfo } from '@/composables/useSystemInfo'
+import {
+  emailConfig,
+  testing,
+  saving,
+  loadConfig,
+  saveConfig,
+  testEmail,
+} from '@/composables/useEmailConfig'
 
 const { systemInfo, backingUp, restoring, fetchInfo, triggerBackup, triggerRestore } = useSystemInfo()
 
@@ -90,8 +169,27 @@ const dbPath = computed(() => {
 
 const hasData = computed(() => !!systemInfo.value.app)
 
+const emailForm = reactive({
+  smtp_host: '',
+  smtp_port: 587,
+  smtp_user: '',
+  smtp_pass: '',
+  sender_email: '',
+  sender_name: '',
+})
+
+watch(emailConfig, (cfg) => {
+  if (cfg) {
+    emailForm.smtp_host = cfg.smtp_host
+    emailForm.smtp_port = cfg.smtp_port
+    emailForm.smtp_user = cfg.smtp_user
+    emailForm.sender_email = cfg.sender_email
+    emailForm.sender_name = cfg.sender_name
+  }
+}, { immediate: true })
+
 onMounted(async () => {
-  await fetchInfo()
+  await Promise.all([fetchInfo(), loadConfig()])
 })
 
 function getCount(table: string): number {
@@ -134,6 +232,22 @@ async function handleRestore() {
   } catch {
     // cancelled
   }
+}
+
+async function handleTestEmail() {
+  await testEmail()
+}
+
+async function handleSaveEmail() {
+  await saveConfig({
+    smtp_host: emailForm.smtp_host,
+    smtp_port: emailForm.smtp_port,
+    smtp_user: emailForm.smtp_user,
+    smtp_pass: emailForm.smtp_pass,
+    sender_email: emailForm.sender_email,
+    sender_name: emailForm.sender_name,
+    is_configured: emailConfig.value?.is_configured ?? false,
+  })
 }
 </script>
 

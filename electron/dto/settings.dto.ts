@@ -138,3 +138,21 @@ export interface AppInfoDto {
   platform: string
   platform_arch: string
 }
+
+// ─── Fonction ─────────────────────────────────────────────────
+export interface FonctionDto {
+  id?: number
+  name: string
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface FonctionCreateDto {
+  name: string
+}
+
+export interface FonctionUpdateDto {
+  name?: string
+  is_active?: boolean
+}

@@ -31,7 +31,7 @@ export class CurrencyService {
       const rows = await query.execute()
       return rows.map(r => this.toDto(r))
     } catch (err: any) {
-      if (err?.message?.includes('no such table')) return []
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) return []
       throw err
     }
   }
@@ -47,7 +47,7 @@ export class CurrencyService {
 
       return row ? this.toDto(row) : null
     } catch (err: any) {
-      if (err?.message?.includes('no such table')) return null
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) return null
       throw err
     }
   }
@@ -65,17 +65,25 @@ export class CurrencyService {
       throw new Error(`La devise "${code}" existe déjà`)
     }
 
-    const result = await this.db
-      .insertInto('currency')
-      .values({
-        code,
-        name: dto.name.trim(),
-        symbol: dto.symbol.trim(),
-        decimals: dto.decimals ?? 0,
-        is_active: 1,
-      })
-      .returningAll()
-      .executeTakeFirst()
+    let result
+    try {
+      result = await this.db
+        .insertInto('currency')
+        .values({
+          code,
+          name: dto.name.trim(),
+          symbol: dto.symbol.trim(),
+          decimals: dto.decimals ?? 0,
+          is_active: 1,
+        })
+        .returningAll()
+        .executeTakeFirst()
+    } catch (err: any) {
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
+        throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
+      }
+      throw err
+    }
 
     if (!result) throw new Error("Échec de la création de la devise")
     return this.toDto(result)
@@ -99,11 +107,18 @@ export class CurrencyService {
       return this.toDto(existing as unknown as Record<string, unknown>)
     }
 
-    await this.db
-      .updateTable('currency')
-      .set(updateData)
-      .where('code', '=', code)
-      .execute()
+    try {
+      await this.db
+        .updateTable('currency')
+        .set(updateData)
+        .where('code', '=', code)
+        .execute()
+    } catch (err: any) {
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
+        throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
+      }
+      throw err
+    }
 
     const updated = await this.getByCode(code)
     if (!updated) throw new Error('Devise introuvable après mise à jour')
@@ -136,13 +151,21 @@ export class CurrencyService {
     }
 
     // Check if medical acts reference this currency
-    const refCount = await this.db
-      .selectFrom('medical_acts')
-      .select(this.db.fn.countAll<number>().as('count'))
-      .where('currency_code', '=', code)
-      .executeTakeFirst()
-
-    const count = (refCount as any)?.count ?? 0
+    let count = 0
+    try {
+      const refCount = await this.db
+        .selectFrom('medical_acts')
+        .select(this.db.fn.countAll<number>().as('count'))
+        .where('currency_code', '=', code)
+        .executeTakeFirst()
+      count = (refCount as any)?.count ?? 0
+    } catch (err: any) {
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
+        count = 0
+      } else {
+        throw err
+      }
+    }
     if (count > 0) {
       throw new Error(
         `Impossible de supprimer cette devise : ${count} acte(s) médical(eaux) l'utilisent. ` +
@@ -150,10 +173,17 @@ export class CurrencyService {
       )
     }
 
-    await this.db
-      .deleteFrom('currency')
-      .where('code', '=', code)
-      .execute()
+    try {
+      await this.db
+        .deleteFrom('currency')
+        .where('code', '=', code)
+        .execute()
+    } catch (err: any) {
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
+        throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
+      }
+      throw err
+    }
   }
 
   // ─── Get default currency code from app_settings ─────────────
@@ -167,7 +197,7 @@ export class CurrencyService {
 
       return ((result as any)?.value as string) ?? 'GNF'
     } catch (err: any) {
-      if (err?.message?.includes('no such table')) return 'GNF'
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) return 'GNF'
       throw err
     }
   }

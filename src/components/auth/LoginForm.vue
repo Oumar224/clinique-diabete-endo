@@ -32,6 +32,10 @@
         />
       </el-form-item>
 
+      <div class="forgot-password-link">
+        <router-link to="/forgot-password">Mot de passe oublié ?</router-link>
+      </div>
+
       <el-form-item>
         <el-checkbox v-model="form.rememberMe">Se souvenir de moi</el-checkbox>
       </el-form-item>
@@ -62,6 +66,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { Message, Lock, WarningFilled } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import logoSrc from '@/assets/cde.png'
@@ -134,6 +139,21 @@ const emits = defineEmits<{
 
 .login-form__btn {
   width: 100%;
+}
+
+.forgot-password-link {
+  text-align: right;
+  margin: -12px 0 12px;
+}
+
+.forgot-password-link a {
+  font-size: 13px;
+  color: #0E5C5B;
+  text-decoration: none;
+}
+
+.forgot-password-link a:hover {
+  text-decoration: underline;
 }
 
 .login-form__error {

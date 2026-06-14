@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ipcInvoke } from '@/utils/ipc'
 
 export interface CurrencyDto {
   code: string
@@ -30,21 +30,11 @@ function buildCurrencyMap() {
   currencyMap.value = map
 }
 
-async function invoke<T = unknown>(channel: string, params?: unknown): Promise<T> {
-  if (!window.electronAPI) throw new Error('electronAPI not available')
-  const result = await window.electronAPI.invoke(channel, params) as { success: boolean; data: T; message: string }
-  if (!result.success) {
-    ElMessage({ type: 'error', message: result.message })
-    throw new Error(result.message)
-  }
-  return result.data
-}
-
 export function useCurrencies() {
   async function fetchCurrencies(): Promise<void> {
     loading.value = true
     try {
-      currencies.value = await invoke<CurrencyDto[]>('currency:list')
+      currencies.value = await ipcInvoke<CurrencyDto[]>('currency:list')
       buildCurrencyMap()
       await loadDefault()
     } catch {
@@ -64,7 +54,7 @@ export function useCurrencies() {
 
   async function loadDefault(): Promise<void> {
     try {
-      const result = await invoke<{ value?: string }>('settings:get', { key: 'currency' })
+      const result = await ipcInvoke<{ value?: string }>('settings:get', { key: 'currency' })
       if (result?.value) {
         defaultCurrency.value = result.value
       }
@@ -75,7 +65,7 @@ export function useCurrencies() {
 
   async function createCurrency(dto: { code: string; name: string; symbol: string; decimals?: number }): Promise<CurrencyDto | null> {
     try {
-      const created = await invoke<CurrencyDto>('currencies:create', dto)
+      const created = await ipcInvoke<CurrencyDto>('currencies:create', dto)
       currencies.value.push(created)
       buildCurrencyMap()
       return created
@@ -86,7 +76,7 @@ export function useCurrencies() {
 
   async function updateCurrency(code: string, dto: Partial<CurrencyDto>): Promise<CurrencyDto | null> {
     try {
-      const updated = await invoke<CurrencyDto>('currencies:update', { code, ...dto })
+      const updated = await ipcInvoke<CurrencyDto>('currencies:update', { code, ...dto })
       const idx = currencies.value.findIndex(c => c.code === code)
       if (idx !== -1) currencies.value[idx] = updated
       buildCurrencyMap()
@@ -98,7 +88,7 @@ export function useCurrencies() {
 
   async function deleteCurrency(code: string): Promise<boolean> {
     try {
-      await invoke('currencies:delete', { code })
+      await ipcInvoke('currencies:delete', { code })
       currencies.value = currencies.value.filter(c => c.code !== code)
       buildCurrencyMap()
       return true
@@ -109,7 +99,7 @@ export function useCurrencies() {
 
   async function setDefault(code: string): Promise<boolean> {
     try {
-      await invoke('currencies:set-default', { code })
+      await ipcInvoke('currencies:set-default', { code })
       defaultCurrency.value = code
       return true
     } catch {

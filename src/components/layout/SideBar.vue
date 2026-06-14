@@ -37,7 +37,7 @@
             {{ userInitials }}
           </el-avatar>
           <span v-show="!isCollapsed" class="sidebar__user-name" v-if="user">
-            {{ user.prenom }} {{ user.nom }}
+            {{ getUserDisplayName(user) }}
           </span>
           <el-icon v-show="!isCollapsed"><ArrowDown /></el-icon>
         </span>
@@ -57,6 +57,7 @@ import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Odometer, Calendar, User, Tickets, Money, UserFilled, Tools, Fold, Expand, ArrowDown } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
+import { getUserDisplayName } from '@/composables/useUsers'
 import { useSidebar } from '@/composables/useSidebar'
 import logoSrc from '@/assets/cde.png'
 import type { Component } from 'vue'

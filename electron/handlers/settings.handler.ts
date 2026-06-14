@@ -7,6 +7,10 @@ import { ServiceService } from '../services/service.service'
 import { MedicalActService } from '../services/medical-act.service'
 import { SystemService } from '../services/system.service'
 import { CurrencyService } from '../services/currency.service'
+import { MedicalUnitService } from '../services/medical-unit.service'
+import { SiteService } from '../services/site.service'
+import { SpecialtyService } from '../services/specialty.service'
+import { FonctionService } from '../services/fonction.service'
 import { createHandler } from '../utils/create-handler'
 
 // ─── Supported currencies (matching frontend currency.config.ts) ──
@@ -22,14 +26,12 @@ export function registerSettingsHandlers() {
   // EXISTING: settings:get / settings:set (backward compatible)
   // ════════════════════════════════════════════════════════════════
   createHandler('settings:get', async ({ key }: { key: string }) => {
-    const db = container.resolve(AppDatabaseDatasource).getInstance()
-    const service = new SettingsService(db as never)
+    const service = container.resolve(SettingsService)
     return { value: await service.getSetting(key) }
   })
 
   createHandler('settings:set', async ({ key, value }: { key: string; value: string }) => {
-    const db = container.resolve(AppDatabaseDatasource).getInstance()
-    const service = new SettingsService(db as never)
+    const service = container.resolve(SettingsService)
     await service.setSetting(key, value)
     return { success: true }
   })
@@ -158,6 +160,94 @@ export function registerSettingsHandlers() {
   })
 
   // ════════════════════════════════════════════════════════════════
+  // MEDICAL UNITS
+  // ════════════════════════════════════════════════════════════════
+  createHandler('medical-units:list', async ({ activeOnly, category }: { activeOnly?: boolean; category?: 'mesure' | 'prescription' } = {}) => {
+    return await container.resolve(MedicalUnitService).list(activeOnly, category)
+  })
+
+  createHandler('medical-units:get', async ({ id }: { id: number }) => {
+    return await container.resolve(MedicalUnitService).getById(id)
+  })
+
+  createHandler('medical-units:create', async (dto: { code: string; name: string; category: 'mesure' | 'prescription'; symbol: string }) => {
+    return await container.resolve(MedicalUnitService).create(dto)
+  })
+
+  createHandler('medical-units:update', async (dto: { id: number; code?: string; name?: string; category?: 'mesure' | 'prescription'; symbol?: string; is_active?: boolean }) => {
+    return await container.resolve(MedicalUnitService).update(dto)
+  })
+
+  createHandler('medical-units:toggle', async ({ id, is_active }: { id: number; is_active: boolean }) => {
+    return await container.resolve(MedicalUnitService).toggle(id, is_active)
+  })
+
+  createHandler('medical-units:delete', async ({ id }: { id: number }) => {
+    await container.resolve(MedicalUnitService).delete(id)
+    return { success: true }
+  })
+
+  // ════════════════════════════════════════════════════════════════
+  // SITES
+  // ════════════════════════════════════════════════════════════════
+  createHandler('sites:list', async ({ activeOnly }: { activeOnly?: boolean } = {}) => {
+    return await container.resolve(SiteService).list(activeOnly)
+  })
+
+  createHandler('sites:get', async ({ id }: { id: number }) => {
+    return await container.resolve(SiteService).getById(id)
+  })
+
+  createHandler('sites:create', async (dto: { name: string; address?: string | null; phone?: string | null; email?: string | null }) => {
+    return await container.resolve(SiteService).create(dto)
+  })
+
+  createHandler('sites:update', async (dto: { id: number; name?: string; address?: string | null; phone?: string | null; email?: string | null; is_active?: boolean; is_default?: boolean }) => {
+    return await container.resolve(SiteService).update(dto)
+  })
+
+  createHandler('sites:toggle', async ({ id, is_active }: { id: number; is_active: boolean }) => {
+    return await container.resolve(SiteService).toggle(id, is_active)
+  })
+
+  createHandler('sites:set-default', async ({ id }: { id: number }) => {
+    return await container.resolve(SiteService).setDefault(id)
+  })
+
+  createHandler('sites:delete', async ({ id }: { id: number }) => {
+    await container.resolve(SiteService).delete(id)
+    return { success: true }
+  })
+
+  // ════════════════════════════════════════════════════════════════
+  // SPECIALTIES
+  // ════════════════════════════════════════════════════════════════
+  createHandler('specialties:list', async ({ activeOnly }: { activeOnly?: boolean } = {}) => {
+    return await container.resolve(SpecialtyService).list(activeOnly)
+  })
+
+  createHandler('specialties:get', async ({ id }: { id: number }) => {
+    return await container.resolve(SpecialtyService).getById(id)
+  })
+
+  createHandler('specialties:create', async (dto: { name: string; code: string; title_prefix?: string }) => {
+    return await container.resolve(SpecialtyService).create(dto)
+  })
+
+  createHandler('specialties:update', async (dto: { id: number; name?: string; code?: string; title_prefix?: string; is_active?: boolean }) => {
+    return await container.resolve(SpecialtyService).update(dto)
+  })
+
+  createHandler('specialties:toggle', async ({ id, is_active }: { id: number; is_active: boolean }) => {
+    return await container.resolve(SpecialtyService).toggle(id, is_active)
+  })
+
+  createHandler('specialties:delete', async ({ id }: { id: number }) => {
+    await container.resolve(SpecialtyService).delete(id)
+    return { success: true }
+  })
+
+  // ════════════════════════════════════════════════════════════════
   // SYSTEM
   // ════════════════════════════════════════════════════════════════
   createHandler('system:get-info', async () => {
@@ -190,6 +280,35 @@ export function registerSettingsHandlers() {
 
   createHandler('system:info', async () => {
     return await container.resolve(SystemService).getAppInfo()
+  })
+
+  // ════════════════════════════════════════════════════════════════
+  // FONCTIONS
+  // ════════════════════════════════════════════════════════════════
+  createHandler('fonctions:list', async ({ activeOnly }: { activeOnly?: boolean } = {}) => {
+    return await container.resolve(FonctionService).list(activeOnly)
+  })
+
+  createHandler('fonctions:get', async ({ id }: { id: number }) => {
+    return await container.resolve(FonctionService).getById(id)
+  })
+
+  createHandler('fonctions:create', async (dto: { name: string }) => {
+    return await container.resolve(FonctionService).create(dto)
+  })
+
+  createHandler('fonctions:update', async ({ id, ...dto }: { id: number; name?: string; is_active?: boolean }) => {
+    return await container.resolve(FonctionService).update(id, dto)
+  })
+
+  createHandler('fonctions:toggle', async ({ id }: { id: number }) => {
+    await container.resolve(FonctionService).toggle(id)
+    return { success: true }
+  })
+
+  createHandler('fonctions:delete', async ({ id }: { id: number }) => {
+    await container.resolve(FonctionService).delete(id)
+    return { success: true }
   })
 
   // App restart (called after restore)

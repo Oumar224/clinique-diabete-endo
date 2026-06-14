@@ -7,6 +7,22 @@
         <ServicesTab />
       </el-tab-pane>
 
+      <el-tab-pane label="Unités médicales" name="medical-units">
+        <MedicalUnitsTab />
+      </el-tab-pane>
+
+      <el-tab-pane label="Sites" name="sites">
+        <SitesTab />
+      </el-tab-pane>
+
+      <el-tab-pane label="Spécialités" name="specialties">
+        <SpecialtiesTab />
+      </el-tab-pane>
+
+      <el-tab-pane label="Fonctions" name="fonctions">
+        <FonctionsTab />
+      </el-tab-pane>
+
       <el-tab-pane label="Tarifs" name="prices">
         <TarifsTab />
       </el-tab-pane>

@@ -1,7 +1,14 @@
+import { inject, singleton } from 'tsyringe'
 import { type Kysely, sql } from 'kysely'
+import { AppDatabaseDatasource } from '../sqlite-data-source'
 
+@singleton()
 export class SettingsService {
-  constructor(private db: Kysely<unknown>) {}
+  public db: Kysely<unknown>
+
+  constructor(@inject(AppDatabaseDatasource) datasource: AppDatabaseDatasource) {
+    this.db = datasource.getInstance() as Kysely<unknown>
+  }
 
   async getSetting(key: string): Promise<string | null> {
     const result = await sql<{ value: string }>`

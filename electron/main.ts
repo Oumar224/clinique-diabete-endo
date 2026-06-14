@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { container } from 'tsyringe'
 import { autoUpdater } from 'electron-updater'
@@ -131,6 +131,8 @@ ipcMain.handle('install-update', () => {
 })
 
 app.whenReady().then(async () => {
+  Menu.setApplicationMenu(null)
+
   try {
     registerAllHandlers()
   } catch (error) {

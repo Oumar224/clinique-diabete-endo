@@ -8,6 +8,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/LoginView.vue'),
   },
   {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('@/views/ForgotPasswordView.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
     path: '/validate-password',
     name: 'validate-password',
     component: () => import('@/views/ValidatePasswordView.vue'),
@@ -63,6 +69,11 @@ const routes: RouteRecordRaw[] = [
         path: 'parametres',
         name: 'settings',
         component: () => import('@/views/SettingsView.vue'),
+      },
+      {
+        path: 'profil',
+        name: 'profil',
+        component: () => import('@/views/ProfilView.vue'),
       },
     ],
   },

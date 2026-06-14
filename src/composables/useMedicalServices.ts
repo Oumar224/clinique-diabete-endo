@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ipcInvoke } from '@/utils/ipc'
 
 export interface ServiceDto {
   id?: number
@@ -17,22 +17,12 @@ const services = ref<ServiceDto[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-async function invoke<T = unknown>(channel: string, params?: unknown): Promise<T> {
-  if (!window.electronAPI) throw new Error('electronAPI not available')
-  const result = await window.electronAPI.invoke(channel, params) as { success: boolean; data: T; message: string }
-  if (!result.success) {
-    ElMessage({ type: 'error', message: result.message })
-    throw new Error(result.message)
-  }
-  return result.data
-}
-
 export function useMedicalServices() {
   async function fetchServices(activeOnly?: boolean): Promise<void> {
     loading.value = true
     error.value = null
     try {
-      services.value = await invoke<ServiceDto[]>('services:list', { activeOnly })
+      services.value = await ipcInvoke<ServiceDto[]>('services:list', { activeOnly })
     } catch (e) {
       error.value = (e as Error).message
     } finally {
@@ -42,7 +32,7 @@ export function useMedicalServices() {
 
   async function createService(dto: { name: string; description?: string | null; duration?: number; color?: string | null }): Promise<ServiceDto | null> {
     try {
-      const created = await invoke<ServiceDto>('services:create', dto)
+      const created = await ipcInvoke<ServiceDto>('services:create', dto)
       await fetchServices()
       return created
     } catch {
@@ -52,7 +42,7 @@ export function useMedicalServices() {
 
   async function updateService(id: number, dto: { name?: string; description?: string | null; duration?: number; color?: string | null }): Promise<ServiceDto | null> {
     try {
-      const updated = await invoke<ServiceDto>('services:update', { id, ...dto })
+      const updated = await ipcInvoke<ServiceDto>('services:update', { id, ...dto })
       await fetchServices()
       return updated
     } catch {
@@ -62,7 +52,7 @@ export function useMedicalServices() {
 
   async function deleteService(id: number): Promise<boolean> {
     try {
-      await invoke('services:delete', { id })
+      await ipcInvoke('services:delete', { id })
       await fetchServices()
       return true
     } catch {
@@ -72,7 +62,7 @@ export function useMedicalServices() {
 
   async function toggleService(id: number, isActive: boolean): Promise<ServiceDto | null> {
     try {
-      const toggled = await invoke<ServiceDto>('services:toggle', { id, is_active: isActive })
+      const toggled = await ipcInvoke<ServiceDto>('services:toggle', { id, is_active: isActive })
       const idx = services.value.findIndex(s => s.id === id)
       if (idx !== -1) services.value[idx] = toggled
       return toggled
@@ -83,7 +73,7 @@ export function useMedicalServices() {
 
   async function reorderServices(ids: number[]): Promise<ServiceDto[] | null> {
     try {
-      const reordered = await invoke<ServiceDto[]>('services:reorder', { ids })
+      const reordered = await ipcInvoke<ServiceDto[]>('services:reorder', { ids })
       services.value = reordered
       return reordered
     } catch {

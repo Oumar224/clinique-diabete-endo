@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { ipcInvoke } from '@/utils/ipc'
 
 export interface AppInfoDto {
   app_version: string
@@ -37,22 +38,12 @@ const systemInfo = ref<SystemInfoState>({})
 const backingUp = ref(false)
 const restoring = ref(false)
 
-async function invoke<T = unknown>(channel: string, params?: unknown): Promise<T> {
-  if (!window.electronAPI) throw new Error('electronAPI not available')
-  const result = await window.electronAPI.invoke(channel, params) as { success: boolean; data: T; message: string }
-  if (!result.success) {
-    ElMessage({ type: 'error', message: result.message })
-    throw new Error(result.message)
-  }
-  return result.data
-}
-
 export function useSystemInfo() {
   async function fetchInfo(): Promise<void> {
     try {
       const [app, stats] = await Promise.all([
-        invoke<AppInfoDto>('system:info'),
-        invoke<DbStatsDto>('system:db-stats'),
+        ipcInvoke<AppInfoDto>('system:info'),
+        ipcInvoke<DbStatsDto>('system:db-stats'),
       ])
       systemInfo.value = { app, stats }
     } catch {
@@ -63,7 +54,7 @@ export function useSystemInfo() {
   async function triggerBackup(path?: string): Promise<BackupResultDto | null> {
     backingUp.value = true
     try {
-      const result = await invoke<BackupResultDto>('system:backup', { targetPath: path })
+      const result = await ipcInvoke<BackupResultDto>('system:backup', { targetPath: path })
       ElMessage({ type: 'success', message: `Sauvegarde effectuée : ${result.file_path}` })
       systemInfo.value.lastBackup = result.date
       return result
@@ -77,7 +68,7 @@ export function useSystemInfo() {
   async function triggerRestore(filePath: string): Promise<RestoreResultDto | null> {
     restoring.value = true
     try {
-      const result = await invoke<RestoreResultDto>('system:restore', { filePath })
+      const result = await ipcInvoke<RestoreResultDto>('system:restore', { filePath })
       ElMessage({ type: 'success', message: 'Base de données restaurée. Redémarrage...' })
       if (result.needs_restart) {
         await window.electronAPI?.invoke('app:restart')

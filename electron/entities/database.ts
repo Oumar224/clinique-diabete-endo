@@ -52,6 +52,71 @@ export interface DB {
     change_reason: string | null
     changed_at?: string
   }
+  medical_units: {
+    id?: number
+    code: string
+    name: string
+    category: string
+    symbol: string
+    is_active: number
+    created_at?: string
+    updated_at?: string
+  }
+  sites: {
+    id?: number
+    name: string
+    address: string | null
+    phone: string | null
+    email: string | null
+    is_default: number
+    is_active: number
+    created_at?: string
+    updated_at?: string
+  }
+  specialties: {
+    id?: number
+    name: string
+    code: string
+    title_prefix: string
+    is_active: number
+    created_at?: string
+    updated_at?: string
+  }
+  user_specialties: {
+    user_id: number
+    specialty_id: number
+  }
+  user_sites: {
+    user_id: number
+    site_id: number
+  }
+  user_services: {
+    user_id: number
+    service_id: number
+  }
+  user_medical_units: {
+    user_id: number
+    medical_unit_id: number
+  }
+  email_config: {
+    id: number
+    smtp_host: string
+    smtp_port: number
+    smtp_user: string
+    smtp_pass_encrypted: string
+    sender_email: string
+    sender_name: string
+    is_configured: number
+    created_at?: string
+    updated_at?: string
+  }
+  fonctions: {
+    id?: number
+    name: string
+    is_active: number
+    created_at?: string
+    updated_at?: string
+  }
 }
 
 export const ENTITIES: Entity[] = [

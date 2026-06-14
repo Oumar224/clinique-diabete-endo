@@ -47,25 +47,41 @@ export class ServiceService {
   async create(dto: ServiceCreateDto): Promise<ServiceDto> {
     this.validateName(dto.name)
 
-    const maxOrder = await this.db
-      .selectFrom('services')
-      .select(this.db.fn.max<number>('sort_order').as('max_order'))
-      .executeTakeFirst()
+    let maxOrder
+    try {
+      maxOrder = await this.db
+        .selectFrom('services')
+        .select(this.db.fn.max<number>('sort_order').as('max_order'))
+        .executeTakeFirst()
+    } catch (err: any) {
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
+        throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
+      }
+      throw err
+    }
 
     const nextOrder = ((maxOrder as any)?.max_order ?? -1) + 1
 
-    const result = await this.db
-      .insertInto('services')
-      .values({
-        name: dto.name.trim(),
-        description: dto.description ?? null,
-        duration: dto.duration ?? 30,
-        color: dto.color ?? '#0E5C5B',
-        sort_order: nextOrder,
-        is_active: 1,
-      })
-      .returningAll()
-      .executeTakeFirst()
+    let result
+    try {
+      result = await this.db
+        .insertInto('services')
+        .values({
+          name: dto.name.trim(),
+          description: dto.description ?? null,
+          duration: dto.duration ?? 30,
+          color: dto.color ?? '#0E5C5B',
+          sort_order: nextOrder,
+          is_active: 1,
+        })
+        .returningAll()
+        .executeTakeFirst()
+    } catch (err: any) {
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
+        throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
+      }
+      throw err
+    }
 
     if (!result) throw new Error('Échec de la création du service')
     return this.toDto(result)
@@ -77,11 +93,19 @@ export class ServiceService {
       throw new Error("L'identifiant du service est requis")
     }
 
-    const existing = await this.db
-      .selectFrom('services')
-      .selectAll()
-      .where('id', '=', dto.id)
-      .executeTakeFirst()
+    let existing
+    try {
+      existing = await this.db
+        .selectFrom('services')
+        .selectAll()
+        .where('id', '=', dto.id)
+        .executeTakeFirst()
+    } catch (err: any) {
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
+        throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
+      }
+      throw err
+    }
 
     if (!existing) throw new Error('Service introuvable')
 
@@ -97,11 +121,18 @@ export class ServiceService {
     if (dto.duration !== undefined) updateData.duration = dto.duration
     if (dto.color !== undefined) updateData.color = dto.color
 
-    await this.db
-      .updateTable('services')
-      .set(updateData)
-      .where('id', '=', dto.id)
-      .execute()
+    try {
+      await this.db
+        .updateTable('services')
+        .set(updateData)
+        .where('id', '=', dto.id)
+        .execute()
+    } catch (err: any) {
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
+        throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
+      }
+      throw err
+    }
 
     const updated = await this.getById(dto.id)
     if (!updated) throw new Error('Service introuvable après mise à jour')
@@ -132,11 +163,19 @@ export class ServiceService {
     if (!existing) throw new Error('Service introuvable')
 
     // Check for referencing medical acts
-    const refCount = await this.db
-      .selectFrom('medical_acts')
-      .select(this.db.fn.countAll<number>().as('count'))
-      .where('service_id', '=', id)
-      .executeTakeFirst()
+    let refCount
+    try {
+      refCount = await this.db
+        .selectFrom('medical_acts')
+        .select(this.db.fn.countAll<number>().as('count'))
+        .where('service_id', '=', id)
+        .executeTakeFirst()
+    } catch (err: any) {
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
+        throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
+      }
+      throw err
+    }
 
     const count = (refCount as any)?.count ?? 0
     if (count > 0) {
@@ -146,10 +185,17 @@ export class ServiceService {
       )
     }
 
-    await this.db
-      .deleteFrom('services')
-      .where('id', '=', id)
-      .execute()
+    try {
+      await this.db
+        .deleteFrom('services')
+        .where('id', '=', id)
+        .execute()
+    } catch (err: any) {
+      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
+        throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
+      }
+      throw err
+    }
   }
 
   // ─── Reorder services ────────────────────────────────────────

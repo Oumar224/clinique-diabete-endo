@@ -16,7 +16,8 @@ export class SeedService {
       `.execute(this.db)
       console.log('[CDE] Admin user seeded: admin@cde.com / admin')
     } else {
-      await sql`UPDATE user SET is_validated = 1, is_active = 1 WHERE email = 'admin@cde.com'`.execute(this.db)
+      const hash = await bcrypt.hash('admin', 10)
+      await sql`UPDATE user SET is_validated = 1, is_active = 1, password_hash = ${hash} WHERE email = 'admin@cde.com'`.execute(this.db)
       console.log('[CDE] Admin user updated: is_validated = 1, is_active = 1')
     }
 

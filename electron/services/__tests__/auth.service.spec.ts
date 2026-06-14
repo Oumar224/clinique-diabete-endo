@@ -6,6 +6,8 @@ import os from "node:os"
 import { container } from "tsyringe"
 import { AppDatabaseDatasource } from "../../sqlite-data-source"
 import { AuthService } from "../auth.service"
+import { SpecialtyService } from "../specialty.service"
+import { FonctionService } from "../fonction.service"
 import { EntityRegistry } from "../../automerge/entity-registry"
 
 describe("AuthService", () => {
@@ -96,5 +98,152 @@ describe("AuthService", () => {
     await authService.deleteUser(created.id!)
     const user = await authService.getUserById(created.id!)
     expect(user!.is_active).toBe(false)
+  })
+
+  // ── Email validation tests ───────────────────────────────────────────
+
+  it("should reject invalid email format on createUser", async () => {
+    const authService = container.resolve(AuthService)
+    await expect(authService.createUser({
+      nom: "Test",
+      prenom: "User",
+      email: "not-an-email",
+      role: "MEDECIN",
+    } as any)).rejects.toThrow("Format d'email invalide")
+  })
+
+  it("should reject duplicate email on createUser", async () => {
+    const authService = container.resolve(AuthService)
+    // Create first user
+    await authService.createUser({
+      nom: "First",
+      prenom: "User",
+      email: "duplicate@test.com",
+      role: "MEDECIN",
+    } as any)
+    // Try creating with same email
+    await expect(authService.createUser({
+      nom: "Second",
+      prenom: "User",
+      email: "duplicate@test.com",
+      role: "SECRETAIRE",
+    } as any)).rejects.toThrow("Cet email est déjà utilisé par un autre utilisateur")
+  })
+
+  it("should reject invalid email format on updateUser", async () => {
+    const authService = container.resolve(AuthService)
+    // Create a user first
+    const user = await authService.createUser({
+      nom: "Update",
+      prenom: "Test",
+      email: "update@test.com",
+      role: "MEDECIN",
+    } as any)
+    // Try updating with invalid email
+    await expect(authService.updateUser({
+      id: user.id!,
+      email: "bad-email",
+    } as any)).rejects.toThrow("Format d'email invalide")
+  })
+
+  // ── Fonction_id tests ───────────────────────────────────────────
+
+  it("should create user with fonction_id", async () => {
+    const authService = container.resolve(AuthService)
+    const fonctionService = container.resolve(FonctionService)
+
+    // Create a fonction first
+    const fonction = await fonctionService.create({ name: "Médecin Chef" })
+    expect(fonction.id).toBeDefined()
+
+    // Create a user with fonction_id
+    const created = await authService.createUser({
+      nom: "Fonction",
+      prenom: "User",
+      email: "fonction-user@cde.com",
+      role: "MEDECIN",
+      fonction_id: fonction.id!,
+    })
+
+    // Retrieve the user and verify fonction_id
+    const user = await authService.getUserById(created.id!)
+    expect(user).toBeDefined()
+    expect(user!.fonction_id).toBe(fonction.id!)
+  })
+
+  // ── enrichUserWithRelations: title_prefix ────────────────────────
+
+  it("should return title_prefix in enrichUserWithRelations specialties", async () => {
+    const authService = container.resolve(AuthService)
+    const specialtyService = container.resolve(SpecialtyService)
+
+    // Create a user
+    const user = await authService.createUser({
+      nom: "TitlePrefix",
+      prenom: "Test",
+      email: "title-prefix@cde.com",
+      role: "MEDECIN",
+    })
+
+    // Create a specialty with a non-default title_prefix
+    const specialty = await specialtyService.create({
+      name: "Test Titre Prefixe",
+      code: "TITRPFX",
+      title_prefix: "Pr",
+    })
+
+    // Link the user to the specialty via syncUserRelations
+    await authService.syncUserRelations(user.id!, {
+      specialty_ids: [specialty.id!],
+    })
+
+    // Call enrichUserWithRelations
+    const relations = await authService.enrichUserWithRelations(user.id!)
+
+    // Assert title_prefix is present and correct
+    expect(relations.specialties).toHaveLength(1)
+    expect(relations.specialties[0].title_prefix).toBe("Pr")
+    expect(relations.specialties[0].id).toBe(specialty.id!)
+    expect(relations.specialties[0].name).toBe("Test Titre Prefixe")
+    expect(relations.specialties[0].code).toBe("TITRPFX")
+
+    // Verify other relation fields are present (empty arrays by default)
+    expect(relations.services).toEqual([])
+    expect(relations.sites).toEqual([])
+    expect(relations.medical_units).toEqual([])
+    expect(relations.fonction).toBeNull()
+    expect(relations.statut_contrat).toBe("Actif")
+  })
+
+  // ── Password reset tests ─────────────────────────────────────────────
+
+  it("should not throw when resetting password for unknown email", async () => {
+    const authService = container.resolve(AuthService)
+    // Should not throw (security: silent return to avoid revealing if email exists)
+    await expect(authService.sendResetPassword("unknown@test.com")).resolves.not.toThrow()
+  })
+
+  it("should reset password and set is_validated=0 for existing email", async () => {
+    const authService = container.resolve(AuthService)
+    // Create a user
+    const user = await authService.createUser({
+      nom: "Reset",
+      prenom: "Test",
+      email: "reset@test.com",
+      role: "MEDECIN",
+      password: "changeme",
+    } as any)
+
+    // Mark as validated first
+    await authService.validatePassword(user.id!, "changeme", "newpassword123")
+
+    // Send reset password
+    await authService.sendResetPassword("reset@test.com")
+
+    // Verify user is now not validated
+    const users = await authService.listUsers()
+    const updated = users.find(u => u.email === "reset@test.com")
+    expect(updated).toBeDefined()
+    expect(updated!.is_validated).toBe(false)
   })
 })

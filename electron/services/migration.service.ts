@@ -4,6 +4,10 @@ import * as FixUserSchema from '../migrations/002-fix-user-schema'
 import * as AddSettings from '../migrations/003-add-settings'
 import * as InvoiceSchema from '../migrations/004-invoice'
 import * as SettingsTables from '../migrations/005-settings-tables'
+import * as SettingsExtensions from '../migrations/006-settings-extensions'
+import * as UserMedicalUnits from '../migrations/007-user-medical-units'
+import * as EmailConfig from '../migrations/008-email-config'
+import * as Fonctions from '../migrations/009-fonctions'
 
 class StaticMigrationProvider implements MigrationProvider {
   async getMigrations(): Promise<Record<string, Migration>> {
@@ -13,6 +17,10 @@ class StaticMigrationProvider implements MigrationProvider {
       '003-add-settings': AddSettings,
       '004-invoice': InvoiceSchema,
       '005-settings-tables': SettingsTables,
+      '006-settings-extensions': SettingsExtensions,
+      '007-user-medical-units': UserMedicalUnits,
+      '008-email-config': EmailConfig,
+      '009-fonctions': Fonctions,
     }
   }
 }
