@@ -8,9 +8,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       display_name TEXT    NOT NULL,
       file_name    TEXT    NOT NULL,
       mime_type    TEXT,
-      file_size    INTEGER,
+      file_size    INTEGER CHECK(file_size >= 0),
       file_data    TEXT    NOT NULL,
-      created_at   TEXT    DEFAULT (datetime('now'))
+      created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
     )
   `))
   await db.executeQuery(CompiledQuery.raw(`

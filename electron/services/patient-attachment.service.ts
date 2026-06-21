@@ -1,5 +1,6 @@
 import { inject, singleton } from 'tsyringe'
 import type { Kysely } from 'kysely'
+import { NoResultError } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { type PatientAttachmentDto, type CreatePatientAttachmentDto } from '../dto/patient-attachment.dto'
@@ -23,14 +24,31 @@ export class PatientAttachmentService {
   }
 
   async create(dto: CreatePatientAttachmentDto): Promise<PatientAttachmentDto> {
+    const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 Mo
+
+    // Validation de la taille fournie dans le DTO
+    if (dto.fileSize != null && dto.fileSize > MAX_FILE_SIZE) {
+      throw new Error('La taille du fichier ne doit pas dépasser 10 Mo')
+    }
+
+    // Validation de la taille réelle depuis le base64 (seconde couche de sécurité)
+    const base64Data = dto.fileData.includes('base64,')
+      ? dto.fileData.substring(dto.fileData.indexOf('base64,') + 7)
+      : dto.fileData
+    const padding = base64Data.endsWith('==') ? 2 : base64Data.endsWith('=') ? 1 : 0
+    const decodedSize = (base64Data.length * 3) / 4 - padding
+    if (decodedSize > MAX_FILE_SIZE) {
+      throw new Error('La taille du fichier décodé ne doit pas dépasser 10 Mo')
+    }
+
     const result = await this.db
       .insertInto('patient_attachments')
       .values({
         patient_id: dto.patientId,
         display_name: dto.displayName,
         file_name: dto.fileName,
-        mime_type: dto.mimeType,
-        file_size: dto.fileSize,
+        mime_type: dto.mimeType ?? null,
+        file_size: dto.fileSize ?? null,
         file_data: dto.fileData,
       })
       .returningAll()
@@ -39,25 +57,38 @@ export class PatientAttachmentService {
   }
 
   async delete(id: number): Promise<void> {
-    await this.db
+    const result = await this.db
       .deleteFrom('patient_attachments')
       .where('id', '=', id)
-      .execute()
+      .executeTakeFirst()
+    if (!result || result.numDeletedRows === 0n) {
+      throw new Error('Pièce jointe introuvable')
+    }
   }
 
   async getById(id: number): Promise<PatientAttachmentDto> {
-    const row = await this.db
-      .selectFrom('patient_attachments')
-      .selectAll()
-      .where('id', '=', id)
-      .executeTakeFirstOrThrow()
-    return {
-      ...this.toDto(row),
-      fileData: row.file_data,
+    try {
+      const row = await this.db
+        .selectFrom('patient_attachments')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirstOrThrow()
+      return {
+        ...this.toDto(row),
+        fileData: row.file_data,
+      }
+    } catch (error) {
+      if (error instanceof NoResultError) {
+        throw new Error('Pièce jointe introuvable')
+      }
+      throw error
     }
   }
 
   private toDto(row: Record<string, unknown>): PatientAttachmentDto {
+    if (row.created_at == null) {
+      throw new Error('Erreur interne : date de création manquante')
+    }
     return {
       id: row.id as number,
       patientId: row.patient_id as number,

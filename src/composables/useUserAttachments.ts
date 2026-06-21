@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import { ipcInvoke } from '@/utils/ipc'
 
 export interface AttachmentDto {
@@ -20,11 +21,12 @@ export function useUserAttachments() {
   async function loadAttachments(userId: number) {
     if (loadedForUserId.value === userId) return
     loading.value = true
+    attachments.value = []
     try {
       attachments.value = await ipcInvoke<AttachmentDto[]>('user-attachments:list', userId)
       loadedForUserId.value = userId
     } catch {
-      // ipcInvoke affiche déjà ElMessage en cas d'erreur
+      ElMessage.error('Erreur lors du chargement des pièces jointes')
     }
     loading.value = false
   }

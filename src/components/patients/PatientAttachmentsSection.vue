@@ -15,6 +15,7 @@
       <input
         ref="fileInputRef"
         type="file"
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
         style="display: none"
         @change="handleFileChange"
       />
@@ -24,7 +25,7 @@
       <el-button
         size="small"
         type="primary"
-        :disabled="!displayName || !selectedFile"
+        :disabled="!displayName || !selectedFile || !fileData"
         :loading="adding"
         @click="handleAdd"
         style="margin-left: 8px;"
@@ -42,9 +43,9 @@
     <div v-for="att in attachments" :key="att.id" class="attachments-section__item">
       <div class="attachments-section__item-info">
         <span class="attachments-section__item-icon">
-          <template v-if="att.mimeType?.startsWith('image/')">🖼</template>
-          <template v-else-if="att.mimeType?.includes('pdf')">📄</template>
-          <template v-else>📎</template>
+          <template v-if="att.mimeType?.startsWith('image/')"><el-icon><PictureFilled /></el-icon></template>
+          <template v-else-if="att.mimeType?.includes('pdf')"><el-icon><Document /></el-icon></template>
+          <template v-else><el-icon><Paperclip /></el-icon></template>
         </span>
         <div>
           <div class="attachments-section__item-name">{{ att.displayName }}</div>
@@ -68,7 +69,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete } from '@element-plus/icons-vue'
+import { Delete, PictureFilled, Document, Paperclip } from '@element-plus/icons-vue'
 import { usePatientAttachments } from '@/composables/usePatientAttachments'
 
 const props = defineProps<{
@@ -99,6 +100,8 @@ function triggerFileInput() {
   fileInputRef.value?.click()
 }
 
+let currentFile: File | null = null
+
 function handleFileChange(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -107,13 +110,18 @@ function handleFileChange(event: Event) {
   if (file.size > 10 * 1024 * 1024) {
     ElMessage.error('Le fichier ne doit pas dépasser 10 Mo')
     target.value = ''
+    selectedFile.value = null
+    fileData.value = ''
     return
   }
 
   selectedFile.value = file
+  currentFile = file
   const reader = new FileReader()
   reader.onload = () => {
-    fileData.value = reader.result as string
+    if (currentFile === file) {
+      fileData.value = reader.result as string
+    }
   }
   reader.readAsDataURL(file)
 }
@@ -160,7 +168,7 @@ async function handleRemove(id: number) {
 }
 
 function formatSize(bytes: number | null): string {
-  if (!bytes) return ''
+  if (bytes === null || bytes === undefined) return ''
   if (bytes < 1024) return `${bytes} o`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
