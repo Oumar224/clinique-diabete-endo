@@ -2,41 +2,74 @@
   {
     "code": "GN-CO",
     "name": "Conakry",
-    "type": "region",
     "children": [
       {
-        "code": "GN-CON",
-        "name": "Conakry",
-        "type": "prefecture",
+        "code": "pref_conakry",
+        "name": "Zone Spéciale de Conakry",
         "children": [
           {
             "code": "GN-CON-KAL",
             "name": "Kaloum",
-            "type": "commune",
             "region": "Conakry"
           },
           {
             "code": "GN-CON-DIX",
             "name": "Dixinn",
-            "type": "commune",
             "region": "Conakry"
           },
           {
             "code": "GN-CON-MAT",
             "name": "Matam",
-            "type": "commune",
             "region": "Conakry"
           },
           {
             "code": "GN-CON-RAT",
             "name": "Ratoma",
-            "type": "commune",
             "region": "Conakry"
           },
           {
             "code": "GN-CON-MTO",
             "name": "Matoto",
-            "type": "commune",
+            "region": "Conakry"
+          },
+          {
+            "code": "GN-CON-KAS",
+            "name": "Kassa",
+            "region": "Conakry"
+          },
+          {
+            "code": "GN-CON-LAM",
+            "name": "Lambanyi",
+            "region": "Conakry"
+          },
+          {
+            "code": "GN-CON-SON",
+            "name": "Sonfonia",
+            "region": "Conakry"
+          },
+          {
+            "code": "GN-CON-GBE",
+            "name": "Gbessia",
+            "region": "Conakry"
+          },
+          {
+            "code": "GN-CON-TOM",
+            "name": "Tombolia",
+            "region": "Conakry"
+          },
+          {
+            "code": "GN-CON-KAG",
+            "name": "Kagbelen",
+            "region": "Conakry"
+          },
+          {
+            "code": "GN-CON-SAN",
+            "name": "Sanoyah",
+            "region": "Conakry"
+          },
+          {
+            "code": "GN-CON-MAN",
+            "name": "Manéah",
             "region": "Conakry"
           }
         ],
@@ -47,227 +80,106 @@
   {
     "code": "GN-BO",
     "name": "Boké",
-    "type": "region",
     "children": [
-      {
-        "code": "GN-BOKE",
-        "name": "Boké",
-        "type": "prefecture",
-        "children": [
-          {
-            "code": "GN-BOKE-BOC",
-            "name": "Boké Centre",
-            "type": "commune",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-BOKE-BIN",
-            "name": "Bintimodiya",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-BOKE-DAB",
-            "name": "Dabiss",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-BOKE-KAM",
-            "name": "Kamsar",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-BOKE-KAN",
-            "name": "Kanfarandé",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-BOKE-KOL",
-            "name": "Kolaboui",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-BOKE-MAL",
-            "name": "Malapouya",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-BOKE-SAN",
-            "name": "Sangarédi",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-BOKE-SAS",
-            "name": "Sansalé",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-BOKE-TAN",
-            "name": "Tanéné",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          }
-        ],
-        "region": "Boké"
-      },
       {
         "code": "GN-BOFF",
         "name": "Boffa",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-BOFF-BOC",
-            "name": "Boffa Centre",
-            "type": "commune",
+            "name": "Boffa-Centre",
             "region": "Boké"
           },
           {
             "code": "GN-BOFF-COL",
             "name": "Colia",
-            "type": "sous_prefecture",
             "region": "Boké"
           },
           {
             "code": "GN-BOFF-DOU",
-            "name": "Douprou",
-            "type": "sous_prefecture",
+            "name": "Doupro",
             "region": "Boké"
           },
           {
-            "code": "GN-BOFF-KOK",
-            "name": "Koba-Kakima",
-            "type": "sous_prefecture",
+            "code": "GN-BOFF-KOT",
+            "name": "Koba-Tatema",
             "region": "Boké"
           },
           {
             "code": "GN-BOFF-LIS",
             "name": "Lisso",
-            "type": "sous_prefecture",
             "region": "Boké"
           },
           {
             "code": "GN-BOFF-MAN",
             "name": "Mankountan",
-            "type": "sous_prefecture",
             "region": "Boké"
           },
           {
             "code": "GN-BOFF-TAM",
             "name": "Tamita",
-            "type": "sous_prefecture",
             "region": "Boké"
           },
           {
             "code": "GN-BOFF-TOU",
-            "name": "Tougnifily",
-            "type": "sous_prefecture",
+            "name": "Tougnifili",
             "region": "Boké"
           }
         ],
         "region": "Boké"
       },
       {
-        "code": "GN-GAOU",
-        "name": "Gaoual",
-        "type": "prefecture",
+        "code": "GN-BOKE",
+        "name": "Boké",
         "children": [
           {
-            "code": "GN-GAOU-GAC",
-            "name": "Gaoual Centre",
-            "type": "commune",
+            "code": "GN-BOKE-BOC",
+            "name": "Boké-Centre",
             "region": "Boké"
           },
           {
-            "code": "GN-GAOU-KAK",
-            "name": "Kakony",
-            "type": "sous_prefecture",
+            "code": "GN-BOKE-BIN",
+            "name": "Bintimodiya",
             "region": "Boké"
           },
           {
-            "code": "GN-GAOU-KOU",
-            "name": "Koumbia",
-            "type": "sous_prefecture",
+            "code": "GN-BOKE-DAB",
+            "name": "Dabiss",
             "region": "Boké"
           },
           {
-            "code": "GN-GAOU-KUN",
-            "name": "Kounsitel",
-            "type": "sous_prefecture",
+            "code": "GN-BOKE-KAM",
+            "name": "Kamsar",
             "region": "Boké"
           },
           {
-            "code": "GN-GAOU-MAL",
-            "name": "Malanta",
-            "type": "sous_prefecture",
+            "code": "GN-BOKE-KAN",
+            "name": "Kanfarandé",
             "region": "Boké"
           },
           {
-            "code": "GN-GAOU-TOU",
-            "name": "Touba",
-            "type": "sous_prefecture",
+            "code": "GN-BOKE-KOL",
+            "name": "Kolaboui",
             "region": "Boké"
           },
           {
-            "code": "GN-GAOU-WEN",
-            "name": "Wendou M'Bour",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          }
-        ],
-        "region": "Boké"
-      },
-      {
-        "code": "GN-KOU",
-        "name": "Koundara",
-        "type": "prefecture",
-        "children": [
-          {
-            "code": "GN-KOU-KOC",
-            "name": "Koundara Centre",
-            "type": "commune",
+            "code": "GN-BOKE-MAL",
+            "name": "Malapouyah",
             "region": "Boké"
           },
           {
-            "code": "GN-KOU-GUI",
-            "name": "Guingan",
-            "type": "sous_prefecture",
+            "code": "GN-BOKE-SAN",
+            "name": "Sangarédi",
             "region": "Boké"
           },
           {
-            "code": "GN-KOU-KAM",
-            "name": "Kamaby",
-            "type": "sous_prefecture",
+            "code": "GN-BOKE-SAS",
+            "name": "Sansalé",
             "region": "Boké"
           },
           {
-            "code": "GN-KOU-SAM",
-            "name": "Sambailo",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-KOU-SAR",
-            "name": "Saréboido",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-KOU-TER",
-            "name": "Termessé",
-            "type": "sous_prefecture",
-            "region": "Boké"
-          },
-          {
-            "code": "GN-KOU-YOU",
-            "name": "Youkounkoun",
-            "type": "sous_prefecture",
+            "code": "GN-BOKE-TAN",
+            "name": "Tanéné",
             "region": "Boké"
           }
         ],
@@ -276,30 +188,114 @@
       {
         "code": "GN-FRI",
         "name": "Fria",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-FRI-FRC",
-            "name": "Fria Centre",
-            "type": "commune",
+            "name": "Fria-Centre",
             "region": "Boké"
           },
           {
             "code": "GN-FRI-BAG",
             "name": "Baguinet",
-            "type": "sous_prefecture",
             "region": "Boké"
           },
           {
             "code": "GN-FRI-BAN",
-            "name": "Banguiney",
-            "type": "sous_prefecture",
+            "name": "Banguingny",
             "region": "Boké"
           },
           {
             "code": "GN-FRI-TOR",
             "name": "Tormelin",
-            "type": "sous_prefecture",
+            "region": "Boké"
+          }
+        ],
+        "region": "Boké"
+      },
+      {
+        "code": "GN-GAOU",
+        "name": "Gaoual",
+        "children": [
+          {
+            "code": "GN-GAOU-GAC",
+            "name": "Gaoual-Centre",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-GAOU-FOU",
+            "name": "Foulamory",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-GAOU-KAK",
+            "name": "Kakony",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-GAOU-KOU",
+            "name": "Koumbia",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-GAOU-KUN",
+            "name": "Kounsitel",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-GAOU-MAL",
+            "name": "Malanta",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-GAOU-TOU",
+            "name": "Touba",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-GAOU-WEN",
+            "name": "Wendou M'bour",
+            "region": "Boké"
+          }
+        ],
+        "region": "Boké"
+      },
+      {
+        "code": "GN-KOU",
+        "name": "Koundara",
+        "children": [
+          {
+            "code": "GN-KOU-KOC",
+            "name": "Koundara-Centre",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-KOU-GUI",
+            "name": "Guingan",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-KOU-KAM",
+            "name": "Kamaby",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-KOU-SAM",
+            "name": "Sambailo",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-KOU-SAR",
+            "name": "Saréboido",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-KOU-TER",
+            "name": "Termessé",
+            "region": "Boké"
+          },
+          {
+            "code": "GN-KOU-YOU",
+            "name": "Youkounkoun",
             "region": "Boké"
           }
         ],
@@ -310,109 +306,24 @@
   {
     "code": "GN-KI",
     "name": "Kindia",
-    "type": "region",
     "children": [
-      {
-        "code": "GN-KIN",
-        "name": "Kindia",
-        "type": "prefecture",
-        "children": [
-          {
-            "code": "GN-KIN-KIC",
-            "name": "Kindia Centre",
-            "type": "commune",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-KIN-BAN",
-            "name": "Bangouyah",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-KIN-DAM",
-            "name": "Damakania",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-KIN-FRI",
-            "name": "Friguiagbé",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-KIN-KOL",
-            "name": "Kolente",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-KIN-MAD",
-            "name": "Madina Oula",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-KIN-MAM",
-            "name": "Mambia",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-KIN-MOL",
-            "name": "Molota",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-KIN-SAM",
-            "name": "Samayah",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-KIN-SOU",
-            "name": "Sougueta",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-KIN-LIN",
-            "name": "Linsan",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          }
-        ],
-        "region": "Kindia"
-      },
       {
         "code": "GN-COY",
         "name": "Coyah",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-COY-COC",
-            "name": "Coyah Centre",
-            "type": "commune",
+            "name": "Coyah-Centre",
             "region": "Kindia"
           },
           {
             "code": "GN-COY-KOU",
             "name": "Kouriah",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-COY-MAN",
             "name": "Manéah",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-COY-WON",
-            "name": "Wonkifong",
-            "type": "sous_prefecture",
             "region": "Kindia"
           }
         ],
@@ -421,48 +332,40 @@
       {
         "code": "GN-DUB",
         "name": "Dubréka",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-DUB-DUC",
-            "name": "Dubréka Centre",
-            "type": "commune",
+            "name": "Dubréka-Centre",
             "region": "Kindia"
           },
           {
             "code": "GN-DUB-BAD",
             "name": "Badi",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-DUB-FAL",
-            "name": "Falessade",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-DUB-KHO",
-            "name": "Khorira",
-            "type": "sous_prefecture",
+            "name": "Faléssadé",
             "region": "Kindia"
           },
           {
             "code": "GN-DUB-OUA",
             "name": "Ouassou",
-            "type": "sous_prefecture",
+            "region": "Kindia"
+          },
+          {
+            "code": "GN-DUB-ROK",
+            "name": "Rokot",
             "region": "Kindia"
           },
           {
             "code": "GN-DUB-TAN",
             "name": "Tanéné",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-DUB-TON",
             "name": "Tondon",
-            "type": "sous_prefecture",
             "region": "Kindia"
           }
         ],
@@ -471,66 +374,112 @@
       {
         "code": "GN-FOR",
         "name": "Forécariah",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-FOR-FOC",
-            "name": "Forécariah Centre",
-            "type": "commune",
+            "name": "Forécariah-Centre",
             "region": "Kindia"
           },
           {
             "code": "GN-FOR-ALA",
             "name": "Alassoya",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-FOR-BEN",
             "name": "Benty",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-FOR-FAR",
-            "name": "Farmoriah",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-FOR-KAB",
-            "name": "Kaback",
-            "type": "sous_prefecture",
+            "name": "Farmiah",
             "region": "Kindia"
           },
           {
             "code": "GN-FOR-KAK",
             "name": "Kakossa",
-            "type": "sous_prefecture",
+            "region": "Kindia"
+          },
+          {
+            "code": "GN-FOR-KAB",
+            "name": "Kaback",
             "region": "Kindia"
           },
           {
             "code": "GN-FOR-KAL",
-            "name": "Kallia",
-            "type": "sous_prefecture",
+            "name": "Kaliah",
             "region": "Kindia"
           },
           {
             "code": "GN-FOR-MAF",
-            "name": "Maférinya",
-            "type": "sous_prefecture",
+            "name": "Maferenya",
             "region": "Kindia"
           },
           {
             "code": "GN-FOR-MOU",
-            "name": "Moussaya",
-            "type": "sous_prefecture",
+            "name": "Moussayah",
             "region": "Kindia"
           },
           {
             "code": "GN-FOR-SIK",
             "name": "Sikhourou",
-            "type": "sous_prefecture",
+            "region": "Kindia"
+          }
+        ],
+        "region": "Kindia"
+      },
+      {
+        "code": "GN-KIN",
+        "name": "Kindia",
+        "children": [
+          {
+            "code": "GN-KIN-KIC",
+            "name": "Kindia-Centre",
+            "region": "Kindia"
+          },
+          {
+            "code": "GN-KIN-BAN",
+            "name": "Bangouyah",
+            "region": "Kindia"
+          },
+          {
+            "code": "GN-KIN-DAM",
+            "name": "Damankany",
+            "region": "Kindia"
+          },
+          {
+            "code": "GN-KIN-FRI",
+            "name": "Friguiagbé",
+            "region": "Kindia"
+          },
+          {
+            "code": "GN-KIN-KOL",
+            "name": "Kolenté",
+            "region": "Kindia"
+          },
+          {
+            "code": "GN-KIN-MAD",
+            "name": "Madina-Oula",
+            "region": "Kindia"
+          },
+          {
+            "code": "GN-KIN-MAM",
+            "name": "Mambia",
+            "region": "Kindia"
+          },
+          {
+            "code": "GN-KIN-MOL",
+            "name": "Molota",
+            "region": "Kindia"
+          },
+          {
+            "code": "GN-KIN-SAM",
+            "name": "Samayah",
+            "region": "Kindia"
+          },
+          {
+            "code": "GN-KIN-SOU",
+            "name": "Souguéta",
             "region": "Kindia"
           }
         ],
@@ -539,90 +488,70 @@
       {
         "code": "GN-TEL",
         "name": "Télimélé",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-TEL-TEC",
-            "name": "Télimélé Centre",
-            "type": "commune",
+            "name": "Télimélé-Centre",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-BOU",
             "name": "Bourouwal",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-DAR",
-            "name": "Daramagnaky",
-            "type": "sous_prefecture",
+            "name": "Daramagnaki",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-GOU",
             "name": "Gougoudjé",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-KOB",
             "name": "Koba",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-KOL",
             "name": "Kollet",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-KON",
             "name": "Konsotamy",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-MIS",
             "name": "Missira",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-SAN",
             "name": "Santou",
-            "type": "sous_prefecture",
-            "region": "Kindia"
-          },
-          {
-            "code": "GN-TEL-SAR",
-            "name": "Sarékaly",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-SIN",
             "name": "Sinta",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-SOG",
             "name": "Sogolon",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-TAR",
             "name": "Tarihoye",
-            "type": "sous_prefecture",
             "region": "Kindia"
           },
           {
             "code": "GN-TEL-THI",
             "name": "Thionthian",
-            "type": "sous_prefecture",
             "region": "Kindia"
           }
         ],
@@ -633,181 +562,136 @@
   {
     "code": "GN-MA",
     "name": "Mamou",
-    "type": "region",
     "children": [
       {
-        "code": "GN-MAM",
-        "name": "Mamou",
-        "type": "prefecture",
+        "code": "GN-DAL",
+        "name": "Dalaba",
         "children": [
           {
-            "code": "GN-MAM-MAC",
-            "name": "Mamou Centre",
-            "type": "commune",
+            "code": "GN-DAL-DAC",
+            "name": "Dalaba-Centre",
             "region": "Mamou"
           },
           {
-            "code": "GN-MAM-BOU",
-            "name": "Bouliwel",
-            "type": "sous_prefecture",
+            "code": "GN-DAL-BOD",
+            "name": "Bodié",
             "region": "Mamou"
           },
           {
-            "code": "GN-MAM-DOU",
-            "name": "Dounet",
-            "type": "sous_prefecture",
+            "code": "GN-DAL-DIT",
+            "name": "Ditinn",
             "region": "Mamou"
           },
           {
-            "code": "GN-MAM-GON",
-            "name": "Gongoret",
-            "type": "sous_prefecture",
+            "code": "GN-DAL-KAA",
+            "name": "Kaalan",
             "region": "Mamou"
           },
           {
-            "code": "GN-MAM-KEG",
-            "name": "Kégnéko",
-            "type": "sous_prefecture",
+            "code": "GN-DAL-KAN",
+            "name": "Kankalabé",
             "region": "Mamou"
           },
           {
-            "code": "GN-MAM-KON",
-            "name": "Konkouré",
-            "type": "sous_prefecture",
+            "code": "GN-DAL-KEB",
+            "name": "Kebali",
             "region": "Mamou"
           },
           {
-            "code": "GN-MAM-NYA",
-            "name": "Nyagara",
-            "type": "sous_prefecture",
+            "code": "GN-DAL-KOB",
+            "name": "Koba",
             "region": "Mamou"
           },
           {
-            "code": "GN-MAM-OUR",
-            "name": "Ouré-Kaba",
-            "type": "sous_prefecture",
+            "code": "GN-DAL-MAF",
+            "name": "Mafara",
             "region": "Mamou"
           },
           {
-            "code": "GN-MAM-POR",
-            "name": "Porédaka",
-            "type": "sous_prefecture",
+            "code": "GN-DAL-MIT",
+            "name": "Mitty",
             "region": "Mamou"
           },
           {
-            "code": "GN-MAM-SAR",
-            "name": "Saramoussaya",
-            "type": "sous_prefecture",
-            "region": "Mamou"
-          },
-          {
-            "code": "GN-MAM-SOY",
-            "name": "Soyah",
-            "type": "sous_prefecture",
-            "region": "Mamou"
-          },
-          {
-            "code": "GN-MAM-TEG",
-            "name": "Téguéréya",
-            "type": "sous_prefecture",
-            "region": "Mamou"
-          },
-          {
-            "code": "GN-MAM-TIM",
-            "name": "Timbo",
-            "type": "sous_prefecture",
-            "region": "Mamou"
-          },
-          {
-            "code": "GN-MAM-TOL",
-            "name": "Tolo",
-            "type": "sous_prefecture",
+            "code": "GN-DAL-MOM",
+            "name": "Mombéyah",
             "region": "Mamou"
           }
         ],
         "region": "Mamou"
       },
       {
-        "code": "GN-DAL",
-        "name": "Dalaba",
-        "type": "prefecture",
+        "code": "GN-MAM",
+        "name": "Mamou",
         "children": [
           {
-            "code": "GN-DAL-DAC",
-            "name": "Dalaba Centre",
-            "type": "commune",
+            "code": "GN-MAM-MAC",
+            "name": "Mamou-Centre",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-BOD",
-            "name": "Bodié",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-BOU",
+            "name": "Bouliwel",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-DOM",
-            "name": "Dombia-huyah",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-DOU",
+            "name": "Dounet",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-DIT",
-            "name": "Ditinn",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-GON",
+            "name": "Gongorétah",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-KAN",
-            "name": "Kankalabé",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-KEG",
+            "name": "Kégnéko",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-KEB",
-            "name": "Kébali",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-KON",
+            "name": "Konkouré",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-KOB",
-            "name": "Koba",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-NYA",
+            "name": "Nyagara",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-MIT",
-            "name": "Mitty",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-OUR",
+            "name": "Ouré-Kaba",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-MOM",
-            "name": "Mombéyah",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-POR",
+            "name": "Poredaka",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-MAF",
-            "name": "Mafara",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-SAR",
+            "name": "Saramoussayah",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-PAS",
-            "name": "Passayah",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-SOY",
+            "name": "Soyah",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-SAN",
-            "name": "Sannou",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-TEG",
+            "name": "Téguéréya",
             "region": "Mamou"
           },
           {
-            "code": "GN-DAL-SAR",
-            "name": "Sarébéré",
-            "type": "sous_prefecture",
+            "code": "GN-MAM-TIM",
+            "name": "Timbo",
+            "region": "Mamou"
+          },
+          {
+            "code": "GN-MAM-TOL",
+            "name": "Tolo",
             "region": "Mamou"
           }
         ],
@@ -816,108 +700,65 @@
       {
         "code": "GN-PIT",
         "name": "Pita",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-PIT-PIC",
-            "name": "Pita Centre",
-            "type": "commune",
+            "name": "Pita-Centre",
             "region": "Mamou"
           },
           {
             "code": "GN-PIT-BAN",
             "name": "Bantignel",
-            "type": "sous_prefecture",
             "region": "Mamou"
           },
           {
             "code": "GN-PIT-BOU",
             "name": "Bourouwal-Tappé",
-            "type": "sous_prefecture",
             "region": "Mamou"
           },
           {
             "code": "GN-PIT-DON",
             "name": "Dongol-Touma",
-            "type": "sous_prefecture",
             "region": "Mamou"
           },
           {
             "code": "GN-PIT-GON",
             "name": "Gongoré",
-            "type": "sous_prefecture",
-            "region": "Mamou"
-          },
-          {
-            "code": "GN-PIT-GOU",
-            "name": "Gouécké",
-            "type": "sous_prefecture",
-            "region": "Mamou"
-          },
-          {
-            "code": "GN-PIT-KAK",
-            "name": "Kakony",
-            "type": "sous_prefecture",
-            "region": "Mamou"
-          },
-          {
-            "code": "GN-PIT-KAL",
-            "name": "Kalinko",
-            "type": "sous_prefecture",
-            "region": "Mamou"
-          },
-          {
-            "code": "GN-PIT-KOU",
-            "name": "Koulia",
-            "type": "sous_prefecture",
             "region": "Mamou"
           },
           {
             "code": "GN-PIT-LEY",
             "name": "Ley-Miro",
-            "type": "sous_prefecture",
             "region": "Mamou"
           },
           {
             "code": "GN-PIT-MAC",
             "name": "Maci",
-            "type": "sous_prefecture",
             "region": "Mamou"
           },
           {
             "code": "GN-PIT-NIN",
             "name": "Ninguélandé",
-            "type": "sous_prefecture",
             "region": "Mamou"
           },
           {
             "code": "GN-PIT-SAN",
             "name": "Sangaréah",
-            "type": "sous_prefecture",
             "region": "Mamou"
           },
           {
             "code": "GN-PIT-SIN",
             "name": "Sintali",
-            "type": "sous_prefecture",
-            "region": "Mamou"
-          },
-          {
-            "code": "GN-PIT-SAG",
-            "name": "Sanguiana",
-            "type": "sous_prefecture",
             "region": "Mamou"
           },
           {
             "code": "GN-PIT-TIM",
             "name": "Timbi-Madina",
-            "type": "sous_prefecture",
             "region": "Mamou"
           },
           {
             "code": "GN-PIT-TIT",
             "name": "Timbi-Tounny",
-            "type": "sous_prefecture",
             "region": "Mamou"
           }
         ],
@@ -928,195 +769,106 @@
   {
     "code": "GN-LA",
     "name": "Labé",
-    "type": "region",
     "children": [
-      {
-        "code": "GN-LAB",
-        "name": "Labé",
-        "type": "prefecture",
-        "children": [
-          {
-            "code": "GN-LAB-LAC",
-            "name": "Labé Centre",
-            "type": "commune",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-DAL",
-            "name": "Dalein",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-DAR",
-            "name": "Daralabe",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-DIA",
-            "name": "Diari",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-DIO",
-            "name": "Dionfo",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-GAR",
-            "name": "Garambé",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-HAF",
-            "name": "Hafia",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-KAA",
-            "name": "Kaalan",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-KOU",
-            "name": "Kouramangui",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-OUR",
-            "name": "Ourouss",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-POP",
-            "name": "Popodara",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-SAN",
-            "name": "Sannou",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-LAB-TOU",
-            "name": "Tountouroun",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          }
-        ],
-        "region": "Labé"
-      },
       {
         "code": "GN-KOB",
         "name": "Koubia",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-KOB-KOC",
-            "name": "Koubia Centre",
-            "type": "commune",
+            "name": "Koubia-Centre",
             "region": "Labé"
           },
           {
             "code": "GN-KOB-FAF",
             "name": "Fafaya",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-KOB-GAD",
-            "name": "Gadha",
-            "type": "sous_prefecture",
+            "name": "Gadha-Woundou",
             "region": "Labé"
           },
           {
             "code": "GN-KOB-MAT",
             "name": "Matakaou",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-KOB-MIS",
-            "name": "Missira",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-KOB-PIL",
             "name": "Pilimini",
-            "type": "sous_prefecture",
             "region": "Labé"
           }
         ],
         "region": "Labé"
       },
       {
-        "code": "GN-TOU",
-        "name": "Tougué",
-        "type": "prefecture",
+        "code": "GN-LAB",
+        "name": "Labé",
         "children": [
           {
-            "code": "GN-TOU-TOC",
-            "name": "Tougué Centre",
-            "type": "commune",
+            "code": "GN-LAB-LAC",
+            "name": "Labé-Centre",
             "region": "Labé"
           },
           {
-            "code": "GN-TOU-FAT",
-            "name": "Fatako",
-            "type": "sous_prefecture",
+            "code": "GN-LAB-DAL",
+            "name": "Dalein",
             "region": "Labé"
           },
           {
-            "code": "GN-TOU-FEL",
-            "name": "Fello-Koundoua",
-            "type": "sous_prefecture",
+            "code": "GN-LAB-DAR",
+            "name": "Daralabé",
             "region": "Labé"
           },
           {
-            "code": "GN-TOU-KAN",
-            "name": "Kansangui",
-            "type": "sous_prefecture",
+            "code": "GN-LAB-DIA",
+            "name": "Diari",
             "region": "Labé"
           },
           {
-            "code": "GN-TOU-KOL",
-            "name": "Kolangui",
-            "type": "sous_prefecture",
+            "code": "GN-LAB-DIO",
+            "name": "Dionfo",
             "region": "Labé"
           },
           {
-            "code": "GN-TOU-KOY",
-            "name": "Koly",
-            "type": "sous_prefecture",
+            "code": "GN-LAB-GAR",
+            "name": "Garambé",
             "region": "Labé"
           },
           {
-            "code": "GN-TOU-KON",
-            "name": "Konah",
-            "type": "sous_prefecture",
+            "code": "GN-LAB-HAF",
+            "name": "Hafia",
             "region": "Labé"
           },
           {
-            "code": "GN-TOU-KUR",
-            "name": "Kouratongo",
-            "type": "sous_prefecture",
+            "code": "GN-LAB-KAA",
+            "name": "Kaalan",
             "region": "Labé"
           },
           {
-            "code": "GN-TOU-TAN",
-            "name": "Tangali",
-            "type": "sous_prefecture",
+            "code": "GN-LAB-KOU",
+            "name": "Kouramangui",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-LAB-POP",
+            "name": "Popodara",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-LAB-REP",
+            "name": "Répétah",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-LAB-SAN",
+            "name": "Sannoun",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-LAB-TOU",
+            "name": "Tountouroun",
             "region": "Labé"
           }
         ],
@@ -1125,72 +877,60 @@
       {
         "code": "GN-LEL",
         "name": "Lélouma",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-LEL-LEC",
-            "name": "Lélouma Centre",
-            "type": "commune",
+            "name": "Lélouma-Centre",
             "region": "Labé"
           },
           {
             "code": "GN-LEL-BAL",
             "name": "Balaya",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-LEL-DJO",
             "name": "Djountou",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-LEL-HER",
-            "name": "Hérico",
-            "type": "sous_prefecture",
+            "name": "Hériko",
             "region": "Labé"
           },
           {
             "code": "GN-LEL-KOR",
             "name": "Korbé",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-LEL-LAF",
             "name": "Lafou",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-LEL-LIN",
             "name": "Linsan",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-LEL-MAN",
             "name": "Manda",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-LEL-PAR",
             "name": "Parawol",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-LEL-SAG",
             "name": "Sagalé",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-LEL-TYA",
             "name": "Tyanguel-Bori",
-            "type": "sous_prefecture",
             "region": "Labé"
           }
         ],
@@ -1199,84 +939,122 @@
       {
         "code": "GN-MAL",
         "name": "Mali",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-MAL-MAC",
-            "name": "Mali Centre",
-            "type": "commune",
+            "name": "Mali-Centre",
             "region": "Labé"
           },
           {
             "code": "GN-MAL-BAL",
             "name": "Balaki",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-MAL-DON",
-            "name": "Donghol-Sigon",
-            "type": "sous_prefecture",
-            "region": "Labé"
-          },
-          {
-            "code": "GN-MAL-DOU",
-            "name": "Dougountouny",
-            "type": "sous_prefecture",
+            "name": "Dongol-Sigon",
             "region": "Labé"
           },
           {
             "code": "GN-MAL-FOU",
             "name": "Fougou",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-MAL-GAY",
             "name": "Gayah",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
-            "code": "GN-MAL-HID",
-            "name": "Hidayatou",
-            "type": "sous_prefecture",
+            "code": "GN-MAL-HIM",
+            "name": "Himbaya",
             "region": "Labé"
           },
           {
             "code": "GN-MAL-LEB",
-            "name": "Lébékéré",
-            "type": "sous_prefecture",
+            "name": "Lébékére",
             "region": "Labé"
           },
           {
             "code": "GN-MAL-MAD",
             "name": "Madina-Wora",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
             "code": "GN-MAL-SAL",
             "name": "Salambandé",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
-            "code": "GN-MAL-TEL",
-            "name": "Téliré",
-            "type": "sous_prefecture",
+            "code": "GN-MAL-SUC",
+            "name": "Suchala",
             "region": "Labé"
           },
           {
             "code": "GN-MAL-TOU",
             "name": "Touba",
-            "type": "sous_prefecture",
             "region": "Labé"
           },
           {
-            "code": "GN-MAL-YIM",
-            "name": "Yimbéring",
-            "type": "sous_prefecture",
+            "code": "GN-MAL-YEM",
+            "name": "Yembéring",
+            "region": "Labé"
+          }
+        ],
+        "region": "Labé"
+      },
+      {
+        "code": "GN-TOU",
+        "name": "Tougué",
+        "children": [
+          {
+            "code": "GN-TOU-TOC",
+            "name": "Tougué-Centre",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-TOU-FAT",
+            "name": "Fatako",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-TOU-FEL",
+            "name": "Fello-Koundoua",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-TOU-KAN",
+            "name": "Kansangui",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-TOU-KOL",
+            "name": "Kollet",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-TOU-KOI",
+            "name": "Koin",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-TOU-KON",
+            "name": "Konah",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-TOU-KLA",
+            "name": "Kolla",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-TOU-TAN",
+            "name": "Tangaly",
+            "region": "Labé"
+          },
+          {
+            "code": "GN-TOU-PER",
+            "name": "Perodji",
             "region": "Labé"
           }
         ],
@@ -1287,59 +1065,96 @@
   {
     "code": "GN-FA",
     "name": "Faranah",
-    "type": "region",
     "children": [
+      {
+        "code": "GN-DAB",
+        "name": "Dabola",
+        "children": [
+          {
+            "code": "GN-DAB-DAC",
+            "name": "Dabola-Centre",
+            "region": "Faranah"
+          },
+          {
+            "code": "GN-DAB-ARF",
+            "name": "Arfamoussaya",
+            "region": "Faranah"
+          },
+          {
+            "code": "GN-DAB-BAN",
+            "name": "Banko",
+            "region": "Faranah"
+          },
+          {
+            "code": "GN-DAB-BIS",
+            "name": "Bissikrima",
+            "region": "Faranah"
+          },
+          {
+            "code": "GN-DAB-DOG",
+            "name": "Dogomet",
+            "region": "Faranah"
+          },
+          {
+            "code": "GN-DAB-KAN",
+            "name": "Kankama",
+            "region": "Faranah"
+          },
+          {
+            "code": "GN-DAB-KIN",
+            "name": "Kindoyé",
+            "region": "Faranah"
+          },
+          {
+            "code": "GN-DAB-KON",
+            "name": "Konindou",
+            "region": "Faranah"
+          },
+          {
+            "code": "GN-DAB-NDE",
+            "name": "N'Déma",
+            "region": "Faranah"
+          }
+        ],
+        "region": "Faranah"
+      },
       {
         "code": "GN-DIN",
         "name": "Dinguiraye",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-DIN-DIC",
-            "name": "Dinguiraye Centre",
-            "type": "commune",
+            "name": "Dinguiraye-Centre",
             "region": "Faranah"
           },
           {
             "code": "GN-DIN-BAN",
             "name": "Banora",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-DIN-DIA",
             "name": "Dialakoro",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-DIN-DIT",
             "name": "Diatiféré",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-DIN-GAG",
-            "name": "Gagnakali",
-            "type": "sous_prefecture",
+            "name": "Gagnakaly",
             "region": "Faranah"
           },
           {
             "code": "GN-DIN-KAL",
             "name": "Kalinko",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-DIN-LAN",
             "name": "Lansanya",
-            "type": "sous_prefecture",
-            "region": "Faranah"
-          },
-          {
-            "code": "GN-DIN-SEL",
-            "name": "Sélouma",
-            "type": "sous_prefecture",
             "region": "Faranah"
           }
         ],
@@ -1348,140 +1163,60 @@
       {
         "code": "GN-FAR",
         "name": "Faranah",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-FAR-FAC",
-            "name": "Faranah Centre",
-            "type": "commune",
+            "name": "Faranah-Centre",
             "region": "Faranah"
           },
           {
             "code": "GN-FAR-BAN",
             "name": "Banian",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-FAR-BEI",
             "name": "Beindou",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-FAR-GNA",
             "name": "Gnaléah",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-FAR-HER",
             "name": "Hérémakonon",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-FAR-KOB",
             "name": "Kobikoro",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-FAR-MAR",
-            "name": "Marela",
-            "type": "sous_prefecture",
+            "name": "Maréla",
             "region": "Faranah"
           },
           {
             "code": "GN-FAR-PAS",
             "name": "Passayah",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-FAR-SAN",
             "name": "Sandéniah",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-FAR-SON",
             "name": "Songoyah",
-            "type": "sous_prefecture",
-            "region": "Faranah"
-          },
-          {
-            "code": "GN-FAR-TIN",
-            "name": "Tindo",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-FAR-TIR",
             "name": "Tiro",
-            "type": "sous_prefecture",
-            "region": "Faranah"
-          }
-        ],
-        "region": "Faranah"
-      },
-      {
-        "code": "GN-DAB",
-        "name": "Dabola",
-        "type": "prefecture",
-        "children": [
-          {
-            "code": "GN-DAB-DAC",
-            "name": "Dabola Centre",
-            "type": "commune",
-            "region": "Faranah"
-          },
-          {
-            "code": "GN-DAB-ARF",
-            "name": "Arfamoussayah",
-            "type": "sous_prefecture",
-            "region": "Faranah"
-          },
-          {
-            "code": "GN-DAB-BAN",
-            "name": "Banko",
-            "type": "sous_prefecture",
-            "region": "Faranah"
-          },
-          {
-            "code": "GN-DAB-BIS",
-            "name": "Bissikrima",
-            "type": "sous_prefecture",
-            "region": "Faranah"
-          },
-          {
-            "code": "GN-DAB-DOG",
-            "name": "Dogomet",
-            "type": "sous_prefecture",
-            "region": "Faranah"
-          },
-          {
-            "code": "GN-DAB-KAN",
-            "name": "Kankama",
-            "type": "sous_prefecture",
-            "region": "Faranah"
-          },
-          {
-            "code": "GN-DAB-KIN",
-            "name": "Kindoyé",
-            "type": "sous_prefecture",
-            "region": "Faranah"
-          },
-          {
-            "code": "GN-DAB-KON",
-            "name": "Konindou",
-            "type": "sous_prefecture",
-            "region": "Faranah"
-          },
-          {
-            "code": "GN-DAB-NDE",
-            "name": "N'Déma",
-            "type": "sous_prefecture",
             "region": "Faranah"
           }
         ],
@@ -1490,90 +1225,70 @@
       {
         "code": "GN-KIS",
         "name": "Kissidougou",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-KIS-KIC",
-            "name": "Kissidougou Centre",
-            "type": "commune",
+            "name": "Kissidougou-Centre",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-ALB",
-            "name": "Albadaria",
-            "type": "sous_prefecture",
+            "name": "Albadariah",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-BAN",
             "name": "Banama",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-BAR",
             "name": "Bardou",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-BEI",
             "name": "Beindou",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-FER",
-            "name": "Fermessadou",
-            "type": "sous_prefecture",
+            "name": "Fermessadou-Pombo",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-FIR",
             "name": "Firawa",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-GBA",
             "name": "Gbangbadou",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-KON",
             "name": "Kondiadou",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-MAN",
             "name": "Manfran",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-SAN",
             "name": "Sangardo",
-            "type": "sous_prefecture",
-            "region": "Faranah"
-          },
-          {
-            "code": "GN-KIS-SGB",
-            "name": "Sangbadou",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-YEN",
             "name": "Yendé-Millimou",
-            "type": "sous_prefecture",
             "region": "Faranah"
           },
           {
             "code": "GN-KIS-YOM",
             "name": "Yombiro",
-            "type": "sous_prefecture",
             "region": "Faranah"
           }
         ],
@@ -1584,89 +1299,69 @@
   {
     "code": "GN-KA",
     "name": "Kankan",
-    "type": "region",
     "children": [
       {
         "code": "GN-KNK",
         "name": "Kankan",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-KNK-KNC",
-            "name": "Kankan Centre",
-            "type": "commune",
+            "name": "Kankan-Centre",
             "region": "Kankan"
           },
           {
             "code": "GN-KNK-BAL",
-            "name": "Balandougou",
-            "type": "sous_prefecture",
+            "name": "Balandou",
             "region": "Kankan"
           },
           {
             "code": "GN-KNK-BAT",
-            "name": "Bate-Nafadji",
-            "type": "sous_prefecture",
+            "name": "Batè-Nafadji",
             "region": "Kankan"
           },
           {
             "code": "GN-KNK-BOU",
             "name": "Boula",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KNK-GBE",
             "name": "Gbérédou-Baranama",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
-            "code": "GN-KNK-KAR",
-            "name": "Karifamoriah",
-            "type": "sous_prefecture",
+            "code": "GN-KNK-KAN",
+            "name": "Kanfamoriya",
             "region": "Kankan"
           },
           {
             "code": "GN-KNK-KOU",
             "name": "Koumban",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KNK-MAM",
             "name": "Mamouroudou",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KNK-MIS",
-            "name": "Missamana",
-            "type": "sous_prefecture",
+            "name": "Mismana",
             "region": "Kankan"
           },
           {
             "code": "GN-KNK-MOR",
             "name": "Moribayah",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KNK-SAB",
             "name": "Sabadou-Baranama",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KNK-TIN",
-            "name": "Tinti-Oulen",
-            "type": "sous_prefecture",
-            "region": "Kankan"
-          },
-          {
-            "code": "GN-KNK-TOK",
-            "name": "Tokounou",
-            "type": "sous_prefecture",
+            "name": "Tintioulen",
             "region": "Kankan"
           }
         ],
@@ -1675,54 +1370,40 @@
       {
         "code": "GN-KER",
         "name": "Kérouané",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-KER-KEC",
-            "name": "Kérouané Centre",
-            "type": "commune",
+            "name": "Kérouané-Centre",
             "region": "Kankan"
           },
           {
             "code": "GN-KER-BAN",
             "name": "Banankoro",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KER-DAM",
             "name": "Damaro",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KER-KOM",
-            "name": "Komodou",
-            "type": "sous_prefecture",
-            "region": "Kankan"
-          },
-          {
-            "code": "GN-KER-KOU",
-            "name": "Kounsankoro",
-            "type": "sous_prefecture",
+            "name": "Komsodougou",
             "region": "Kankan"
           },
           {
             "code": "GN-KER-LIN",
             "name": "Linko",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KER-SIB",
             "name": "Sibiribaro",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KER-SOR",
             "name": "Soromaya",
-            "type": "sous_prefecture",
             "region": "Kankan"
           }
         ],
@@ -1731,72 +1412,70 @@
       {
         "code": "GN-KRS",
         "name": "Kouroussa",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-KRS-KRC",
-            "name": "Kouroussa Centre",
-            "type": "commune",
+            "name": "Kouroussa-Centre",
             "region": "Kankan"
           },
           {
             "code": "GN-KRS-BAB",
             "name": "Babila",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KRS-BAL",
             "name": "Balato",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KRS-BAN",
             "name": "Banfélé",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KRS-BAR",
             "name": "Baro",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KRS-CIS",
             "name": "Cisséla",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-KRS-DOU",
             "name": "Douako",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
-            "code": "GN-KRS-FRI",
-            "name": "Fria-Hourdé",
-            "type": "sous_prefecture",
-            "region": "Kankan"
-          },
-          {
-            "code": "GN-KRS-KAN",
-            "name": "Kankan-Niagankoro",
-            "type": "sous_prefecture",
-            "region": "Kankan"
-          },
-          {
-            "code": "GN-KRS-KOM",
-            "name": "Komola-Koura",
-            "type": "sous_prefecture",
+            "code": "GN-KRS-DRA",
+            "name": "Doura",
             "region": "Kankan"
           },
           {
             "code": "GN-KRS-KOU",
-            "name": "Koumbankana",
-            "type": "sous_prefecture",
+            "name": "Koumana",
+            "region": "Kankan"
+          },
+          {
+            "code": "GN-KRS-KOM",
+            "name": "Komodou",
+            "region": "Kankan"
+          },
+          {
+            "code": "GN-KRS-SAN",
+            "name": "Sanguiana",
+            "region": "Kankan"
+          },
+          {
+            "code": "GN-KRS-SCI",
+            "name": "Scierie",
+            "region": "Kankan"
+          },
+          {
+            "code": "GN-KRS-SIT",
+            "name": "Sitakoto",
             "region": "Kankan"
           }
         ],
@@ -1805,78 +1484,60 @@
       {
         "code": "GN-MAN",
         "name": "Mandiana",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-MAN-MAC",
-            "name": "Mandiana Centre",
-            "type": "commune",
+            "name": "Mandiana-Centre",
             "region": "Kankan"
           },
           {
             "code": "GN-MAN-BAL",
             "name": "Balandougouba",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-MAN-DIA",
             "name": "Dialakoro",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-MAN-FAR",
             "name": "Faralako",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-MAN-KAN",
-            "name": "Kantoumana",
-            "type": "sous_prefecture",
+            "name": "Kantoumanina",
             "region": "Kankan"
           },
           {
-            "code": "GN-MAN-KEN",
-            "name": "Kéniéran",
-            "type": "sous_prefecture",
+            "code": "GN-MAN-KIN",
+            "name": "Kinieran",
+            "region": "Kankan"
+          },
+          {
+            "code": "GN-MAN-KND",
+            "name": "Kondianakoro",
             "region": "Kankan"
           },
           {
             "code": "GN-MAN-KOU",
             "name": "Koundian",
-            "type": "sous_prefecture",
-            "region": "Kankan"
-          },
-          {
-            "code": "GN-MAN-KUN",
-            "name": "Koundianakoro",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-MAN-MOR",
             "name": "Morodou",
-            "type": "sous_prefecture",
-            "region": "Kankan"
-          },
-          {
-            "code": "GN-MAN-NIA",
-            "name": "Niantania",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-MAN-SAL",
             "name": "Saladou",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-MAN-SAN",
             "name": "Sansando",
-            "type": "sous_prefecture",
             "region": "Kankan"
           }
         ],
@@ -1885,78 +1546,75 @@
       {
         "code": "GN-SIG",
         "name": "Siguiri",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-SIG-SIC",
-            "name": "Siguiri Centre",
-            "type": "commune",
+            "name": "Siguiri-Centre",
             "region": "Kankan"
           },
           {
             "code": "GN-SIG-BAN",
             "name": "Bankon",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-SIG-DOK",
             "name": "Doko",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-SIG-FRA",
             "name": "Franwalia",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-SIG-KIN",
             "name": "Kiniébakoura",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-SIG-KNT",
             "name": "Kintinian",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-SIG-MAL",
-            "name": "Maléa",
-            "type": "sous_prefecture",
+            "name": "Maléah",
             "region": "Kankan"
           },
           {
             "code": "GN-SIG-NAB",
             "name": "Naboun",
-            "type": "sous_prefecture",
             "region": "Kankan"
           },
           {
             "code": "GN-SIG-NIA",
             "name": "Niagassola",
-            "type": "sous_prefecture",
+            "region": "Kankan"
+          },
+          {
+            "code": "GN-SIG-NND",
+            "name": "Niandankoro",
             "region": "Kankan"
           },
           {
             "code": "GN-SIG-NOR",
             "name": "Norassoba",
-            "type": "sous_prefecture",
+            "region": "Kankan"
+          },
+          {
+            "code": "GN-SIG-NOU",
+            "name": "Noukounkan",
+            "region": "Kankan"
+          },
+          {
+            "code": "GN-SIG-SIG",
+            "name": "Siguirini",
             "region": "Kankan"
           },
           {
             "code": "GN-SIG-TOM",
-            "name": "Tomba-Kanssa",
-            "type": "sous_prefecture",
-            "region": "Kankan"
-          },
-          {
-            "code": "GN-SIG-KOU",
-            "name": "Kourémalé",
-            "type": "sous_prefecture",
+            "name": "Tomboni",
             "region": "Kankan"
           }
         ],
@@ -1967,169 +1625,79 @@
   {
     "code": "GN-NZ",
     "name": "Nzérékoré",
-    "type": "region",
     "children": [
-      {
-        "code": "GN-NZE",
-        "name": "Nzérékoré",
-        "type": "prefecture",
-        "children": [
-          {
-            "code": "GN-NZE-NZC",
-            "name": "Nzérékoré Centre",
-            "type": "commune",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-NZE-BOU",
-            "name": "Bounouma",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-NZE-GOU",
-            "name": "Gouécké",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-NZE-KOB",
-            "name": "Kobéla",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-NZE-KOR",
-            "name": "Koropara",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-NZE-KOU",
-            "name": "Koulé",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-NZE-PAL",
-            "name": "Palé",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-NZE-SAM",
-            "name": "Samoé",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-NZE-SOU",
-            "name": "Soulouta",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-NZE-WOM",
-            "name": "Womey",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-NZE-YAL",
-            "name": "Yalenzou",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          }
-        ],
-        "region": "Nzérékoré"
-      },
       {
         "code": "GN-BEY",
         "name": "Beyla",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-BEY-BEC",
-            "name": "Beyla Centre",
-            "type": "commune",
+            "name": "Beyla-Centre",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-BOO",
             "name": "Boola",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-DIA",
-            "name": "Diara-Guerela",
-            "type": "sous_prefecture",
+            "name": "Diara-Guéréla",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-DIS",
             "name": "Diassodou",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-FOU",
             "name": "Fouala",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-GBA",
-            "name": "Gbakedou",
-            "type": "sous_prefecture",
+            "name": "Gbakédou",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-GBE",
-            "name": "Gbessoba",
-            "type": "sous_prefecture",
+            "name": "Gbéssoba",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-KAR",
             "name": "Karala",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-KOU",
             "name": "Koumandou",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-MOU",
-            "name": "Moussadou",
-            "type": "sous_prefecture",
+            "name": "Mousadou",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-NIO",
-            "name": "Nionsomoridougou",
-            "type": "sous_prefecture",
+            "name": "Nionsomoridou",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-SAM",
             "name": "Samana",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-SIN",
             "name": "Sinko",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-BEY-SOK",
             "name": "Sokourala",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           }
         ],
@@ -2137,91 +1705,56 @@
       },
       {
         "code": "GN-GUE",
-        "name": "Guékédou",
-        "type": "prefecture",
+        "name": "Guéckédou",
         "children": [
           {
             "code": "GN-GUE-GUC",
-            "name": "Guékédou Centre",
-            "type": "commune",
+            "name": "Guéckédou-Centre",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-GUE-BOL",
             "name": "Bolodou",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-GUE-FAN",
             "name": "Fangamadou",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-GUE-GUE",
             "name": "Guendembou",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-GUE-GEL",
-            "name": "Guelo",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-GUE-KAS",
             "name": "Kassadou",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-GUE-KEB",
-            "name": "Kébéli",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-GUE-KOU",
-            "name": "Koundianou",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-GUE-LEL",
-            "name": "Lela",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-GUE-LOU",
-            "name": "Loumba",
-            "type": "sous_prefecture",
+            "name": "Koundou",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-GUE-NON",
             "name": "Nongoa",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-GUE-OUE",
             "name": "Ouéndé-Kénéma",
-            "type": "sous_prefecture",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-GUE-TEK",
+            "name": "Tekoulo",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-GUE-TER",
-            "name": "Termessadou",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-GUE-YEN",
-            "name": "Yendé",
-            "type": "sous_prefecture",
+            "name": "Termessadou-Dibo",
             "region": "Nzérékoré"
           }
         ],
@@ -2230,66 +1763,50 @@
       {
         "code": "GN-LOL",
         "name": "Lola",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-LOL-LOC",
-            "name": "Lola Centre",
-            "type": "commune",
+            "name": "Lola-Centre",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-LOL-BOS",
             "name": "Bossou",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-LOL-FOU",
             "name": "Foumbadou",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-LOL-GAM",
-            "name": "Gama",
-            "type": "sous_prefecture",
+            "name": "Gamba",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-LOL-GUE",
             "name": "Guéassou",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-LOL-KOK",
             "name": "Kokota",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-LOL-LAI",
-            "name": "Lain",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-LOL-LOM",
-            "name": "Lola-Market",
-            "type": "sous_prefecture",
+            "name": "Laine",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-LOL-NZO",
             "name": "N'Zoo",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
-            "code": "GN-LOL-TOU",
-            "name": "Tounkarata",
-            "type": "sous_prefecture",
+            "code": "GN-LOL-TUN",
+            "name": "Tunkarata",
             "region": "Nzérékoré"
           }
         ],
@@ -2298,102 +1815,142 @@
       {
         "code": "GN-MAC",
         "name": "Macenta",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-MAC-MAC",
-            "name": "Macenta Centre",
-            "type": "commune",
+            "name": "Macenta-Centre",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-MAC-BAL",
             "name": "Balizia",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-MAC-BIN",
             "name": "Binikala",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-MAC-BOF",
             "name": "Bofossou",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-MAC-DAR",
             "name": "Daro",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-MAC-FAS",
             "name": "Fassankoni",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
-            "code": "GN-MAC-KAN",
-            "name": "Kankan",
-            "type": "sous_prefecture",
+            "code": "GN-MAC-KOU",
+            "name": "Kouankan",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-MAC-KOY",
-            "name": "Koyamah",
-            "type": "sous_prefecture",
+            "name": "Koyama",
             "region": "Nzérékoré"
           },
           {
-            "code": "GN-MAC-KPA",
-            "name": "Kpan",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-MAC-NIA",
-            "name": "Niantanina",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-MAC-NOO",
-            "name": "Noomou",
-            "type": "sous_prefecture",
+            "code": "GN-MAC-NZE",
+            "name": "N'Zébéla",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-MAC-OUR",
-            "name": "Ouréma",
-            "type": "sous_prefecture",
+            "name": "Ourémai",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-MAC-PAN",
             "name": "Panziazou",
-            "type": "sous_prefecture",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-MAC-SEN",
+            "name": "Sengbédou",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-MAC-SER",
-            "name": "Sérédou",
-            "type": "sous_prefecture",
+            "name": "Serédou",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-MAC-VAS",
-            "name": "Vassérédou",
-            "type": "sous_prefecture",
+            "name": "Vasérédou",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-MAC-WAT",
             "name": "Watanka",
-            "type": "sous_prefecture",
+            "region": "Nzérékoré"
+          }
+        ],
+        "region": "Nzérékoré"
+      },
+      {
+        "code": "GN-NZE",
+        "name": "Nzérékoré",
+        "children": [
+          {
+            "code": "GN-NZE-NZC",
+            "name": "Nzérékoré-Centre",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-NZE-BOU",
+            "name": "Bounouma",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-NZE-GOU",
+            "name": "Gouécké",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-NZE-KOM",
+            "name": "Komata",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-NZE-KOR",
+            "name": "Koropara",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-NZE-KOU",
+            "name": "Koulé",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-NZE-PAL",
+            "name": "Palé",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-NZE-SAM",
+            "name": "Samoé",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-NZE-SOU",
+            "name": "Soulouta",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-NZE-WOM",
+            "name": "Womey",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-NZE-YAL",
+            "name": "Yalenzou",
             "region": "Nzérékoré"
           }
         ],
@@ -2402,60 +1959,35 @@
       {
         "code": "GN-YOM",
         "name": "Yomou",
-        "type": "prefecture",
         "children": [
           {
             "code": "GN-YOM-YOC",
-            "name": "Yomou Centre",
-            "type": "commune",
+            "name": "Yomou-Centre",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-YOM-BAN",
             "name": "Banié",
-            "type": "sous_prefecture",
+            "region": "Nzérékoré"
+          },
+          {
+            "code": "GN-YOM-BHE",
+            "name": "Bhééta",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-YOM-BIG",
             "name": "Bignamou",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-YOM-BOW",
             "name": "Bowé",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           },
           {
             "code": "GN-YOM-DIE",
             "name": "Diécké",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-YOM-FOR",
-            "name": "Forni",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-YOM-KOU",
-            "name": "Kouankoro",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-YOM-PEL",
-            "name": "Péla",
-            "type": "sous_prefecture",
-            "region": "Nzérékoré"
-          },
-          {
-            "code": "GN-YOM-SER",
-            "name": "Sérédou",
-            "type": "sous_prefecture",
             "region": "Nzérékoré"
           }
         ],

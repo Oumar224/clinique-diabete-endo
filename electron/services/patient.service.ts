@@ -33,6 +33,18 @@ export class PatientService {
   }
 
   async create(entity: PatientEntity): Promise<PatientEntity> {
+    if (entity.nip) {
+      const existing = await this.db
+        .selectFrom('patient')
+        .select(['id', 'prenom', 'nom'])
+        .where('nip', '=', entity.nip)
+        .executeTakeFirst()
+
+      if (existing) {
+        throw new Error(`Un patient avec ce NIP existe déjà : ${existing.prenom} ${existing.nom}`)
+      }
+    }
+
     try {
       await this.db
         .insertInto('patient')
@@ -44,7 +56,6 @@ export class PatientService {
           nir: entity.nir!,
           telephone: entity.telephone!,
           email: entity.email ?? undefined,
-          adresse: entity.adresse ?? undefined,
           mutuelle: entity.mutuelle ?? undefined,
           medecin_traitant: entity.medecin_traitant ?? undefined,
           allergies: entity.allergies ?? '[]',
@@ -54,6 +65,7 @@ export class PatientService {
           residence_code: entity.residence_code ?? undefined,
           complement_adresse: entity.complement_adresse ?? undefined,
           region: entity.region ?? undefined,
+          profession: entity.profession ?? undefined,
         })
         .execute()
     } catch (error: unknown) {
@@ -84,6 +96,19 @@ export class PatientService {
       .executeTakeFirst()
     if (!existing) throw new Error('Patient introuvable')
 
+    if (entity.nip) {
+      const duplicate = await this.db
+        .selectFrom('patient')
+        .select(['id', 'prenom', 'nom'])
+        .where('nip', '=', entity.nip)
+        .where('id', '!=', entity.id!)
+        .executeTakeFirst()
+
+      if (duplicate) {
+        throw new Error(`Un patient avec ce NIP existe déjà : ${duplicate.prenom} ${duplicate.nom}`)
+      }
+    }
+
     try {
       await this.db
         .updateTable('patient')
@@ -95,7 +120,6 @@ export class PatientService {
           nir: entity.nir ?? existing.nir,
           telephone: entity.telephone ?? existing.telephone,
           email: entity.email ?? existing.email,
-          adresse: entity.adresse ?? existing.adresse,
           mutuelle: entity.mutuelle ?? existing.mutuelle,
           medecin_traitant: entity.medecin_traitant ?? existing.medecin_traitant,
           allergies: entity.allergies ?? existing.allergies,
@@ -105,6 +129,7 @@ export class PatientService {
           residence_code: entity.residence_code ?? existing.residence_code,
           complement_adresse: entity.complement_adresse ?? existing.complement_adresse,
           region: entity.region ?? existing.region,
+          profession: entity.profession ?? existing.profession,
           updated_at: new Date().toISOString(),
         })
         .where('id', '=', entity.id!)

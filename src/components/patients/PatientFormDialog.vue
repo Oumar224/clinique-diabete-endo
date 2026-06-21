@@ -2,160 +2,271 @@
   <el-dialog
     v-model="dialogVisible"
     :title="isEdit ? 'Modifier le patient' : 'Nouveau patient'"
-    width="720px"
+    width="800px"
     @closed="resetForm"
   >
+    <el-steps :active="activeStep" align-center finish-status="success" style="margin-bottom: 24px">
+      <el-step title="Identité" />
+      <el-step title="Contact & Résidence" />
+      <el-step title="Allergies" />
+      <el-step title="Personne de confiance" />
+    </el-steps>
+
     <el-form ref="formRef" :model="form" :rules="rules" label-width="140px">
-      <el-form-item label="Photo">
-        <div class="photo-upload" @click="triggerFileInput">
-          <el-avatar :size="80" :src="form.photo || undefined" shape="circle">
-            <Camera style="width:32px;height:32px" />
-          </el-avatar>
-          <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="handlePhotoChange" />
-          <span v-if="form.photo" class="photo-remove" @click.stop="removePhoto">
-            <el-icon><Delete /></el-icon>
-          </span>
-        </div>
-      </el-form-item>
-      <el-form-item label="Civilité" prop="civilite">
-        <el-select v-model="form.civilite" style="width:100%">
-          <el-option label="Monsieur" value="M" />
-          <el-option label="Madame" value="Mme" />
-          <el-option label="Mademoiselle" value="Mlle" />
-        </el-select>
-      </el-form-item>
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="Nom" prop="nom">
-            <el-input v-model="form.nom" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="Prénom" prop="prenom">
-            <el-input v-model="form.prenom" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-form-item label="Date de naissance" prop="date_naissance">
-        <div class="date-age-group">
-          <el-date-picker v-model="form.date_naissance" type="date" value-format="YYYY-MM-DD" style="flex:1" />
-          <el-input-number v-model="ageInput" :min="0" :max="150" :controls="false" style="width:90px" placeholder="Âge" @change="onAgeChange" />
-          <span class="age-unit">ans</span>
-        </div>
-      </el-form-item>
-      <el-form-item label="Lieu de naissance">
-        <el-input v-model="form.lieu_naissance" placeholder="Village / Secteur" />
-      </el-form-item>
-      <el-form-item label="Résidence">
-        <div class="residence-group">
-          <el-select v-model="selectedRegion" filterable clearable placeholder="Région">
-            <el-option v-for="r in regions" :key="r.code" :label="r.name" :value="r.code" />
+      <!-- Step 1: Identité -->
+      <div v-if="activeStep === 0" class="step-content">
+        <el-form-item label="Photo">
+          <div class="photo-upload" @click="triggerFileInput">
+            <el-avatar :size="80" :src="form.photo || undefined" shape="circle">
+              <Camera style="width:32px;height:32px" />
+            </el-avatar>
+            <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="handlePhotoChange" />
+            <span v-if="form.photo" class="photo-remove" @click.stop="removePhoto">
+              <el-icon><Delete /></el-icon>
+            </span>
+          </div>
+        </el-form-item>
+        <el-form-item label="Civilité" prop="civilite">
+          <el-select v-model="form.civilite" style="width:100%">
+            <el-option label="Non défini" value="" />
+            <el-option label="Monsieur" value="M" />
+            <el-option label="Madame" value="Mme" />
+            <el-option label="Mademoiselle" value="Mlle" />
           </el-select>
-          <el-select v-model="selectedPrefecture" filterable clearable placeholder="Préfecture" :disabled="!selectedRegion">
-            <el-option v-for="p in prefectures" :key="p.code" :label="p.name" :value="p.code" />
-          </el-select>
-          <el-select v-model="form.residence_code" filterable clearable placeholder="Sous-préfecture / Quartier" :disabled="!selectedPrefecture">
-            <el-option v-for="c in communesSousPref" :key="c.code" :label="c.name" :value="c.code" />
-          </el-select>
-          <el-input v-model="form.complement_adresse" placeholder="Complément d'adresse (quartier, rue, porte...)" />
-        </div>
-      </el-form-item>
-      <el-form-item label="NIP">
-        <el-input v-model="nip" disabled placeholder="Généré automatiquement" />
-      </el-form-item>
-      <el-form-item label="N° SS/Assurance" prop="nir">
-        <el-input v-model="form.nir" />
-      </el-form-item>
-      <el-form-item label="Téléphone" prop="telephone">
-        <el-input v-model="form.telephone" />
-      </el-form-item>
-      <el-form-item label="Email">
-        <el-input v-model="form.email" />
-      </el-form-item>
-      <el-form-item label="Adresse">
-        <el-input v-model="form.adresse" type="textarea" :rows="2" />
-      </el-form-item>
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="Mutuelle">
-            <el-input v-model="form.mutuelle" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="Référent">
-            <el-input v-model="form.medecin_traitant" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-form-item label="Allergies">
-        <div class="allergies-input">
-          <el-tag
-            v-for="(tag, i) in form.allergies ?? []"
-            :key="i"
-            closable
-            type="danger"
-            size="small"
-            @close="removeAllergy(i)"
-          >
-            {{ tag }}
-          </el-tag>
-          <el-input
-            v-if="allergyInputVisible"
-            ref="allergyInputRef"
-            v-model="allergyInputValue"
-            size="small"
-            style="width:120px"
-            @keyup.enter="addAllergy"
-            @blur="addAllergy"
+        </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="Nom" prop="nom">
+              <el-input v-model="form.nom" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Prénom" prop="prenom">
+              <el-input v-model="form.prenom" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="Date de naissance" prop="date_naissance">
+          <div class="date-age-group">
+            <el-date-picker v-model="form.date_naissance" type="date" value-format="YYYY-MM-DD" style="flex:1" />
+            <el-input-number v-model="ageInput" :min="0" :max="150" :controls="false" style="width:90px" placeholder="Âge" @change="onAgeChange" />
+            <span class="age-unit">ans</span>
+          </div>
+        </el-form-item>
+        <el-form-item label="Lieu de naissance">
+          <el-input v-model="form.lieu_naissance" placeholder="Village / Secteur" />
+        </el-form-item>
+        <el-form-item label="Profession">
+          <el-input v-model="form.profession" />
+        </el-form-item>
+      </div>
+
+      <!-- Step 2: Contact & Résidence -->
+      <div v-if="activeStep === 1" class="step-content">
+        <el-form-item label="NIP">
+          <el-input v-model="nip" disabled placeholder="Généré automatiquement" />
+        </el-form-item>
+        <el-form-item label="N° SS/Assurance" prop="nir">
+          <el-input v-model="form.nir" />
+        </el-form-item>
+        <el-form-item label="Téléphone" prop="telephone">
+          <el-input v-model="form.telephone" />
+        </el-form-item>
+        <el-form-item label="Email">
+          <el-input v-model="form.email" />
+        </el-form-item>
+        <el-form-item label="Résidence">
+          <el-alert
+            v-if="regions.length === 0 && !loading"
+            type="warning"
+            :closable="false"
+            show-icon
+            title="Aucune localité trouvée. Veuillez d'abord importer les localités dans les paramètres."
+            style="margin-bottom: 8px"
           />
-          <el-button v-else text size="small" @click="showAllergyInput">
-            + Ajouter
-          </el-button>
-        </div>
-      </el-form-item>
+          <div class="residence-group">
+            <el-select v-model="selectedRegion" filterable clearable placeholder="Région" :disabled="regions.length === 0" @change="onRegionChange">
+              <el-option v-for="r in regions" :key="r.code" :label="r.name" :value="r.code" />
+            </el-select>
+            <el-select v-model="selectedPrefecture" filterable clearable placeholder="Préfecture" :disabled="!selectedRegion">
+              <el-option v-for="p in prefectures" :key="p.code" :label="p.name" :value="p.code" />
+            </el-select>
+            <el-select v-model="form.residence_code" filterable clearable placeholder="Sous-préfecture / Commune" :disabled="!selectedPrefecture">
+              <el-option v-for="c in communesSousPref" :key="c.code" :label="c.name" :value="c.code" />
+            </el-select>
+            <el-input v-model="form.complement_adresse" placeholder="Complément d'adresse (quartier, district, rue...)" />
+          </div>
+        </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="Mutuelle">
+              <el-input v-model="form.mutuelle" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Site">
+              <el-select v-model="form.site_id" filterable clearable placeholder="Choisir un site" @change="onSiteChange">
+                <el-option v-for="s in sites" :key="s.id" :label="s.name" :value="s.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="Médecin référent">
+          <el-select v-model="form.medecin_traitant" filterable clearable placeholder="Choisir un médecin" :disabled="!form.site_id">
+            <el-option v-for="d in doctors" :key="d.id" :label="d.prenom + ' ' + d.nom" :value="d.prenom + ' ' + d.nom" />
+          </el-select>
+        </el-form-item>
+      </div>
+
+      <!-- Step 3: Allergies -->
+      <div v-if="activeStep === 2" class="step-content">
+        <el-form-item label="Allergies">
+          <div class="allergies-input">
+            <el-tag
+              v-for="(tag, i) in form.allergies ?? []"
+              :key="i"
+              closable
+              type="danger"
+              size="small"
+              @close="removeAllergy(i)"
+            >
+              {{ tag }}
+            </el-tag>
+            <el-input
+              v-if="allergyInputVisible"
+              ref="allergyInputRef"
+              v-model="allergyInputValue"
+              size="small"
+              style="width:120px"
+              @keyup.enter="addAllergy"
+              @blur="addAllergy"
+            />
+            <el-button v-else text size="small" @click="showAllergyInput">
+              + Ajouter
+            </el-button>
+          </div>
+        </el-form-item>
+        <el-divider />
+        <PatientAttachmentsSection :patient-id="editId ?? 0" category="patient" />
+      </div>
+
+      <!-- Step 4: Personne de confiance -->
+      <div v-if="activeStep === 3" class="step-content">
+        <el-form-item label="Personne de confiance">
+          <el-radio-group v-model="form.has_trusted">
+            <el-radio :label="true">Oui</el-radio>
+            <el-radio :label="false">Non</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-card v-if="form.has_trusted" class="trusted-person-card" shadow="never">
+          <el-form-item label="Nom">
+            <el-input v-model="form.tp_nom" />
+          </el-form-item>
+          <el-form-item label="Prénom">
+            <el-input v-model="form.tp_prenom" />
+          </el-form-item>
+          <el-form-item label="Profession">
+            <el-input v-model="form.tp_profession" />
+          </el-form-item>
+          <el-form-item label="Résidence">
+            <div class="residence-group">
+              <el-select v-model="tpSelectedRegion" filterable clearable placeholder="Région" @change="onTpRegionChange">
+                <el-option v-for="r in regions" :key="r.code" :label="r.name" :value="r.code" />
+              </el-select>
+              <el-select v-model="tpSelectedPrefecture" filterable clearable placeholder="Préfecture" :disabled="!tpSelectedRegion">
+                <el-option v-for="p in tpPrefectures" :key="p.code" :label="p.name" :value="p.code" />
+              </el-select>
+              <el-select v-model="form.tp_residence_code" filterable clearable placeholder="Sous-préfecture / Commune" :disabled="!tpSelectedPrefecture">
+                <el-option v-for="c in tpCommunesSousPref" :key="c.code" :label="c.name" :value="c.code" />
+              </el-select>
+            </div>
+          </el-form-item>
+          <el-form-item label="Téléphone">
+            <el-input v-model="form.tp_telephone" />
+          </el-form-item>
+          <el-form-item label="Email">
+            <el-input v-model="form.tp_email" />
+          </el-form-item>
+          <el-form-item label="Complément d'adresse" >
+            <el-input v-model="form.tp_complement_adresse" />
+          </el-form-item>
+          <el-form-item label="Lien de parenté">
+            <el-select v-model="form.tp_lien_parente" placeholder="Choisir" clearable style="width:100%">
+              <el-option label="Conjoint(e)" value="Conjoint(e)" />
+              <el-option label="Enfant" value="Enfant" />
+              <el-option label="Parent" value="Parent" />
+              <el-option label="Frère/Sœur" value="Frère/Sœur" />
+              <el-option label="Ami(e)" value="Ami(e)" />
+              <el-option label="Autre" value="Autre" />
+            </el-select>
+          </el-form-item>
+        </el-card>
+
+        <el-divider />
+        <PatientAttachmentsSection :patient-id="editId ?? 0" category="trusted_person" />
+      </div>
     </el-form>
 
-    <el-divider v-if="editId" />
-    <PatientAttachmentsSection v-if="editId" :patient-id="editId" />
-
     <template #footer>
-      <el-button @click="dialogVisible = false">Annuler</el-button>
-      <el-button type="primary" @click="submit">
-        {{ isPostCreate ? 'Terminer' : (isEdit ? 'Enregistrer' : 'Créer') }}
-      </el-button>
+      <span class="dialog-footer">
+        <span>
+          <el-button v-if="activeStep > 0" @click="activeStep--">Précédent</el-button>
+        </span>
+        <span>
+          <el-button v-if="isPostCreate" type="primary" @click="submit">Terminer</el-button>
+          <el-button v-else-if="activeStep < 3" type="primary" @click="activeStep++">Suivant</el-button>
+          <el-button v-else type="primary" @click="submit">{{ isEdit ? 'Enregistrer' : 'Créer' }}</el-button>
+          <el-button @click="dialogVisible = false">Annuler</el-button>
+        </span>
+      </span>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, nextTick, toRaw, watch, onMounted } from 'vue'
+import { ref, reactive, computed, nextTick, toRaw, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import type { FormInstance } from 'element-plus'
 import { Camera, Delete } from '@element-plus/icons-vue'
 import { showLoader, hideLoader } from '@/components/utils/AppLoader'
-import { createPatient, updatePatient } from '@/composables/usePatients'
+import { createPatient, updatePatient, type PatientDto } from '@/composables/usePatients'
+import { getTrustedPerson, upsertTrustedPerson, deleteTrustedPerson } from '@/composables/useTrustedPerson'
 import type { Patient } from '@/composables/usePatientContext'
 import { generateNip } from '@/utils/nip-generator'
 import { calculateAge } from '@/utils/age'
 import { useLocalites } from '@/composables/useLocalites'
+import PatientAttachmentsSection from './PatientAttachmentsSection.vue'
+import { ipcInvoke } from '@/utils/ipc'
 
 const emit = defineEmits<{ saved: [] }>()
 
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const editId = ref<number | null>(null)
-const formRef = ref<any>(null)
+const formRef = ref<FormInstance>()
 const allergyInputRef = ref<any>(null)
 const allergyInputVisible = ref(false)
 const allergyInputValue = ref('')
 const fileInputRef = ref<HTMLInputElement>()
 const selectedRegion = ref('')
 const selectedPrefecture = ref('')
+const tpSelectedRegion = ref('')
+const tpSelectedPrefecture = ref('')
+let isReconstructingTpResidence = false
 const nip = ref('')
 const initializingNip = ref(false)
 const ageInput = ref<number | null>(null)
 const isSyncingAge = ref(false)
 const isPostCreate = ref(false)
-const { localites, fetchLocalites } = useLocalites()
+const activeStep = ref(0)
+let isReconstructingResidence = false
+const { localites, loading, fetchLocalites } = useLocalites()
+
+const sites = ref<Array<{ id: number; name: string }>>([])
+const doctors = ref<Array<{ id: number; nom: string; prenom: string }>>([])
+const loadingSites = ref(false)
+const loadingDoctors = ref(false)
 
 const regions = computed(() => {
   return localites.value.filter(l => l.type === 'region')
@@ -179,17 +290,36 @@ const communesSousPref = computed(() => {
   return localites.value.filter(l => l.parent_id === id)
 })
 
+const tpPrefectures = computed(() => {
+  if (!tpSelectedRegion.value) return []
+  const region = localites.value.find(l => l.code === tpSelectedRegion.value)
+  if (!region?.id) return []
+  return localites.value.filter(l => l.parent_id === region.id)
+})
+
+const tpSelectedPrefectureId = computed(() => {
+  const found = tpPrefectures.value.find(p => p.code === tpSelectedPrefecture.value)
+  return found?.id
+})
+
+const tpCommunesSousPref = computed(() => {
+  const id = tpSelectedPrefectureId.value
+  if (!id) return []
+  return localites.value.filter(l => l.parent_id === id)
+})
+
 const form = reactive({
-  civilite: 'M' as 'M' | 'Mme' | 'Mlle',
+  civilite: '',
   nom: '',
   prenom: '',
   date_naissance: '',
   lieu_naissance: '',
+  profession: '',
   nir: '',
   telephone: '',
   email: '',
-  adresse: '',
   mutuelle: '',
+  site_id: null as number | null,
   medecin_traitant: '',
   allergies: [] as string[],
   photo: null as string | null,
@@ -197,6 +327,17 @@ const form = reactive({
   residence_code: '',
   complement_adresse: '',
   region: '',
+  has_trusted: false,
+  tp_nom: '',
+  tp_prenom: '',
+  tp_profession: '',
+  tp_residence: '',
+  tp_residence_code: '',
+  tp_region: '',
+  tp_telephone: '',
+  tp_email: '',
+  tp_complement_adresse: '',
+  tp_lien_parente: '',
 })
 
 const rules = {
@@ -204,10 +345,7 @@ const rules = {
   nom: [{ required: true, message: 'Le nom est requis', trigger: 'blur' }],
   prenom: [{ required: true, message: 'Le prénom est requis', trigger: 'blur' }],
   date_naissance: [{ required: true, message: 'La date de naissance est requise', trigger: 'change' }],
-  nir: [
-    { required: true, message: 'Le N° SS/Assurance est requis', trigger: 'blur' },
-    { min: 13, max: 15, message: 'Le N° SS/Assurance doit contenir 13 à 15 caractères', trigger: 'blur' },
-  ],
+  nir: [{ required: true, message: 'Le N° SS/Assurance est requis', trigger: 'blur' }],
   telephone: [{ required: true, message: 'Le téléphone est requis', trigger: 'blur' }],
 }
 
@@ -260,8 +398,9 @@ watch(
   [() => form.civilite, () => form.date_naissance, () => form.residence_code],
   ([civ, date, code]) => {
     if (initializingNip.value) return
-    if (civ && date && code) {
-      const generated = generateNip(civ, date, code)
+    if (date && code) {
+      const civForNip = civ || 'M'
+      const generated = generateNip(civForNip as 'M' | 'Mme' | 'Mlle', date, code)
       nip.value = generated
       form.nip = generated
     } else {
@@ -294,30 +433,110 @@ function onAgeChange(val: number | undefined) {
   nextTick(() => { isSyncingAge.value = false })
 }
 
-onMounted(async () => {
-  await fetchLocalites(true)
+watch(selectedRegion, (newCode) => {
+  if (newCode) {
+    const region = localites.value.find(l => l.code === newCode)
+    form.region = region?.name ?? ''
+  } else {
+    form.region = ''
+  }
 })
 
+function onRegionChange() {
+  if (isReconstructingResidence) return
+  selectedPrefecture.value = ''
+  form.residence_code = ''
+}
+
+watch(tpSelectedRegion, (newCode) => {
+  if (newCode) {
+    const region = localites.value.find(l => l.code === newCode)
+    form.tp_region = region?.name ?? ''
+  } else {
+    form.tp_region = ''
+  }
+})
+
+function onTpRegionChange() {
+  if (isReconstructingTpResidence) return
+  tpSelectedPrefecture.value = ''
+  form.tp_residence_code = ''
+  form.tp_residence = ''
+}
+
+async function onSiteChange(siteId: number | undefined) {
+  form.medecin_traitant = ''
+  doctors.value = []
+  if (!siteId) return
+  loadingDoctors.value = true
+  try {
+    doctors.value = await ipcInvoke<Array<{ id: number; nom: string; prenom: string }>>('doctors:list-by-site', { site_id: siteId })
+  } catch {
+    doctors.value = []
+  } finally {
+    loadingDoctors.value = false
+  }
+}
+
+function reconstructTpResidence(code: string | undefined) {
+  if (!code) return
+  isReconstructingTpResidence = true
+  const leaf = localites.value.find(l => l.code === code)
+  if (!leaf) {
+    isReconstructingTpResidence = false
+    return
+  }
+  if (leaf.parent_id) {
+    const parent = localites.value.find(l => l.id === leaf.parent_id)
+    if (parent) {
+      tpSelectedPrefecture.value = parent.code
+      if (parent.parent_id) {
+        const grandparent = localites.value.find(l => l.id === parent.parent_id)
+        if (grandparent) {
+          tpSelectedRegion.value = grandparent.code
+          form.tp_region = grandparent.name
+        }
+      }
+    }
+  }
+  isReconstructingTpResidence = false
+}
+
 function resetForm() {
-  form.civilite = 'M'
+  form.civilite = ''
   form.nom = ''
   form.prenom = ''
   form.date_naissance = ''
   form.lieu_naissance = ''
+  form.profession = ''
   form.nir = ''
   form.telephone = ''
   form.email = ''
-  form.adresse = ''
   form.mutuelle = ''
+  form.site_id = null
   form.medecin_traitant = ''
+  doctors.value = []
   form.allergies = []
   form.photo = null
   form.nip = ''
   form.residence_code = ''
   form.complement_adresse = ''
   form.region = ''
+  form.has_trusted = false
+  form.tp_nom = ''
+  form.tp_prenom = ''
+  form.tp_profession = ''
+  form.tp_residence = ''
+  form.tp_residence_code = ''
+  form.tp_region = ''
+  form.tp_telephone = ''
+  form.tp_email = ''
+  form.tp_complement_adresse = ''
+  form.tp_lien_parente = ''
   selectedRegion.value = ''
   selectedPrefecture.value = ''
+  tpSelectedRegion.value = ''
+  tpSelectedPrefecture.value = ''
   nip.value = ''
   editId.value = null
   isEdit.value = false
@@ -326,6 +545,7 @@ function resetForm() {
   ageInput.value = null
   isSyncingAge.value = false
   isPostCreate.value = false
+  activeStep.value = 0
   formRef.value?.resetFields()
 }
 
@@ -335,14 +555,20 @@ function close() {
 
 function reconstructResidence(code: string | undefined) {
   if (!code) return
+  isReconstructingResidence = true
   const leaf = localites.value.find(l => l.code === code)
-  if (!leaf) return
-  // Find parent (prefecture)
+  if (!leaf) {
+    if (form.region) {
+      const region = localites.value.find(l => l.type === 'region' && l.name === form.region)
+      if (region) selectedRegion.value = region.code
+    }
+    isReconstructingResidence = false
+    return
+  }
   if (leaf.parent_id) {
     const parent = localites.value.find(l => l.id === leaf.parent_id)
     if (parent) {
       selectedPrefecture.value = parent.code
-      // Find grandparent (region)
       if (parent.parent_id) {
         const grandparent = localites.value.find(l => l.id === parent.parent_id)
         if (grandparent) {
@@ -352,9 +578,49 @@ function reconstructResidence(code: string | undefined) {
       }
     }
   }
+  isReconstructingResidence = false
 }
 
-function open(patient?: Patient) {
+async function submitTrustedPerson() {
+  if (!editId.value) return
+  try {
+    if (form.has_trusted) {
+      await upsertTrustedPerson({
+        patient_id: editId.value,
+        has_trusted: true,
+        nom: form.tp_nom || undefined,
+        prenom: form.tp_prenom || undefined,
+        profession: form.tp_profession || undefined,
+        residence: form.tp_residence_code
+          ? (localites.value.find(l => l.code === form.tp_residence_code)?.name || form.tp_residence_code)
+          : undefined,
+        residence_code: form.tp_residence_code || undefined,
+        telephone: form.tp_telephone || undefined,
+        email: form.tp_email || undefined,
+        complement_adresse: form.tp_complement_adresse || undefined,
+        lien_parente: form.tp_lien_parente || undefined,
+      })
+    } else if (isEdit.value) {
+      await deleteTrustedPerson(editId.value)
+    }
+  } catch (e) {
+    console.warn('[TP] Échec de la sauvegarde de la personne de confiance:', e)
+  }
+}
+
+async function open(patient?: Patient) {
+  await fetchLocalites(false)
+
+  // Fetch sites list
+  loadingSites.value = true
+  try {
+    sites.value = await ipcInvoke<Array<{ id: number; name: string }>>('sites:list')
+  } catch {
+    sites.value = []
+  } finally {
+    loadingSites.value = false
+  }
+
   if (patient) {
     initializingNip.value = true
     isEdit.value = true
@@ -364,11 +630,12 @@ function open(patient?: Patient) {
     form.prenom = patient.prenom
     form.date_naissance = patient.date_naissance
     form.lieu_naissance = patient.lieu_naissance || ''
+    form.profession = patient.profession || ''
     form.nir = patient.nir
     form.telephone = patient.telephone
     form.email = patient.email || ''
-    form.adresse = patient.adresse || ''
     form.mutuelle = patient.mutuelle || ''
+    form.site_id = patient.site_id ?? null
     form.medecin_traitant = patient.medecin_traitant || ''
     form.allergies = [...patient.allergies]
     form.photo = patient.photo ?? null
@@ -379,7 +646,43 @@ function open(patient?: Patient) {
     form.nip = patient.nip ?? ''
     reconstructResidence(patient.residence_code)
     initializingNip.value = false
+
+    // Load trusted person data
+    try {
+      const tp = await getTrustedPerson(patient.id)
+      if (tp) {
+        form.has_trusted = tp.has_trusted
+        form.tp_nom = tp.nom || ''
+        form.tp_prenom = tp.prenom || ''
+        form.tp_profession = tp.profession || ''
+        form.tp_residence = tp.residence || ''
+        form.tp_residence_code = tp.residence_code || ''
+        form.tp_region = tp.residence
+          ? localites.value.find(l => l.code === tp.residence_code)?.name || ''
+          : ''
+        reconstructTpResidence(tp.residence_code)
+        form.tp_telephone = tp.telephone || ''
+        form.tp_email = tp.email || ''
+        form.tp_complement_adresse = tp.complement_adresse || ''
+        form.tp_lien_parente = tp.lien_parente || ''
+      }
+    } catch {
+      // Trusted person not found, keep defaults
+    }
+
+    // Load doctors for the patient's site in edit mode
+    if (form.site_id) {
+      loadingDoctors.value = true
+      try {
+        doctors.value = await ipcInvoke<Array<{ id: number; nom: string; prenom: string }>>('doctors:list-by-site', { site_id: form.site_id })
+      } catch {
+        doctors.value = []
+      } finally {
+        loadingDoctors.value = false
+      }
+    }
   }
+  activeStep.value = 0
   dialogVisible.value = true
 }
 
@@ -391,33 +694,29 @@ async function submit() {
       return
     }
     if (isPostCreate.value) {
+      await submitTrustedPerson()
       close()
       emit('saved')
       return
     }
-    if (form.residence_code) {
-      const leaf = localites.value.find(l => l.code === form.residence_code)
-      if (leaf?.parent_id) {
-        const parent = localites.value.find(l => l.id === leaf.parent_id)
-        if (parent?.parent_id) {
-          const grandparent = localites.value.find(l => l.id === parent.parent_id)
-          if (grandparent) form.region = grandparent.name
-        }
-      }
-    }
     const loader = showLoader(isEdit.value ? 'Enregistrement...' : 'Création...')
     try {
+      const raw = toRaw(form) as Record<string, unknown>
+      const patientPayload = { ...raw, civilite: raw.civilite || '' } as PatientDto
       if (isEdit.value && editId.value) {
-        await updatePatient({ ...toRaw(form), id: editId.value })
+        await updatePatient({ ...patientPayload, id: editId.value })
+        await submitTrustedPerson()
         ElMessage.success('Patient mis à jour')
         close()
         emit('saved')
       } else {
-        const created = await createPatient(toRaw(form))
+        const created = await createPatient(patientPayload)
         if (created?.id) {
           editId.value = created.id
           isEdit.value = true
           isPostCreate.value = true
+          activeStep.value = 3
+          await submitTrustedPerson()
           if (created.nip) {
             nip.value = created.nip
             form.nip = created.nip
@@ -425,6 +724,7 @@ async function submit() {
           ElMessage.success('Patient créé. Vous pouvez ajouter des pièces jointes.')
           emit('saved')
         } else {
+          await submitTrustedPerson()
           ElMessage.success('Patient créé')
           close()
           emit('saved')
@@ -495,10 +795,34 @@ defineExpose({ open })
   gap: 8px;
   width: 100%;
 }
+
 .age-unit {
   font-size: 13px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
   margin-left: 4px;
+}
+
+.step-content {
+  min-height: 200px;
+}
+
+.trusted-person-card {
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  background: var(--el-color-info-light-9);
+  margin-bottom: 8px;
+}
+
+.trusted-person-card .el-form-item__label {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
 }
 </style>

@@ -14,7 +14,7 @@
           </el-avatar>
           <div class="patient-record__identity">
             <h2 class="patient-record__name">
-              {{ patient.civilite }} {{ patient.prenom }} {{ patient.nom }}
+              {{ patient.civilite ? patient.civilite : 'Non défini' }} {{ patient.prenom }} {{ patient.nom }}
             </h2>
             <div class="patient-record__meta">
               <span>N° SS/Assurance: {{ patient.nir }}</span>
@@ -45,8 +45,8 @@
               <span class="patient-record__value">{{ patient.telephone }}</span>
             </div>
             <div class="patient-record__field">
-              <span class="patient-record__label">Adresse</span>
-              <span class="patient-record__value">{{ patient.adresse }}</span>
+              <span class="patient-record__label">Profession</span>
+              <span class="patient-record__value">{{ patient.profession || '—' }}</span>
             </div>
             <div class="patient-record__field">
               <span class="patient-record__label">Lieu de naissance</span>
@@ -58,7 +58,7 @@
             </div>
             <div class="patient-record__field">
               <span class="patient-record__label">Résidence</span>
-              <span class="patient-record__value">{{ patient.residence_code || '—' }}</span>
+              <span class="patient-record__value">{{ residenceDisplay }}</span>
             </div>
             <div class="patient-record__field">
               <span class="patient-record__label">Complément</span>
@@ -69,32 +69,80 @@
               <span class="patient-record__value">{{ patient.mutuelle || 'Aucune' }}</span>
             </div>
             <div class="patient-record__field">
-              <span class="patient-record__label">Référent</span>
+              <span class="patient-record__label">Site</span>
+              <span class="patient-record__value">{{ siteName }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Médecin référent</span>
               <span class="patient-record__value">{{ patient.medecin_traitant }}</span>
+            </div>
+            <!-- Allergies inline -->
+            <div class="patient-record__field">
+              <span class="patient-record__label">Allergies</span>
+              <span class="patient-record__value">
+                <template v-if="!patient.allergies || patient.allergies.length === 0">
+                  Aucune
+                </template>
+                <span v-else class="patient-record__allergies-tags">
+                  <el-tag
+                    v-for="a in patient.allergies"
+                    :key="a"
+                    type="danger"
+                    size="small"
+                  >
+                    {{ a }}
+                  </el-tag>
+                </span>
+              </span>
             </div>
           </div>
         </el-card>
-
-        <el-card class="patient-record__card">
-          <template #header>
-            <span><strong>Allergies & Antécédents</strong></span>
-          </template>
-          <div v-if="!patient.allergies || patient.allergies.length === 0" class="patient-record__none">
-            Aucune allergie documentée.
-          </div>
-          <div v-else class="patient-record__allergies">
-            <el-tag
-              v-for="a in patient.allergies"
-              :key="a"
-              type="danger"
-              size="small"
-              class="patient-record__allergy-tag"
-            >
-              {{ a }}
-            </el-tag>
-          </div>
-        </el-card>
       </div>
+
+      <el-card class="patient-record__section">
+        <template #header>
+          <span><strong>Personne de confiance</strong></span>
+        </template>
+        <template v-if="trustedPerson && trustedPerson.has_trusted">
+          <div class="patient-record__fields">
+            <div class="patient-record__field">
+              <span class="patient-record__label">Nom</span>
+              <span class="patient-record__value">{{ trustedPerson.nom || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Prénom</span>
+              <span class="patient-record__value">{{ trustedPerson.prenom || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Profession</span>
+              <span class="patient-record__value">{{ trustedPerson.profession || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Résidence</span>
+              <span class="patient-record__value">{{ trustedPersonDisplayResidence }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Téléphone</span>
+              <span class="patient-record__value">{{ trustedPerson.telephone || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Email</span>
+              <span class="patient-record__value">{{ trustedPerson.email || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Complément</span>
+              <span class="patient-record__value">{{ trustedPerson.complement_adresse || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Lien de parenté</span>
+              <span class="patient-record__value">{{ trustedPerson.lien_parente || '—' }}</span>
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <el-empty description="Aucune personne de confiance renseignée" />
+        </template>
+      </el-card>
 
       <el-card class="patient-record__section">
         <template #header>
@@ -103,8 +151,18 @@
         <el-empty description="Aucune consultation" />
       </el-card>
 
-      <el-divider />
-      <PatientAttachmentsSection :patient-id="patient.id" />
+      <el-card class="patient-record__section">
+        <template #header>
+          <span><strong>Pièces jointes</strong></span>
+        </template>
+        <PatientAttachmentsSection :patient-id="patient.id" category="patient" />
+      </el-card>
+      <el-card class="patient-record__section">
+        <template #header>
+          <span><strong>Pièces jointes (personne de confiance)</strong></span>
+        </template>
+        <PatientAttachmentsSection :patient-id="patient.id" category="trusted_person" />
+      </el-card>
     </div>
 
     <PatientFormDialog ref="formDialogRef" @saved="onSaved" />
@@ -112,13 +170,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onErrorCaptured } from 'vue'
+import { ref, computed, onMounted, onErrorCaptured } from 'vue'
 import { useRoute } from 'vue-router'
 import { Edit, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPatient, deletePatient, fetchPatients, type PatientDto } from '@/composables/usePatients'
+import { getTrustedPerson, type TrustedPersonDto } from '@/composables/useTrustedPerson'
 import { calculateAge } from '@/utils/age'
 import { usePatientContext } from '@/composables/usePatientContext'
+import { useLocalites } from '@/composables/useLocalites'
+import { ipcInvoke } from '@/utils/ipc'
 import PatientFormDialog from '@/components/patients/PatientFormDialog.vue'
 
 const route = useRoute()
@@ -126,6 +187,36 @@ const { setActivePatient } = usePatientContext()
 const patient = ref<PatientDto | null>(null)
 const loading = ref(true)
 const formDialogRef = ref<InstanceType<typeof PatientFormDialog> | null>(null)
+const { localites, fetchLocalites } = useLocalites()
+const trustedPerson = ref<TrustedPersonDto | null>(null)
+const sites = ref<Array<{ id: number; name: string }>>([])
+
+const siteName = computed(() => {
+  if (!patient.value?.site_id) return '—'
+  const site = sites.value.find(s => s.id === patient.value!.site_id)
+  return site?.name ?? '—'
+})
+
+const residenceDisplay = computed(() => {
+  const p = patient.value
+  if (!p?.residence_code) return '—'
+  if (!localites.value) return p.residence_code
+  const leaf = localites.value.find(l => l.code === p.residence_code)
+  if (!leaf) return p.residence_code
+  return leaf.name
+})
+
+const trustedPersonDisplayResidence = computed(() => {
+  const tp = trustedPerson.value
+  if (!tp) return '—'
+  if (tp.residence_code) {
+    if (!localites.value) return tp.residence_code
+    const leaf = localites.value.find(l => l.code === tp.residence_code)
+    if (leaf) return leaf.name
+    return tp.residence_code
+  }
+  return tp.residence || '—'
+})
 
 onErrorCaptured((err) => {
   ElMessage.error(`Erreur: ${(err as Error).message}`)
@@ -133,6 +224,7 @@ onErrorCaptured((err) => {
 })
 
 onMounted(async () => {
+  await fetchLocalites(false)
   await loadPatient()
 })
 
@@ -146,6 +238,18 @@ async function loadPatient() {
       setActivePatient(p)
     } else {
       ElMessage.warning('Patient introuvable')
+    }
+    // Load trusted person
+    try {
+      trustedPerson.value = await getTrustedPerson(id)
+    } catch {
+      trustedPerson.value = null
+    }
+    // Load sites for site name display
+    try {
+      sites.value = await ipcInvoke<Array<{ id: number; name: string }>>('sites:list')
+    } catch {
+      sites.value = []
     }
   } catch (e) {
     ElMessage.error(`Erreur lors du chargement du patient: ${(e as Error).message}`)
@@ -228,7 +332,7 @@ function onSaved() {
 
 .patient-record__grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
   margin-bottom: 16px;
 }
@@ -247,7 +351,7 @@ function onSaved() {
 .patient-record__label {
   min-width: 100px;
   font-size: 13px;
-  color: var(--cd-gray-400);
+  color: var(--cd-gray-600);
 }
 
 .patient-record__value {
@@ -255,14 +359,9 @@ function onSaved() {
   color: var(--cd-gray-900);
 }
 
-.patient-record__none {
-  font-size: 14px;
-  color: var(--cd-gray-400);
-}
-
-.patient-record__allergies {
-  display: flex;
-  gap: 8px;
+.patient-record__allergies-tags {
+  display: inline-flex;
+  gap: 6px;
   flex-wrap: wrap;
 }
 

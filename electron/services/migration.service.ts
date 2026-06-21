@@ -17,6 +17,12 @@ import * as PatientAttachments from '../migrations/015-patient-attachments'
 import * as PatientResidenceBirthplace from '../migrations/016-patient-residence-birthplace'
 import * as AddRegionType from '../migrations/017-add-region-type'
 import * as AddPatientRegion from '../migrations/018-add-patient-region'
+import * as PatientTrustedPerson from '../migrations/019-patient-trusted-person'
+import * as TrustedPersonResidenceCode from '../migrations/020-trusted-person-residence-code'
+import * as CiviliteAllowEmpty from '../migrations/021-civilite-allow-empty'
+import * as PatientSite from '../migrations/022-patient-site'
+import * as PatientAttachmentCategory from '../migrations/023-patient-attachment-category'
+import * as UniqueTrustedPersonPatient from '../migrations/024-unique-trusted-person-patient'
 
 class StaticMigrationProvider implements MigrationProvider {
   async getMigrations(): Promise<Record<string, Migration>> {
@@ -39,6 +45,12 @@ class StaticMigrationProvider implements MigrationProvider {
       '016-patient-residence-birthplace': PatientResidenceBirthplace,
       '017-add-region-type': AddRegionType,
       '018-add-patient-region': AddPatientRegion,
+      '019-patient-trusted-person': PatientTrustedPerson,
+      '020-trusted-person-residence-code': TrustedPersonResidenceCode,
+      '021-civilite-allow-empty': CiviliteAllowEmpty,
+      '022-patient-site': PatientSite,
+      '023-patient-attachment-category': PatientAttachmentCategory,
+      '024-unique-trusted-person-patient': UniqueTrustedPersonPatient,
     }
   }
 }

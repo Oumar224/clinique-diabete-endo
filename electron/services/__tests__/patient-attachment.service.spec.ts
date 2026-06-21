@@ -203,6 +203,7 @@ describe('PatientAttachmentService', () => {
       .insertInto('patient_attachments')
       .values({
         patient_id: patientId,
+        category: 'patient',
         display_name: 'Old Attachment',
         file_name: 'old.pdf',
         file_data: 'data:,old',

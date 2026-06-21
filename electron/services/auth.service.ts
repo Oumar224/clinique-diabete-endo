@@ -55,7 +55,7 @@ export class AuthService {
     }
 
     // Check contract status
-    const statut = this.computeStatutContrat(user as Record<string, unknown>)
+    const statut = this.computeStatutContrat(user)
     if (statut === 'Résilié') {
       throw new Error('Contrat résilié. Contactez l\'administrateur.')
     }
@@ -99,6 +99,22 @@ export class AuthService {
 
   async listUsers(): Promise<UserDto[]> {
     const users = await this.db.selectFrom('user').selectAll().orderBy('nom', 'asc').execute()
+    return users.map(u => UserEntity.toDto(this.rowToEntity(u)))
+  }
+
+  async listDoctorsBySite(siteId?: number): Promise<UserDto[]> {
+    let query = this.db
+      .selectFrom('user')
+      .selectAll()
+      .where('role', '=', 'MEDECIN')
+
+    if (siteId !== undefined) {
+      query = query
+        .innerJoin('user_sites', 'user_sites.user_id', 'user.id')
+        .where('user_sites.site_id', '=', siteId)
+    }
+
+    const users = await query.orderBy('nom', 'asc').execute()
     return users.map(u => UserEntity.toDto(this.rowToEntity(u)))
   }
 
@@ -154,7 +170,7 @@ export class AuthService {
           type_contrat: dto.type_contrat || 'CDI',
           is_active: 1,
           is_validated: 0,
-        } as never)
+        } as any)
         .execute()
     } catch (error) {
       if ((error as { code?: string })?.code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -219,7 +235,7 @@ export class AuthService {
 
     await this.db
       .updateTable('user')
-      .set(updates as never)
+      .set(updates as any)
       .where('id', '=', dto.id!)
       .execute()
 
@@ -241,7 +257,7 @@ export class AuthService {
         is_active: 0,
         is_validated: 0,
         updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-      } as never)
+      } as any)
       .where('id', '=', id)
       .execute()
   }
@@ -287,10 +303,10 @@ export class AuthService {
     return user ? UserEntity.toDto(this.rowToEntity(user)) : null
   }
 
-  private computeStatutContrat(row: Record<string, unknown>): 'Actif' | 'Expiré' | 'Résilié' {
+  private computeStatutContrat(row: UserEntity): 'Actif' | 'Expiré' | 'Résilié' {
     if (row.statut_resiliation === 'resilie') return 'Résilié'
     if (row.date_fin_contrat) {
-      const end = new Date(row.date_fin_contrat as string)
+      const end = new Date(row.date_fin_contrat)
       if (end < new Date()) return 'Expiré'
     }
     return 'Actif'
@@ -357,7 +373,7 @@ export class AuthService {
       sites: sites as Array<{ id: number; name: string }>,
       medical_units: medicalUnits as Array<{ id: number; name: string; code: string }>,
       fonction: fonction ? { id: fonction.id!, name: fonction.name } : null,
-      statut_contrat: this.computeStatutContrat(user as Record<string, unknown>),
+      statut_contrat: this.computeStatutContrat(user),
     }
   }
 
@@ -423,7 +439,7 @@ export class AuthService {
         resilie_par: terminatedBy,
         is_active: 0,
         updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-      } as never)
+      } as any)
       .where('id', '=', userId)
       .execute()
   }
@@ -446,7 +462,7 @@ export class AuthService {
         resilie_par: null,
         is_active: 1,
         updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-      } as never)
+      } as any)
       .where('id', '=', userId)
       .execute()
   }

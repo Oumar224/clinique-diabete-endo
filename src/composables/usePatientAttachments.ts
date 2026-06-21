@@ -13,18 +13,18 @@ export interface PatientAttachmentDto {
   createdAt: string
 }
 
-const attachments = ref<PatientAttachmentDto[]>([])
-const loading = ref(false)
-const loadedForPatientId = ref<number | null>(null)
-
 export function usePatientAttachments() {
-  async function loadAttachments(patientId: number, force = false) {
-    if (!force && loadedForPatientId.value === patientId) return
+  const attachments = ref<PatientAttachmentDto[]>([])
+  const loading = ref(false)
+  const loadedKey = ref<string | null>(null)
+  async function loadAttachments(patientId: number, category: string = 'patient', force = false) {
+    const key = `${patientId}:${category}`
+    if (!force && loadedKey.value === key) return
     loading.value = true
     attachments.value = []
     try {
-      attachments.value = await ipcInvoke<PatientAttachmentDto[]>('patient-attachments:list', patientId)
-      loadedForPatientId.value = patientId
+      attachments.value = await ipcInvoke<PatientAttachmentDto[]>('patient-attachments:list', { patientId, category })
+      loadedKey.value = key
     } catch {
       ElMessage.error('Erreur lors du chargement des pièces jointes')
     }
@@ -35,6 +35,7 @@ export function usePatientAttachments() {
     patientId: number
     displayName: string
     fileName: string
+    category?: string
     mimeType: string
     fileSize: number
     fileData: string
@@ -69,7 +70,7 @@ export function usePatientAttachments() {
 
   function reset() {
     attachments.value = []
-    loadedForPatientId.value = null
+    loadedKey.value = null
   }
 
   return {

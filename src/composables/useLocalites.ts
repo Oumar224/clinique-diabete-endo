@@ -1,5 +1,5 @@
-import { ref } from 'vue'
-import { ipcInvoke } from '@/utils/ipc'
+import {ref} from 'vue'
+import {ipcInvoke} from '@/utils/ipc'
 
 export interface LocaliteDto {
   id?: number
@@ -13,12 +13,11 @@ export interface LocaliteDto {
   children?: LocaliteDto[]
 }
 
-const localites = ref<LocaliteDto[]>([])
-const treeData = ref<LocaliteDto[]>([])
-const loading = ref(false)
-const error = ref<string | null>(null)
-
 export function useLocalites() {
+  const localites = ref<LocaliteDto[]>([])
+  const treeData = ref<LocaliteDto[]>([])
+  const loading = ref(false)
+  const error = ref<string | null>(null)
   async function fetchLocalites(activeOnly = false): Promise<void> {
     loading.value = true
     error.value = null
@@ -44,11 +43,12 @@ export function useLocalites() {
   }
 
   async function importLocalites(): Promise<number> {
+    error.value = null
     try {
-      const count = await ipcInvoke<number>('localites:import')
-      return count
-    } catch {
-      return 0
+      return await ipcInvoke<number>('localites:import')
+    } catch (e: any) {
+      error.value = e?.message || "Erreur lors de l'importation des localités"
+      throw e
     }
   }
 
@@ -79,6 +79,14 @@ export function useLocalites() {
     return false
   }
 
+  async function getLocaliteByCode(code: string): Promise<LocaliteDto | null> {
+    try {
+      return await ipcInvoke<LocaliteDto | null>('localites:get-by-code', { code })
+    } catch {
+      return null
+    }
+  }
+
   async function searchLocalites(query: string): Promise<LocaliteDto[]> {
     try {
       return await ipcInvoke<LocaliteDto[]>('localites:search', { query })
@@ -88,11 +96,14 @@ export function useLocalites() {
   }
 
   async function importLocalitesData(data: string, country: string): Promise<number> {
+    error.value = null
     try {
       const count = await ipcInvoke<number>('localites:import-data', { data, country })
       return count
-    } catch {
-      return 0
+    } catch (e: any) {
+      const msg = e?.message || "Erreur lors de l'importation personnalisée"
+      error.value = msg
+      throw e
     }
   }
 
@@ -106,6 +117,7 @@ export function useLocalites() {
     importLocalites,
     importLocalitesData,
     toggleLocalite,
+    getLocaliteByCode,
     searchLocalites,
   }
 }

@@ -7,14 +7,13 @@ import type { AutomergeDocument } from '../automerge/utils/entity-types'
 
 export class PatientEntity {
   id?: number
-  civilite?: 'M' | 'Mme' | 'Mlle'
+  civilite?: '' | 'M' | 'Mme' | 'Mlle'
   nom?: string
   prenom?: string
   date_naissance?: string
   nir?: string
   telephone?: string
   email?: string
-  adresse?: string
   mutuelle?: string
   medecin_traitant?: string
   allergies?: string
@@ -25,6 +24,8 @@ export class PatientEntity {
   residence_code?: string
   complement_adresse?: string
   region?: string
+  profession?: string
+  site_id?: number
   created_at?: string
   updated_at?: string
 
@@ -38,10 +39,9 @@ export class PatientEntity {
       nir: entity.nir,
       telephone: entity.telephone,
       email: entity.email,
-      adresse: entity.adresse,
       mutuelle: entity.mutuelle,
       medecin_traitant: entity.medecin_traitant,
-      allergies: entity.allergies?.trim() ? JSON.parse(entity.allergies) : [],
+      allergies: entity.allergies ? (() => { try { return JSON.parse(entity.allergies) } catch { return [] } })() : [],
       automerge_id: entity.automerge_id,
       photo: entity.photo,
       nip: entity.nip,
@@ -49,6 +49,8 @@ export class PatientEntity {
       residence_code: entity.residence_code,
       complement_adresse: entity.complement_adresse,
       region: entity.region,
+      profession: entity.profession,
+      site_id: entity.site_id,
     }
   }
 
@@ -59,14 +61,13 @@ export class PatientEntity {
   static fromDto(dto: PatientDto): PatientEntity {
     const e = new PatientEntity()
     e.id = dto.id
-    e.civilite = dto.civilite
+    e.civilite = dto.civilite ?? ''
     e.nom = dto.nom
     e.prenom = dto.prenom
     e.date_naissance = dto.date_naissance
     e.nir = dto.nir
     e.telephone = dto.telephone
     e.email = dto.email
-    e.adresse = dto.adresse
     e.mutuelle = dto.mutuelle
     e.medecin_traitant = dto.medecin_traitant
     e.allergies = dto.allergies ? JSON.stringify(dto.allergies) : '[]'
@@ -76,6 +77,8 @@ export class PatientEntity {
     e.residence_code = dto.residence_code
     e.complement_adresse = dto.complement_adresse
     e.region = dto.region
+    e.profession = dto.profession
+    e.site_id = dto.site_id
     return e
   }
 
@@ -83,7 +86,7 @@ export class PatientEntity {
     await db.executeQuery(CompiledQuery.raw(`
       CREATE TABLE IF NOT EXISTS patient (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        civilite TEXT NOT NULL CHECK(civilite IN ('M','Mme','Mlle')),
+        civilite TEXT NOT NULL CHECK(civilite IN ('M','Mme','Mlle','')),
         nom TEXT NOT NULL,
         prenom TEXT NOT NULL,
         date_naissance TEXT NOT NULL,
@@ -100,6 +103,8 @@ export class PatientEntity {
         residence_code TEXT,
         complement_adresse TEXT,
         region TEXT,
+        profession TEXT,
+        site_id INTEGER REFERENCES sites(id),
         automerge_id TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))

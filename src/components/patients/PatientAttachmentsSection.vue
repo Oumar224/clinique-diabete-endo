@@ -1,79 +1,85 @@
 <template>
   <div class="attachments-section">
-    <h3 class="attachments-section__title">Pièces jointes</h3>
+    <h3 class="attachments-section__title">{{ category === 'trusted_person' ? 'Pièces jointes (personne de confiance)' : 'Pièces jointes' }}</h3>
 
-    <div class="attachments-section__add">
-      <el-input
-        v-model="displayName"
-        placeholder="Nom du fichier..."
-        style="width: 250px; margin-right: 8px;"
-        size="small"
-      />
-      <el-button size="small" @click="triggerFileInput">
-        Choisir un fichier
-      </el-button>
-      <input
-        ref="fileInputRef"
-        type="file"
-        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-        style="display: none"
-        @change="handleFileChange"
-      />
-      <span v-if="selectedFile" class="attachments-section__file-name">
-        {{ selectedFile.name }}
-      </span>
-      <el-button
-        size="small"
-        type="primary"
-        :disabled="!displayName || !selectedFile || !fileData"
-        :loading="adding"
-        @click="handleAdd"
-        style="margin-left: 8px;"
-      >
-        Ajouter
-      </el-button>
-    </div>
-
-    <div v-if="loading" class="attachments-section__loading">Chargement...</div>
-
-    <div v-if="attachments.length === 0 && !loading" class="attachments-section__empty">
-      Aucune pièce jointe.
-    </div>
-
-    <div v-for="att in attachments" :key="att.id" class="attachments-section__item">
-      <div class="attachments-section__item-info">
-        <span class="attachments-section__item-icon">
-          <template v-if="att.mimeType?.startsWith('image/')"><el-icon><PictureFilled /></el-icon></template>
-          <template v-else-if="att.mimeType?.includes('pdf')"><el-icon><Document /></el-icon></template>
-          <template v-else><el-icon><Paperclip /></el-icon></template>
+    <template v-if="canManage">
+      <div class="attachments-section__add">
+        <el-input
+          v-model="displayName"
+          placeholder="Nom du fichier..."
+          style="width: 250px; margin-right: 8px;"
+          size="small"
+        />
+        <el-button size="small" @click="triggerFileInput">
+          Choisir un fichier
+        </el-button>
+        <input
+          ref="fileInputRef"
+          type="file"
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          style="display: none"
+          @change="handleFileChange"
+        />
+        <span v-if="selectedFile" class="attachments-section__file-name">
+          {{ selectedFile.name }}
         </span>
-        <div>
-          <div class="attachments-section__item-name">{{ att.displayName }}</div>
-          <div class="attachments-section__item-meta">
-            {{ att.fileName }} — {{ formatSize(att.fileSize) }}
+        <el-button
+          size="small"
+          type="primary"
+          :disabled="!displayName || !selectedFile || !fileData"
+          :loading="adding"
+          @click="handleAdd"
+          style="margin-left: 8px;"
+        >
+          Ajouter
+        </el-button>
+      </div>
+
+      <div v-if="loading" class="attachments-section__loading">Chargement...</div>
+
+      <div v-if="attachments.length === 0 && !loading" class="attachments-section__empty">
+        Aucune pièce jointe.
+      </div>
+
+      <div v-for="att in attachments" :key="att.id" class="attachments-section__item">
+        <div class="attachments-section__item-info">
+          <span class="attachments-section__item-icon">
+            <template v-if="att.mimeType?.startsWith('image/')"><el-icon><PictureFilled /></el-icon></template>
+            <template v-else-if="att.mimeType?.includes('pdf')"><el-icon><Document /></el-icon></template>
+            <template v-else><el-icon><Paperclip /></el-icon></template>
+          </span>
+          <div>
+            <div class="attachments-section__item-name">{{ att.displayName }}</div>
+            <div class="attachments-section__item-meta">
+              {{ att.fileName }} — {{ formatSize(att.fileSize) }}
+            </div>
           </div>
         </div>
+        <el-button
+          text
+          type="danger"
+          size="small"
+          @click="handleRemove(att.id)"
+        >
+          <el-icon><Delete /></el-icon>
+        </el-button>
       </div>
-      <el-button
-        text
-        type="danger"
-        size="small"
-        @click="handleRemove(att.id)"
-      >
-        <el-icon><Delete /></el-icon>
-      </el-button>
+    </template>
+    <div v-else class="attachments-section__disabled-message">
+      Enregistrez d'abord le patient pour ajouter des pièces jointes
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, PictureFilled, Document, Paperclip } from '@element-plus/icons-vue'
 import { usePatientAttachments } from '@/composables/usePatientAttachments'
 
 const props = defineProps<{
   patientId: number
+  category?: 'patient' | 'trusted_person'
 }>()
 
 const {
@@ -82,6 +88,7 @@ const {
   addAttachment,
   removeAttachment,
   loadAttachments,
+  reset,
 } = usePatientAttachments()
 
 const displayName = ref('')
@@ -89,10 +96,13 @@ const selectedFile = ref<File | null>(null)
 const fileData = ref('')
 const adding = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>()
+const canManage = computed(() => props.patientId > 0)
 
-watch(() => props.patientId, (id) => {
-  if (id) {
-    loadAttachments(id, true)
+watch([() => props.patientId, () => props.category], ([id, cat]) => {
+  if (id > 0) {
+    loadAttachments(id, cat ?? 'patient', true)
+  } else {
+    reset()
   }
 }, { immediate: true })
 
@@ -134,6 +144,7 @@ async function handleAdd() {
     patientId: props.patientId,
     displayName: displayName.value.trim(),
     fileName: selectedFile.value.name,
+    category: props.category,
     mimeType: selectedFile.value.type || 'application/octet-stream',
     fileSize: selectedFile.value.size,
     fileData: fileData.value,
@@ -234,5 +245,12 @@ function formatSize(bytes: number | null): string {
 .attachments-section__item-meta {
   font-size: 11px;
   color: #999;
+}
+.attachments-section__disabled-message {
+  font-size: 13px;
+  color: #999;
+  padding: 12px 0;
+  text-align: center;
+  font-style: italic;
 }
 </style>

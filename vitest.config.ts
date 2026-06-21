@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config'
 import path from 'node:path'
+import vue from '@vitejs/plugin-vue'
 import type { Plugin } from 'vite'
 
 /**
@@ -41,7 +42,7 @@ export default mod
 }
 
 export default defineConfig({
-  plugins: [nodeSqlitePlugin()],
+  plugins: [nodeSqlitePlugin(), vue()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

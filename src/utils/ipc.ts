@@ -13,9 +13,10 @@ interface ServiceControllerResult<T = any> {
  * - Convertit les types spéciaux (Date, BigInt, etc.) en leurs équivalents JSON
  */
 function sanitize(obj: Record<string, unknown>): Record<string, unknown> {
-  return JSON.parse(JSON.stringify(obj, (_key, val) =>
+  const json = JSON.stringify(obj, (_key, val) =>
     val === undefined ? null : val
-  ))
+  )
+  return JSON.parse(json ?? '{}')
 }
 
 /**

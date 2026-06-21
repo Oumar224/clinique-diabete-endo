@@ -128,6 +128,36 @@ describe('LocaliteService', () => {
     expect(found).toBeNull()
   })
 
+
+  // ─── GetByCode ────────────────────────────────────────────────────
+
+
+
+  it("should get a localite by code", async () => {
+
+    await service.create({ code: "LAB", name: "Labé", type: "prefecture" })
+
+    const found = await service.getByCode("LAB")
+
+    expect(found).toBeDefined()
+
+    expect(found!.name).toBe("Labé")
+
+    expect(found!.code).toBe("LAB")
+
+    expect(found!.type).toBe("prefecture")
+
+  })
+
+
+
+  it("should return null for non-existent code", async () => {
+
+    const found = await service.getByCode("NONEXISTENT")
+
+    expect(found).toBeNull()
+
+  })
   // ─── Search ─────────────────────────────────────────────────────
 
   it('should search localites by name', async () => {
@@ -286,9 +316,9 @@ describe('LocaliteService', () => {
   it('should be idempotent when importing twice', async () => {
     const firstCount = await service.importFromJson()
 
-    // Import again — onConflict doNothing should skip duplicates
+    // Import again — replaces all data atomically, same count
     const secondCount = await service.importFromJson()
-    expect(secondCount).toBe(0)
+    expect(secondCount).toBe(firstCount)
 
     const list = await service.list()
     expect(list.length).toBe(firstCount)

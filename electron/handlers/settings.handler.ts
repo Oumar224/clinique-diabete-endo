@@ -327,6 +327,10 @@ export function registerSettingsHandlers() {
     return await container.resolve(LocaliteService).getById(id)
   })
 
+  createHandler('localites:get-by-code', async ({ code }: { code: string }) => {
+    return await container.resolve(LocaliteService).getByCode(code)
+  })
+
   createHandler('localites:search', async ({ query }: { query: string }) => {
     return await container.resolve(LocaliteService).search(query)
   })

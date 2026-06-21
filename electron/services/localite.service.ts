@@ -9,10 +9,13 @@ import type { LocaliteDto, LocaliteCreateDto } from '../dto/localite.dto'
 interface LocaliteRaw {
   code: string
   name: string
-  type: 'region' | 'prefecture' | 'commune' | 'sous_prefecture'
+  type?: string  // optional — only used by importFromData for user-provided JSON
   region?: string
   children?: LocaliteRaw[]
 }
+
+// Depth index → DB type — type is inferred from tree position in JSON
+const LOCALITE_TYPES_BY_DEPTH = ['region', 'prefecture', 'commune'] as const
 
 @singleton()
 export class LocaliteService {
@@ -79,6 +82,17 @@ export class LocaliteService {
     return row ? this.toDto(row) : null
   }
 
+  // ─── Get single localité by code ──────────────────────────────
+  async getByCode(code: string): Promise<LocaliteDto | null> {
+    const row = await this.db
+      .selectFrom('localites')
+      .selectAll()
+      .where('code', '=', code)
+      .executeTakeFirst()
+
+    return row ? this.toDto(row) : null
+  }
+
   // ─── Get children of a localité ───────────────────────────────
   async getChildren(parentId: number): Promise<LocaliteDto[]> {
     const rows = await this.db
@@ -108,83 +122,53 @@ export class LocaliteService {
     }
 
     const raw = readFileSync(dataPath, 'utf-8')
-    const regions: LocaliteRaw[] = JSON.parse(raw)
+    let regions: LocaliteRaw[]
+    try {
+      regions = JSON.parse(raw)
+    } catch {
+      throw new Error('Le fichier gn-localites.json est invalide')
+    }
 
     let importedCount = 0
 
     await this.db.transaction().execute(async (trx) => {
-      for (const region of regions) {
-        // Insert or ignore the region
-        const regionResult = await trx
-          .insertInto('localites')
-          .values({
-            code: region.code,
-            name: region.name,
-            type: 'region',
-            parent_id: null,
-            country: 'GN',
-            is_active: 1,
-          })
-          .onConflict((oc) => oc.doNothing())
-          .returningAll()
-          .executeTakeFirst()
+      // Remove all existing localities before re-importing to avoid
+      // stale records when codes or types change in the JSON source
+      await trx.deleteFrom('localites').execute()
 
-        if (regionResult) importedCount++
-
-        const regionRow = regionResult ?? await trx
-          .selectFrom('localites')
-          .selectAll()
-          .where('code', '=', region.code)
-          .executeTakeFirst()
-
-        if (!regionRow || !region.children) continue
-
-          for (const pref of region.children) {
-            const prefResult = await trx
-              .insertInto('localites')
-              .values({
-                code: pref.code,
-                name: pref.name,
-                type: 'prefecture',
-                parent_id: regionRow.id,
-                country: 'GN',
-                is_active: 1,
-                region: region.name,
-              })
-            .onConflict((oc) => oc.doNothing())
+      // Helper: recurse into children, inferring type from tree depth
+      const insertTree = async (
+        parentId: number | null,
+        items: LocaliteRaw[],
+        depth: number,
+        regionName: string,
+      ): Promise<void> => {
+        const type = LOCALITE_TYPES_BY_DEPTH[depth]
+        for (const item of items) {
+          const result = await trx
+            .insertInto('localites')
+            .values({
+              code: item.code,
+              name: item.name,
+              type,
+              parent_id: parentId,
+              country: 'GN',
+              is_active: 1,
+              region: depth === 0 ? undefined : regionName,
+            })
             .returningAll()
             .executeTakeFirst()
 
-          if (prefResult) importedCount++
+          if (!result) continue
+          importedCount++
 
-          const prefRow = prefResult ?? await trx
-            .selectFrom('localites')
-            .selectAll()
-            .where('code', '=', pref.code)
-            .executeTakeFirst()
-
-          if (!prefRow || !pref.children) continue
-
-          for (const child of pref.children) {
-            const childResult = await trx
-              .insertInto('localites')
-              .values({
-                code: child.code,
-                name: child.name,
-                type: child.type,
-                parent_id: prefRow.id,
-                country: 'GN',
-                is_active: 1,
-                region: region.name,
-              })
-              .onConflict((oc) => oc.doNothing())
-              .returningAll()
-              .executeTakeFirst()
-
-            if (childResult) importedCount++
+          if (item.children && item.children.length > 0) {
+            await insertTree(result.id!, item.children, depth + 1, depth === 0 ? item.name : regionName)
           }
         }
       }
+
+      await insertTree(null, regions, 0, '')
     })
 
     // Backfill region for rows imported before the field existed

@@ -68,7 +68,8 @@
       </el-table-column>
       <el-table-column label="Région" width="160">
         <template #default="{ row }">
-          <span>{{ row.region || '—' }}</span>
+          <span v-if="row.type === 'region'" style="color: var(--cd-gray-400); font-style: italic;">(capitale)</span>
+          <span v-else>{{ row.region || '—' }}</span>
         </template>
       </el-table-column>
       <el-table-column label="Statut" width="90" align="center">
@@ -256,10 +257,12 @@ async function handleImport() {
       ElMessage.success(`${count} localités importées avec succès`)
       await getTree()
     } else {
-      ElMessage.warning('Aucune localité importée')
+      ElMessage.info('Aucune nouvelle localité. Les données sont peut-être déjà en base.')
     }
   } catch {
-    ElMessage.error('Erreur lors de l\'importation des localités')
+    // L'erreur est déjà affichée via :
+    // 1. Le toast ElMessage.error() de ipcInvoke()
+    // 2. Le composant <el-alert> lié à error (useLocalites)
   } finally {
     importing.value = false
   }

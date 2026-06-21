@@ -65,7 +65,8 @@ export class AutomergeSyncService {
     if (updates.automerge_id) {
       const existing = await this.storageAdapter.load(updates.automerge_id)
       if (existing) {
-        const doc = JSON.parse(Buffer.from(existing).toString())
+        const raw = Buffer.from(existing).toString()
+        const doc = raw ? JSON.parse(raw) : {}
         for (const [key, value] of Object.entries(updates)) {
           if (key !== 'id' && key !== 'automerge_id') doc[key] = value
         }

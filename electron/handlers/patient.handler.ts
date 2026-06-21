@@ -1,7 +1,10 @@
 import { container } from 'tsyringe'
 import { PatientService } from '../services/patient.service'
+import { TrustedPersonService } from '../services/trusted-person.service'
+import { AuthService } from '../services/auth.service'
 import { PatientEntity } from '../entities/patient.entity'
 import type { PatientDto } from '../dto/patient.dto'
+import type { TrustedPersonDto } from '../dto/trusted-person.dto'
 import { createHandler } from '../utils/create-handler'
 
 export function registerPatientHandlers() {
@@ -30,5 +33,24 @@ export function registerPatientHandlers() {
   createHandler('patients:delete', async ({ id }: { id: number }) => {
     const deleted = await container.resolve(PatientService).delete(id)
     return PatientEntity.toDto(deleted)
+  })
+
+  createHandler('trusted-person:get', async ({ patientId }: { patientId: number }) => {
+    return await container.resolve(TrustedPersonService).getByPatientId(patientId)
+  })
+
+  createHandler('trusted-person:upsert', async (dto: TrustedPersonDto) => {
+    return await container.resolve(TrustedPersonService).upsert(dto)
+  })
+
+  createHandler('trusted-person:delete', async ({ patientId }: { patientId: number }) => {
+    await container.resolve(TrustedPersonService).delete(patientId)
+  })
+
+  // ════════════════════════════════════════════════════════════════
+  // DOCTORS (médecins référents)
+  // ════════════════════════════════════════════════════════════════
+  createHandler('doctors:list-by-site', async ({ site_id }: { site_id?: number }) => {
+    return await container.resolve(AuthService).listDoctorsBySite(site_id)
   })
 }

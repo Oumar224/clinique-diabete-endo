@@ -6,6 +6,7 @@ export interface PatientAttachmentDto {
   mimeType: string | null
   fileSize: number | null
   fileData?: string
+  category?: string
   createdAt: string
 }
 
@@ -16,4 +17,5 @@ export interface CreatePatientAttachmentDto {
   mimeType?: string | null
   fileSize?: number | null
   fileData: string
+  category?: string
 }

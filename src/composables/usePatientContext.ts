@@ -3,14 +3,14 @@ import { calculateAge } from '@/utils/age'
 
 export interface Patient {
   id: number
-  civilite: 'M' | 'Mme' | 'Mlle'
+  civilite: '' | 'M' | 'Mme' | 'Mlle'
   nom: string
   prenom: string
   date_naissance: string
   nir: string
   telephone: string
   email?: string
-  adresse?: string
+  profession?: string
   mutuelle?: string
   medecin_traitant?: string
   allergies: string[]
@@ -20,6 +20,7 @@ export interface Patient {
   residence_code?: string
   complement_adresse?: string
   region?: string
+  site_id?: number
 }
 
 const PATIENT_CONTEXT_KEY = Symbol('patientContext')

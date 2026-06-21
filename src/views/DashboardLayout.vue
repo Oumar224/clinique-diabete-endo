@@ -5,25 +5,21 @@
       <TopBar />
       <template v-if="hasActivePatient && activePatient">
         <div class="patient-banner">
-          <el-avatar :size="36" class="patient-banner__avatar">
+          <el-avatar :size="40" :src="activePatient.photo || undefined" class="patient-banner__avatar">
             {{ patientInitials }}
           </el-avatar>
-          <div class="patient-banner__info">
-            <div class="patient-banner__name">
-              {{ activePatient.civilite }} {{ activePatient.prenom }} {{ activePatient.nom }}
-            </div>
-            <div class="patient-banner__meta">
-              <span>{{ age }} ans</span>
-              <span aria-hidden="true">·</span>
-              <span>N° SS/Assurance: {{ activePatient.nir }}</span>
-              <span v-if="activePatient.mutuelle" aria-hidden="true">·</span>
-              <span v-if="activePatient.mutuelle">{{ activePatient.mutuelle }}</span>
-            </div>
-            <div v-if="activePatient.allergies?.length" class="patient-banner__allergies">
-              <el-tag v-for="a in activePatient.allergies" :key="a" type="danger" size="small">
-                {{ a }}
-              </el-tag>
-            </div>
+          <span class="patient-banner__name">
+            {{ activePatient.civilite }} {{ activePatient.prenom }} {{ activePatient.nom }}
+          </span>
+          <div class="patient-banner__meta-group">
+            <span class="patient-banner__meta-item">Âge: {{ age }} ans</span>
+            <span class="patient-banner__meta-item">N° SS: {{ activePatient.nir }}</span>
+            <span v-if="activePatient.mutuelle" class="patient-banner__meta-item">Mutuelle: {{ activePatient.mutuelle }}</span>
+          </div>
+          <div v-if="activePatient.allergies?.length" class="patient-banner__allergies">
+            <el-tag v-for="a in activePatient.allergies" :key="a" type="danger" size="small">
+              {{ a }}
+            </el-tag>
           </div>
         </div>
       </template>
@@ -89,49 +85,57 @@ onMounted(() => {
 .patient-banner {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 24px;
+  gap: 16px;
+  padding: 8px 24px;
   background: var(--cd-white);
   border-bottom: 1px solid var(--cd-gray-200);
   flex-shrink: 0;
+  min-height: 56px;
 }
 
 .patient-banner__avatar {
   background: var(--cd-primary);
   color: white;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 16px;
   flex-shrink: 0;
-}
-
-.patient-banner__info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
 }
 
 .patient-banner__name {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--cd-gray-900);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
-.patient-banner__meta {
-  font-size: 12px;
-  color: var(--cd-gray-500);
+.patient-banner__meta-group {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 0;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.patient-banner__meta-item {
+  font-size: 12px;
+  color: var(--cd-gray-700);
+  white-space: nowrap;
+}
+
+.patient-banner__meta-item + .patient-banner__meta-item::before {
+  content: '|';
+  margin: 0 10px;
+  color: var(--cd-gray-300);
+  font-weight: 300;
 }
 
 .patient-banner__allergies {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
-  margin-top: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+  overflow: hidden;
 }
 </style>

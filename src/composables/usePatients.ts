@@ -1,22 +1,16 @@
 import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
-
-interface ServiceControllerResultType {
-  success?: boolean
-  data?: unknown
-  message?: string
-}
+import { ipcInvoke } from '@/utils/ipc'
 
 export interface PatientDto {
   id: number
-  civilite: 'M' | 'Mme' | 'Mlle'
+  civilite: '' | 'M' | 'Mme' | 'Mlle'
   nom: string
   prenom: string
   date_naissance: string
   nir: string
   telephone: string
   email?: string
-  adresse?: string
+  profession?: string
   mutuelle?: string
   medecin_traitant?: string
   allergies: string[]
@@ -26,42 +20,27 @@ export interface PatientDto {
   residence_code?: string
   complement_adresse?: string
   region?: string
+  site_id?: number
 }
 
 export const patients = ref<PatientDto[]>([])
 
-async function invoke(channel: string, params?: unknown) {
-  if (!window.electronAPI) {
-    throw new Error('electronAPI not available')
-  }
-  const result = await window.electronAPI.invoke(channel, params) as ServiceControllerResultType
-  if (!result.success) {
-    ElMessage({ type: 'error', message: result.message })
-    throw new Error(result.message)
-  }
-  return result
-}
-
 export async function fetchPatients(search?: string) {
-  const r = await invoke('patients:list', { search })
-  patients.value = (r.data as PatientDto[]) ?? []
+  patients.value = await ipcInvoke<PatientDto[]>('patients:list', { search })
 }
 
 export async function getPatient(id: number): Promise<PatientDto | null> {
-  const r = await invoke('patients:get', { id })
-  return (r.data as PatientDto) ?? null
+  return await ipcInvoke<PatientDto | null>('patients:get', { id })
 }
 
 export async function createPatient(data: Omit<PatientDto, 'id'>): Promise<PatientDto | null> {
-  const r = await invoke('patients:create', data)
-  return (r.data as PatientDto) ?? null
+  return await ipcInvoke<PatientDto | null>('patients:create', data)
 }
 
 export async function updatePatient(data: PatientDto): Promise<PatientDto | null> {
-  const r = await invoke('patients:update', data)
-  return (r.data as PatientDto) ?? null
+  return await ipcInvoke<PatientDto | null>('patients:update', data)
 }
 
 export async function deletePatient(id: number) {
-  await invoke('patients:delete', { id })
+  await ipcInvoke<void>('patients:delete', { id })
 }

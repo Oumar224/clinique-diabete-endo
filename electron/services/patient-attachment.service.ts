@@ -4,6 +4,7 @@ import { NoResultError } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { type PatientAttachmentDto, type CreatePatientAttachmentDto } from '../dto/patient-attachment.dto'
+import { getBase64DecodedSize } from '../utils/file-utils'
 
 @singleton()
 export class PatientAttachmentService {
@@ -13,13 +14,15 @@ export class PatientAttachmentService {
     this.db = datasource.getInstance()
   }
 
-  async listByPatient(patientId: number): Promise<PatientAttachmentDto[]> {
-    const rows = await this.db
+  async listByPatient(patientId: number, category?: string): Promise<PatientAttachmentDto[]> {
+    let query = this.db
       .selectFrom('patient_attachments')
-      .select(['id', 'patient_id', 'display_name', 'file_name', 'mime_type', 'file_size', 'created_at'])
+      .select(['id', 'patient_id', 'display_name', 'file_name', 'mime_type', 'file_size', 'category', 'created_at'])
       .where('patient_id', '=', patientId)
-      .orderBy('created_at', 'desc')
-      .execute()
+    if (category !== undefined) {
+      query = query.where('category', '=', category)
+    }
+    const rows = await query.orderBy('created_at', 'desc').execute()
     return rows.map(r => this.toDto(r))
   }
 
@@ -32,12 +35,7 @@ export class PatientAttachmentService {
     }
 
     // Validation de la taille réelle depuis le base64 (seconde couche de sécurité)
-    const base64Data = dto.fileData.includes('base64,')
-      ? dto.fileData.substring(dto.fileData.indexOf('base64,') + 7)
-      : dto.fileData
-    const padding = base64Data.endsWith('==') ? 2 : base64Data.endsWith('=') ? 1 : 0
-    const decodedSize = (base64Data.length * 3) / 4 - padding
-    if (decodedSize > MAX_FILE_SIZE) {
+    if (getBase64DecodedSize(dto.fileData) > MAX_FILE_SIZE) {
       throw new Error('La taille du fichier décodé ne doit pas dépasser 10 Mo')
     }
 
@@ -50,6 +48,7 @@ export class PatientAttachmentService {
         mime_type: dto.mimeType ?? null,
         file_size: dto.fileSize ?? null,
         file_data: dto.fileData,
+        category: dto.category ?? 'patient',
       })
       .returningAll()
       .executeTakeFirstOrThrow()
@@ -96,6 +95,7 @@ export class PatientAttachmentService {
       fileName: row.file_name as string,
       mimeType: row.mime_type as string | null,
       fileSize: row.file_size as number | null,
+      category: row.category as string | undefined,
       createdAt: row.created_at as string,
     }
   }
