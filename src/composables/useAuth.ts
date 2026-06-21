@@ -7,7 +7,7 @@ export interface User {
   nom: string
   prenom: string
   email: string
-  role: 'MEDECIN' | 'SECRETAIRE' | 'PHARMACIEN' | 'COMPTABLE' | 'ADMIN'
+  role: 'MEDECIN' | 'SECRETAIRE' | 'PHARMACIEN' | 'COMPTABLE' | 'ADMIN' | 'INFIRMIER'
   service: string
   is_active?: boolean
   is_validated?: boolean

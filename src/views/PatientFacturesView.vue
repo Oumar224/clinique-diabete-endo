@@ -58,12 +58,15 @@ import { useRoute } from 'vue-router'
 import { Plus, Printer, Money } from '@element-plus/icons-vue'
 import { invoices, fetchPatientInvoices } from '@/composables/useInvoices'
 import { useCurrency } from '@/currency/useCurrency'
+import { usePatientContext } from '@/composables/usePatientContext'
+import { getPatient } from '@/composables/usePatients'
 import InvoiceFormDialog from '@/components/facturation/InvoiceFormDialog.vue'
 import InvoicePaymentDialog from '@/components/facturation/InvoicePaymentDialog.vue'
 import InvoicePrintView from '@/components/facturation/InvoicePrintView.vue'
 
 const route = useRoute()
 const { formatCurrency, loadCurrency } = useCurrency()
+const { setActivePatient } = usePatientContext()
 const loading = ref(true)
 const patientId = ref(0)
 const formDialogRef = ref<InstanceType<typeof InvoiceFormDialog> | null>(null)
@@ -82,7 +85,11 @@ async function loadData() {
   if (!patientId.value) return
   loading.value = true
   try {
+    const patient = await getPatient(patientId.value)
+    if (patient) setActivePatient(patient)
     await fetchPatientInvoices(patientId.value)
+  } catch (err) {
+    console.error('[PatientFactures] Failed to load patient context:', err)
   } finally {
     loading.value = false
   }

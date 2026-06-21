@@ -300,7 +300,7 @@ export class AuthService {
     specialties: Array<{ id: number; name: string; code: string; title_prefix: string }>
     services: Array<{ id: number; name: string }>
     sites: Array<{ id: number; name: string }>
-    medical_units: Array<{ id: number; name: string; code: string; symbol: string; category: string }>
+    medical_units: Array<{ id: number; name: string; code: string }>
     fonction: { id: number; name: string } | null
     statut_contrat?: 'Actif' | 'Expiré' | 'Résilié'
   }> {
@@ -337,7 +337,7 @@ export class AuthService {
       this.db
         .selectFrom('user_medical_units')
         .innerJoin('medical_units', 'medical_units.id', 'user_medical_units.medical_unit_id')
-        .select(['medical_units.id', 'medical_units.name', 'medical_units.code', 'medical_units.symbol', 'medical_units.category'])
+        .select(['medical_units.id', 'medical_units.name', 'medical_units.code'])
         .where('user_medical_units.user_id', '=', userId)
         .execute(),
     ])
@@ -355,7 +355,7 @@ export class AuthService {
       specialties: specialties as Array<{ id: number; name: string; code: string; title_prefix: string }>,
       services: services as Array<{ id: number; name: string }>,
       sites: sites as Array<{ id: number; name: string }>,
-      medical_units: medicalUnits as Array<{ id: number; name: string; code: string; symbol: string; category: string }>,
+      medical_units: medicalUnits as Array<{ id: number; name: string; code: string }>,
       fonction: fonction ? { id: fonction.id!, name: fonction.name } : null,
       statut_contrat: this.computeStatutContrat(user as Record<string, unknown>),
     }

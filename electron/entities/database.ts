@@ -56,8 +56,6 @@ export interface DB {
     id?: number
     code: string
     name: string
-    category: string
-    symbol: string
     is_active: number
     created_at?: string
     updated_at?: string
@@ -116,6 +114,38 @@ export interface DB {
     is_active: number
     created_at?: string
     updated_at?: string
+  }
+  localites: {
+    id?: number
+    code: string
+    name: string
+    type: string
+    parent_id: number | null
+    country: string
+    region?: string
+    is_active: number
+    created_at?: string
+    updated_at?: string
+  }
+  user_attachments: {
+    id?: number
+    user_id: number
+    display_name: string
+    file_name: string
+    mime_type: string | null
+    file_size: number | null
+    file_data: string
+    created_at?: string
+  }
+  patient_attachments: {
+    id?: number
+    patient_id: number
+    display_name: string
+    file_name: string
+    mime_type: string | null
+    file_size: number | null
+    file_data: string
+    created_at?: string
   }
 }
 

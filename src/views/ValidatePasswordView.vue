@@ -1,7 +1,7 @@
 <template>
   <div class="validate-password">
     <div class="validate-password__card">
-      <img :src="logoSrc" alt="CDE" class="validate-password__logo" />
+      <img :src="logoUrl" alt="CDE" class="validate-password__logo" />
       <h1 class="validate-password__title">Première connexion</h1>
       <p class="validate-password__subtitle">
         Veuillez définir un nouveau mot de passe pour activer votre compte.
@@ -20,12 +20,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { useLogo } from '@/composables/useLogo'
 import type { FormInstance } from 'element-plus'
 import ValidatePasswordForm from '@/components/auth/ValidatePasswordForm.vue'
 import type { ValidatePasswordCommand } from '@/components/auth/ValidatePasswordForm.vue'
-import logoSrc from '@/assets/cde.png'
 
 const { validatePassword, loading, error } = useAuth()
+const { logoUrl } = useLogo()
 const validatePasswordFormRef = ref()
 
 async function handleValidatePassword(formRef: FormInstance | undefined, form: ValidatePasswordCommand) {

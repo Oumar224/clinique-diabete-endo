@@ -34,31 +34,10 @@
           {{ currUser.telephone ? (currUser.telephone_country_code || '') + ' ' + currUser.telephone : '—' }}
         </el-descriptions-item>
 
-        <el-descriptions-item label="Fonction" :span="2">
-          {{ getFonctionName(currUser.fonction_id) || '—' }}
-        </el-descriptions-item>
-
-        <el-descriptions-item label="Rôle système">
-          <el-tag :type="roleColor(currUser.role!)" size="small">{{ currUser.role }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="Spécialités">
-          <template v-if="currUser.specialties?.length">
+        <el-descriptions-item label="Sites">
+          <template v-if="currUser.sites?.length">
             <el-tag
-              v-for="s in currUser.specialties"
-              :key="s.id"
-              size="small"
-              style="margin: 2px"
-            >
-              {{ [s.title_prefix, s.name].filter(Boolean).join(' ') }}
-            </el-tag>
-          </template>
-          <span v-else>—</span>
-        </el-descriptions-item>
-
-        <el-descriptions-item label="Services">
-          <template v-if="currUser.services?.length">
-            <el-tag
-              v-for="s in currUser.services"
+              v-for="s in currUser.sites"
               :key="s.id"
               size="small"
               style="margin: 2px"
@@ -68,10 +47,10 @@
           </template>
           <span v-else>—</span>
         </el-descriptions-item>
-        <el-descriptions-item label="Sites">
-          <template v-if="currUser.sites?.length">
+        <el-descriptions-item label="Services">
+          <template v-if="currUser.services?.length">
             <el-tag
-              v-for="s in currUser.sites"
+              v-for="s in currUser.services"
               :key="s.id"
               size="small"
               style="margin: 2px"
@@ -91,6 +70,27 @@
               style="margin: 2px"
             >
               {{ m.code }} — {{ m.name }}
+            </el-tag>
+          </template>
+          <span v-else>—</span>
+        </el-descriptions-item>
+
+        <el-descriptions-item label="Fonction" :span="2">
+          {{ getFonctionName(currUser.fonction_id) || '—' }}
+        </el-descriptions-item>
+
+        <el-descriptions-item label="Tâche">
+          <el-tag :type="roleColor(currUser.role!)" size="small">{{ currUser.role }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="Spécialités">
+          <template v-if="currUser.specialties?.length">
+            <el-tag
+              v-for="s in currUser.specialties"
+              :key="s.id"
+              size="small"
+              style="margin: 2px"
+            >
+              {{ [s.title_prefix, s.name].filter(Boolean).join(' ') }}
             </el-tag>
           </template>
           <span v-else>—</span>
@@ -168,7 +168,17 @@
       />
     </div>
 
+    <!-- ==================== Pièces jointes ==================== -->
+    <el-divider />
+    <UserAttachmentsSection v-if="currUser?.id" :userId="currUser.id" />
+
     <template #footer>
+      <el-button @click="exportPdf" :loading="exportingPdf">
+        <el-icon><Document /></el-icon> PDF
+      </el-button>
+      <el-button @click="exportExcel" :loading="exportingExcel">
+        <el-icon><Document /></el-icon> Excel
+      </el-button>
       <el-button @click="dialogVisible = false" class="detail-footer-btn">Fermer</el-button>
     </template>
   </el-dialog>
@@ -196,11 +206,12 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { User } from '@element-plus/icons-vue'
+import { User, Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { UserDto } from '@/composables/useUsers'
 import { roleColor, getUserDisplayName, terminateContract, reactivateContract } from '@/composables/useUsers'
 import { useFonctions } from '@/composables/useFonctions'
+import { useExport } from '@/composables/useExport'
 
 const emit = defineEmits<{
   saved: []
@@ -210,6 +221,7 @@ const currUser = ref<UserDto>()
 const dialogVisible = ref(false)
 
 const { fonctions, fetchFonctions: fetchFonctionsList } = useFonctions()
+const { exportingPdf, exportingExcel, exportUserProfilePdf, exportUserProfileExcel } = useExport()
 
 const showTerminateDialog = ref(false)
 const terminateMotif = ref('')
@@ -251,6 +263,14 @@ function open(user: UserDto) {
 
 function close() {
   dialogVisible.value = false
+}
+
+async function exportPdf() {
+  if (currUser.value?.id) await exportUserProfilePdf(currUser.value.id)
+}
+
+async function exportExcel() {
+  if (currUser.value?.id) await exportUserProfileExcel(currUser.value.id)
 }
 
 async function handleTerminate() {

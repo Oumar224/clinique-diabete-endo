@@ -1,7 +1,7 @@
 <template>
   <div class="login-form">
     <div class="login-form__header">
-      <img :src="logoSrc" alt="CDE" class="login-form__logo" />
+      <img :src="logoUrl" alt="CDE" class="login-form__logo" />
       <h1 class="login-form__title">Connexion CDE</h1>
       <p class="login-form__subtitle">Clinique Diabète & Endocrinologie</p>
     </div>
@@ -69,7 +69,7 @@ import { reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Message, Lock, WarningFilled } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
-import logoSrc from '@/assets/cde.png'
+import { useLogo } from '@/composables/useLogo'
 
 export interface LoginCommand {
   email: string
@@ -78,6 +78,8 @@ export interface LoginCommand {
 }
 
 defineProps<{ loading?: boolean; error?: string | null }>()
+
+const { logoUrl } = useLogo()
 
 const formRef = ref<FormInstance>()
 const form = reactive<LoginCommand>({

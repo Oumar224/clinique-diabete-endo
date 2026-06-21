@@ -10,4 +10,5 @@ export const ROLE_LABELS: Record<string, string> = {
   PHARMACIEN: 'Pharmacien',
   COMPTABLE: 'Comptable',
   ADMIN: 'Administrateur',
+  INFIRMIER: "Infirmier d'État",
 }

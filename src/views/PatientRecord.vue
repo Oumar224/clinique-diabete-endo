@@ -8,14 +8,20 @@
 
     <div v-else>
       <div class="patient-record__header">
-        <div class="patient-record__identity">
-          <h2 class="patient-record__name">
-            {{ patient.civilite }} {{ patient.prenom }} {{ patient.nom }}
-          </h2>
-          <div class="patient-record__meta">
-            <span>{{ patient.nir }}</span>
-            <span>{{ calculateAge(patient.date_naissance) }} ans</span>
-            <span>{{ patient.date_naissance }}</span>
+        <div class="patient-record__identity-row">
+          <el-avatar :size="64" :src="patient.photo || undefined" shape="circle" class="patient-record__photo">
+            {{ (patient.prenom?.[0] || '') + (patient.nom?.[0] || '') }}
+          </el-avatar>
+          <div class="patient-record__identity">
+            <h2 class="patient-record__name">
+              {{ patient.civilite }} {{ patient.prenom }} {{ patient.nom }}
+            </h2>
+            <div class="patient-record__meta">
+              <span>N° SS/Assurance: {{ patient.nir }}</span>
+              <span>{{ calculateAge(patient.date_naissance) }} ans</span>
+              <span>{{ patient.date_naissance }}</span>
+              <span>{{ patient.nip }}</span>
+            </div>
           </div>
         </div>
         <div class="patient-record__actions">
@@ -43,11 +49,27 @@
               <span class="patient-record__value">{{ patient.adresse }}</span>
             </div>
             <div class="patient-record__field">
+              <span class="patient-record__label">Lieu de naissance</span>
+              <span class="patient-record__value">{{ patient.lieu_naissance || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Région</span>
+              <span class="patient-record__value">{{ patient.region || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Résidence</span>
+              <span class="patient-record__value">{{ patient.residence_code || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Complément</span>
+              <span class="patient-record__value">{{ patient.complement_adresse || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
               <span class="patient-record__label">Mutuelle</span>
               <span class="patient-record__value">{{ patient.mutuelle || 'Aucune' }}</span>
             </div>
             <div class="patient-record__field">
-              <span class="patient-record__label">Médecin traitant</span>
+              <span class="patient-record__label">Référent</span>
               <span class="patient-record__value">{{ patient.medecin_traitant }}</span>
             </div>
           </div>
@@ -80,6 +102,9 @@
         </template>
         <el-empty description="Aucune consultation" />
       </el-card>
+
+      <el-divider />
+      <PatientAttachmentsSection :patient-id="patient.id" />
     </div>
 
     <PatientFormDialog ref="formDialogRef" @saved="onSaved" />
@@ -177,6 +202,16 @@ function calculateAge(dateStr: string): number {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
+}
+
+.patient-record__identity-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.patient-record__photo {
+  flex-shrink: 0;
 }
 
 .patient-record__name {

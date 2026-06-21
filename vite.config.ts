@@ -40,6 +40,27 @@ function copyWasmPlugin() {
   }
 }
 
+// ─── Copie les fichiers de données (JSON) dans dist-electron/data/ ────────────
+function copyDataPlugin() {
+  return {
+    name: 'copy-data-files',
+    buildStart() {
+      const srcDir = path.resolve('electron/data')
+      const destDir = path.resolve('dist-electron/data')
+      if (!fs.existsSync(srcDir)) return
+      fs.mkdirSync(destDir, { recursive: true })
+      for (const file of fs.readdirSync(srcDir)) {
+        const src = path.join(srcDir, file)
+        const dest = path.join(destDir, file)
+        if (fs.statSync(src).isFile()) {
+          fs.copyFileSync(src, dest)
+          console.log(`[copy-data] ✓ ${file}`)
+        }
+      }
+    },
+  }
+}
+
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -78,6 +99,7 @@ export default defineConfig({
         vite:{
           plugins: [
             copyWasmPlugin(),
+            copyDataPlugin(),
             wasm(),
             topLevelAwait()
           ],

@@ -19,6 +19,12 @@ export class PatientEntity {
   medecin_traitant?: string
   allergies?: string
   automerge_id?: string
+  photo?: string
+  nip?: string
+  lieu_naissance?: string
+  residence_code?: string
+  complement_adresse?: string
+  region?: string
   created_at?: string
   updated_at?: string
 
@@ -37,6 +43,12 @@ export class PatientEntity {
       medecin_traitant: entity.medecin_traitant,
       allergies: entity.allergies ? JSON.parse(entity.allergies) : [],
       automerge_id: entity.automerge_id,
+      photo: entity.photo,
+      nip: entity.nip,
+      lieu_naissance: entity.lieu_naissance,
+      residence_code: entity.residence_code,
+      complement_adresse: entity.complement_adresse,
+      region: entity.region,
     }
   }
 
@@ -58,6 +70,12 @@ export class PatientEntity {
     e.mutuelle = dto.mutuelle
     e.medecin_traitant = dto.medecin_traitant
     e.allergies = dto.allergies ? JSON.stringify(dto.allergies) : '[]'
+    e.photo = dto.photo
+    e.nip = dto.nip
+    e.lieu_naissance = dto.lieu_naissance
+    e.residence_code = dto.residence_code
+    e.complement_adresse = dto.complement_adresse
+    e.region = dto.region
     return e
   }
 
@@ -76,6 +94,12 @@ export class PatientEntity {
         mutuelle TEXT,
         medecin_traitant TEXT,
         allergies TEXT DEFAULT '[]',
+        photo TEXT,
+        nip TEXT UNIQUE,
+        lieu_naissance TEXT,
+        residence_code TEXT,
+        complement_adresse TEXT,
+        region TEXT,
         automerge_id TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))

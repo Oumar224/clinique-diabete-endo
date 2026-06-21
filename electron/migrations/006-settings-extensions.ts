@@ -1,21 +1,18 @@
 import { type Kysely, sql, CompiledQuery } from 'kysely'
 
 export async function up(db: Kysely<unknown>): Promise<void> {
-  // ── Medical units (mesure & prescription) ──
+  // ── Medical units ──
   await sql`
     CREATE TABLE IF NOT EXISTS medical_units (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       code       TEXT    NOT NULL UNIQUE,
       name       TEXT    NOT NULL,
-      category   TEXT    NOT NULL CHECK(category IN ('mesure', 'prescription')),
-      symbol     TEXT    NOT NULL,
       is_active  INTEGER NOT NULL DEFAULT 1,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
   `.execute(db)
 
-  await sql`CREATE INDEX IF NOT EXISTS idx_medical_units_category ON medical_units(category)`.execute(db)
   await sql`CREATE INDEX IF NOT EXISTS idx_medical_units_active ON medical_units(is_active)`.execute(db)
 
   // ── Sites (clinic locations) ──
@@ -105,50 +102,39 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     }
   }
 
-  // ── Seed medical units: mesure ──
-  const mesureUnits = [
-    { code: 'MG', name: 'Milligramme', category: 'mesure', symbol: 'mg' },
-    { code: 'G', name: 'Gramme', category: 'mesure', symbol: 'g' },
-    { code: 'KG', name: 'Kilogramme', category: 'mesure', symbol: 'kg' },
-    { code: 'ML', name: 'Millilitre', category: 'mesure', symbol: 'ml' },
-    { code: 'L', name: 'Litre', category: 'mesure', symbol: 'L' },
-    { code: 'UI', name: 'Unité Internationale', category: 'mesure', symbol: 'UI' },
-    { code: 'MMOL-L', name: 'Millimole par litre', category: 'mesure', symbol: 'mmol/L' },
-    { code: 'G-L', name: 'Gramme par litre', category: 'mesure', symbol: 'g/L' },
-    { code: 'MG-DL', name: 'Milligramme par décilitre', category: 'mesure', symbol: 'mg/dL' },
-    { code: 'UG', name: 'Microgramme', category: 'mesure', symbol: 'µg' },
-    { code: 'MEQ', name: 'Milliéquivalent', category: 'mesure', symbol: 'mEq' },
-    { code: 'PH', name: 'Potentiel hydrogène', category: 'mesure', symbol: 'pH' },
-    { code: 'PCT', name: 'Pourcentage', category: 'mesure', symbol: '%' },
+  // ── Seed medical units ──
+  const seededUnits = [
+    { code: 'MG', name: 'Milligramme' },
+    { code: 'G', name: 'Gramme' },
+    { code: 'KG', name: 'Kilogramme' },
+    { code: 'ML', name: 'Millilitre' },
+    { code: 'L', name: 'Litre' },
+    { code: 'UI', name: 'Unité Internationale' },
+    { code: 'MMOL-L', name: 'Millimole par litre' },
+    { code: 'G-L', name: 'Gramme par litre' },
+    { code: 'MG-DL', name: 'Milligramme par décilitre' },
+    { code: 'UG', name: 'Microgramme' },
+    { code: 'MEQ', name: 'Milliéquivalent' },
+    { code: 'PH', name: 'Potentiel hydrogène' },
+    { code: 'PCT', name: 'Pourcentage' },
+    { code: 'CPR', name: 'Comprimé' },
+    { code: 'GEL', name: 'Gélule' },
+    { code: 'AMP', name: 'Ampoule' },
+    { code: 'FLC', name: 'Flacon' },
+    { code: 'TUB', name: 'Tube' },
+    { code: 'BTE', name: 'Boîte' },
+    { code: 'PIP', name: 'Pipette' },
+    { code: 'SAC', name: 'Sachet' },
+    { code: 'SUP', name: 'Suppositoire' },
+    { code: 'POM', name: 'Pommade' },
+    { code: 'SOL', name: 'Solution' },
+    { code: 'SUSP', name: 'Suspension' },
   ]
 
-  for (const u of mesureUnits) {
+  for (const u of seededUnits) {
     await sql`
-      INSERT OR IGNORE INTO medical_units (code, name, category, symbol)
-      VALUES (${u.code}, ${u.name}, ${u.category}, ${u.symbol})
-    `.execute(db)
-  }
-
-  // ── Seed medical units: prescription ──
-  const prescriptionUnits = [
-    { code: 'CPR', name: 'Comprimé', category: 'prescription', symbol: 'comprimé' },
-    { code: 'GEL', name: 'Gélule', category: 'prescription', symbol: 'gélule' },
-    { code: 'AMP', name: 'Ampoule', category: 'prescription', symbol: 'ampoule' },
-    { code: 'FLC', name: 'Flacon', category: 'prescription', symbol: 'flacon' },
-    { code: 'TUB', name: 'Tube', category: 'prescription', symbol: 'tube' },
-    { code: 'BTE', name: 'Boîte', category: 'prescription', symbol: 'boîte' },
-    { code: 'PIP', name: 'Pipette', category: 'prescription', symbol: 'pipette' },
-    { code: 'SAC', name: 'Sachet', category: 'prescription', symbol: 'sachet' },
-    { code: 'SUP', name: 'Suppositoire', category: 'prescription', symbol: 'suppositoire' },
-    { code: 'POM', name: 'Pommade', category: 'prescription', symbol: 'pommade' },
-    { code: 'SOL', name: 'Solution', category: 'prescription', symbol: 'solution' },
-    { code: 'SUSP', name: 'Suspension', category: 'prescription', symbol: 'suspension' },
-  ]
-
-  for (const u of prescriptionUnits) {
-    await sql`
-      INSERT OR IGNORE INTO medical_units (code, name, category, symbol)
-      VALUES (${u.code}, ${u.name}, ${u.category}, ${u.symbol})
+      INSERT OR IGNORE INTO medical_units (code, name, is_active)
+      VALUES (${u.code}, ${u.name}, 1)
     `.execute(db)
   }
 

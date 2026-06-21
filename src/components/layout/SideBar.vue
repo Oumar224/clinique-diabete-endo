@@ -11,7 +11,7 @@
       >
         <el-icon><Fold v-if="!isCollapsed" /><Expand v-else /></el-icon>
       </el-button>
-      <img :src="logoSrc" alt="CDE" class="sidebar__logo" />
+      <img :src="logoUrl" alt="CDE" class="sidebar__logo" />
       <span v-show="!isCollapsed" class="sidebar__title">CDE</span>
     </div>
 
@@ -20,10 +20,48 @@
       mode="vertical"
       :collapse="isCollapsed"
       :collapse-transition="false"
+      :default-openeds="defaultOpeneds"
       @select="onSelect"
     >
-      <template v-for="item in filteredNavItems" :key="item.index">
-        <el-menu-item :index="item.index">
+      <template v-for="item in navItems" :key="item.index">
+        <!-- Patients sub-menu -->
+        <el-sub-menu v-if="item.index === '/app/patients'" index="patients">
+          <template #title>
+            <el-icon><User /></el-icon>
+            <span>Patients</span>
+          </template>
+          <el-menu-item index="patient-list">
+            <el-icon><List /></el-icon>
+            <template #title>Liste des patients</template>
+          </el-menu-item>
+          <template v-if="hasActivePatient && activePatient">
+            <el-menu-item index="patient-infos">
+              <el-icon><InfoFilled /></el-icon>
+              <template #title>Fiche patient</template>
+            </el-menu-item>
+            <el-menu-item index="patient-consultations">
+              <el-icon><Document /></el-icon>
+              <template #title>Consultations</template>
+            </el-menu-item>
+            <el-menu-item index="patient-ordonnances">
+              <el-icon><Document /></el-icon>
+              <template #title>Ordonnances</template>
+            </el-menu-item>
+            <el-menu-item index="patient-factures">
+              <el-icon><Money /></el-icon>
+              <template #title>Factures</template>
+            </el-menu-item>
+            <el-menu-item index="patient-close">
+              <el-icon><Close /></el-icon>
+              <template #title>Fermer le dossier</template>
+            </el-menu-item>
+          </template>
+        </el-sub-menu>
+        <!-- Other items with role-gating -->
+        <el-menu-item
+          v-else-if="!item.roles || (user && item.roles.includes(user.role))"
+          :index="item.index"
+        >
           <el-icon><component :is="item.icon" /></el-icon>
           <template #title>{{ item.label }}</template>
         </el-menu-item>
@@ -36,7 +74,7 @@
           <el-avatar :size="32" class="sidebar__avatar">
             {{ userInitials }}
           </el-avatar>
-          <span v-show="!isCollapsed" class="sidebar__user-name" v-if="user">
+          <span v-if="user && !isCollapsed" class="sidebar__user-name">
             {{ getUserDisplayName(user) }}
           </span>
           <el-icon v-show="!isCollapsed"><ArrowDown /></el-icon>
@@ -55,11 +93,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Odometer, Calendar, User, Tickets, Money, UserFilled, Tools, Fold, Expand, ArrowDown } from '@element-plus/icons-vue'
+import { Odometer, Calendar, User, Tickets, Money, UserFilled, Tools, Fold, Expand, ArrowDown, Close, List, InfoFilled, Document } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
 import { getUserDisplayName } from '@/composables/useUsers'
 import { useSidebar } from '@/composables/useSidebar'
-import logoSrc from '@/assets/cde.png'
+import { useLogo } from '@/composables/useLogo'
+import { usePatientContext } from '@/composables/usePatientContext'
 import type { Component } from 'vue'
 
 interface NavItem {
@@ -71,8 +110,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Accueil', index: '/app', icon: Odometer },
-  { label: 'Planning', index: '/app/planning', icon: Calendar },
   { label: 'Patients', index: '/app/patients', icon: User },
+  { label: 'Planning', index: '/app/planning', icon: Calendar },
   { label: 'Pharmacie', index: '/app/pharmacie', icon: Tickets },
   { label: 'Facturation', index: '/app/facturation', icon: Money },
   { label: 'Paramètres', index: '/app/parametres', icon: Tools },
@@ -83,8 +122,14 @@ const router = useRouter()
 const route = useRoute()
 const { user, logout } = useAuth()
 const { isCollapsed, sidebarWidth, toggle } = useSidebar()
+const { logoUrl } = useLogo()
+const { activePatient, hasActivePatient, clearPatient } = usePatientContext()
 
 const activeRoute = computed(() => {
+  if (route.name === 'patient-detail') return 'patient-infos'
+  if (route.name === 'patient-factures') return 'patient-factures'
+  if (route.name === 'patients') return 'patient-list'
+
   const path = route.path
   const matched = navItems.reduce((best, item) =>
     path.startsWith(item.index) && item.index.length > best.length
@@ -94,12 +139,9 @@ const activeRoute = computed(() => {
   return matched || path
 })
 
-const filteredNavItems = computed(() =>
-  navItems.filter((item) => {
-    if (!item.roles) return true
-    return user.value && item.roles.includes(user.value.role)
-  })
-)
+const defaultOpeneds = computed(() => {
+  return route.path.startsWith('/app/patients') || hasActivePatient.value ? ['patients'] : []
+})
 
 const userInitials = computed(() => {
   if (!user.value) return '?'
@@ -107,7 +149,25 @@ const userInitials = computed(() => {
 })
 
 function onSelect(index: string) {
-  router.push(index)
+  if (index.startsWith('patient-')) {
+    if (index === 'patient-list') {
+      clearPatient()
+      router.push('/app/patients')
+    } else if (index === 'patient-close') {
+      clearPatient()
+      router.push('/app/patients')
+    } else if (index === 'patient-infos' || index === 'patient-consultations' || index === 'patient-ordonnances') {
+      if (activePatient.value) {
+        router.push(`/app/patients/${activePatient.value.id}`)
+      }
+    } else if (index === 'patient-factures') {
+      if (activePatient.value) {
+        router.push(`/app/patients/${activePatient.value.id}/factures`)
+      }
+    }
+  } else {
+    router.push(index)
+  }
 }
 
 function onProfileCommand(cmd: string) {
@@ -199,4 +259,5 @@ function onProfileCommand(cmd: string) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 </style>

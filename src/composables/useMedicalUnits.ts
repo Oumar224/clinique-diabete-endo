@@ -5,8 +5,6 @@ export interface MedicalUnitDto {
   id?: number
   code: string
   name: string
-  category: 'mesure' | 'prescription'
-  symbol: string
   is_active: boolean
 }
 
@@ -15,11 +13,11 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 
 export function useMedicalUnits() {
-  async function fetchUnits(activeOnly?: boolean, category?: string): Promise<void> {
+  async function fetchUnits(activeOnly?: boolean): Promise<void> {
     loading.value = true
     error.value = null
     try {
-      units.value = await ipcInvoke<MedicalUnitDto[]>('medical-units:list', { activeOnly, category })
+      units.value = await ipcInvoke<MedicalUnitDto[]>('medical-units:list', { activeOnly })
     } catch (e) {
       error.value = (e as Error).message
     } finally {
@@ -27,7 +25,7 @@ export function useMedicalUnits() {
     }
   }
 
-  async function createUnit(dto: { code: string; name: string; category: 'mesure' | 'prescription'; symbol: string }): Promise<MedicalUnitDto | null> {
+  async function createUnit(dto: { code: string; name: string }): Promise<MedicalUnitDto | null> {
     try {
       const created = await ipcInvoke<MedicalUnitDto>('medical-units:create', dto)
       await fetchUnits()
@@ -37,7 +35,7 @@ export function useMedicalUnits() {
     }
   }
 
-  async function updateUnit(id: number, dto: Partial<Pick<MedicalUnitDto, 'code' | 'name' | 'category' | 'symbol'>>): Promise<MedicalUnitDto | null> {
+  async function updateUnit(id: number, dto: Partial<Pick<MedicalUnitDto, 'code' | 'name'>>): Promise<MedicalUnitDto | null> {
     try {
       const updated = await ipcInvoke<MedicalUnitDto>('medical-units:update', { id, ...dto })
       await fetchUnits()

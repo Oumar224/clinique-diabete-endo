@@ -11,7 +11,7 @@ export class UserEntity {
   prenom?: string
   email?: string
   password_hash?: string
-  role?: 'MEDECIN' | 'SECRETAIRE' | 'PHARMACIEN' | 'COMPTABLE' | 'ADMIN'
+  role?: 'MEDECIN' | 'SECRETAIRE' | 'PHARMACIEN' | 'COMPTABLE' | 'ADMIN' | 'INFIRMIER'
   service?: string
   photo?: string
   telephone?: string
@@ -93,7 +93,7 @@ export class UserEntity {
         prenom TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('MEDECIN','SECRETAIRE','PHARMACIEN','COMPTABLE','ADMIN')),
+        role TEXT NOT NULL CHECK(role IN ('MEDECIN','SECRETAIRE','PHARMACIEN','COMPTABLE','ADMIN','INFIRMIER')),
         service TEXT,
         is_active INTEGER DEFAULT 1,
         is_validated INTEGER DEFAULT 0,

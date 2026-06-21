@@ -5,7 +5,7 @@
       <div class="patients-list__actions">
         <el-input
           v-model="search"
-          placeholder="Rechercher par nom, prénom ou NIR..."
+          placeholder="Rechercher par nom, prénom ou N° SS..."
           :prefix-icon="Search"
           clearable
           style="width: 320px"
@@ -22,6 +22,13 @@
       @row-click="onPatientClick"
       :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
     >
+      <el-table-column label="" width="50">
+        <template #default="{ row }">
+          <el-avatar :size="32" :src="row.photo || undefined" shape="circle">
+            {{ (row.prenom?.[0] || '') + (row.nom?.[0] || '') }}
+          </el-avatar>
+        </template>
+      </el-table-column>
       <el-table-column prop="civilite" label="Civ." width="60" />
       <el-table-column prop="nom" label="Nom" />
       <el-table-column prop="prenom" label="Prénom" />
@@ -30,7 +37,14 @@
           {{ calculateAge(row.date_naissance) }} ans
         </template>
       </el-table-column>
-      <el-table-column prop="nir" label="NIR" width="140" />
+      <el-table-column prop="nip" label="NIP" width="130" />
+      <el-table-column prop="region" label="Région" width="120">
+        <template #default="{ row }">
+          <span v-if="row.region">{{ row.region }}</span>
+          <span v-else class="patients-list__none">—</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="nir" label="N° SS" width="140" />
       <el-table-column prop="telephone" label="Téléphone" width="130" />
       <el-table-column label="Mutuelle" width="140">
         <template #default="{ row }">

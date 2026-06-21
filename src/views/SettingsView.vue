@@ -3,16 +3,16 @@
     <h1 class="settings__title">Paramètres</h1>
 
     <el-tabs v-model="activeTab" class="settings__tabs">
-      <el-tab-pane label="Services" name="services">
-        <ServicesTab />
+      <el-tab-pane label="Sites" name="sites">
+        <SitesTab />
       </el-tab-pane>
 
       <el-tab-pane label="Unités médicales" name="medical-units">
         <MedicalUnitsTab />
       </el-tab-pane>
 
-      <el-tab-pane label="Sites" name="sites">
-        <SitesTab />
+      <el-tab-pane label="Services" name="services">
+        <ServicesTab />
       </el-tab-pane>
 
       <el-tab-pane label="Spécialités" name="specialties">
@@ -23,8 +23,16 @@
         <FonctionsTab />
       </el-tab-pane>
 
+      <el-tab-pane label="Localités" name="localites">
+        <LocalitesTab />
+      </el-tab-pane>
+
       <el-tab-pane label="Tarifs" name="prices">
         <TarifsTab />
+      </el-tab-pane>
+
+      <el-tab-pane label="Identité" name="identity">
+        <IdentityTab />
       </el-tab-pane>
 
       <el-tab-pane label="Système" name="system">
@@ -37,7 +45,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const activeTab = ref('services')
+const activeTab = ref('sites')
 </script>
 
 <style scoped>

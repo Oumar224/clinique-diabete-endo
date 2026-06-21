@@ -156,3 +156,13 @@ export interface FonctionUpdateDto {
   name?: string
   is_active?: boolean
 }
+
+// ─── Hospital Identity ──────────────────────────────────────────
+export interface HospitalInfoDto {
+  name: string
+  address: string
+  phone: string
+  email: string
+  city: string
+  regNumber: string
+}

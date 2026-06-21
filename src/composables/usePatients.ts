@@ -20,6 +20,12 @@ export interface PatientDto {
   mutuelle?: string
   medecin_traitant?: string
   allergies: string[]
+  photo?: string | null
+  nip?: string
+  lieu_naissance?: string
+  residence_code?: string
+  complement_adresse?: string
+  region?: string
 }
 
 export const patients = ref<PatientDto[]>([])

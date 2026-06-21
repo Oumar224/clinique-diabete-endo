@@ -11,6 +11,7 @@ import { MedicalUnitService } from '../services/medical-unit.service'
 import { SiteService } from '../services/site.service'
 import { SpecialtyService } from '../services/specialty.service'
 import { FonctionService } from '../services/fonction.service'
+import { LocaliteService } from '../services/localite.service'
 import { createHandler } from '../utils/create-handler'
 
 // ─── Supported currencies (matching frontend currency.config.ts) ──
@@ -162,19 +163,19 @@ export function registerSettingsHandlers() {
   // ════════════════════════════════════════════════════════════════
   // MEDICAL UNITS
   // ════════════════════════════════════════════════════════════════
-  createHandler('medical-units:list', async ({ activeOnly, category }: { activeOnly?: boolean; category?: 'mesure' | 'prescription' } = {}) => {
-    return await container.resolve(MedicalUnitService).list(activeOnly, category)
+  createHandler('medical-units:list', async ({ activeOnly }: { activeOnly?: boolean } = {}) => {
+    return await container.resolve(MedicalUnitService).list(activeOnly)
   })
 
   createHandler('medical-units:get', async ({ id }: { id: number }) => {
     return await container.resolve(MedicalUnitService).getById(id)
   })
 
-  createHandler('medical-units:create', async (dto: { code: string; name: string; category: 'mesure' | 'prescription'; symbol: string }) => {
+  createHandler('medical-units:create', async (dto: { code: string; name: string }) => {
     return await container.resolve(MedicalUnitService).create(dto)
   })
 
-  createHandler('medical-units:update', async (dto: { id: number; code?: string; name?: string; category?: 'mesure' | 'prescription'; symbol?: string; is_active?: boolean }) => {
+  createHandler('medical-units:update', async (dto: { id: number; code?: string; name?: string; is_active?: boolean }) => {
     return await container.resolve(MedicalUnitService).update(dto)
   })
 
@@ -309,6 +310,36 @@ export function registerSettingsHandlers() {
   createHandler('fonctions:delete', async ({ id }: { id: number }) => {
     await container.resolve(FonctionService).delete(id)
     return { success: true }
+  })
+
+  // ════════════════════════════════════════════════════════════════
+  // LOCALITÉS (Guinea administrative divisions)
+  // ════════════════════════════════════════════════════════════════
+  createHandler('localites:list', async ({ activeOnly }: { activeOnly?: boolean } = {}) => {
+    return await container.resolve(LocaliteService).list(activeOnly)
+  })
+
+  createHandler('localites:get-tree', async () => {
+    return await container.resolve(LocaliteService).getTree()
+  })
+
+  createHandler('localites:get', async ({ id }: { id: number }) => {
+    return await container.resolve(LocaliteService).getById(id)
+  })
+
+  createHandler('localites:search', async ({ query }: { query: string }) => {
+    return await container.resolve(LocaliteService).search(query)
+  })
+
+  createHandler('localites:import', async () => {
+    return await container.resolve(LocaliteService).importFromJson()
+  })
+
+  createHandler('localites:import-data', async ({ data, country }: { data: string; country: string }) =>
+    container.resolve(LocaliteService).importFromData(data, country))
+
+  createHandler('localites:toggle', async ({ id, is_active }: { id: number; is_active: boolean }) => {
+    return await container.resolve(LocaliteService).toggle(id, is_active)
   })
 
   // App restart (called after restore)

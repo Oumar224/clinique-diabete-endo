@@ -27,8 +27,6 @@ export interface MedicalUnitRef {
   id: number
   code: string
   name: string
-  symbol: string
-  category: string
 }
 
 export interface UserDto {
@@ -227,6 +225,7 @@ export function roleColor(role: string) {
     PHARMACIEN: 'success',
     COMPTABLE: 'info',
     ADMIN: 'danger',
+    INFIRMIER: 'info',
   }
   return colors[role] || 'info'
 }
@@ -244,6 +243,7 @@ export function roleLabel(role: string): string {
     PHARMACIEN: 'Pharmacien',
     COMPTABLE: 'Comptable',
     ADMIN: 'Administrateur',
+    INFIRMIER: "Infirmier d'État",
   }
   return labels[role] || role
 }

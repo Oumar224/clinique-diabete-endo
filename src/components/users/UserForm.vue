@@ -74,70 +74,8 @@
         </el-row>
       </el-form-item>
 
-      <!-- ==================== Profession ==================== -->
-      <el-divider content-position="left">Profession</el-divider>
-
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="Fonction" prop="fonction_id">
-            <el-select v-model="form.fonction_id" placeholder="Sélectionner une fonction" clearable filterable style="width: 100%">
-              <el-option
-                v-for="f in fonctions"
-                :key="f.id"
-                :label="f.name"
-                :value="f.id!"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="Rôle système" prop="role">
-            <el-select v-model="form.role" style="width: 100%">
-              <el-option label="Médecin" value="MEDECIN" />
-              <el-option label="Secrétaire" value="SECRETAIRE" />
-              <el-option label="Pharmacien" value="PHARMACIEN" />
-              <el-option label="Comptable" value="COMPTABLE" />
-              <el-option label="Administrateur" value="ADMIN" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-form-item label="Spécialités">
-        <el-select
-          v-model="form.specialty_ids"
-          multiple
-          filterable
-          style="width: 100%"
-          placeholder="Sélectionner des spécialités"
-          :loading="specialtiesLoading"
-        >
-          <el-option
-            v-for="s in specialties"
-            :key="s.id!"
-            :label="`${s.title_prefix ? s.title_prefix + ' - ' : ''}${s.name}`"
-            :value="s.id!"
-          />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item label="Services médicaux">
-        <el-select
-          v-model="form.service_ids"
-          multiple
-          filterable
-          style="width: 100%"
-          placeholder="Sélectionner des services"
-          :loading="servicesLoading"
-        >
-          <el-option
-            v-for="s in services"
-            :key="s.id!"
-            :label="s.name"
-            :value="s.id!"
-          />
-        </el-select>
-      </el-form-item>
+      <!-- ==================== Affectations ==================== -->
+      <el-divider content-position="left">Affectations</el-divider>
 
       <el-form-item label="Sites">
         <el-select
@@ -169,12 +107,77 @@
           <el-option
             v-for="u in medicalUnits"
             :key="u.id!"
-            :label="`${u.code} — ${u.name} (${u.symbol})`"
+            :label="`${u.code} — ${u.name}`"
             :value="u.id!"
           />
         </el-select>
       </el-form-item>
 
+      <el-form-item label="Services médicaux">
+        <el-select
+          v-model="form.service_ids"
+          multiple
+          filterable
+          style="width: 100%"
+          placeholder="Sélectionner des services"
+          :loading="servicesLoading"
+        >
+          <el-option
+            v-for="s in services"
+            :key="s.id!"
+            :label="s.name"
+            :value="s.id!"
+          />
+        </el-select>
+      </el-form-item>
+
+      <!-- ==================== Profession ==================== -->
+      <el-divider content-position="left">Profession</el-divider>
+
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="Fonction" prop="fonction_id">
+            <el-select v-model="form.fonction_id" placeholder="Sélectionner une fonction" clearable filterable style="width: 100%">
+              <el-option
+                v-for="f in fonctions"
+                :key="f.id"
+                :label="f.name"
+                :value="f.id!"
+              />
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="Tâche" prop="role">
+            <el-select v-model="form.role" style="width: 100%">
+              <el-option label="Médecin" value="MEDECIN" />
+              <el-option label="Secrétaire" value="SECRETAIRE" />
+              <el-option label="Pharmacien" value="PHARMACIEN" />
+              <el-option label="Comptable" value="COMPTABLE" />
+              <el-option label="Administrateur" value="ADMIN" />
+              <el-option label="Infirmier d'État" value="INFIRMIER" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-form-item label="Spécialités">
+        <el-select
+          v-model="form.specialty_ids"
+          multiple
+          filterable
+          style="width: 100%"
+          placeholder="Sélectionner des spécialités"
+          :loading="specialtiesLoading"
+        >
+          <el-option
+            v-for="s in specialties"
+            :key="s.id!"
+            :label="`${s.title_prefix ? s.title_prefix + ' - ' : ''}${s.name}`"
+            :value="s.id!"
+          />
+        </el-select>
+      </el-form-item>
       <!-- ==================== Contrat ==================== -->
       <el-divider content-position="left">Contrat</el-divider>
 
@@ -236,6 +239,10 @@
         </el-checkbox>
       </el-form-item>
     </el-form>
+
+    <!-- ==================== Pièces jointes ==================== -->
+    <el-divider />
+    <UserAttachmentsSection v-if="form.id" :userId="form.id" />
 
     <template #footer>
       <el-button @click="dialogVisible = false">Annuler</el-button>

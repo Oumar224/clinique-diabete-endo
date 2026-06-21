@@ -12,11 +12,7 @@
           <el-icon><Search /></el-icon>
         </template>
       </el-input>
-      <el-radio-group v-model="filterCategory" size="small">
-        <el-radio-button :label="''">Tous</el-radio-button>
-        <el-radio-button :label="'mesure'">Mesure</el-radio-button>
-        <el-radio-button :label="'prescription'">Prescription</el-radio-button>
-      </el-radio-group>
+
       <el-button type="primary" :icon="Plus" @click="openCreate">Nouvelle unité</el-button>
     </div>
 
@@ -38,17 +34,7 @@
     >
       <el-table-column prop="code" label="Code" width="120" />
       <el-table-column prop="name" label="Nom" min-width="180" />
-      <el-table-column label="Catégorie" width="140" align="center">
-        <template #default="{ row }">
-          <el-tag
-            :type="row.category === 'mesure' ? 'primary' : 'success'"
-            size="small"
-          >
-            {{ row.category === 'mesure' ? 'Mesure' : 'Prescription' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="symbol" label="Symbole" width="100" align="center" />
+
       <el-table-column label="Statut" width="90" align="center">
         <template #default="{ row }">
           <el-switch
@@ -92,7 +78,6 @@ import { useMedicalUnits, type MedicalUnitDto } from '@/composables/useMedicalUn
 const { units, loading, error, fetchUnits, deleteUnit, toggleUnit } = useMedicalUnits()
 
 const searchQuery = ref('')
-const filterCategory = ref('')
 const dialogRef = ref<InstanceType<typeof import('./MedicalUnitFormDialog.vue').default> | null>(null)
 
 const paginator = reactive({ currPage: 1, pageSize: 10 })
@@ -104,16 +89,11 @@ onMounted(async () => {
 const filteredList = computed(() => {
   let list = units.value
 
-  if (filterCategory.value) {
-    list = list.filter(u => u.category === filterCategory.value)
-  }
-
   const q = searchQuery.value.toLowerCase()
   if (q) {
     list = list.filter(u =>
       u.code.toLowerCase().includes(q) ||
-      u.name.toLowerCase().includes(q) ||
-      u.symbol.toLowerCase().includes(q)
+      u.name.toLowerCase().includes(q)
     )
   }
 

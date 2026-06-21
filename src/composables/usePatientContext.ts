@@ -13,6 +13,12 @@ export interface Patient {
   mutuelle?: string
   medecin_traitant?: string
   allergies: string[]
+  photo?: string | null
+  nip?: string
+  lieu_naissance?: string
+  residence_code?: string
+  complement_adresse?: string
+  region?: string
 }
 
 const PATIENT_CONTEXT_KEY = Symbol('patientContext')

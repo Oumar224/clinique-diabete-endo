@@ -19,15 +19,7 @@
       <el-form-item label="Nom" prop="name">
         <el-input v-model="form.name" placeholder="Ex: Milligramme" maxlength="100" />
       </el-form-item>
-      <el-form-item label="Catégorie" prop="category">
-        <el-select v-model="form.category" placeholder="Sélectionner" style="width: 100%">
-          <el-option label="Mesure" value="mesure" />
-          <el-option label="Prescription" value="prescription" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="Symbole" prop="symbol">
-        <el-input v-model="form.symbol" placeholder="Ex: mg, ml, UI" maxlength="20" />
-      </el-form-item>
+
     </el-form>
     <template #footer>
       <el-button @click="visible = false">Annuler</el-button>
@@ -56,8 +48,6 @@ const formRef = ref<FormInstance>()
 const form = reactive({
   code: '',
   name: '',
-  category: 'mesure' as 'mesure' | 'prescription',
-  symbol: '',
 })
 
 const rules = {
@@ -70,27 +60,16 @@ const rules = {
     { required: true, message: 'Le nom est requis', trigger: 'blur' },
     { max: 100, message: 'Maximum 100 caractères', trigger: 'blur' },
   ],
-  category: [
-    { required: true, message: 'La catégorie est requise', trigger: 'change' },
-  ],
-  symbol: [
-    { required: true, message: 'Le symbole est requis', trigger: 'blur' },
-    { max: 20, message: 'Maximum 20 caractères', trigger: 'blur' },
-  ],
 }
 
 function open(unit?: MedicalUnitDto) {
   editingId.value = null
   form.code = ''
   form.name = ''
-  form.category = 'mesure'
-  form.symbol = ''
   if (unit) {
     editingId.value = unit.id!
     form.code = unit.code
     form.name = unit.name
-    form.category = unit.category
-    form.symbol = unit.symbol
   }
   visible.value = true
 }
@@ -110,16 +89,12 @@ async function submit() {
       result = await updateUnit(editingId.value, {
         code: form.code,
         name: form.name,
-        category: form.category,
-        symbol: form.symbol,
       })
       if (result) ElMessage.success('Unité modifiée')
     } else {
       result = await createUnit({
         code: form.code,
         name: form.name,
-        category: form.category,
-        symbol: form.symbol,
       })
       if (result) ElMessage.success('Unité créée')
     }

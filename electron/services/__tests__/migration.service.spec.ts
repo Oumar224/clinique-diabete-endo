@@ -24,12 +24,12 @@ describe('MigrationService', () => {
     fs.rmSync(dbDir, { recursive: true, force: true })
   })
 
-  it('should run all 9 migrations successfully', async () => {
+  it('should run all 18 migrations successfully', async () => {
     const svc = new MigrationService(db)
     await expect(svc.runMigrations()).resolves.not.toThrow()
 
     const rows = await sql`SELECT name FROM kysely_migration`.execute(db)
-    expect(rows.rows.length).toBe(9)
+    expect(rows.rows.length).toBe(18)
 
     const names = rows.rows.map((r: any) => r.name)
     expect(names).toContain('005-settings-tables')

@@ -36,7 +36,7 @@
               {{ getFonctionName(profile.fonction_id) || '—' }}
             </el-descriptions-item>
 
-            <el-descriptions-item label="Rôle système">
+            <el-descriptions-item label="Tâche">
               <el-tag :type="roleColor(profile.role!)" size="small">{{ roleLabel(profile.role!) }}</el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="Spécialités">

@@ -11,6 +11,27 @@
         >
           <template #prepend><el-icon><Search /></el-icon></template>
         </el-input>
+        <el-dropdown @command="handleExport">
+          <el-button :loading="exportingPdf || exportingExcel">
+            Exporter
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="list-pdf" :disabled="exportingPdf">
+                <el-icon><Document /></el-icon> Liste des utilisateurs (PDF)
+              </el-dropdown-item>
+              <el-dropdown-item command="list-excel" :disabled="exportingExcel">
+                <el-icon><Document /></el-icon> Liste des utilisateurs (Excel)
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+
+        <el-button @click="handlePrint">
+          <el-icon><Printer /></el-icon> Imprimer
+        </el-button>
+
         <el-button type="primary" :icon="Plus" @click="userFormRef?.open()">
           Nouvel utilisateur
         </el-button>
@@ -123,12 +144,14 @@
         :page-count="paginator.totalPage"
       />
     </el-row>
+
+    <UserPrintDialog v-model="printDialogVisible" :users="filteredUsers" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { Plus, Edit, Delete, Search } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, Search, ArrowDown, Document, Printer } from '@element-plus/icons-vue'
 import {
   users,
   userFormRef,
@@ -145,6 +168,11 @@ import { useSpecialties } from '@/composables/useSpecialties'
 import { useFonctions } from '@/composables/useFonctions'
 import UserForm from '@/components/users/UserForm.vue'
 import UserDetailDialog from '@/components/users/UserDetailDialog.vue'
+import UserPrintDialog from '@/components/users/UserPrintDialog.vue'
+import { useExport } from '@/composables/useExport'
+
+const { exportingPdf, exportingExcel, exportUsersListPdf, exportUsersListExcel } = useExport()
+const printDialogVisible = ref(false)
 
 const { fetchSpecialties } = useSpecialties()
 const { fonctions, fetchFonctions } = useFonctions()
@@ -161,19 +189,33 @@ const searchText = ref('')
 
 const paginator = reactive({ totalPage: 0, currPage: 1, pageSize: 7 })
 
-const filteredList = computed(() => {
-  const result =
+const filteredUsers = computed(() => {
+  return (
     users.value?.filter((item: UserDto) =>
       Object.keys(item).some((key) =>
         String((item as any)[key])?.toLowerCase().includes(searchText.value.toLowerCase()),
       ),
     ) || []
+  )
+})
+
+const filteredList = computed(() => {
+  const result = filteredUsers.value
   paginator.totalPage = Math.ceil(result.length / paginator.pageSize)
   return result.slice(
     (paginator.currPage - 1) * paginator.pageSize,
     paginator.currPage * paginator.pageSize,
   )
 })
+
+async function handleExport(command: string) {
+  if (command === 'list-pdf') await exportUsersListPdf()
+  else if (command === 'list-excel') await exportUsersListExcel()
+}
+
+function handlePrint() {
+  printDialogVisible.value = true
+}
 
 function viewUser(user: UserDto) {
   userDetailDialogRef.value?.open(user)

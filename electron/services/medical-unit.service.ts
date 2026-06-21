@@ -16,20 +16,15 @@ export class MedicalUnitService {
     return { ...row, is_active: !!row.is_active } as unknown as MedicalUnitDto
   }
 
-  // ─── List medical units (optionally filter by active/category) ──
-  async list(activeOnly = false, category?: 'mesure' | 'prescription'): Promise<MedicalUnitDto[]> {
+  // ─── List medical units (optionally filter by active) ──
+  async list(activeOnly = false): Promise<MedicalUnitDto[]> {
     let query = this.db
       .selectFrom('medical_units')
       .selectAll()
-      .orderBy('category', 'asc')
       .orderBy('name', 'asc')
 
     if (activeOnly) {
       query = query.where('is_active', '=', 1)
-    }
-
-    if (category) {
-      query = query.where('category', '=', category)
     }
 
     const rows = await query.execute()
@@ -51,8 +46,6 @@ export class MedicalUnitService {
   async create(dto: MedicalUnitCreateDto): Promise<MedicalUnitDto> {
     this.validateCode(dto.code)
     this.validateName(dto.name)
-    this.validateCategory(dto.category)
-    this.validateSymbol(dto.symbol)
 
     try {
       // Check uniqueness
@@ -71,8 +64,6 @@ export class MedicalUnitService {
         .values({
           code: dto.code.trim().toUpperCase(),
           name: dto.name.trim(),
-          category: dto.category,
-          symbol: dto.symbol.trim(),
           is_active: 1,
         })
         .returningAll()
@@ -99,8 +90,6 @@ export class MedicalUnitService {
 
     if (dto.code !== undefined) this.validateCode(dto.code)
     if (dto.name !== undefined) this.validateName(dto.name)
-    if (dto.category !== undefined) this.validateCategory(dto.category)
-    if (dto.symbol !== undefined) this.validateSymbol(dto.symbol)
 
     try {
       // Check code uniqueness if changing
@@ -123,8 +112,6 @@ export class MedicalUnitService {
       }
       if (dto.code !== undefined) updateData.code = dto.code.trim().toUpperCase()
       if (dto.name !== undefined) updateData.name = dto.name.trim()
-      if (dto.category !== undefined) updateData.category = dto.category
-      if (dto.symbol !== undefined) updateData.symbol = dto.symbol.trim()
       if (dto.is_active !== undefined) updateData.is_active = dto.is_active ? 1 : 0
 
       await this.db
@@ -199,18 +186,5 @@ export class MedicalUnitService {
     }
   }
 
-  private validateCategory(category: string): void {
-    if (category !== 'mesure' && category !== 'prescription') {
-      throw new Error("La catégorie doit être 'mesure' ou 'prescription'")
-    }
-  }
 
-  private validateSymbol(symbol: string): void {
-    if (!symbol || symbol.trim().length === 0) {
-      throw new Error("Le symbole de l'unité médicale est requis")
-    }
-    if (symbol.trim().length > 20) {
-      throw new Error("Le symbole de l'unité médicale ne peut pas dépasser 20 caractères")
-    }
-  }
 }

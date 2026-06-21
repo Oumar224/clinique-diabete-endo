@@ -12,4 +12,10 @@ export interface PatientDto {
   medecin_traitant?: string
   allergies?: string[]
   automerge_id?: string
+  photo?: string
+  nip?: string
+  lieu_naissance?: string
+  residence_code?: string
+  complement_adresse?: string
+  region?: string
 }

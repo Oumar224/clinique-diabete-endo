@@ -5,6 +5,7 @@ import { container } from 'tsyringe'
 import { autoUpdater } from 'electron-updater'
 import { AppDatabaseDatasource } from './sqlite-data-source'
 import { registerAllHandlers } from './handlers'
+import { LogoService } from './services/logo.service'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -147,6 +148,17 @@ app.whenReady().then(async () => {
   }
 
   createWindow()
+
+  try {
+    const logoSvc = container.resolve(LogoService)
+    const logo = await logoSvc.getLogoBase64()
+    if (logo) {
+      const win = BrowserWindow.getAllWindows()[0]
+      if (win) win.setIcon(join(app.getPath('userData'), 'logo.png'))
+    }
+  } catch {
+    // Non-critical: custom logo not available
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

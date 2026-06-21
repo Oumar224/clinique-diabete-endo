@@ -2,7 +2,7 @@
   <div class="login">
     <div class="login__brand">
       <div class="login__brand-content">
-        <img :src="logoSrc" alt="CDE" class="login__brand-logo" />
+        <img :src="logoUrl" alt="CDE" class="login__brand-logo" />
         <h2 class="login__brand-title">CDE</h2>
         <p class="login__brand-desc">
           Solution de gestion clinique sécurisée. <br />
@@ -24,10 +24,11 @@
 import LoginForm from '@/components/auth/LoginForm.vue'
 import type { LoginCommand } from '@/components/auth/LoginForm.vue'
 import { useAuth } from '@/composables/useAuth'
+import { useLogo } from '@/composables/useLogo'
 import type { FormInstance } from 'element-plus'
-import logoSrc from '@/assets/cde.png'
 
 const { login, loading, error } = useAuth()
+const { logoUrl } = useLogo()
 
 async function handleLoginSubmit(formRef: FormInstance | undefined, form: LoginCommand) {
   if (!formRef) return

@@ -3,7 +3,7 @@ export interface UserDto {
   nom?: string
   prenom?: string
   email?: string
-  role?: 'MEDECIN' | 'SECRETAIRE' | 'PHARMACIEN' | 'COMPTABLE' | 'ADMIN'
+  role?: 'MEDECIN' | 'SECRETAIRE' | 'PHARMACIEN' | 'COMPTABLE' | 'ADMIN' | 'INFIRMIER'
   service?: string
   photo?: string
   telephone?: string
