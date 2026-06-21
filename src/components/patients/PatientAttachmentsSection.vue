@@ -92,7 +92,7 @@ const fileInputRef = ref<HTMLInputElement | null>()
 
 watch(() => props.patientId, (id) => {
   if (id) {
-    loadAttachments(id)
+    loadAttachments(id, true)
   }
 }, { immediate: true })
 

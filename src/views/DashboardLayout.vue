@@ -19,6 +19,11 @@
               <span v-if="activePatient.mutuelle" aria-hidden="true">·</span>
               <span v-if="activePatient.mutuelle">{{ activePatient.mutuelle }}</span>
             </div>
+            <div v-if="activePatient.allergies?.length" class="patient-banner__allergies">
+              <el-tag v-for="a in activePatient.allergies" :key="a" type="danger" size="small">
+                {{ a }}
+              </el-tag>
+            </div>
           </div>
         </div>
       </template>
@@ -121,5 +126,12 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.patient-banner__allergies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
 }
 </style>

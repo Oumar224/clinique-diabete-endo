@@ -41,7 +41,7 @@ export class PatientEntity {
       adresse: entity.adresse,
       mutuelle: entity.mutuelle,
       medecin_traitant: entity.medecin_traitant,
-      allergies: entity.allergies ? JSON.parse(entity.allergies) : [],
+      allergies: entity.allergies?.trim() ? JSON.parse(entity.allergies) : [],
       automerge_id: entity.automerge_id,
       photo: entity.photo,
       nip: entity.nip,

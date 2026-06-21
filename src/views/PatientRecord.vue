@@ -117,6 +117,7 @@ import { useRoute } from 'vue-router'
 import { Edit, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPatient, deletePatient, fetchPatients, type PatientDto } from '@/composables/usePatients'
+import { calculateAge } from '@/utils/age'
 import { usePatientContext } from '@/composables/usePatientContext'
 import PatientFormDialog from '@/components/patients/PatientFormDialog.vue'
 
@@ -186,14 +187,6 @@ function onSaved() {
   loadPatient()
 }
 
-function calculateAge(dateStr: string): number {
-  const birth = new Date(dateStr)
-  const today = new Date()
-  let age = today.getFullYear() - birth.getFullYear()
-  const m = today.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
-  return age
-}
 </script>
 
 <style scoped>

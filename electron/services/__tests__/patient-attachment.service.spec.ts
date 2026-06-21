@@ -438,4 +438,62 @@ describe('PatientAttachmentService', () => {
     const found = await service.getById(result.id!)
     expect(found.fileData).toBe(unicodeData)
   })
+  // ─── End of tests ────────────────────────────────────────────────
+
+    // ─── Feature 1: Attach files after create (create-then-attach flow) ───
+  
+    it('can add attachments to a newly created patient (simulates create-then-attach flow)', async () => {
+      const db = datasource.getInstance()
+      const newPatient = await db.insertInto('patient').values({
+        civilite: 'M',
+        nom: 'TestAttach',
+        prenom: 'CreateFlow',
+        date_naissance: '2000-01-01',
+        nir: '2000101123457',
+        telephone: '0612345679',
+      }).returningAll().executeTakeFirstOrThrow()
+  
+      const attachment = await service.create({
+        patientId: newPatient.id!,
+        displayName: 'PostCreate.pdf',
+        fileName: 'post-create.pdf',
+        fileData: 'data:application/pdf;base64,cG9zdC1jcmVhdGU=',
+      })
+  
+      expect(attachment.id).toBeGreaterThan(0)
+      expect(attachment.patientId).toBe(newPatient.id!)
+  
+      const list = await service.listByPatient(newPatient.id!)
+      expect(list.length).toBe(1)
+      expect(list[0].displayName).toBe('PostCreate.pdf')
+    })
+  
+    it('preserves existing attachments when adding new ones after creation', async () => {
+      const db = datasource.getInstance()
+      const patient = await db.insertInto('patient').values({
+        civilite: 'M',
+        nom: 'MulitAttach',
+        prenom: 'Test',
+        date_naissance: '1995-06-15',
+        nir: '1950615123458',
+        telephone: '0612345680',
+      }).returningAll().executeTakeFirstOrThrow()
+  
+      await service.create({
+        patientId: patient.id!,
+        displayName: 'First.pdf',
+        fileName: 'first.pdf',
+        fileData: 'data:,first',
+      })
+  
+      await service.create({
+        patientId: patient.id!,
+        displayName: 'Second.pdf',
+        fileName: 'second.pdf',
+        fileData: 'data:,second',
+      })
+  
+      const list = await service.listByPatient(patient.id!)
+      expect(list.length).toBe(2)
+    })
 })

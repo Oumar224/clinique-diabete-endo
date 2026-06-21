@@ -106,4 +106,22 @@ describe("PatientService", () => {
     const found = await service.getById(created.id!)
     expect(found).toBeNull()
   })
+    // ─── End of tests ────────────────────────────────────────────
+
+    it('returns created patient with an id using PatientEntity directly', async () => {
+      const service = container.resolve(PatientService)
+      const entity = new PatientEntity()
+      entity.civilite = 'M'
+      entity.nom = 'TestReturn'
+      entity.prenom = 'IdCheck'
+      entity.date_naissance = '1980-01-01'
+      entity.nir = '1800101123459'
+      entity.telephone = '0612345681'
+  
+      const created = await service.create(entity)
+      expect(created.id).toBeDefined()
+      expect(created.id).toBeGreaterThan(0)
+      expect(created.nom).toBe('TestReturn')
+      expect(created.prenom).toBe('IdCheck')
+    })
 })

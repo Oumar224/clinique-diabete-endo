@@ -37,7 +37,11 @@
         </el-col>
       </el-row>
       <el-form-item label="Date de naissance" prop="date_naissance">
-        <el-date-picker v-model="form.date_naissance" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+        <div class="date-age-group">
+          <el-date-picker v-model="form.date_naissance" type="date" value-format="YYYY-MM-DD" style="flex:1" />
+          <el-input-number v-model="ageInput" :min="0" :max="150" :controls="false" style="width:90px" placeholder="Âge" @change="onAgeChange" />
+          <span class="age-unit">ans</span>
+        </div>
       </el-form-item>
       <el-form-item label="Lieu de naissance">
         <el-input v-model="form.lieu_naissance" placeholder="Village / Secteur" />
@@ -111,13 +115,13 @@
       </el-form-item>
     </el-form>
 
-    <el-divider v-if="isEdit && editId" />
-    <PatientAttachmentsSection v-if="isEdit && editId" :patient-id="editId" />
+    <el-divider v-if="editId" />
+    <PatientAttachmentsSection v-if="editId" :patient-id="editId" />
 
     <template #footer>
       <el-button @click="dialogVisible = false">Annuler</el-button>
       <el-button type="primary" @click="submit">
-        {{ isEdit ? 'Enregistrer' : 'Créer' }}
+        {{ isPostCreate ? 'Terminer' : (isEdit ? 'Enregistrer' : 'Créer') }}
       </el-button>
     </template>
   </el-dialog>
@@ -131,6 +135,7 @@ import { showLoader, hideLoader } from '@/components/utils/AppLoader'
 import { createPatient, updatePatient } from '@/composables/usePatients'
 import type { Patient } from '@/composables/usePatientContext'
 import { generateNip } from '@/utils/nip-generator'
+import { calculateAge } from '@/utils/age'
 import { useLocalites } from '@/composables/useLocalites'
 
 const emit = defineEmits<{ saved: [] }>()
@@ -147,6 +152,9 @@ const selectedRegion = ref('')
 const selectedPrefecture = ref('')
 const nip = ref('')
 const initializingNip = ref(false)
+const ageInput = ref<number | null>(null)
+const isSyncingAge = ref(false)
+const isPostCreate = ref(false)
 const { localites, fetchLocalites } = useLocalites()
 
 const regions = computed(() => {
@@ -264,6 +272,28 @@ watch(
   { immediate: false },
 )
 
+// Age ↔ Date de naissance sync
+watch(
+  () => form.date_naissance,
+  (newDate) => {
+    if (isSyncingAge.value) return
+    if (!newDate) {
+      ageInput.value = null
+      return
+    }
+    ageInput.value = calculateAge(newDate)
+  },
+  { immediate: true },
+)
+
+function onAgeChange(val: number | undefined) {
+  if (val === undefined || val === null) return
+  isSyncingAge.value = true
+  const year = new Date().getFullYear() - val
+  form.date_naissance = `${year}-01-01`
+  nextTick(() => { isSyncingAge.value = false })
+}
+
 onMounted(async () => {
   await fetchLocalites(true)
 })
@@ -293,6 +323,9 @@ function resetForm() {
   isEdit.value = false
   allergyInputVisible.value = false
   allergyInputValue.value = ''
+  ageInput.value = null
+  isSyncingAge.value = false
+  isPostCreate.value = false
   formRef.value?.resetFields()
 }
 
@@ -357,7 +390,11 @@ async function submit() {
       ElMessage.warning('Veuillez remplir tous les champs obligatoires')
       return
     }
-    // Always resolve region from current residence_code
+    if (isPostCreate.value) {
+      close()
+      emit('saved')
+      return
+    }
     if (form.residence_code) {
       const leaf = localites.value.find(l => l.code === form.residence_code)
       if (leaf?.parent_id) {
@@ -373,12 +410,26 @@ async function submit() {
       if (isEdit.value && editId.value) {
         await updatePatient({ ...toRaw(form), id: editId.value })
         ElMessage.success('Patient mis à jour')
+        close()
+        emit('saved')
       } else {
-        await createPatient(toRaw(form))
-        ElMessage.success('Patient créé')
+        const created = await createPatient(toRaw(form))
+        if (created?.id) {
+          editId.value = created.id
+          isEdit.value = true
+          isPostCreate.value = true
+          if (created.nip) {
+            nip.value = created.nip
+            form.nip = created.nip
+          }
+          ElMessage.success('Patient créé. Vous pouvez ajouter des pièces jointes.')
+          emit('saved')
+        } else {
+          ElMessage.success('Patient créé')
+          close()
+          emit('saved')
+        }
       }
-      close()
-      emit('saved')
     } catch (e) {
       ElMessage.error(`Erreur: ${(e as Error).message}`)
     } finally {
@@ -436,5 +487,18 @@ defineExpose({ open })
   flex-direction: column;
   gap: 8px;
   width: 100%;
+}
+
+.date-age-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.age-unit {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  margin-left: 4px;
 }
 </style>

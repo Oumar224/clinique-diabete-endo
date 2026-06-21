@@ -1,4 +1,5 @@
 import { ref, computed, provide, inject, type Ref } from 'vue'
+import { calculateAge } from '@/utils/age'
 
 export interface Patient {
   id: number
@@ -28,12 +29,7 @@ const activePatient = ref<Patient | null>(null)
 export function providePatientContext() {
   const age = computed(() => {
     if (!activePatient.value) return null
-    const birth = new Date(activePatient.value.date_naissance)
-    const today = new Date()
-    let a = today.getFullYear() - birth.getFullYear()
-    const m = today.getMonth() - birth.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--
-    return a
+    return calculateAge(activePatient.value.date_naissance)
   })
 
   const hasActivePatient = computed(() => !!activePatient.value)

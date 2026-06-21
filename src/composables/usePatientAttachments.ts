@@ -18,8 +18,8 @@ const loading = ref(false)
 const loadedForPatientId = ref<number | null>(null)
 
 export function usePatientAttachments() {
-  async function loadAttachments(patientId: number) {
-    if (loadedForPatientId.value === patientId) return
+  async function loadAttachments(patientId: number, force = false) {
+    if (!force && loadedForPatientId.value === patientId) return
     loading.value = true
     attachments.value = []
     try {
