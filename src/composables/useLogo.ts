@@ -1,23 +1,22 @@
 import { ref, computed } from 'vue'
 import logoSrc from '@/assets/cde.png'
+import { ipcInvoke } from '@/utils/ipc'
 
 const logoUrl = ref<string | null>(null)
-const loaded = ref(false)
 
 export function useLogo() {
   async function loadLogo() {
-    if (loaded.value) return
-    loaded.value = true
-    if (!window.electronAPI) return
     try {
-      const result = await window.electronAPI.invoke('identity:get-logo') as any
-      if (result?.success && result.data) {
-        logoUrl.value = result.data
-        updateFavicon(result.data)
+      const data = await ipcInvoke<string | null>('identity:get-logo')
+      if (data) {
+        logoUrl.value = data
+        updateFavicon(data)
+        return
       }
     } catch {
-      // fallback silencieux vers le logo par défaut
+      // No Electron IPC or no custom logo — fallback to bundled default
     }
+    logoUrl.value = null
   }
 
   function updateFavicon(dataUrl: string) {
@@ -35,5 +34,6 @@ export function useLogo() {
 
   return {
     logoUrl: computed(() => logoUrl.value || logoSrc),
+    refreshLogo: loadLogo,
   }
 }

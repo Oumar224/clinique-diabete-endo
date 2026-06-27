@@ -11,6 +11,7 @@ import { registerUserAttachmentHandlers } from './user-attachment.handler'
 import { registerPatientAttachmentHandlers } from './patient-attachment.handler'
 import { registerAttachmentTypeHandlers } from './attachment-type.handler'
 import { registerFormDraftHandlers } from './form-draft.handler'
+import { registerPatientCareHandlers } from './patient-care.handler'
 
 export function registerAllHandlers(): void {
   registerAuthHandlers()
@@ -26,4 +27,5 @@ export function registerAllHandlers(): void {
   registerPatientAttachmentHandlers()
   registerAttachmentTypeHandlers()
   registerFormDraftHandlers()
+  registerPatientCareHandlers()
 }

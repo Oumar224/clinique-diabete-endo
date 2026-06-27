@@ -1,5 +1,6 @@
 import { ref, computed, provide, inject, type Ref } from 'vue'
 import { calculateAge } from '@/utils/age'
+import { useOpenPatients } from '@/composables/useOpenPatients'
 
 export interface Patient {
   id: number
@@ -39,6 +40,8 @@ export function providePatientContext() {
 
   function setActivePatient(patient: Patient) {
     activePatient.value = patient
+    // Track in open patients for quick-access feature
+    useOpenPatients().addPatient(patient)
   }
 
   function clearPatient() {

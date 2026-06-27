@@ -29,9 +29,9 @@
           </el-avatar>
         </template>
       </el-table-column>
-      <el-table-column label="Civ." width="50">
+      <el-table-column label="Civ." width="100">
         <template #default="{ row }">
-          <span style="font-size:18px">{{ getCiviliteSymbol(row.civilite) }}</span>
+          <span style="font-size:14px">{{ getCiviliteLabel(row.civilite) }}</span>
         </template>
       </el-table-column>
       <el-table-column prop="nom" label="Nom" />
@@ -87,7 +87,7 @@ import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { patients, fetchPatients, deletePatient } from '@/composables/usePatients'
 import { calculateAge } from '@/utils/age'
-import { getCiviliteSymbol } from '@/utils/civilite'
+import { getCiviliteSymbol, getCiviliteLabel } from '@/utils/civilite'
 import type { PatientDto } from '@/composables/usePatients'
 import { usePatientContext } from '@/composables/usePatientContext'
 import PatientFormDialog from '@/components/patients/PatientFormDialog.vue'

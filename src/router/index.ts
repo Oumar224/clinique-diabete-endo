@@ -41,13 +41,61 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'patients/:id',
-        name: 'patient-detail',
-        component: () => import('@/views/PatientRecord.vue'),
-      },
-      {
-        path: 'patients/:id/factures',
-        name: 'patient-factures',
-        component: () => import('@/views/PatientFacturesView.vue'),
+        component: () => import('@/views/patients/PatientLayout.vue'),
+        children: [
+          {
+            path: '',
+            redirect: { name: 'patient-dossier' },
+          },
+          {
+            path: 'dossier',
+            name: 'patient-dossier',
+            component: () => import('@/views/patients/DossierView.vue'),
+          },
+          {
+            path: 'labo',
+            name: 'patient-labo',
+            component: () => import('@/views/patients/LaboView.vue'),
+          },
+          {
+            path: 'prescription',
+            name: 'patient-prescription',
+            component: () => import('@/views/patients/PrescriptionView.vue'),
+            meta: { roles: ['MEDECIN', 'ADMIN'] },
+          },
+          {
+            path: 'examens',
+            name: 'patient-examens',
+            component: () => import('@/views/patients/ExamensView.vue'),
+            meta: { roles: ['MEDECIN', 'ADMIN'] },
+          },
+          {
+            path: 'actes',
+            name: 'patient-actes',
+            component: () => import('@/views/patients/ActesView.vue'),
+          },
+          {
+            path: 'soins',
+            name: 'patient-soins',
+            component: () => import('@/views/patients/SoinsView.vue'),
+            meta: { roles: ['MEDECIN', 'INFIRMIER', 'ADMIN'] },
+          },
+          {
+            path: 'sejour',
+            name: 'patient-sejour',
+            component: () => import('@/views/patients/SejourView.vue'),
+          },
+          {
+            path: 'rdv',
+            name: 'patient-rdv',
+            component: () => import('@/views/patients/RendezVousView.vue'),
+          },
+          {
+            path: 'factures',
+            name: 'patient-factures',
+            component: () => import('@/views/PatientFacturesView.vue'),
+          },
+        ],
       },
       {
         path: 'pharmacie',
@@ -84,11 +132,16 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach(async (to, _from, next) => {
+router.beforeEach(async (to, from, next) => {
   const auth = useAuth()
 
-  if (!_from.name) {
-    const restored = await auth.restoreSession()
+  if (!from.name) {
+    let restored = false
+    try {
+      restored = await auth.restoreSession()
+    } catch (e) {
+      console.error('Session restoration failed:', e)
+    }
     if (!restored && to.meta.requiresAuth) {
       return next({ name: 'login' })
     }
