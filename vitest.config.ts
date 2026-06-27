@@ -55,5 +55,6 @@ export default defineConfig({
     root: '.',
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: ['node_modules', 'dist', 'dist-electron', '.idea', '.git'],
+    setupFiles: ['./src/test-setup.ts'],
   },
 })

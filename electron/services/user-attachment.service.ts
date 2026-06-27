@@ -14,12 +14,22 @@ export class UserAttachmentService {
   }
 
   async listByUser(userId: number): Promise<UserAttachmentDto[]> {
-    const rows = await this.db
+    let query = this.db
       .selectFrom('user_attachments')
-      .select(['id', 'user_id', 'display_name', 'file_name', 'mime_type', 'file_size', 'created_at'])
-      .where('user_id', '=', userId)
-      .orderBy('created_at', 'desc')
-      .execute()
+      .leftJoin('attachment_types', 'attachment_types.id', 'user_attachments.attachment_type_id')
+      .select([
+        'user_attachments.id',
+        'user_attachments.user_id',
+        'user_attachments.display_name',
+        'user_attachments.file_name',
+        'user_attachments.mime_type',
+        'user_attachments.file_size',
+        'user_attachments.attachment_type_id',
+        'user_attachments.created_at',
+        'attachment_types.name as attachment_type_name',
+      ])
+      .where('user_attachments.user_id', '=', userId)
+    const rows = await query.orderBy('user_attachments.created_at', 'desc').execute()
     return rows.map(r => this.toDto(r))
   }
 
@@ -41,15 +51,29 @@ export class UserAttachmentService {
       throw new Error('La taille du fichier décodé ne doit pas dépasser 10 Mo')
     }
 
+    // Derive display_name from attachment type if attachmentTypeId is provided
+    let displayName = dto.displayName
+    if (dto.attachmentTypeId != null) {
+      const typeRow = await this.db
+        .selectFrom('attachment_types')
+        .select('name')
+        .where('id', '=', dto.attachmentTypeId)
+        .executeTakeFirst()
+      if (typeRow) {
+        displayName = typeRow.name
+      }
+    }
+
     const result = await this.db
       .insertInto('user_attachments')
       .values({
         user_id: dto.userId,
-        display_name: dto.displayName,
+        display_name: displayName,
         file_name: dto.fileName,
         mime_type: dto.mimeType ?? null,
         file_size: dto.fileSize ?? null,
         file_data: dto.fileData,
+        attachment_type_id: dto.attachmentTypeId ?? null,
       })
       .returningAll()
       .executeTakeFirstOrThrow()
@@ -89,14 +113,22 @@ export class UserAttachmentService {
     if (row.created_at == null) {
       throw new Error('Erreur interne : date de création manquante')
     }
-    return {
+    const displayName = (row.display_name as string) || (row.attachment_type_name as string) || ''
+    const dto: UserAttachmentDto = {
       id: row.id as number,
       userId: row.user_id as number,
-      displayName: row.display_name as string,
+      displayName,
       fileName: row.file_name as string,
       mimeType: row.mime_type as string | null,
       fileSize: row.file_size as number | null,
       createdAt: row.created_at as string,
     }
+    if (row.attachment_type_id != null) {
+      dto.attachmentTypeId = row.attachment_type_id as number
+    }
+    if (row.attachment_type_name != null) {
+      dto.attachmentTypeName = row.attachment_type_name as string
+    }
+    return dto
   }
 }

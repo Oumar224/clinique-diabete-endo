@@ -93,6 +93,7 @@ import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useHospitalInfo } from '@/composables/useHospitalInfo'
+import { ipcInvoke } from '@/utils/ipc'
 
 const { info, loadInfo, saveInfo, saveLogo } = useHospitalInfo()
 
@@ -119,11 +120,10 @@ onMounted(async () => {
 })
 
 async function loadExistingLogo() {
-  if (!window.electronAPI) return
   try {
-    const result = await window.electronAPI.invoke('identity:get-logo') as any
-    if (result?.success && result.data) {
-      logoPreview.value = result.data
+    const data = await ipcInvoke<string | null>('identity:get-logo')
+    if (data) {
+      logoPreview.value = data
     }
   } catch {}
 }

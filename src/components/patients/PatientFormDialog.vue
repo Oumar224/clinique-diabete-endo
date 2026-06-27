@@ -3,16 +3,19 @@
     v-model="dialogVisible"
     :title="isEdit ? 'Modifier le patient' : 'Nouveau patient'"
     width="800px"
-    @closed="resetForm"
+    @closed="handleClose"
   >
     <el-steps :active="activeStep" align-center finish-status="success" style="margin-bottom: 24px">
-      <el-step title="Identité" />
-      <el-step title="Contact & Résidence" />
-      <el-step title="Allergies" />
-      <el-step title="Personne de confiance" />
+      <el-step
+        v-for="(step, index) in stepTitles"
+        :key="index"
+        :title="step"
+        :class="{ 'is-clickable': isEdit }"
+        @click="isEdit && (activeStep = index)"
+      />
     </el-steps>
 
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="140px">
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="160px">
       <!-- Step 1: Identité -->
       <div v-if="activeStep === 0" class="step-content">
         <el-form-item label="Photo">
@@ -48,7 +51,7 @@
         </el-row>
         <el-form-item label="Date de naissance" prop="date_naissance">
           <div class="date-age-group">
-            <el-date-picker v-model="form.date_naissance" type="date" value-format="YYYY-MM-DD" style="flex:1" />
+            <el-date-picker v-model="form.date_naissance" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" style="flex:1" />
             <el-input-number v-model="ageInput" :min="0" :max="150" :controls="false" style="width:90px" placeholder="Âge" @change="onAgeChange" />
             <span class="age-unit">ans</span>
           </div>
@@ -65,9 +68,6 @@
       <div v-if="activeStep === 1" class="step-content">
         <el-form-item label="NIP">
           <el-input v-model="nip" disabled placeholder="Généré automatiquement" />
-        </el-form-item>
-        <el-form-item label="N° SS/Assurance" prop="nir">
-          <el-input v-model="form.nir" />
         </el-form-item>
         <el-form-item label="Téléphone" prop="telephone">
           <el-input v-model="form.telephone" />
@@ -97,30 +97,40 @@
             <el-input v-model="form.complement_adresse" placeholder="Complément d'adresse (quartier, district, rue...)" />
           </div>
         </el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="Mutuelle">
-              <el-input v-model="form.mutuelle" />
-            </el-form-item>
-          </el-col>
+        <el-form-item label="Assurance / Mutuelle" prop="assuranceMutuelle">
+          <el-input v-model="form.assuranceMutuelle" placeholder="Assurance / Mutuelle" />
+        </el-form-item>
+        <el-form-item label="N° SS/Assurance" prop="nir">
+          <el-input v-model="form.nir" />
+        </el-form-item>
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="Site">
-              <el-select v-model="form.site_id" filterable clearable placeholder="Choisir un site" @change="onSiteChange">
+              <el-select
+                v-model="form.site_id"
+                filterable
+                clearable
+                placeholder="Choisir un site"
+                @change="onSiteChange"
+                :key="'site-' + sites.length"
+              >
                 <el-option v-for="s in sites" :key="s.id" :label="s.name" :value="s.id" />
               </el-select>
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="Médecin référent">
+              <el-select v-model="form.medecin_traitant" filterable clearable placeholder="Choisir un médecin" :disabled="!form.site_id">
+                <el-option v-for="d in doctors" :key="d.id" :label="`${d.prenom} ${d.nom}`" :value="`${d.prenom} ${d.nom}`" />
+              </el-select>
+            </el-form-item>
+          </el-col>
         </el-row>
-        <el-form-item label="Médecin référent">
-          <el-select v-model="form.medecin_traitant" filterable clearable placeholder="Choisir un médecin" :disabled="!form.site_id">
-            <el-option v-for="d in doctors" :key="d.id" :label="d.prenom + ' ' + d.nom" :value="d.prenom + ' ' + d.nom" />
-          </el-select>
-        </el-form-item>
       </div>
 
-      <!-- Step 3: Allergies -->
+      <!-- Step 3: Allergies et autres & Consentement -->
       <div v-if="activeStep === 2" class="step-content">
-        <el-form-item label="Allergies">
+        <el-form-item label="Allergies et autres">
           <div class="allergies-input">
             <el-tag
               v-for="(tag, i) in form.allergies ?? []"
@@ -146,6 +156,30 @@
             </el-button>
           </div>
         </el-form-item>
+        <el-divider />
+        <el-card shadow="never" class="consent-card">
+          <template #header>
+            <div class="consent-header">
+              <el-icon size="18" color="#e6a23c"><WarningFilled /></el-icon>
+              <span>Consentement données personnelles</span>
+            </div>
+          </template>
+          <el-alert
+            type="warning"
+            :closable="false"
+            show-icon
+            title="Utilisation des données à caractère personnel pour les études scientifiques"
+            description="Ces informations sont facultatives. Elles nous aident à améliorer nos services de recherche médicale. Vous pouvez changer d'avis à tout moment."
+            style="margin-bottom: 16px"
+          />
+          <el-form-item label="Votre consentement">
+            <el-radio-group v-model="form.consentementEtude">
+              <el-radio value="oui">Oui</el-radio>
+              <el-radio value="non">Non</el-radio>
+              <el-radio value="non_precise">Non précisé</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-card>
         <el-divider />
         <PatientAttachmentsSection :patient-id="editId ?? 0" category="patient" />
       </div>
@@ -214,10 +248,25 @@
           <el-button v-if="activeStep > 0" @click="activeStep--">Précédent</el-button>
         </span>
         <span>
-          <el-button v-if="isPostCreate" type="primary" @click="submit">Terminer</el-button>
-          <el-button v-else-if="activeStep < 3" type="primary" @click="activeStep++">Suivant</el-button>
-          <el-button v-else type="primary" @click="submit">{{ isEdit ? 'Enregistrer' : 'Créer' }}</el-button>
-          <el-button @click="dialogVisible = false">Annuler</el-button>
+          <!-- Edit mode: always-visible save + post-save UX -->
+          <template v-if="isEdit">
+            <template v-if="postSave">
+              <el-button type="primary" @click="finishAndClose">Terminer</el-button>
+              <el-button v-if="activeStep < 3" @click="continueEditing">Suivant</el-button>
+            </template>
+            <template v-else>
+              <el-button type="primary" @click="submit">Enregistrer les modifications</el-button>
+              <el-button v-if="activeStep < 3" @click="activeStep++">Suivant</el-button>
+            </template>
+            <el-button @click="cancelAndClose">Annuler</el-button>
+          </template>
+          <!-- Create mode (not isEdit): existing logic -->
+          <template v-else>
+            <el-button v-if="isPostCreate" type="primary" @click="submit">Terminer</el-button>
+            <el-button v-else-if="activeStep < 3" type="primary" @click="activeStep++">Suivant</el-button>
+            <el-button v-else type="primary" @click="submit">Créer</el-button>
+            <el-button @click="cancelAndClose">Annuler</el-button>
+          </template>
         </span>
       </span>
     </template>
@@ -226,9 +275,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, nextTick, toRaw, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
-import { Camera, Delete } from '@element-plus/icons-vue'
+import { Camera, Delete, WarningFilled } from '@element-plus/icons-vue'
 import { showLoader, hideLoader } from '@/components/utils/AppLoader'
 import { createPatient, updatePatient, type PatientDto } from '@/composables/usePatients'
 import { getTrustedPerson, upsertTrustedPerson, deleteTrustedPerson } from '@/composables/useTrustedPerson'
@@ -238,6 +287,9 @@ import { calculateAge } from '@/utils/age'
 import { useLocalites } from '@/composables/useLocalites'
 import PatientAttachmentsSection from './PatientAttachmentsSection.vue'
 import { ipcInvoke } from '@/utils/ipc'
+import { usePatientFormStore } from '@/stores/patientFormStore'
+
+const patientFormStore = usePatientFormStore()
 
 const emit = defineEmits<{ saved: [] }>()
 
@@ -260,7 +312,10 @@ const ageInput = ref<number | null>(null)
 const isSyncingAge = ref(false)
 const isPostCreate = ref(false)
 const activeStep = ref(0)
+const postSave = ref(false)
 let isReconstructingResidence = false
+
+const stepTitles = ['Identité', 'Contact & Résidence', 'Allergies et autres', 'Personne de confiance']
 const { localites, loading, fetchLocalites } = useLocalites()
 
 const sites = ref<Array<{ id: number; name: string }>>([])
@@ -318,7 +373,6 @@ const form = reactive({
   nir: '',
   telephone: '',
   email: '',
-  mutuelle: '',
   site_id: null as number | null,
   medecin_traitant: '',
   allergies: [] as string[],
@@ -327,6 +381,8 @@ const form = reactive({
   residence_code: '',
   complement_adresse: '',
   region: '',
+  assuranceMutuelle: '',
+  consentementEtude: 'non_precise',
   has_trusted: false,
   tp_nom: '',
   tp_prenom: '',
@@ -345,7 +401,7 @@ const rules = {
   nom: [{ required: true, message: 'Le nom est requis', trigger: 'blur' }],
   prenom: [{ required: true, message: 'Le prénom est requis', trigger: 'blur' }],
   date_naissance: [{ required: true, message: 'La date de naissance est requise', trigger: 'change' }],
-  nir: [{ required: true, message: 'Le N° SS/Assurance est requis', trigger: 'blur' }],
+  nir: [],
   telephone: [{ required: true, message: 'Le téléphone est requis', trigger: 'blur' }],
 }
 
@@ -395,12 +451,12 @@ function removePhoto() {
 
 // --- NIP ---
 watch(
-  [() => form.civilite, () => form.date_naissance, () => form.residence_code],
-  ([civ, date, code]) => {
+  [() => form.civilite, () => form.date_naissance, () => form.lieu_naissance],
+  ([civ, date, lieu]) => {
     if (initializingNip.value) return
-    if (date && code) {
+    if (date && lieu) {
       const civForNip = civ || 'M'
-      const generated = generateNip(civForNip as 'M' | 'Mme' | 'Mlle', date, code)
+      const generated = generateNip(civForNip as 'M' | 'Mme' | 'Mlle', date, lieu)
       nip.value = generated
       form.nip = generated
     } else {
@@ -512,7 +568,6 @@ function resetForm() {
   form.nir = ''
   form.telephone = ''
   form.email = ''
-  form.mutuelle = ''
   form.site_id = null
   form.medecin_traitant = ''
   doctors.value = []
@@ -522,6 +577,8 @@ function resetForm() {
   form.residence_code = ''
   form.complement_adresse = ''
   form.region = ''
+  form.assuranceMutuelle = ''
+  form.consentementEtude = 'non_precise'
   form.has_trusted = false
   form.tp_nom = ''
   form.tp_prenom = ''
@@ -551,6 +608,30 @@ function resetForm() {
 
 function close() {
   dialogVisible.value = false
+}
+
+async function cancelAndClose() {
+  await patientFormStore.clearDraft()
+  postSave.value = false
+  resetForm()
+  dialogVisible.value = false
+}
+
+async function handleClose() {
+  if (postSave.value) return   // Don't re-save draft if user clicked Terminer
+  const formType = isEdit.value ? 'patient_edit' : 'patient_create'
+  await patientFormStore.saveDraft(formType, toRaw(form), activeStep.value, editId.value ?? undefined)
+}
+
+async function finishAndClose() {
+  await patientFormStore.clearDraft()
+  postSave.value = false
+  dialogVisible.value = false
+}
+
+function continueEditing() {
+  postSave.value = false
+  activeStep.value++
 }
 
 function reconstructResidence(code: string | undefined) {
@@ -609,6 +690,7 @@ async function submitTrustedPerson() {
 }
 
 async function open(patient?: Patient) {
+  postSave.value = false
   await fetchLocalites(false)
 
   // Fetch sites list
@@ -621,7 +703,35 @@ async function open(patient?: Patient) {
     loadingSites.value = false
   }
 
-  if (patient) {
+  if (!patient) {
+    // Create mode: try loading draft from DB
+    const draft = await patientFormStore.loadDraft('patient_create')
+    if (draft) {
+      Object.assign(form, draft.formData)
+      activeStep.value = draft.activeStep
+      dialogVisible.value = true
+      return
+    }
+  } else {
+    // Edit mode: check for existing draft for this patient
+    const draft = await patientFormStore.loadDraft('patient_edit', patient.id)
+    if (draft) {
+      try {
+        await ElMessageBox.confirm(
+          'Un brouillon existe pour ce patient. Restaurer ?',
+          'Brouillon trouvé',
+          { confirmButtonText: 'Restaurer', cancelButtonText: 'Ignorer', type: 'info' }
+        )
+        Object.assign(form, draft.formData)
+        activeStep.value = draft.activeStep
+        dialogVisible.value = true
+        return
+      } catch {
+        // User chose to ignore draft, clear it
+        await patientFormStore.clearDraft()
+      }
+    }
+
     initializingNip.value = true
     isEdit.value = true
     editId.value = patient.id
@@ -634,14 +744,16 @@ async function open(patient?: Patient) {
     form.nir = patient.nir
     form.telephone = patient.telephone
     form.email = patient.email || ''
-    form.mutuelle = patient.mutuelle || ''
     form.site_id = patient.site_id ?? null
+    await nextTick()
     form.medecin_traitant = patient.medecin_traitant || ''
     form.allergies = [...patient.allergies]
     form.photo = patient.photo ?? null
     form.residence_code = patient.residence_code || ''
     form.complement_adresse = patient.complement_adresse || ''
     form.region = patient.region || ''
+    form.assuranceMutuelle = patient.assuranceMutuelle ?? ''
+    form.consentementEtude = patient.consentementEtude ?? ''
     nip.value = patient.nip ?? ''
     form.nip = patient.nip ?? ''
     reconstructResidence(patient.residence_code)
@@ -684,6 +796,10 @@ async function open(patient?: Patient) {
   }
   activeStep.value = 0
   dialogVisible.value = true
+  // Force reactive update for el-select bindings
+  if (form.site_id) {
+    await nextTick()
+  }
 }
 
 async function submit() {
@@ -695,6 +811,7 @@ async function submit() {
     }
     if (isPostCreate.value) {
       await submitTrustedPerson()
+      await patientFormStore.clearDraft()
       close()
       emit('saved')
       return
@@ -706,8 +823,9 @@ async function submit() {
       if (isEdit.value && editId.value) {
         await updatePatient({ ...patientPayload, id: editId.value })
         await submitTrustedPerson()
-        ElMessage.success('Patient mis à jour')
-        close()
+        await patientFormStore.clearDraft()
+        ElMessage.success('Modifications enregistrées')
+        postSave.value = true
         emit('saved')
       } else {
         const created = await createPatient(patientPayload)
@@ -721,10 +839,12 @@ async function submit() {
             nip.value = created.nip
             form.nip = created.nip
           }
+          await patientFormStore.clearDraft()
           ElMessage.success('Patient créé. Vous pouvez ajouter des pièces jointes.')
           emit('saved')
         } else {
           await submitTrustedPerson()
+          await patientFormStore.clearDraft()
           ElMessage.success('Patient créé')
           close()
           emit('saved')
@@ -805,6 +925,18 @@ defineExpose({ open })
 
 .step-content {
   min-height: 200px;
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 20px 24px;
+  border: 1px solid #eee;
+}
+
+.el-form-item {
+  margin-bottom: 18px;
+}
+
+.el-form-item:last-child {
+  margin-bottom: 0;
 }
 
 .trusted-person-card {
@@ -824,5 +956,41 @@ defineExpose({ open })
   display: flex;
   justify-content: space-between;
   width: 100%;
+}
+
+.el-step.is-clickable {
+  cursor: pointer;
+}
+
+.el-step.is-clickable:hover .el-step__title {
+  color: var(--el-color-primary);
+}
+
+.el-form-item__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.consent-card {
+  margin-bottom: 16px;
+  border: 1px solid var(--el-color-warning-light-5, #faecd8);
+  background: var(--el-color-warning-light-9, #fdf6ec);
+  border-radius: 8px;
+}
+.consent-card .el-card__header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--el-color-warning-light-5, #faecd8);
+}
+.consent-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--el-color-warning, #e6a23c);
+}
+.consent-card .el-form-item {
+  margin-bottom: 0;
 }
 </style>

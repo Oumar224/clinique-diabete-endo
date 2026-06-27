@@ -6,6 +6,8 @@ export interface UserAttachmentDto {
   mimeType: string | null
   fileSize: number | null
   fileData?: string  // base64 — seulement pour getById
+  attachmentTypeId?: number
+  attachmentTypeName?: string
   createdAt: string
 }
 
@@ -16,4 +18,5 @@ export interface CreateAttachmentDto {
   mimeType?: string | null
   fileSize?: number | null
   fileData: string  // base64 data URL (data:image/png;base64,...)
+  attachmentTypeId?: number
 }

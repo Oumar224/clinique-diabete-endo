@@ -77,6 +77,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { Printer } from '@element-plus/icons-vue'
 import { getUserDisplayName, roleLabel } from '@/composables/useUsers'
+import { formatDate } from '@/utils/date'
+import { ipcInvoke } from '@/utils/ipc'
 
 const props = defineProps<{
   modelValue: boolean
@@ -100,10 +102,8 @@ const hospitalRegNumber = ref('')
 
 onMounted(async () => {
   try {
-    if (!window.electronAPI) return
-    const result = await window.electronAPI.invoke('identity:get-info') as any
-    if (result?.success && result.data) {
-      const info = result.data
+    const info = await ipcInvoke<any>('identity:get-info')
+    if (info) {
       if (info.name) hospitalName.value = info.name
       if (info.address || info.city) {
         hospitalAddress.value = [info.address, info.city].filter(Boolean).join(', ')
@@ -117,12 +117,6 @@ onMounted(async () => {
 
 function print() {
   window.print()
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('fr-FR', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  })
 }
 
 function formatSpecialties(user: any): string {

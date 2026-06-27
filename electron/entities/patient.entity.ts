@@ -14,7 +14,6 @@ export class PatientEntity {
   nir?: string
   telephone?: string
   email?: string
-  mutuelle?: string
   medecin_traitant?: string
   allergies?: string
   automerge_id?: string
@@ -26,6 +25,8 @@ export class PatientEntity {
   region?: string
   profession?: string
   site_id?: number
+  assurance_mutuelle?: string
+  consentement_etude?: string
   created_at?: string
   updated_at?: string
 
@@ -39,7 +40,6 @@ export class PatientEntity {
       nir: entity.nir,
       telephone: entity.telephone,
       email: entity.email,
-      mutuelle: entity.mutuelle,
       medecin_traitant: entity.medecin_traitant,
       allergies: entity.allergies ? (() => { try { return JSON.parse(entity.allergies) } catch { return [] } })() : [],
       automerge_id: entity.automerge_id,
@@ -51,6 +51,8 @@ export class PatientEntity {
       region: entity.region,
       profession: entity.profession,
       site_id: entity.site_id,
+      assuranceMutuelle: entity.assurance_mutuelle,
+      consentementEtude: entity.consentement_etude,
     }
   }
 
@@ -68,7 +70,6 @@ export class PatientEntity {
     e.nir = dto.nir
     e.telephone = dto.telephone
     e.email = dto.email
-    e.mutuelle = dto.mutuelle
     e.medecin_traitant = dto.medecin_traitant
     e.allergies = dto.allergies ? JSON.stringify(dto.allergies) : '[]'
     e.photo = dto.photo
@@ -79,6 +80,8 @@ export class PatientEntity {
     e.region = dto.region
     e.profession = dto.profession
     e.site_id = dto.site_id
+    e.assurance_mutuelle = dto.assuranceMutuelle
+    e.consentement_etude = dto.consentementEtude
     return e
   }
 
@@ -94,7 +97,6 @@ export class PatientEntity {
         telephone TEXT NOT NULL,
         email TEXT,
         adresse TEXT,
-        mutuelle TEXT,
         medecin_traitant TEXT,
         allergies TEXT DEFAULT '[]',
         photo TEXT,
@@ -106,6 +108,8 @@ export class PatientEntity {
         profession TEXT,
         site_id INTEGER REFERENCES sites(id),
         automerge_id TEXT,
+        assurance_mutuelle TEXT,
+        consentement_etude TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))
       )

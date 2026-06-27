@@ -7,6 +7,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AttachmentTypesTab: typeof import('./components/settings/AttachmentTypesTab.vue')['default']
     CurrencyFormDialog: typeof import('./components/settings/CurrencyFormDialog.vue')['default']
     DatabaseStatsCard: typeof import('./components/settings/DatabaseStatsCard.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']

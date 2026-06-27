@@ -7,6 +7,8 @@ export interface PatientAttachmentDto {
   fileSize: number | null
   fileData?: string
   category?: string
+  attachmentTypeId?: number
+  attachmentTypeName?: string
   createdAt: string
 }
 
@@ -18,4 +20,5 @@ export interface CreatePatientAttachmentDto {
   fileSize?: number | null
   fileData: string
   category?: string
+  attachmentTypeId?: number
 }

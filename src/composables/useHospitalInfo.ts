@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import type { FormInstance } from 'element-plus'
+import { ipcInvoke } from '@/utils/ipc'
 
 export interface HospitalInfoDto {
   name: string
@@ -30,11 +31,10 @@ export function useHospitalInfo() {
   async function loadInfo() {
     if (loaded.value) return
     loading.value = true
-    if (!window.electronAPI) return
     try {
-      const result = await window.electronAPI.invoke('identity:get-info') as any
-      if (result?.success && result.data) {
-        info.value = result.data
+      const data = await ipcInvoke<HospitalInfoDto>('identity:get-info')
+      if (data) {
+        info.value = data
       }
     } catch {}
     loaded.value = true
@@ -46,13 +46,9 @@ export function useHospitalInfo() {
     const valid = await formEl.validate().catch(() => false)
     if (!valid) return { success: false, error: 'Veuillez corriger les erreurs de formulaire' }
 
-    if (!window.electronAPI) return { success: false, error: 'Application non initialisée' }
     try {
-      const result = await window.electronAPI.invoke('identity:save-info', info.value) as any
-      if (result?.success) {
-        return { success: true }
-      }
-      return { success: false, error: result?.message || 'Erreur lors de la sauvegarde des informations' }
+      await ipcInvoke('identity:save-info', info.value)
+      return { success: true }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde des informations'
       return { success: false, error: message }
@@ -60,13 +56,9 @@ export function useHospitalInfo() {
   }
 
   async function saveLogo(base64Data: string): Promise<SaveResult> {
-    if (!window.electronAPI) return { success: false, error: 'Application non initialisée' }
     try {
-      const result = await window.electronAPI.invoke('identity:save-logo', base64Data) as any
-      if (result?.success) {
-        return { success: true }
-      }
-      return { success: false, error: result?.message || 'Erreur lors de la sauvegarde du logo' }
+      await ipcInvoke('identity:save-logo', base64Data)
+      return { success: true }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde du logo'
       return { success: false, error: message }

@@ -9,18 +9,18 @@
     <div v-else>
       <div class="patient-record__header">
         <div class="patient-record__identity-row">
-          <el-avatar :size="64" :src="patient.photo || undefined" shape="circle" class="patient-record__photo">
-            {{ (patient.prenom?.[0] || '') + (patient.nom?.[0] || '') }}
+          <el-avatar :size="64" :src="patient.photo || undefined" shape="circle" :class="'patient-record__photo patient-record__photo--' + avatarGender">
+            <span class="patient-record__gender-symbol">{{ avatarSymbol }}</span>
           </el-avatar>
           <div class="patient-record__identity">
             <h2 class="patient-record__name">
-              {{ patient.civilite ? patient.civilite : 'Non défini' }} {{ patient.prenom }} {{ patient.nom }}
+              {{ getCiviliteSymbol(patient.civilite) }} {{ patient.prenom }} {{ patient.nom }}
             </h2>
             <div class="patient-record__meta">
-              <span>N° SS/Assurance: {{ patient.nir }}</span>
-              <span>{{ calculateAge(patient.date_naissance) }} ans</span>
-              <span>{{ patient.date_naissance }}</span>
-              <span>{{ patient.nip }}</span>
+              <span><strong>N° SS/Assurance:</strong> {{ patient.nir }}</span>
+              <span><strong>Âge:</strong> {{ calculateAge(patient.date_naissance) }} ans</span>
+              <span><strong>Né(e) le:</strong> {{ formatDate(patient.date_naissance) }}</span>
+              <span><strong>NIP:</strong> {{ patient.nip }}</span>
             </div>
           </div>
         </div>
@@ -30,74 +30,99 @@
         </div>
       </div>
 
-      <div class="patient-record__grid">
-        <el-card class="patient-record__card">
-          <template #header>
-            <span><strong>Informations personnelles</strong></span>
-          </template>
-          <div class="patient-record__fields">
-            <div class="patient-record__field">
-              <span class="patient-record__label">Email</span>
-              <span class="patient-record__value">{{ patient.email || '—' }}</span>
-            </div>
-            <div class="patient-record__field">
-              <span class="patient-record__label">Téléphone</span>
-              <span class="patient-record__value">{{ patient.telephone }}</span>
-            </div>
-            <div class="patient-record__field">
-              <span class="patient-record__label">Profession</span>
-              <span class="patient-record__value">{{ patient.profession || '—' }}</span>
-            </div>
-            <div class="patient-record__field">
-              <span class="patient-record__label">Lieu de naissance</span>
-              <span class="patient-record__value">{{ patient.lieu_naissance || '—' }}</span>
-            </div>
-            <div class="patient-record__field">
-              <span class="patient-record__label">Région</span>
-              <span class="patient-record__value">{{ patient.region || '—' }}</span>
-            </div>
-            <div class="patient-record__field">
-              <span class="patient-record__label">Résidence</span>
-              <span class="patient-record__value">{{ residenceDisplay }}</span>
-            </div>
-            <div class="patient-record__field">
-              <span class="patient-record__label">Complément</span>
-              <span class="patient-record__value">{{ patient.complement_adresse || '—' }}</span>
-            </div>
-            <div class="patient-record__field">
-              <span class="patient-record__label">Mutuelle</span>
-              <span class="patient-record__value">{{ patient.mutuelle || 'Aucune' }}</span>
-            </div>
-            <div class="patient-record__field">
-              <span class="patient-record__label">Site</span>
-              <span class="patient-record__value">{{ siteName }}</span>
-            </div>
-            <div class="patient-record__field">
-              <span class="patient-record__label">Médecin référent</span>
-              <span class="patient-record__value">{{ patient.medecin_traitant }}</span>
-            </div>
-            <!-- Allergies inline -->
-            <div class="patient-record__field">
-              <span class="patient-record__label">Allergies</span>
-              <span class="patient-record__value">
-                <template v-if="!patient.allergies || patient.allergies.length === 0">
-                  Aucune
-                </template>
-                <span v-else class="patient-record__allergies-tags">
-                  <el-tag
-                    v-for="a in patient.allergies"
-                    :key="a"
-                    type="danger"
-                    size="small"
-                  >
-                    {{ a }}
-                  </el-tag>
-                </span>
-              </span>
-            </div>
+      <!-- Informations personnelles -->
+      <el-card class="patient-record__card">
+        <template #header>
+          <span><strong>Informations personnelles</strong></span>
+        </template>
+        <div class="patient-record__fields">
+          <div class="patient-record__field">
+            <span class="patient-record__label">Email</span>
+            <span class="patient-record__value">{{ patient.email || '—' }}</span>
           </div>
-        </el-card>
-      </div>
+          <div class="patient-record__field">
+            <span class="patient-record__label">Téléphone</span>
+            <span class="patient-record__value">{{ patient.telephone }}</span>
+          </div>
+          <div class="patient-record__field">
+            <span class="patient-record__label">Profession</span>
+            <span class="patient-record__value">{{ patient.profession || '—' }}</span>
+          </div>
+          <div class="patient-record__field">
+            <span class="patient-record__label">Lieu de naissance</span>
+            <span class="patient-record__value">{{ patient.lieu_naissance || '—' }}</span>
+          </div>
+          <!-- Allergies inline -->
+          <div class="patient-record__field">
+            <span class="patient-record__label">Allergies et autres</span>
+            <span class="patient-record__value">
+              <template v-if="!patient.allergies || patient.allergies.length === 0">
+                Aucune
+              </template>
+              <span v-else class="patient-record__allergies-tags">
+                <el-tag
+                  v-for="a in patient.allergies"
+                  :key="a"
+                  type="danger"
+                  size="small"
+                >
+                  {{ a }}
+                </el-tag>
+              </span>
+            </span>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- Résidence -->
+      <el-card class="patient-record__card">
+        <template #header>
+          <span><strong>Résidence</strong></span>
+        </template>
+        <div class="patient-record__fields">
+          <div class="patient-record__field">
+            <span class="patient-record__label">Région</span>
+            <span class="patient-record__value">{{ patient.region || '—' }}</span>
+          </div>
+          <div class="patient-record__field">
+            <span class="patient-record__label">Commune</span>
+            <span class="patient-record__value">{{ residenceDisplay }}</span>
+          </div>
+          <div class="patient-record__field">
+            <span class="patient-record__label">Complément</span>
+            <span class="patient-record__value">{{ patient.complement_adresse || '—' }}</span>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- Informations médicales -->
+      <el-card class="patient-record__card">
+        <template #header>
+          <span><strong>Informations médicales</strong></span>
+        </template>
+        <div class="patient-record__fields">
+          <div class="patient-record__field">
+            <span class="patient-record__label">N° SS/Assurance</span>
+            <span class="patient-record__value">{{ patient.nir || '—' }}</span>
+          </div>
+          <div class="patient-record__field">
+            <span class="patient-record__label">Assurance / Mutuelle</span>
+            <span class="patient-record__value">{{ patient.assuranceMutuelle || '—' }}</span>
+          </div>
+          <div class="patient-record__field">
+            <span class="patient-record__label">Médecin référent</span>
+            <span class="patient-record__value">{{ patient.medecin_traitant || '—' }}</span>
+          </div>
+          <div class="patient-record__field">
+            <span class="patient-record__label">Site</span>
+            <span class="patient-record__value">{{ siteName }}</span>
+          </div>
+          <div class="patient-record__field">
+            <span class="patient-record__label">Consentement études</span>
+            <span class="patient-record__value">{{ consentementLabel }}</span>
+          </div>
+        </div>
+      </el-card>
 
       <el-card class="patient-record__section">
         <template #header>
@@ -146,13 +171,6 @@
 
       <el-card class="patient-record__section">
         <template #header>
-          <span><strong>Dernières consultations</strong></span>
-        </template>
-        <el-empty description="Aucune consultation" />
-      </el-card>
-
-      <el-card class="patient-record__section">
-        <template #header>
           <span><strong>Pièces jointes</strong></span>
         </template>
         <PatientAttachmentsSection :patient-id="patient.id" category="patient" />
@@ -177,6 +195,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPatient, deletePatient, fetchPatients, type PatientDto } from '@/composables/usePatients'
 import { getTrustedPerson, type TrustedPersonDto } from '@/composables/useTrustedPerson'
 import { calculateAge } from '@/utils/age'
+import { formatDate } from '@/utils/date'
+import { getCiviliteSymbol } from '@/utils/civilite'
 import { usePatientContext } from '@/composables/usePatientContext'
 import { useLocalites } from '@/composables/useLocalites'
 import { ipcInvoke } from '@/utils/ipc'
@@ -204,6 +224,26 @@ const residenceDisplay = computed(() => {
   const leaf = localites.value.find(l => l.code === p.residence_code)
   if (!leaf) return p.residence_code
   return leaf.name
+})
+
+const avatarGender = computed(() => {
+  const c = patient.value?.civilite
+  if (c === 'M') return 'male'
+  if (c === 'Mme' || c === 'Mlle') return 'female'
+  return 'none'
+})
+
+const avatarSymbol = computed(() => {
+  const c = patient.value?.civilite
+  if (c === 'M') return '\u2642'
+  if (c === 'Mme' || c === 'Mlle') return '\u2640'
+  return '\u2642\u2640'
+})
+
+const consentementLabel = computed(() => {
+  if (!patient.value?.consentementEtude) return '—'
+  const labels: Record<string, string> = { oui: 'Oui', non: 'Non', non_precise: 'Non précisé' }
+  return labels[patient.value.consentementEtude] || patient.value.consentementEtude
 })
 
 const trustedPersonDisplayResidence = computed(() => {
@@ -299,30 +339,53 @@ function onSaved() {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid var(--cd-gray-200, #e4e7ed);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .patient-record__identity-row {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  align-items: flex-start;
+  gap: 20px;
 }
 
 .patient-record__photo {
   flex-shrink: 0;
 }
+.patient-record__photo--male {
+  background: var(--el-color-primary, #409eff) !important;
+}
+.patient-record__photo--female {
+  background: var(--el-color-danger, #f56c6c) !important;
+}
+.patient-record__photo--none {
+  background: var(--el-color-info, #909399) !important;
+}
+.patient-record__gender-symbol {
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 400;
+}
 
 .patient-record__name {
-  font-size: 22px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--cd-gray-900);
 }
 
 .patient-record__meta {
   display: flex;
-  gap: 16px;
-  font-size: 14px;
+  flex-wrap: wrap;
+  gap: 28px;
+  font-size: 18px;
+  font-weight: 600;
   color: var(--cd-gray-400);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .patient-record__actions {

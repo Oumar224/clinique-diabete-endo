@@ -7,7 +7,7 @@ import type { Entity } from './entity'
 
 export interface DB {
   user: UserEntity
-  patient: PatientEntity & { site_id?: number }
+  patient: PatientEntity & { site_id?: number; assurance_mutuelle?: string; consentement_etude?: string }
   appointment: AppointmentEntity
   session: { id: string; user_id: number; created_at?: string; expires_at: string; last_activity?: string; remember_me?: number }
   app_settings: { key: string; value: string }
@@ -135,6 +135,7 @@ export interface DB {
     mime_type: string | null
     file_size: number | null
     file_data: string
+    attachment_type_id?: number | null
     created_at?: string
   }
   patient_attachments: {
@@ -146,7 +147,22 @@ export interface DB {
     file_size: number | null
     file_data: string
     category: string
+    attachment_type_id?: number | null
     created_at?: string
+  }
+  attachment_types: {
+    id?: number
+    name: string
+    created_at?: string
+  }
+  form_drafts: {
+    id?: number
+    form_type: string
+    form_data: string
+    patient_id: number | null
+    active_step: number
+    created_at?: string
+    updated_at?: string
   }
   trusted_persons: {
     id?: number

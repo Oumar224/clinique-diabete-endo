@@ -7,7 +7,6 @@ export interface PatientDto {
   nir?: string
   telephone?: string
   email?: string
-  mutuelle?: string
   medecin_traitant?: string
   allergies?: string[]
   automerge_id?: string
@@ -19,4 +18,6 @@ export interface PatientDto {
   region?: string
   profession?: string
   site_id?: number
+  assuranceMutuelle?: string
+  consentementEtude?: string
 }

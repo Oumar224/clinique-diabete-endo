@@ -28,6 +28,9 @@ export function registerUserAttachmentHandlers(): void {
     if (dto.mimeType != null && typeof dto.mimeType !== 'string') {
       throw new Error('Le type MIME doit être une chaîne de caractères')
     }
+    if (dto.attachmentTypeId != null && (typeof dto.attachmentTypeId !== 'number' || dto.attachmentTypeId <= 0)) {
+      throw new Error('ID du type de pièce jointe invalide')
+    }
     // Validation de la taille du fichier depuis le base64
     const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 Mo
     const base64Data = dto.fileData.includes('base64,')

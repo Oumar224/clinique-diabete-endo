@@ -31,6 +31,7 @@
 import { ArrowRight } from '@element-plus/icons-vue'
 import type { ActPriceHistoryDto } from '@/composables/useMedicalActs'
 import { useCurrencies } from '@/composables/useCurrencies'
+import { formatDate } from '@/utils/date'
 
 defineProps<{
   history: ActPriceHistoryDto[]
@@ -41,18 +42,6 @@ const { formatCurrency } = useCurrencies()
 function format(amount: number | null): string {
   if (amount === null) return '—'
   return formatCurrency(amount)
-}
-
-function formatDate(dateStr: string): string {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 </script>
 

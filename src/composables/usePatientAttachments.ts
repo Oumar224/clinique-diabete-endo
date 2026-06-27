@@ -11,6 +11,8 @@ export interface PatientAttachmentDto {
   fileSize: number | null
   fileData?: string
   createdAt: string
+  attachmentTypeId?: number | null
+  attachmentTypeName?: string | null
 }
 
 export function usePatientAttachments() {
@@ -39,6 +41,7 @@ export function usePatientAttachments() {
     mimeType: string
     fileSize: number
     fileData: string
+    attachmentTypeId?: number | null
   }): Promise<boolean> {
     try {
       const created = await ipcInvoke<PatientAttachmentDto>('patient-attachments:create', dto)

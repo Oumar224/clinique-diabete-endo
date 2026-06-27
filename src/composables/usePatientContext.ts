@@ -12,6 +12,8 @@ export interface Patient {
   email?: string
   profession?: string
   mutuelle?: string
+  assuranceMutuelle?: string
+  consentementEtude?: string
   medecin_traitant?: string
   allergies: string[]
   photo?: string | null

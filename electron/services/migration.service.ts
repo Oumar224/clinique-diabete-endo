@@ -23,6 +23,12 @@ import * as CiviliteAllowEmpty from '../migrations/021-civilite-allow-empty'
 import * as PatientSite from '../migrations/022-patient-site'
 import * as PatientAttachmentCategory from '../migrations/023-patient-attachment-category'
 import * as UniqueTrustedPersonPatient from '../migrations/024-unique-trusted-person-patient'
+import * as AttachmentTypes from '../migrations/025-attachment-types'
+import * as RemoveMutuelle from '../migrations/026-remove-mutuelle'
+import * as AddAssuranceMutuelle from '../migrations/027-add-assurance-mutuelle'
+import * as FormDrafts from '../migrations/028-form-drafts'
+import * as PatientConsentementEtude from '../migrations/029-patient-consentement-etude'
+import * as UserAttachmentType from '../migrations/030-user-attachment-type'
 
 class StaticMigrationProvider implements MigrationProvider {
   async getMigrations(): Promise<Record<string, Migration>> {
@@ -51,6 +57,12 @@ class StaticMigrationProvider implements MigrationProvider {
       '022-patient-site': PatientSite,
       '023-patient-attachment-category': PatientAttachmentCategory,
       '024-unique-trusted-person-patient': UniqueTrustedPersonPatient,
+      '025-attachment-types': AttachmentTypes,
+      '026-remove-mutuelle': RemoveMutuelle,
+      '027-add-assurance-mutuelle': AddAssuranceMutuelle,
+      '028-form-drafts': FormDrafts,
+      '029-patient-consentement-etude': PatientConsentementEtude,
+      '030-user-attachment-type': UserAttachmentType,
     }
   }
 }

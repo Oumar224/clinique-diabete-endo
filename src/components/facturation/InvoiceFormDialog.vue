@@ -15,7 +15,7 @@
           <el-option
             v-for="p in patientOptions"
             :key="p.id"
-            :label="`${p.civilite} ${p.prenom} ${p.nom} — ${p.nir}`"
+            :label="`${getCiviliteLabel(p.civilite)} ${p.prenom} ${p.nom} — ${p.nir}`"
             :value="p.id"
           />
         </el-select>
@@ -67,6 +67,7 @@ import { Plus, Delete } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useCurrency } from '@/currency/useCurrency'
 import type { InvoiceItem } from '@/composables/useInvoices'
+import { getCiviliteLabel } from '@/utils/civilite'
 
 const emit = defineEmits<{ created: [] }>()
 

@@ -56,7 +56,6 @@ export class PatientService {
           nir: entity.nir!,
           telephone: entity.telephone!,
           email: entity.email ?? undefined,
-          mutuelle: entity.mutuelle ?? undefined,
           medecin_traitant: entity.medecin_traitant ?? undefined,
           allergies: entity.allergies ?? '[]',
           photo: entity.photo ?? undefined,
@@ -66,6 +65,9 @@ export class PatientService {
           complement_adresse: entity.complement_adresse ?? undefined,
           region: entity.region ?? undefined,
           profession: entity.profession ?? undefined,
+          site_id: entity.site_id ?? undefined,
+          assurance_mutuelle: entity.assurance_mutuelle ?? undefined,
+          consentement_etude: entity.consentement_etude ?? undefined,
         })
         .execute()
     } catch (error: unknown) {
@@ -120,7 +122,6 @@ export class PatientService {
           nir: entity.nir ?? existing.nir,
           telephone: entity.telephone ?? existing.telephone,
           email: entity.email ?? existing.email,
-          mutuelle: entity.mutuelle ?? existing.mutuelle,
           medecin_traitant: entity.medecin_traitant ?? existing.medecin_traitant,
           allergies: entity.allergies ?? existing.allergies,
           photo: entity.photo ?? existing.photo,
@@ -130,6 +131,9 @@ export class PatientService {
           complement_adresse: entity.complement_adresse ?? existing.complement_adresse,
           region: entity.region ?? existing.region,
           profession: entity.profession ?? existing.profession,
+          site_id: entity.site_id ?? existing.site_id,
+          assurance_mutuelle: entity.assurance_mutuelle ?? existing.assurance_mutuelle,
+          consentement_etude: entity.consentement_etude ?? existing.consentement_etude,
           updated_at: new Date().toISOString(),
         })
         .where('id', '=', entity.id!)

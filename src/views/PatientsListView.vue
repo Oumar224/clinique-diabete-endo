@@ -24,12 +24,16 @@
     >
       <el-table-column label="" width="50">
         <template #default="{ row }">
-          <el-avatar :size="32" :src="row.photo || undefined" shape="circle">
-            {{ (row.prenom?.[0] || '') + (row.nom?.[0] || '') }}
+          <el-avatar :size="32" :src="row.photo || undefined" shape="circle" :class="'patient-list__avatar--' + (row.civilite === 'M' ? 'male' : row.civilite === 'Mme' || row.civilite === 'Mlle' ? 'female' : 'none')">
+            <span style="font-size:18px">{{ getCiviliteSymbol(row.civilite) }}</span>
           </el-avatar>
         </template>
       </el-table-column>
-      <el-table-column prop="civilite" label="Civ." width="60" />
+      <el-table-column label="Civ." width="50">
+        <template #default="{ row }">
+          <span style="font-size:18px">{{ getCiviliteSymbol(row.civilite) }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="nom" label="Nom" />
       <el-table-column prop="prenom" label="Prénom" />
       <el-table-column label="Âge">
@@ -45,13 +49,13 @@
         </template>
       </el-table-column>
       <el-table-column prop="nir" label="N° SS" width="140" />
-      <el-table-column prop="telephone" label="Téléphone" width="130" />
-      <el-table-column label="Mutuelle" width="140">
+      <el-table-column label="Assurance/Mutuelle" width="160">
         <template #default="{ row }">
-          <span v-if="row.mutuelle" class="patients-list__mutuelle">{{ row.mutuelle }}</span>
+          <span v-if="row.assuranceMutuelle">{{ row.assuranceMutuelle }}</span>
           <span v-else class="patients-list__none">—</span>
         </template>
       </el-table-column>
+      <el-table-column prop="telephone" label="Téléphone" width="130" />
       <el-table-column label="Actions" width="120" align="center">
         <template #default="{ row }">
           <el-button text type="primary" :icon="Edit" size="small" @click.stop="openEdit(row)" />
@@ -83,6 +87,7 @@ import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { patients, fetchPatients, deletePatient } from '@/composables/usePatients'
 import { calculateAge } from '@/utils/age'
+import { getCiviliteSymbol } from '@/utils/civilite'
 import type { PatientDto } from '@/composables/usePatients'
 import { usePatientContext } from '@/composables/usePatientContext'
 import PatientFormDialog from '@/components/patients/PatientFormDialog.vue'
@@ -204,16 +209,17 @@ async function onSaved() {
   gap: 12px;
 }
 
-.patients-list__mutuelle {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--cd-primary-light);
-  color: var(--cd-primary);
-}
-
 .patients-list__none {
   color: var(--cd-gray-400);
   font-size: 13px;
+}
+.patient-list__avatar--male {
+  background: var(--el-color-primary, #409eff) !important;
+}
+.patient-list__avatar--female {
+  background: var(--el-color-danger, #f56c6c) !important;
+}
+.patient-list__avatar--none {
+  background: var(--el-color-info, #909399) !important;
 }
 </style>

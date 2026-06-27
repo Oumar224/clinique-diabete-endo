@@ -4,12 +4,19 @@
 
     <template v-if="canManage">
       <div class="attachments-section__add">
-        <el-input
-          v-model="displayName"
-          placeholder="Nom du fichier..."
-          style="width: 250px; margin-right: 8px;"
+        <el-select
+          v-model="selectedAttachmentTypeId"
+          placeholder="Type (obligatoire)"
           size="small"
-        />
+          style="width: 180px;"
+        >
+          <el-option
+            v-for="t in attachmentTypes"
+            :key="t.id"
+            :label="t.name"
+            :value="t.id"
+          />
+        </el-select>
         <el-button size="small" @click="triggerFileInput">
           Choisir un fichier
         </el-button>
@@ -26,7 +33,7 @@
         <el-button
           size="small"
           type="primary"
-          :disabled="!displayName || !selectedFile || !fileData"
+          :disabled="!selectedAttachmentTypeId || !selectedFile || !fileData"
           :loading="adding"
           @click="handleAdd"
           style="margin-left: 8px;"
@@ -50,6 +57,9 @@
           </span>
           <div>
             <div class="attachments-section__item-name">{{ att.displayName }}</div>
+            <div v-if="att.attachmentTypeName" class="attachments-section__item-type">
+              {{ att.attachmentTypeName }}
+            </div>
             <div class="attachments-section__item-meta">
               {{ att.fileName }} — {{ formatSize(att.fileSize) }}
             </div>
@@ -76,6 +86,7 @@ import { ref, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, PictureFilled, Document, Paperclip } from '@element-plus/icons-vue'
 import { usePatientAttachments } from '@/composables/usePatientAttachments'
+import { ipcInvoke } from '@/utils/ipc'
 
 const props = defineProps<{
   patientId: number
@@ -91,15 +102,26 @@ const {
   reset,
 } = usePatientAttachments()
 
-const displayName = ref('')
 const selectedFile = ref<File | null>(null)
 const fileData = ref('')
 const adding = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>()
 const canManage = computed(() => props.patientId > 0)
 
-watch([() => props.patientId, () => props.category], ([id, cat]) => {
+const attachmentTypes = ref<Array<{ id: number; name: string }>>([])
+const selectedAttachmentTypeId = ref<number | null>(null)
+
+async function loadAttachmentTypes() {
+  try {
+    attachmentTypes.value = await ipcInvoke<Array<{ id: number; name: string }>>('attachment-types:list')
+  } catch {
+    attachmentTypes.value = []
+  }
+}
+
+watch([() => props.patientId, () => props.category], async ([id, cat]) => {
   if (id > 0) {
+    await loadAttachmentTypes()
     loadAttachments(id, cat ?? 'patient', true)
   } else {
     reset()
@@ -137,22 +159,23 @@ function handleFileChange(event: Event) {
 }
 
 async function handleAdd() {
-  if (!displayName.value || !selectedFile.value || !fileData.value) return
+  if (!selectedAttachmentTypeId.value || !selectedFile.value || !fileData.value) return
 
   adding.value = true
   const success = await addAttachment({
     patientId: props.patientId,
-    displayName: displayName.value.trim(),
+    displayName: selectedFile.value.name,
     fileName: selectedFile.value.name,
     category: props.category,
     mimeType: selectedFile.value.type || 'application/octet-stream',
     fileSize: selectedFile.value.size,
     fileData: fileData.value,
+    attachmentTypeId: selectedAttachmentTypeId.value,
   })
 
   if (success) {
     ElMessage.success('Pièce jointe ajoutée')
-    displayName.value = ''
+    selectedAttachmentTypeId.value = null
     selectedFile.value = null
     fileData.value = ''
     if (fileInputRef.value) fileInputRef.value.value = ''
@@ -241,6 +264,12 @@ function formatSize(bytes: number | null): string {
   font-size: 13px;
   font-weight: 500;
   color: #333;
+}
+.attachments-section__item-type {
+  font-size: 11px;
+  color: var(--el-color-primary);
+  font-weight: 500;
+  margin-top: 2px;
 }
 .attachments-section__item-meta {
   font-size: 11px;

@@ -11,6 +11,8 @@ export interface AttachmentDto {
   fileSize: number | null
   fileData?: string
   createdAt: string
+  attachmentTypeId?: number | null
+  attachmentTypeName?: string | null
 }
 
 const attachments = ref<AttachmentDto[]>([])
@@ -38,6 +40,7 @@ export function useUserAttachments() {
     mimeType: string
     fileSize: number
     fileData: string
+    attachmentTypeId?: number | null
   }): Promise<boolean> {
     try {
       const created = await ipcInvoke<AttachmentDto>('user-attachments:create', dto)

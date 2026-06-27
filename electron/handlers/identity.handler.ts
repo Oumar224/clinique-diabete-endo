@@ -17,8 +17,13 @@ export function registerIdentityHandlers(): void {
   })
 
   createHandler('identity:get-logo', async () => {
-    const logoService = container.resolve(LogoService)
-    return await logoService.getLogoBase64()
+    try {
+      const logoService = container.resolve(LogoService)
+      const data = await logoService.getLogoBase64()
+      return { success: true, data }
+    } catch (error) {
+      return { success: false, data: null, message: (error as Error).message }
+    }
   })
 
   createHandler('identity:save-logo', async (base64Data: string) => {

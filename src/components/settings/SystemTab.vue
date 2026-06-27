@@ -159,6 +159,7 @@ import {
   saveConfig,
   testEmail,
 } from '@/composables/useEmailConfig'
+import { formatDate } from '@/utils/date'
 
 const { systemInfo, backingUp, restoring, fetchInfo, triggerBackup, triggerRestore } = useSystemInfo()
 
@@ -194,18 +195,6 @@ onMounted(async () => {
 
 function getCount(table: string): number {
   return systemInfo.value.stats?.record_counts?.[table] ?? 0
-}
-
-function formatDate(dateStr: string): string {
-  if (!dateStr) return '—'
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 async function handleBackup() {

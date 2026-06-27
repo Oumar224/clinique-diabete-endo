@@ -11,7 +11,6 @@ export interface PatientDto {
   telephone: string
   email?: string
   profession?: string
-  mutuelle?: string
   medecin_traitant?: string
   allergies: string[]
   photo?: string | null
@@ -21,6 +20,8 @@ export interface PatientDto {
   complement_adresse?: string
   region?: string
   site_id?: number
+  assuranceMutuelle?: string
+  consentementEtude?: string
 }
 
 export const patients = ref<PatientDto[]>([])

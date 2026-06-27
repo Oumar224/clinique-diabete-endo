@@ -35,6 +35,10 @@
         <IdentityTab />
       </el-tab-pane>
 
+      <el-tab-pane label="Types pièces jointes" name="attachment-types">
+        <AttachmentTypesTab />
+      </el-tab-pane>
+
       <el-tab-pane label="Système" name="system">
         <SystemTab />
       </el-tab-pane>
@@ -44,6 +48,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import AttachmentTypesTab from '@/components/settings/AttachmentTypesTab.vue'
 
 const activeTab = ref('sites')
 </script>
