@@ -6,6 +6,16 @@ import App from './App.vue'
 import router from './router'
 import './style.css'
 
+// Apply CSS variable overrides after all stylesheets are loaded.
+// This prevents Vite's CSS optimizer from deduplicating our custom
+// --el-color-primary-rgb (and similar) when merging :root blocks.
+;(function ensureThemeColors(): void {
+  const root = document.documentElement
+  root.style.setProperty('--el-color-primary-rgb', '26, 82, 118')
+  root.style.setProperty('--el-color-danger-rgb', '192, 57, 43')
+  root.style.setProperty('--el-color-warning-rgb', '183, 149, 11')
+})()
+
 const app = createApp(App)
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {

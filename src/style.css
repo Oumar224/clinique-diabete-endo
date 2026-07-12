@@ -62,6 +62,24 @@
   --el-font-size-base: 13px;
   --el-font-size-small: 12px;
   --el-font-size-large: 14px;
+  --el-font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+}
+
+html, body, #app {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+}
+
+.el-button, .el-input, .el-select, .el-textarea, .el-form-item__label,
+.el-radio, .el-checkbox, .el-tag, .el-table, .el-menu,
+.el-dropdown, .el-tabs, .el-alert, .el-message, .el-notification,
+.el-card, .el-dialog, .el-drawer, .el-tooltip__popper,
+.el-pagination, .el-breadcrumb, .el-cascader, .el-date-editor,
+.el-autocomplete, .el-input-number, .el-slider, .el-switch,
+.el-rate, .el-badge, .el-timeline, .el-step, .el-collapse,
+.el-descriptions, .el-result, .el-empty, .el-statistic,
+.el-table-v2, .el-check-tag, .el-text, .el-link, .el-segmented,
+.el-splitter {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
 }
 
 *,
