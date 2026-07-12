@@ -104,18 +104,22 @@
 
         <div class="diagramme__meds">
           <h4>Administrations validées</h4>
-          <el-timeline>
-            <el-timeline-item
-              v-for="m in meds"
-              :key="m.id"
-              :timestamp="m.heure"
-              type="success"
-              size="normal"
-            >
-              <strong>{{ m.medicament }}</strong>
-              <span style="font-size:13px;color:var(--cd-gray-600);margin-left:8px">par {{ m.soignant }}</span>
-            </el-timeline-item>
-          </el-timeline>
+          <el-table
+            :data="meds"
+            stripe
+            border
+            size="small"
+            style="width:100%"
+            empty-text="Aucune administration validée sur cette période"
+          >
+            <el-table-column prop="date" label="Date" width="110" sortable />
+            <el-table-column prop="heure" label="Heure" width="70" sortable />
+            <el-table-column prop="medicament" label="Médicament" min-width="180" sortable />
+            <el-table-column prop="dosage" label="Dosage" width="100" />
+            <el-table-column prop="voie" label="Voie" width="100" />
+            <el-table-column prop="validePar" label="Validé par" width="140" sortable />
+            <el-table-column prop="valideA" label="Validé à" width="80" />
+          </el-table>
         </div>
       </div>
     </el-card>
@@ -525,9 +529,13 @@ const chartOptions = computed(() => {
 const meds = computed(() => {
   return validesData.value.map(v => ({
     id: `${v.date}-${v.heure}-${v.medicament}`,
+    date: v.date,
+    heure: v.heure,
     medicament: v.medicament,
-    heure: `${v.date} ${v.heure}`,
-    soignant: v.validePar || '—',
+    dosage: v.dosage,
+    voie: v.voie,
+    validePar: v.validePar || '—',
+    valideA: v.valideA || '—',
   }))
 })
 </script>

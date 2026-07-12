@@ -301,7 +301,7 @@
       @row-click="onRowClick"
       :row-class-name="tableRowClass"
     >
-      <el-table-column label="Type" width="90" align="center">
+      <el-table-column label="Type" width="130" align="center">
         <template #default="{ row }">
           <span
             class="prescription-cell__type-badge"
@@ -666,27 +666,27 @@
         <template v-if="selectedPrescription?.type === 'medicament'">
           <el-divider />
           <div class="prescription-detail__grid">
-            <div v-if="selectedPrescription.formeGalenique" class="prescription-detail__item">
+            <div class="prescription-detail__item">
               <span class="prescription-detail__label">Forme galénique</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.formeGalenique }}</span>
+              <span class="prescription-detail__value">{{ selectedPrescription.formeGalenique || '—' }}</span>
             </div>
-            <div v-if="selectedPrescription.momentPrises" class="prescription-detail__item">
+            <div class="prescription-detail__item">
               <span class="prescription-detail__label">Consignes de prise</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.momentPrises }}</span>
+              <span class="prescription-detail__value">{{ selectedPrescription.momentPrises || '—' }}</span>
             </div>
-            <div v-if="selectedPrescription.quantiteTotale" class="prescription-detail__item">
+            <div class="prescription-detail__item">
               <span class="prescription-detail__label">Quantité totale</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.quantiteTotale }}</span>
+              <span class="prescription-detail__value">{{ selectedPrescription.quantiteTotale || '—' }}</span>
             </div>
-            <div v-if="selectedPrescription.renouvellement" class="prescription-detail__item">
+            <div class="prescription-detail__item">
               <span class="prescription-detail__label">Renouvellement</span>
               <span class="prescription-detail__value">
-                Oui ({{ selectedPrescription.nbRenouvellements || 1 }}×)
+                {{ selectedPrescription.renouvellement ? `Oui (${selectedPrescription.nbRenouvellements || 1}×)` : 'Non' }}
               </span>
             </div>
-            <div v-if="selectedPrescription.allergiesAlertes" class="prescription-detail__item">
+            <div class="prescription-detail__item">
               <span class="prescription-detail__label">Allergies / Contre-indications</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.allergiesAlertes }}</span>
+              <span class="prescription-detail__value">{{ selectedPrescription.allergiesAlertes || '—' }}</span>
             </div>
           </div>
         </template>
@@ -695,25 +695,25 @@
         <template v-if="selectedPrescription?.type === 'soins'">
           <el-divider />
           <div class="prescription-detail__grid">
-            <div v-if="selectedPrescription.nbSeances" class="prescription-detail__item">
+            <div class="prescription-detail__item">
               <span class="prescription-detail__label">Nombre de séances</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.nbSeances }}</span>
+              <span class="prescription-detail__value">{{ selectedPrescription.nbSeances ?? '—' }}</span>
             </div>
-            <div v-if="selectedPrescription.objectifClinique" class="prescription-detail__item">
+            <div class="prescription-detail__item">
               <span class="prescription-detail__label">Objectif clinique</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.objectifClinique }}</span>
+              <span class="prescription-detail__value">{{ selectedPrescription.objectifClinique || '—' }}</span>
             </div>
-            <div v-if="selectedPrescription.consignesSpecifiques" class="prescription-detail__item">
+            <div class="prescription-detail__item">
               <span class="prescription-detail__label">Consignes spécifiques</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.consignesSpecifiques }}</span>
+              <span class="prescription-detail__value">{{ selectedPrescription.consignesSpecifiques || '—' }}</span>
             </div>
-            <div v-if="selectedPrescription.dispositifsMedicaux" class="prescription-detail__item">
+            <div class="prescription-detail__item">
               <span class="prescription-detail__label">Dispositifs médicaux</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.dispositifsMedicaux }}</span>
+              <span class="prescription-detail__value">{{ selectedPrescription.dispositifsMedicaux || '—' }}</span>
             </div>
-            <div v-if="selectedPrescription.professionnelCible" class="prescription-detail__item">
+            <div class="prescription-detail__item">
               <span class="prescription-detail__label">Professionnel ciblé</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.professionnelCible }}</span>
+              <span class="prescription-detail__value">{{ selectedPrescription.professionnelCible || '—' }}</span>
             </div>
           </div>
         </template>

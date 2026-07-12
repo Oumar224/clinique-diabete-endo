@@ -18,9 +18,6 @@
         <el-tab-pane label="Catégories de contact" name="contact-categories">
           <ContactCategoryTab />
         </el-tab-pane>
-        <el-tab-pane label="Dispositifs & Voies d'abord" name="dispositifs">
-          <DispositifTypeTab />
-        </el-tab-pane>
         <el-tab-pane label="Voies d'administration" name="voies">
           <VoieTypeTab />
         </el-tab-pane>
@@ -39,7 +36,6 @@ import CatalogueActesTab from '@/components/settings/CatalogueActesTab.vue'
 import ContactOriginTab from '@/components/settings/ContactOriginTab.vue'
 import InsuranceTab from '@/components/settings/InsuranceTab.vue'
 import ContactCategoryTab from '@/components/settings/ContactCategoryTab.vue'
-import DispositifTypeTab from '@/components/settings/DispositifTypeTab.vue'
 import VoieTypeTab from '@/components/settings/VoieTypeTab.vue'
 import ExamTypeTab from '@/components/settings/ExamTypeTab.vue'
 

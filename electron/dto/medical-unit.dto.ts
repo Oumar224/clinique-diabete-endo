@@ -19,3 +19,5 @@ export interface MedicalUnitUpdateDto {
   name?: string
   is_active?: boolean
 }
+
+

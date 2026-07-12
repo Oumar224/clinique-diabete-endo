@@ -21,6 +21,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       prise_en_charge TEXT NOT NULL,
       prise_en_charge_precision TEXT,
       contact_category_id INTEGER REFERENCES contact_categories(id),
+      care_unit_id INTEGER REFERENCES care_units(id),
       sinistre_info TEXT,
       notes TEXT,
       status TEXT NOT NULL DEFAULT 'active',
@@ -41,7 +42,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     'responsable_id', 'origin', 'origin_precision',
     'zone_situation', 'zone_precision',
     'prise_en_charge', 'prise_en_charge_precision',
-    'contact_category_id', 'sinistre_info',
+    'contact_category_id', 'care_unit_id', 'sinistre_info',
     'notes', 'status', 'created_by', 'created_at', 'updated_at',
   ].filter(c => columns.includes(c))
 

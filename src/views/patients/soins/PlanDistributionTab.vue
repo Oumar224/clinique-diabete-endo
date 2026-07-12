@@ -733,9 +733,9 @@ async function onTogglePrescription(row: MedicationGridRow) {
     }
     await refreshAllDays()
   } catch (e) {
-    if ((e as Error).message !== 'cancel') {
-      ElMessage.error(`Erreur: ${(e as Error).message}`)
-    }
+    if (e === 'cancel' || e === 'close') return
+    const msg = e instanceof Error ? e.message : String(e)
+    ElMessage.error(`Erreur: ${msg}`)
   }
 }
 

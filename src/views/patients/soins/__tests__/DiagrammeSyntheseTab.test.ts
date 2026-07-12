@@ -96,13 +96,13 @@ const stubs = {
       '<div class="el-empty"><p class="el-empty__description">{{ description }}</p></div>',
     props: ['description', 'imageSize'],
   },
-  'el-timeline': {
-    template: '<div class="el-timeline"><slot /></div>',
+  'el-table': {
+    template: '<div class="el-table"><slot name="append" /><slot /></div>',
+    props: ['data', 'stripe', 'border', 'size', 'emptyText'],
   },
-  'el-timeline-item': {
-    template:
-      '<div class="el-timeline-item"><span class="el-timeline-item__timestamp">{{ timestamp }}</span><slot /></div>',
-    props: ['timestamp', 'type', 'size', 'placement', 'hideTimestamp', 'color', 'icon', 'hollow'],
+  'el-table-column': {
+    template: '<div class="el-table-column" />',
+    props: ['prop', 'label', 'width', 'minWidth', 'sortable'],
   },
   'el-date-picker': {
     template:
@@ -400,11 +400,17 @@ describe('DiagrammeSyntheseTab', () => {
   // -----------------------------------------------------------------------
   // Medication timeline
   // -----------------------------------------------------------------------
-  describe('medication timeline', () => {
-    it('renders empty timeline when no valides data', () => {
+  describe('validated administrations table', () => {
+    it('renders empty table when no valides data', () => {
       const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
-      const items = wrapper.findAll('.el-timeline-item')
-      expect(items.length).toBe(0)
+      const table = wrapper.find('.el-table')
+      expect(table.exists()).toBe(true)
+    })
+
+    it('renders table with column headers', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const columns = wrapper.findAll('.el-table-column')
+      expect(columns.length).toBe(7)
     })
   })
 

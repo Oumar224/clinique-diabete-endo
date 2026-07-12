@@ -27,19 +27,6 @@
         </template>
         <VitalCheckTab />
       </el-tab-pane>
-      <el-tab-pane name="dispositifs">
-        <template #label>
-          <span class="tab-label">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="4.5" y="1.5" width="5" height="11" rx="1" stroke="currentColor" stroke-width="0.8" fill="currentColor" fill-opacity="0.1"/>
-              <path d="M2 4.5H12" stroke="currentColor" stroke-width="0.8" stroke-linecap="round"/>
-              <path d="M2 9.5H12" stroke="currentColor" stroke-width="0.8" stroke-linecap="round"/>
-            </svg>
-            Dispositifs & Accès
-          </span>
-        </template>
-        <DispositifsAccesTab />
-      </el-tab-pane>
       <el-tab-pane name="diagramme">
         <template #label>
           <span class="tab-label">
@@ -64,7 +51,6 @@ import { useRoute } from 'vue-router'
 import { provideVitalSigns } from '@/composables/useVitalSigns'
 import PlanDistributionTab from './soins/PlanDistributionTab.vue'
 import VitalCheckTab from './soins/VitalCheckTab.vue'
-import DispositifsAccesTab from './soins/DispositifsAccesTab.vue'
 import DiagrammeSyntheseTab from './soins/DiagrammeSyntheseTab.vue'
 
 const route = useRoute()
