@@ -18,8 +18,8 @@
         <el-tab-pane label="Catégories de contact" name="contact-categories">
           <ContactCategoryTab />
         </el-tab-pane>
-        <el-tab-pane label="Voies d'administration" name="voies">
-          <VoieTypeTab />
+        <el-tab-pane label="Dispositifs médicaux &amp; Voies d'abord" name="dispositif-voies">
+          <DispositifVoieTab />
         </el-tab-pane>
         <el-tab-pane label="Examens" name="examens">
           <ExamTypeTab />
@@ -36,7 +36,7 @@ import CatalogueActesTab from '@/components/settings/CatalogueActesTab.vue'
 import ContactOriginTab from '@/components/settings/ContactOriginTab.vue'
 import InsuranceTab from '@/components/settings/InsuranceTab.vue'
 import ContactCategoryTab from '@/components/settings/ContactCategoryTab.vue'
-import VoieTypeTab from '@/components/settings/VoieTypeTab.vue'
+import DispositifVoieTab from '@/components/settings/DispositifVoieTab.vue'
 import ExamTypeTab from '@/components/settings/ExamTypeTab.vue'
 
 const activeTab = ref('stockages')

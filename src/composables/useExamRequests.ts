@@ -5,7 +5,7 @@ export interface ExamRequestDto {
   id?: number
   patientId: number
   encounterId?: number | null
-  type: 'imagerie' | 'avis' | 'laboratoire'
+  type: 'imagerie' | 'laboratoire'
   examenId?: number | null
   examIds?: number[]
   motif?: string
@@ -39,7 +39,7 @@ export function useExamRequests() {
 
   async function createRequest(dto: {
     patientId: number
-    type: 'imagerie' | 'avis' | 'laboratoire'
+    type: 'imagerie' | 'laboratoire'
     examenId?: number | null
     examIds?: number[]
     motif?: string

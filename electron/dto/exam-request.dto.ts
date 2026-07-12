@@ -2,7 +2,7 @@ export interface ExamRequestDto {
   id?: number
   patientId: number
   encounterId?: number | null
-  type: 'imagerie' | 'avis' | 'laboratoire'
+  type: 'imagerie' | 'laboratoire'
   examenId?: number | null
   examIds?: number[]
   motif?: string

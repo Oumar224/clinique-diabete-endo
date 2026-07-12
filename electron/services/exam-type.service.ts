@@ -13,19 +13,13 @@ export class ExamTypeService {
     this.db = datasource.getInstance()
   }
 
-  // ─── List all categories ──────────────────────────────────────
+  // ─── List all categories (hardcoded — fixed values) ───────────
   async listCategories(): Promise<ExamCategoryEntity[]> {
-    try {
-      const rows = await this.db
-        .selectFrom('lab_exam_categories')
-        .selectAll()
-        .orderBy('sort_order', 'asc')
-        .execute()
-      return rows as unknown as ExamCategoryEntity[]
-    } catch (err: any) {
-      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) return []
-      throw err
-    }
+    const categories: ExamCategoryEntity[] = [
+      { id: 1, code: 'imagerie', name: 'Imagerie', sort_order: 1 },
+      { id: 2, code: 'laboratoire', name: 'Laboratoire', sort_order: 2 },
+    ]
+    return categories
   }
 
   // ─── List type-level items for a category (parent_id IS NULL) ──

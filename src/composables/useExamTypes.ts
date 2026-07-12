@@ -21,7 +21,12 @@ export interface ExamTypeDto {
   updated_at?: string
 }
 
-const categories = ref<ExamCategoryDto[]>([])
+const CATEGORIES: ExamCategoryDto[] = [
+  { id: 1, code: 'imagerie', label: 'Imagerie', sort_order: 1 },
+  { id: 2, code: 'laboratoire', label: 'Laboratoire', sort_order: 2 },
+]
+
+const categories = ref<ExamCategoryDto[]>(CATEGORIES)
 const types = ref<ExamTypeDto[]>([])
 const allTypes = ref<ExamTypeDto[]>([])
 const loading = ref(false)
@@ -30,17 +35,7 @@ const error = ref<string | null>(null)
 
 export function useExamTypes() {
   async function fetchCategories(): Promise<void> {
-    loading.value = true
-    error.value = null
-    try {
-      const result = await ipcInvoke<ExamCategoryDto[]>('exam-categories:list')
-      categories.value = Array.isArray(result) ? result : []
-    } catch (e) {
-      error.value = (e as Error).message
-      categories.value = []
-    } finally {
-      loading.value = false
-    }
+    // Categories are hardcoded — no API call needed
   }
 
   async function fetchTypesByCategory(categoryCode: string): Promise<void> {

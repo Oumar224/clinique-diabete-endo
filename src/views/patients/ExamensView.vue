@@ -28,12 +28,6 @@
                 <span>Imagerie (Radio, Scanner, IRM)</span>
               </span>
             </el-radio>
-            <el-radio value="avis" size="large" border>
-              <span class="examens-radio-content">
-                <el-icon><UserFilled /></el-icon>
-                <span>Avis spécialisé</span>
-              </span>
-            </el-radio>
             <el-radio value="laboratoire" size="large" border>
               <span class="examens-radio-content">
                 <el-icon><DataAnalysis /></el-icon>
@@ -54,16 +48,6 @@
             placeholder="Sélectionner un examen"
             style="width:100%"
           />
-        </el-form-item>
-
-        <el-form-item v-if="form.type === 'avis'" label="Spécialité" prop="examen">
-          <el-select v-model="form.examen" placeholder="Sélectionner une spécialité" style="width:100%">
-            <el-option label="Cardiologie" value="Cardiologie" />
-            <el-option label="Neurologie" value="Neurologie" />
-            <el-option label="Néphrologie" value="Néphrologie" />
-            <el-option label="Ophtalmologie" value="Ophtalmologie" />
-            <el-option label="Endocrinologie" value="Endocrinologie" />
-          </el-select>
         </el-form-item>
 
         <el-form-item v-if="form.type === 'laboratoire'" label="Analyses demandées" prop="examens">
@@ -133,7 +117,7 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch, computed, onMounted } from 'vue'
-import { Camera, UserFilled, DataAnalysis, Delete } from '@element-plus/icons-vue'
+import { Camera, DataAnalysis, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
@@ -220,7 +204,7 @@ function formatMedecin(m: UserDto): string {
 }
 
 function typeLabel(type: string): string {
-  const map: Record<string, string> = { imagerie: 'Imagerie', avis: 'Avis spécialisé', laboratoire: 'Laboratoire' }
+  const map: Record<string, string> = { imagerie: 'Imagerie', laboratoire: 'Laboratoire' }
   return map[type] || type
 }
 
@@ -249,7 +233,7 @@ async function onEnvoyer() {
   try {
     const dto = {
       patientId: activePatient.value.id,
-      type: form.type as 'imagerie' | 'avis' | 'laboratoire',
+      type: form.type as 'imagerie' | 'laboratoire',
       prescripteurId: form.prescripteur,
       motif: form.type !== 'laboratoire' ? form.motif : '',
       examenId: form.type !== 'laboratoire' ? form.examen : null,

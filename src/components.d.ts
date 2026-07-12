@@ -27,6 +27,7 @@ declare module 'vue' {
     CurrencyFormDialog: typeof import('./components/settings/CurrencyFormDialog.vue')['default']
     DatabaseStatsCard: typeof import('./components/settings/DatabaseStatsCard.vue')['default']
     DispositifTypeTab: typeof import('./components/settings/DispositifTypeTab.vue')['default']
+    DispositifVoieTab: typeof import('./components/settings/DispositifVoieTab.vue')['default']
     DocumentTypeFormDialog: typeof import('./components/settings/DocumentTypeFormDialog.vue')['default']
     DossierClinicTab: typeof import('./components/settings/DossierClinicTab.vue')['default']
     DynamicFormRenderer: typeof import('./components/patients/DynamicFormRenderer.vue')['default']

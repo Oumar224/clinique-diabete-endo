@@ -1250,6 +1250,12 @@ onMounted(() => {
 .prescription-view__form {
   margin-bottom: 16px;
 }
+.prescription-view__form .el-form-item {
+  margin-bottom: 22px;
+}
+.prescription-view__form .el-row {
+  margin-bottom: 4px;
+}
 .prescription-view__loading {
   padding: 24px 0;
   text-align: center;

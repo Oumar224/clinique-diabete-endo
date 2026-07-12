@@ -44,8 +44,11 @@ const EL_STUBS: Record<string, any> = {
     props: ['label', 'name'],
   },
   // Composants enfants simulés
-  'LabExamsTab': {
-    template: '<div class="lab-exams-tab"><p>Examens Labo content</p></div>',
+  'DispositifVoieTab': {
+    template: '<div class="dispositif-voie-tab"><p>Dispositifs &amp; Voies content</p></div>',
+  },
+  'ExamTypeTab': {
+    template: '<div class="exam-type-tab"><p>Examens content</p></div>',
   },
   'StockageTab': {
     template: '<div class="stockage-tab"><p>Stockages / Conservateurs content</p></div>',
@@ -83,33 +86,33 @@ describe('ConfigurationClinicView', () => {
     expect(wrapper.text()).toContain('Configuration Clinic')
   })
 
-  it('rend les deux onglets avec leurs composants respectifs', async () => {
+  it('rend les onglets avec leurs composants respectifs', async () => {
     const wrapper = createWrapper()
     await waitAsync()
-    expect(wrapper.find('.lab-exams-tab').exists()).toBe(true)
+    expect(wrapper.find('.exam-type-tab').exists()).toBe(true)
     expect(wrapper.find('.stockage-tab').exists()).toBe(true)
   })
 
-  it('démarre avec l\'onglet "labo" actif par défaut', async () => {
+  it('démarre avec l\'onglet "stockages" actif par défaut', async () => {
     const wrapper = createWrapper()
     await waitAsync()
     const vm = wrapper.vm as any
-    expect(vm.activeTab).toBe('labo')
+    expect(vm.activeTab).toBe('stockages')
   })
 
   it('change d\'onglet quand activeTab est modifié', async () => {
     const wrapper = createWrapper()
     await waitAsync()
     const vm = wrapper.vm as any
-    vm.activeTab = 'stockages'
+    vm.activeTab = 'examens'
     await nextTick()
-    expect(vm.activeTab).toBe('stockages')
+    expect(vm.activeTab).toBe('examens')
   })
 
-  it('affiche le contenu des deux onglets', async () => {
+  it('affiche le contenu des onglets', async () => {
     const wrapper = createWrapper()
     await waitAsync()
-    expect(wrapper.text()).toContain('Examens Labo content')
+    expect(wrapper.text()).toContain('Examens content')
     expect(wrapper.text()).toContain('Stockages / Conservateurs content')
   })
 

@@ -63,6 +63,10 @@ import * as FixEncounterConstraints from '../migrations/066-fix-encounter-constr
 import * as CleanupOrphanedPlanItems from '../migrations/067-cleanup-orphaned-plan-items'
 import * as FixDocumentTypes from '../migrations/068-fix-document-types'
 import * as ExamCategoriesTypes from '../migrations/069-exam-categories-types'
+import * as AddCareUnitToEncountersFix from '../migrations/070-add-care-unit-to-encounters-fix'
+import * as CreateExamRequests from '../migrations/071-create-exam-requests'
+import * as SeedLabExamData from '../migrations/072-seed-lab-exam-data'
+import * as SeedDispositifVoieData from '../migrations/073-seed-dispositif-voie-data'
 
 class StaticMigrationProvider implements MigrationProvider {
   async getMigrations(): Promise<Record<string, Migration>> {
@@ -131,6 +135,10 @@ class StaticMigrationProvider implements MigrationProvider {
       '067-cleanup-orphaned-plan-items': CleanupOrphanedPlanItems,
       '068-fix-document-types': FixDocumentTypes,
       '069-exam-categories-types': ExamCategoriesTypes,
+      '070-add-care-unit-to-encounters-fix': AddCareUnitToEncountersFix,
+      '071-create-exam-requests': CreateExamRequests,
+      '072-seed-lab-exam-data': SeedLabExamData,
+      '073-seed-dispositif-voie-data': SeedDispositifVoieData,
     }
   }
 }
