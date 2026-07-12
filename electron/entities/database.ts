@@ -49,6 +49,7 @@ import { ClinicalDocumentEntity } from './clinical-document.entity'
 import { ClinicalDocumentSignatureEntity } from './clinical-document-signature.entity'
 import { ExamCategoryEntity } from './exam-category.entity'
 import { ExamTypeEntity } from './exam-type.entity'
+import { ExamRequestEntity } from './exam-request.entity'
 import type { Entity } from './entity'
 
 export interface ServiceSiteEntity {
@@ -114,6 +115,7 @@ export interface DB {
   exam_types: ExamTypeEntity
   lab_exam_categories: ExamCategoryEntity
   lab_exams: ExamTypeEntity
+  exam_requests: ExamRequestEntity
 }
 
 export const ENTITIES: Entity[] = [
@@ -170,4 +172,5 @@ export const ENTITIES: Entity[] = [
   ClinicalDocumentSignatureEntity,
   ExamCategoryEntity,
   ExamTypeEntity,
+  ExamRequestEntity,
 ]

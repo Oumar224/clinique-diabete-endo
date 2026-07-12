@@ -2,6 +2,8 @@
   <div class="examens-view">
     <h3 class="examens-view__title">Demande d'examens</h3>
 
+    <el-alert v-if="error" type="error" :title="error" show-icon closable style="margin-bottom:12px" />
+
     <el-card class="examens-view__form">
       <template #header>
         <span><strong>Nouvelle demande</strong></span>
@@ -42,14 +44,16 @@
         </el-form-item>
 
         <el-form-item v-if="form.type === 'imagerie'" label="Examen demandé" prop="examen">
-          <el-select v-model="form.examen" placeholder="Sélectionner un examen" style="width:100%" filterable>
-            <el-option
-              v-for="examen in imageriesDisponibles"
-              :key="examen.id!"
-              :label="examen.label"
-              :value="examen.label"
-            />
-          </el-select>
+          <el-tree-select
+            v-model="form.examen"
+            :data="imagerieTreeData"
+            :props="{ label: 'label', children: 'children' }"
+            node-key="id"
+            check-strictly
+            filterable
+            placeholder="Sélectionner un examen"
+            style="width:100%"
+          />
         </el-form-item>
 
         <el-form-item v-if="form.type === 'avis'" label="Spécialité" prop="examen">
@@ -63,22 +67,20 @@
         </el-form-item>
 
         <el-form-item v-if="form.type === 'laboratoire'" label="Analyses demandées" prop="examens">
-          <el-select
+          <el-tree-select
             v-model="form.examens"
+            :data="laboratoireTreeData"
+            :props="{ label: 'label', children: 'children' }"
+            node-key="id"
             multiple
+            show-checkbox
+            check-strictly
             filterable
             placeholder="Rechercher et sélectionner des analyses"
             style="width:100%"
             collapse-tags
             collapse-tags-tooltip
-          >
-            <el-option
-              v-for="analyse in analysesDisponibles"
-              :key="analyse.id!"
-              :label="analyse.label"
-              :value="analyse.id!"
-            />
-          </el-select>
+          />
         </el-form-item>
 
         <el-form-item v-if="form.type !== 'laboratoire'" label="Motif clinique de la demande" prop="motif">
@@ -86,50 +88,105 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="onEnvoyer">Envoyer la demande</el-button>
+          <el-button type="primary" :loading="saving" @click="onEnvoyer">Envoyer la demande</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- Historique des demandes -->
     <h3 style="font-size:15px;font-weight:600;margin:24px 0 12px">Demandes récentes</h3>
-    <el-table :data="mockDemandes" size="small" style="width:100%">
-      <el-table-column prop="date" label="Date" width="110" />
-      <el-table-column prop="type" label="Type" width="140" />
-      <el-table-column prop="examen" label="Examen / Service" />
+    <el-table :data="requests" v-loading="loading" size="small" style="width:100%">
+      <el-table-column label="Date" width="110">
+        <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+      </el-table-column>
+      <el-table-column prop="type" label="Type" width="140">
+        <template #default="{ row }">{{ typeLabel(row.type) }}</template>
+      </el-table-column>
+      <el-table-column label="Examen / Service">
+        <template #default="{ row }">{{ examLabel(row) }}</template>
+      </el-table-column>
       <el-table-column prop="motif" label="Motif" show-overflow-tooltip />
-      <el-table-column prop="statut" label="Statut" width="120">
+      <el-table-column prop="statut" label="Statut" width="130">
         <template #default="{ row }">
-          <el-tag :type="row.statut === 'En cours' ? 'warning' : row.statut === 'Réalisé' ? 'success' : 'info'" size="small">
-            {{ row.statut }}
-          </el-tag>
+          <el-select
+            v-model="row.statut"
+            size="small"
+            style="width:110px"
+            @change="(val: string) => onStatutChange(row, val as any)"
+          >
+            <el-option label="En attente" value="en_attente" />
+            <el-option label="En cours" value="en_cours" />
+            <el-option label="Réalisé" value="realise" />
+            <el-option label="Annulé" value="annule" />
+          </el-select>
+        </template>
+      </el-table-column>
+      <el-table-column label="Actions" width="80" align="center">
+        <template #default="{ row }">
+          <el-button text type="danger" :icon="Delete" size="small" @click="onDelete(row)" />
         </template>
       </el-table-column>
     </el-table>
+
+    <el-empty v-if="!loading && requests.length === 0" description="Aucune demande" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onMounted } from 'vue'
-import { Camera, UserFilled, DataAnalysis } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { reactive, ref, watch, computed, onMounted } from 'vue'
+import { Camera, UserFilled, DataAnalysis, Delete } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
 import { users as allUsers, loadUsers, getUserDisplayName, type UserDto } from '@/composables/useUsers'
 import { useExamTypes, type ExamTypeDto } from '@/composables/useExamTypes'
+import { useExamRequests, type ExamRequestDto } from '@/composables/useExamRequests'
+import { usePatientContext } from '@/composables/usePatientContext'
+
+interface TreeNode {
+  id: number
+  label: string
+  children?: TreeNode[]
+}
 
 const { user } = useAuth()
+const { activePatient } = usePatientContext()
 const { fetchAllByCategory, allTypes } = useExamTypes()
+const {
+  requests, loading, error,
+  fetchRequests, createRequest, updateStatut, deleteRequest,
+} = useExamRequests()
 const formRef = ref<FormInstance>()
 
 const imageriesDisponibles = ref<ExamTypeDto[]>([])
 const analysesDisponibles = ref<ExamTypeDto[]>([])
 const medecins = ref<UserDto[]>([])
+const saving = ref(false)
+
+const imagerieTreeData = computed<TreeNode[]>(() => buildTree(imageriesDisponibles.value))
+const laboratoireTreeData = computed<TreeNode[]>(() => buildTree(analysesDisponibles.value))
+
+function buildTree(items: ExamTypeDto[]): TreeNode[] {
+  const types = items.filter(t => !t.parent_id)
+  return types.map(type => {
+    const children = items.filter(e => e.parent_id === type.id)
+    return {
+      id: type.id!,
+      label: type.label,
+      children: children.length > 0
+        ? children.map(c => ({ id: c.id!, label: c.label }))
+        : undefined,
+    }
+  })
+}
+
+function findLabel(items: ExamTypeDto[], id: number): string {
+  return items.find(i => i.id === id)?.label ?? String(id)
+}
 
 function createExamForm() {
   return {
     type: '',
-    examen: '',
+    examen: null as number | null,
     examens: [] as number[],
     motif: '',
     prescripteur: null as number | null,
@@ -147,7 +204,7 @@ const formRules: FormRules = {
 }
 
 watch(() => form.type, async (newType) => {
-  form.examen = ''
+  form.examen = null
   form.examens = []
   if (newType === 'imagerie') {
     await fetchAllByCategory('imagerie')
@@ -162,36 +219,76 @@ function formatMedecin(m: UserDto): string {
   return getUserDisplayName(m)
 }
 
-const mockDemandes = ref([
-  { date: '26/06/2026', type: 'Imagerie', examen: 'IRM cardiaque', motif: 'Insuffisance cardiaque à évaluer', statut: 'En cours' },
-  { date: '25/06/2026', type: 'Laboratoire', examen: 'HbA1c', motif: 'Contrôle diabète', statut: 'Réalisé' },
-])
+function typeLabel(type: string): string {
+  const map: Record<string, string> = { imagerie: 'Imagerie', avis: 'Avis spécialisé', laboratoire: 'Laboratoire' }
+  return map[type] || type
+}
+
+function examLabel(row: ExamRequestDto): string {
+  if (row.type === 'laboratoire' && row.examIds && row.examIds.length > 0) {
+    return row.examIds.map(id => findLabel(analysesDisponibles.value, id)).join(', ')
+  }
+  if (row.examenLabel) return row.examenLabel
+  if (row.examenId != null) return findLabel(imageriesDisponibles.value, row.examenId)
+  return ''
+}
+
+function formatDate(date?: string): string {
+  if (!date) return ''
+  const d = new Date(date)
+  return d.toLocaleDateString('fr-FR')
+}
 
 async function onEnvoyer() {
   if (!formRef.value) return
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
+  if (!activePatient.value) { ElMessage.warning('Aucun patient sélectionné'); return }
 
-  const typeLabels: Record<string, string> = {
-    imagerie: 'Imagerie',
-    avis: 'Avis spécialisé',
-    laboratoire: 'Laboratoire',
+  saving.value = true
+  try {
+    const dto = {
+      patientId: activePatient.value.id,
+      type: form.type as 'imagerie' | 'avis' | 'laboratoire',
+      prescripteurId: form.prescripteur,
+      motif: form.type !== 'laboratoire' ? form.motif : '',
+      examenId: form.type !== 'laboratoire' ? form.examen : null,
+      examIds: form.type === 'laboratoire' ? form.examens : undefined,
+    }
+    const created = await createRequest(dto)
+    if (created) {
+      ElMessage.success('Demande envoyée')
+      formRef.value.resetFields()
+      Object.assign(form, createExamForm())
+      await fetchRequests(activePatient.value.id)
+    }
+  } finally {
+    saving.value = false
   }
+}
 
-  const examensLabel = form.type === 'laboratoire'
-    ? form.examens.map(id => analysesDisponibles.value.find(a => a.id === id)?.label || '').join(', ')
-    : form.examen
+async function onStatutChange(row: ExamRequestDto, newStatut: ExamRequestDto['statut']) {
+  if (row.id == null) return
+  const ok = await updateStatut(row.id, newStatut)
+  if (ok) {
+    ElMessage.success('Statut mis à jour')
+  } else {
+    await fetchRequests(activePatient.value!.id)
+  }
+}
 
-  mockDemandes.value.unshift({
-    date: new Date().toLocaleDateString('fr-FR'),
-    type: typeLabels[form.type] || form.type,
-    examen: examensLabel,
-    motif: form.type !== 'laboratoire' ? form.motif : '',
-    statut: 'En cours',
-  })
-  ElMessage.success('Demande envoyée')
-  formRef.value.resetFields()
-  Object.assign(form, createExamForm())
+async function onDelete(row: ExamRequestDto) {
+  if (row.id == null) return
+  try {
+    await ElMessageBox.confirm('Supprimer cette demande ?', 'Confirmation', {
+      type: 'warning', confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler',
+    })
+    const ok = await deleteRequest(row.id)
+    if (ok) {
+      ElMessage.success('Demande supprimée')
+      if (activePatient.value) await fetchRequests(activePatient.value.id)
+    }
+  } catch { /* cancelled */ }
 }
 
 onMounted(async () => {
@@ -203,8 +300,10 @@ onMounted(async () => {
     } else if (medecins.value.length > 0 && medecins.value[0].id != null) {
       form.prescripteur = medecins.value[0].id
     }
-  } catch {
-    // Silently fail - prescripteur selection will still work with empty list
+  } catch { /* silent */ }
+
+  if (activePatient.value) {
+    await fetchRequests(activePatient.value.id)
   }
 })
 </script>

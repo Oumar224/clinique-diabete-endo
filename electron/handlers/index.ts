@@ -23,6 +23,7 @@ import { registerInsuranceHandlers } from './insurance.handler'
 import { registerContactCategoryHandlers } from './contact-category.handler'
 import { registerClinicalDocumentHandlers } from './clinical-document.handler'
 import { registerExamTypeHandlers } from './exam-type.handler'
+import { registerExamRequestHandlers } from './exam-request.handler'
 
 export function registerAllHandlers(): void {
   registerAuthHandlers()
@@ -50,4 +51,5 @@ export function registerAllHandlers(): void {
   registerContactCategoryHandlers()
   registerClinicalDocumentHandlers()
   registerExamTypeHandlers()
+  registerExamRequestHandlers()
 }

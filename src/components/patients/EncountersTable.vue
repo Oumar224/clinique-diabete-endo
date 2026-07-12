@@ -104,7 +104,7 @@ import { ipcInvoke } from '@/utils/ipc'
 import { getEncounterMovements } from '@/composables/useEncounters'
 import type { EncounterDto, EncounterMovementDto } from '@/composables/useEncounters'
 
-const props = defineProps<{
+defineProps<{
   encounters: EncounterDto[]
 }>()
 

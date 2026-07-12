@@ -66,7 +66,7 @@ export async function createEncounter(data: {
   prise_en_charge_precision?: string | null
   sinistre_info?: string | null
   notes?: string | null
-  contact_category_id?: string | null
+  contact_category_id?: number | null
   care_unit_id?: number | null
   created_by?: number | null
 }): Promise<EncounterDto> {

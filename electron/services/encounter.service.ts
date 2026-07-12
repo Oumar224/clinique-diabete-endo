@@ -179,9 +179,9 @@ export class EncounterService {
     }))
   }
 
-  async update(id: number, dto: EncounterUpdateDto): Promise<EncounterDto> {
+  async update(id: number, dto: Omit<EncounterUpdateDto, 'id'>): Promise<EncounterDto> {
     const updates: Record<string, any> = {}
-    const fields: (keyof EncounterUpdateDto)[] = [
+    const fields: (keyof Omit<EncounterUpdateDto, 'id'>)[] = [
       'contact_type', 'contact_type_precision', 'start_date', 'end_date',
       'service_id', 'medecin_id', 'responsable_id', 'contact_category_id',
       'care_unit_id', 'origin', 'origin_precision', 'zone_situation',

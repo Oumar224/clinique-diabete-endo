@@ -3,11 +3,6 @@ import { type Kysely, sql } from 'kysely'
 export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`PRAGMA foreign_keys = OFF`.execute(db)
 
-  const hasConstraint = await sql<{ count: number }>`
-    SELECT COUNT(*) as count FROM pragma_index_list('encounters')
-    WHERE name LIKE '%sqlite_autoindex%'
-  `.execute(db)
-
   await sql`
     CREATE TABLE encounters_new (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +30,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     )
   `.execute(db)
 
-  const tableInfo = await sql<{ name: string; type: string }[]>`
+  const tableInfo = await sql<{ name: string; type: string }>`
     PRAGMA table_info('encounters')
   `.execute(db)
   const columns = tableInfo.rows.map(r => r.name)
