@@ -71,13 +71,14 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   }
 
   // ─── Migrate act_price_history into config_tarifs (if not already done) ────
+  // act_price_history.act_id (without 'e') — see migration 005
   await db.executeQuery(CompiledQuery.raw(`
     INSERT OR IGNORE INTO config_tarifs (acte_id, code_tarif, prix_unitaire, date_application)
-    SELECT aph.acte_id, 'TARIF.STANDARD', aph.new_price, date(aph.changed_at)
+    SELECT aph.act_id, 'TARIF.STANDARD', aph.new_price, date(aph.changed_at)
     FROM act_price_history aph
     WHERE NOT EXISTS (
       SELECT 1 FROM config_tarifs ct
-      WHERE ct.acte_id = aph.acte_id
+      WHERE ct.acte_id = aph.act_id
         AND ct.prix_unitaire = aph.new_price
         AND date(ct.date_application) = date(aph.changed_at)
     )
