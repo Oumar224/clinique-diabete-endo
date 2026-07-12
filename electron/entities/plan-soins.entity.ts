@@ -1,71 +1,57 @@
-import type { Kysely } from 'kysely'
-import { CompiledQuery } from 'kysely'
-
-export interface PlanSoinsEntity {
-  id?: number
-  patient_id: number
-  date: string
-  created_by: number
-  created_at?: string
-  updated_at?: string
-}
-
-export interface PlanSoinsItemEntity {
-  id?: number
-  plan_soins_id: number
-  bloc_heure: string
-  medicament: string
-  dosage: string
-  voie: string
-  statut: string
-  valide_par: string | null
-  valide_a: string | null
-  motif_suspension: string | null
-  prescription_id: number | null
-  created_at?: string
-  updated_at?: string
-}
+import type { PlanSoinsDto } from '../dto/plan-soins.dto'
 
 export class PlanSoinsEntity {
-  static async createSchema(db: Kysely<unknown>): Promise<void> {
-    await db.executeQuery(CompiledQuery.raw(`
-      CREATE TABLE IF NOT EXISTS plan_soins (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        patient_id INTEGER NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
-        date TEXT NOT NULL,
-        created_by INTEGER NOT NULL REFERENCES user(id),
-        created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now'))
-      )
-    `))
-    await db.executeQuery(CompiledQuery.raw(`
-      CREATE TABLE IF NOT EXISTS plan_soins_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        plan_soins_id INTEGER NOT NULL REFERENCES plan_soins(id) ON DELETE CASCADE,
-        bloc_heure TEXT NOT NULL,
-        medicament TEXT NOT NULL,
-        dosage TEXT NOT NULL,
-        voie TEXT NOT NULL CHECK(voie IN ('PO','SC','IV','IM','SL')),
-        statut TEXT NOT NULL DEFAULT 'en_attente' CHECK(statut IN ('en_attente','valide','suspendu')),
-        valide_par TEXT,
-        valide_a TEXT,
-        motif_suspension TEXT,
-        prescription_id INTEGER REFERENCES prescriptions(id) ON DELETE SET NULL,
-        created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now'))
-      )
-    `))
-    await db.executeQuery(CompiledQuery.raw('CREATE INDEX IF NOT EXISTS idx_plan_soins_patient_date ON plan_soins(patient_id, date)'))
-    await db.executeQuery(CompiledQuery.raw('CREATE INDEX IF NOT EXISTS idx_plan_soins_items_plan ON plan_soins_items(plan_soins_id)'))
+  id?: number
+  patient_id?: number
+  date?: string
+  created_by?: number
+  created_at?: string
+  updated_at?: string
+
+  static toDto(entity: PlanSoinsEntity): PlanSoinsDto {
+    return {
+      id: entity.id,
+      patientId: entity.patient_id,
+      date: entity.date,
+      blocs: undefined,
+      createdBy: entity.created_by,
+      createdAt: entity.created_at,
+      updatedAt: entity.updated_at,
+    } as unknown as PlanSoinsDto
   }
 
-  static async dropSchema(db: Kysely<unknown>): Promise<void> {
-    await db.executeQuery(CompiledQuery.raw('DROP TABLE IF EXISTS plan_soins_items'))
-    await db.executeQuery(CompiledQuery.raw('DROP TABLE IF EXISTS plan_soins'))
+  static toDtos(entities: PlanSoinsEntity[]): PlanSoinsDto[] {
+    return entities.map(PlanSoinsEntity.toDto)
   }
 
-  static async recreateSchema(db: Kysely<unknown>): Promise<void> {
-    await this.dropSchema(db)
-    await this.createSchema(db)
+  static fromDto(dto: PlanSoinsDto): PlanSoinsEntity {
+    const e = new PlanSoinsEntity()
+    e.id = dto.id
+    e.patient_id = dto.patientId
+    e.date = dto.date
+    e.created_by = dto.createdBy
+    e.created_at = dto.createdAt
+    e.updated_at = dto.updatedAt
+    return e
   }
+
+  static documentType(): string { return 'PlanSoins' }
+  static documentSchema(): any { return {} }
+  static register(): void { /* No Automerge sync needed */ }
+}
+
+export class PlanSoinsItemEntity {
+  id?: number
+  plan_soins_id?: number
+  bloc_heure?: string
+  medicament?: string
+  dosage?: string
+  voie?: string
+  statut?: string
+  valide_par?: string | null
+  valide_a?: string | null
+  motif_suspension?: string | null
+  prescription_id?: number | null
+  created_at?: string
+  updated_at?: string
 }

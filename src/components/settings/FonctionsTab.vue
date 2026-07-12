@@ -28,7 +28,7 @@
       v-loading="loading"
       :data="paginatedList"
       style="width: 100%"
-      :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
+      border
       row-key="id"
     >
       <el-table-column prop="name" label="Nom" min-width="200" />

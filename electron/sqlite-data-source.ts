@@ -61,8 +61,10 @@ export class AppDatabaseDatasource implements IAppDataSource<Kysely<DB>> {
   async dropAllSchemas(): Promise<void> {
     const ENTITIES_REVERSE = [...ENTITIES].reverse()
     for (const Entity of ENTITIES_REVERSE) {
-      await Entity.dropSchema(this.instance as any)
-      console.log(`Schema dropped for ${Entity.name}`)
+      if (Entity.dropSchema) {
+        await Entity.dropSchema(this.instance as any)
+        console.log(`Schema dropped for ${Entity.name}`)
+      }
     }
   }
 
@@ -70,8 +72,10 @@ export class AppDatabaseDatasource implements IAppDataSource<Kysely<DB>> {
     const migrationService = new MigrationService(this.instance as never)
     await migrationService.destroyMigrationTables()
     for (const Entity of ENTITIES) {
-      await Entity.recreateSchema(this.instance as any)
-      console.log(`Schema recreated for ${Entity.name}`)
+      if (Entity.recreateSchema) {
+        await Entity.recreateSchema(this.instance as any)
+        console.log(`Schema recreated for ${Entity.name}`)
+      }
     }
   }
 

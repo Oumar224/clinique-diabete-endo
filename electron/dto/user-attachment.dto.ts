@@ -1,22 +1,22 @@
 export interface UserAttachmentDto {
   id: number
-  userId: number
-  displayName: string
-  fileName: string
-  mimeType: string | null
-  fileSize: number | null
-  fileData?: string  // base64 — seulement pour getById
-  attachmentTypeId?: number
-  attachmentTypeName?: string
-  createdAt: string
+  user_id: number
+  display_name: string
+  file_name: string
+  mime_type: string | null
+  file_size: number | null
+  file_data?: string  // base64 — seulement pour getById
+  attachment_type_id?: number
+  attachment_type_name?: string
+  created_at: string
 }
 
 export interface CreateAttachmentDto {
-  userId: number
-  displayName: string
-  fileName: string
-  mimeType?: string | null
-  fileSize?: number | null
-  fileData: string  // base64 data URL (data:image/png;base64,...)
-  attachmentTypeId?: number
+  user_id: number
+  display_name: string
+  file_name: string
+  mime_type?: string | null
+  file_size?: number | null
+  file_data: string  // base64 data URL (data:image/png;base64,...)
+  attachment_type_id?: number
 }

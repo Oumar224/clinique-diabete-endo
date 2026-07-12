@@ -6,6 +6,7 @@ import os from 'node:os'
 import { container } from 'tsyringe'
 import { AppDatabaseDatasource } from '../../sqlite-data-source'
 import { TrustedPersonService } from '../trusted-person.service'
+import { TrustedPersonEntity } from '../../entities/trusted-person.entity'
 
 describe('TrustedPersonService', () => {
   let tempDir: string
@@ -67,8 +68,8 @@ describe('TrustedPersonService', () => {
 
   // ─── Create (upsert — insert path) ───────────────────────────────────
 
-  it('creates a trusted person and returns DTO with all fields', async () => {
-    const result = await service.upsert({
+  it('creates a trusted person and returns entity with all fields', async () => {
+    const result = await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId,
       has_trusted: true,
       nom: 'Toure',
@@ -81,12 +82,12 @@ describe('TrustedPersonService', () => {
       complement_adresse: 'Porte 123',
       lien_parente: 'Soeur',
       attachments: '[]',
-    })
+    }))
 
     expect(result).toBeDefined()
     expect(result.id).toBeGreaterThan(0)
     expect(result.patient_id).toBe(patientId)
-    expect(result.has_trusted).toBe(true)
+    expect(result.has_trusted).toBe(1)
     expect(result.nom).toBe('Toure')
     expect(result.prenom).toBe('Mariam')
     expect(result.profession).toBe('Infirmiere')
@@ -100,31 +101,31 @@ describe('TrustedPersonService', () => {
   })
 
   it('creates a trusted person with minimal fields (has_trusted = false)', async () => {
-    const result = await service.upsert({
+    const result = await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId2,
       has_trusted: false,
-    })
+    }))
 
     expect(result.patient_id).toBe(patientId2)
-    expect(result.has_trusted).toBe(false)
+    expect(result.has_trusted).toBe(0)
     expect(result.nom).toBeNull()
   })
 
   // ─── GetByPatientId ──────────────────────────────────────────────────
 
   it('retrieves a trusted person by patient ID when one exists', async () => {
-    await service.upsert({
+    await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId,
       has_trusted: true,
       nom: 'Toure',
       prenom: 'Mariam',
-    })
+    }))
 
     const found = await service.getByPatientId(patientId)
     expect(found).not.toBeNull()
     expect(found!.patient_id).toBe(patientId)
     expect(found!.nom).toBe('Toure')
-    expect(found!.has_trusted).toBe(true)
+    expect(found!.has_trusted).toBe(1)
   })
 
   it('returns null when no trusted person exists for the given patient', async () => {
@@ -141,23 +142,23 @@ describe('TrustedPersonService', () => {
 
   it('updates an existing trusted person (upsert update path)', async () => {
     // Create
-    await service.upsert({
+    await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId,
       has_trusted: true,
       nom: 'Toure',
       prenom: 'Mariam',
       telephone: '0611111111',
-    })
+    }))
 
     // Update with same patient_id — changes fields
-    const updated = await service.upsert({
+    const updated = await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId,
       has_trusted: true,
       nom: 'Toure',
       prenom: 'Mariam',
       telephone: '0622222222',     // changed
       email: 'updated@example.com', // new field
-    })
+    }))
 
     expect(updated.telephone).toBe('0622222222')
     expect(updated.email).toBe('updated@example.com')
@@ -166,36 +167,36 @@ describe('TrustedPersonService', () => {
   })
 
   it('upsert with has_trusted=false updates the flag without losing other data', async () => {
-    await service.upsert({
+    await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId,
       has_trusted: true,
       nom: 'Toure',
       prenom: 'Mariam',
-    })
+    }))
 
-    const updated = await service.upsert({
+    const updated = await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId,
       has_trusted: false,
-    })
+    }))
 
-    expect(updated.has_trusted).toBe(false)
+    expect(updated.has_trusted).toBe(0)
     // Previously set data should be preserved since they are not overwritten
     expect(updated.nom).toBe('Toure')
     expect(updated.prenom).toBe('Mariam')
   })
 
   it('upsert preserves data isolation between patients', async () => {
-    const tp1 = await service.upsert({
+    const tp1 = await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId,
       has_trusted: true,
       nom: 'PersonOne',
-    })
+    }))
 
-    const tp2 = await service.upsert({
+    const tp2 = await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId2,
       has_trusted: true,
       nom: 'PersonTwo',
-    })
+    }))
 
     // Trusted_persons now has a UNIQUE constraint on patient_id,
     // so there should be exactly one row per patient
@@ -208,11 +209,11 @@ describe('TrustedPersonService', () => {
   // ─── Delete ──────────────────────────────────────────────────────────
 
   it('deletes a trusted person by patient ID', async () => {
-    await service.upsert({
+    await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId,
       has_trusted: true,
       nom: 'ToDelete',
-    })
+    }))
 
     await service.delete(patientId)
 
@@ -226,16 +227,16 @@ describe('TrustedPersonService', () => {
   })
 
   it('delete only removes the targeted patient\'s trusted person', async () => {
-    await service.upsert({
+    await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId,
       has_trusted: true,
       nom: 'KeepMe',
-    })
-    await service.upsert({
+    }))
+    await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId2,
       has_trusted: true,
       nom: 'DeleteMe',
-    })
+    }))
 
     await service.delete(patientId2)
 
@@ -251,19 +252,19 @@ describe('TrustedPersonService', () => {
 
   it('enforces UNIQUE constraint on patient_id — second upsert updates instead of inserting', async () => {
     // Create the first trusted person for this patient
-    await service.upsert({
+    await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId,
       has_trusted: true,
       nom: 'First',
-    })
+    }))
 
     // Upsert again with same patient_id — should update, not insert
     // The UNIQUE index ensures at most one row per patient_id
-    const result = await service.upsert({
+    const result = await service.upsert(TrustedPersonEntity.fromDto({
       patient_id: patientId,
       has_trusted: true,
       nom: 'Second',  // updated
-    })
+    }))
     expect(result.nom).toBe('Second')
 
     // Verify only ONE row exists for this patient

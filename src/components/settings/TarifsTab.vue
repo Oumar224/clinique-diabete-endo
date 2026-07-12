@@ -40,7 +40,7 @@
         :data="currencies"
         size="small"
         style="width: 100%; margin-top: 12px"
-        :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
+        border
       >
         <el-table-column prop="code" label="Code" width="100" />
         <el-table-column prop="name" label="Nom" min-width="140" />
@@ -57,24 +57,31 @@
 
     <el-divider />
 
-    <!-- ── Acts Section ── -->
+    <!-- ── Tariff Manager Section ── -->
     <div class="tt__section">
       <div class="tt__section-header">
+        <div>
+          <h2 class="tt__section-title">Gestion des tarifs</h2>
+          <p class="tt__section-desc">Définir les prix unitaires des actes médicaux par code tarif</p>
+        </div>
+      </div>
+
+      <div class="tt__tariff-toolbar">
         <el-input
           v-model="actSearch"
           placeholder="Rechercher un acte..."
           clearable
           style="width: 260px"
-          @input="onActSearch"
+          @input="onSearch"
         >
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
         <el-select
-          :model-value="actServiceFilter"
-          @update:model-value="actServiceFilter = $event; onActSearch()"
+          v-model="actServiceFilter"
           placeholder="Filtrer par service"
           clearable
           style="width: 200px"
+          @change="onSearch"
         >
           <el-option
             v-for="s in services"
@@ -83,15 +90,28 @@
             :value="s.id!"
           />
         </el-select>
-        <el-button type="primary" :icon="Plus" @click="openActCreate">Nouvel acte</el-button>
+        <el-select v-model="codeTarifFilter" style="width: 200px">
+          <el-option label="TARIF.STANDARD" value="TARIF.STANDARD" />
+          <el-option label="TARIF.VIP" value="TARIF.VIP" />
+          <el-option label="TARIF.ASSURANCE" value="TARIF.ASSURANCE" />
+        </el-select>
+        <div class="tt__spacer" />
+        <el-badge :value="pendingCount" :hidden="pendingCount === 0" class="tt__badge">
+          <el-button type="primary" :disabled="pendingCount === 0" :loading="savingTarifs" @click="applyBulkUpdate">
+            Appliquer les nouveaux tarifs
+          </el-button>
+        </el-badge>
       </div>
 
       <el-table
-        v-loading="actsLoading"
+        v-loading="actsLoading || tarifsLoading"
         :data="paginatedActs"
         style="width: 100%"
-        :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
+        border
         row-key="id"
+        :row-class-name="rowClassName"
+        :expand-row-keys="expandRowKeys"
+        @expand-change="onExpandChange"
       >
         <el-table-column type="expand" width="40">
           <template #default="{ row }">
@@ -101,20 +121,27 @@
         <el-table-column prop="code" label="Code" width="130" />
         <el-table-column prop="label" label="Libellé" min-width="200" />
         <el-table-column prop="service_name" label="Service" width="150" />
-        <el-table-column prop="price" label="Prix" width="130" align="right">
+        <el-table-column label="Prix unitaire" width="180" align="right">
           <template #default="{ row }">
-            {{ formatPrice(row.price, row.currency_code) }}
+            <el-input-number
+              :model-value="getEditedPrice(row.id)"
+              @update:model-value="(v: number | undefined) => onPriceChange(row.id, v ?? 0)"
+              :min="0"
+              :step="1000"
+              controls-position="right"
+              style="width: 150px"
+              size="small"
+            />
           </template>
         </el-table-column>
-        <el-table-column label="Actions" width="120" align="center">
+        <el-table-column label="Actions" width="60" align="center">
           <template #default="{ row }">
-            <el-button text type="primary" :icon="Edit" size="small" @click="openActEdit(row)" />
-            <el-button text type="danger" :icon="Delete" size="small" @click="handleActDelete(row)" />
+            <el-button text type="primary" :icon="Histogram" size="small" @click="toggleExpand(row)" />
           </template>
         </el-table-column>
       </el-table>
 
-      <el-empty v-if="!actsLoading && filteredActs.length === 0" description="Aucun acte médical" />
+      <el-empty v-if="!actsLoading && !tarifsLoading && paginatedActs.length === 0" description="Aucun acte médical" />
 
       <el-row justify="center" style="margin-top: 20px">
         <el-pagination
@@ -129,16 +156,16 @@
     </div>
 
     <CurrencyFormDialog ref="currencyDialogRef" @saved="onCurrencySaved" />
-    <MedicalActFormDialog ref="actDialogRef" @saved="onActSaved" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { Plus, Search, Edit, Delete } from '@element-plus/icons-vue'
+import { Plus, Search, Edit, Delete, Histogram } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useCurrencies } from '@/composables/useCurrencies'
-import { useMedicalActs, type ActPriceHistoryDto } from '@/composables/useMedicalActs'
+import { useMedicalActs } from '@/composables/useMedicalActs'
+import { useConfigTarifs } from '@/composables/useConfigTarifs'
 import { useMedicalServices } from '@/composables/useMedicalServices'
 
 const {
@@ -147,28 +174,38 @@ const {
 } = useCurrencies()
 
 const {
-  acts, loading: actsLoading, fetchActs, deleteAct, fetchPriceHistory,
+  acts, loading: actsLoading, fetchActs,
 } = useMedicalActs()
+
+const {
+  tarifs, loading: tarifsLoading, fetchTarifs, bulkUpdateTarifs, fetchPriceHistory,
+} = useConfigTarifs()
 
 const { services, fetchServices } = useMedicalServices()
 
 const selectedCurrency = ref(defaultCurrency.value)
 
 const currencyDialogRef = ref<InstanceType<typeof import('./CurrencyFormDialog.vue').default> | null>(null)
-const actDialogRef = ref<InstanceType<typeof import('./MedicalActFormDialog.vue').default> | null>(null)
 
 const actSearch = ref('')
 const actServiceFilter = ref<number | undefined>(undefined)
+const codeTarifFilter = ref('TARIF.STANDARD')
 const actPaginator = reactive({ currPage: 1, pageSize: 10 })
 
-const priceHistoryCache = ref<Record<number, ActPriceHistoryDto[]>>({})
+const priceHistoryCache = ref<Record<number, any[]>>({})
 const loadingHistory = ref<Record<number, boolean>>({})
+
+const edits = ref<Map<number, number>>(new Map())
+const savingTarifs = ref(false)
+
+const expandRowKeys = ref<string[]>([])
 
 onMounted(async () => {
   await Promise.all([
     fetchCurrencies(),
     fetchActs(),
     fetchServices(),
+    fetchTarifs(undefined, codeTarifFilter.value),
   ])
   selectedCurrency.value = defaultCurrency.value
 })
@@ -190,11 +227,62 @@ const paginatedActs = computed(() => {
   return filteredActs.value.slice(start, start + actPaginator.pageSize)
 })
 
+const pendingCount = computed(() => edits.value.size)
+
+function rowClassName({ row }: { row: any }) {
+  if (edits.value.has(row.id)) {
+    return 'tt__row-modified'
+  }
+  return ''
+}
+
+function getTarifPrice(acteId: number): number {
+  const tarif = tarifs.value.find(t => t.acte_id === acteId)
+  return tarif?.prix_unitaire ?? 0
+}
+
+function getEditedPrice(acteId: number): number {
+  if (edits.value.has(acteId)) {
+    return edits.value.get(acteId)!
+  }
+  return getTarifPrice(acteId)
+}
+
+function onPriceChange(acteId: number, newPrice: number) {
+  const currentPrice = getTarifPrice(acteId)
+  if (newPrice === currentPrice) {
+    edits.value.delete(acteId)
+  } else {
+    edits.value.set(acteId, newPrice)
+  }
+  edits.value = new Map(edits.value)
+}
+
+async function applyBulkUpdate() {
+  if (pendingCount.value === 0) return
+  savingTarifs.value = true
+  try {
+    const items = Array.from(edits.value.entries()).map(([acte_id, prix_unitaire]) => ({
+      acte_id,
+      code_tarif: codeTarifFilter.value,
+      prix_unitaire,
+    }))
+    const ok = await bulkUpdateTarifs(items)
+    if (ok) {
+      ElMessage.success(`${items.length} tarif(s) mis à jour`)
+      edits.value = new Map()
+      await fetchTarifs(undefined, codeTarifFilter.value)
+    }
+  } finally {
+    savingTarifs.value = false
+  }
+}
+
 function formatPrice(amount: number, code?: string): string {
   return formatCurrency(amount, code)
 }
 
-function onActSearch() {
+function onSearch() {
   actPaginator.currPage = 1
 }
 
@@ -229,48 +317,32 @@ function onCurrencySaved() {
   // refetch handled inside composable
 }
 
-function openActCreate() {
-  actDialogRef.value?.open()
+function onExpandChange(_row: any, expandedRows: any[]) {
+  expandRowKeys.value = expandedRows.map((r: any) => String(r.id))
 }
 
-function openActEdit(act: any) {
-  actDialogRef.value?.open(act)
-}
-
-async function handleActDelete(row: any) {
-  if (row.id == null) {
-    ElMessage.error('Impossible de supprimer : identifiant manquant')
-    return
-  }
-  try {
-    await ElMessageBox.confirm(
-      `Supprimer l'acte « ${row.code} — ${row.label} » ?`,
-      'Confirmation',
-      { type: 'warning', confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler' }
-    )
-    const success = await deleteAct(row.id)
-    if (success) ElMessage.success('Acte supprimé')
-  } catch {
-    // cancelled or error
+function toggleExpand(row: any) {
+  const id = String(row.id)
+  const idx = expandRowKeys.value.indexOf(id)
+  if (idx === -1) {
+    expandRowKeys.value.push(id)
+  } else {
+    expandRowKeys.value.splice(idx, 1)
   }
 }
 
-function onActSaved() {
-  actPaginator.currPage = 1
-}
-
-function getHistoryForAct(actId: number): ActPriceHistoryDto[] {
-  if (actId == null) return []
-  if (!priceHistoryCache.value[actId] && !loadingHistory.value[actId]) {
-    loadingHistory.value[actId] = true
-    priceHistoryCache.value[actId] = []
-    fetchPriceHistory(actId).then(h => {
-      priceHistoryCache.value[actId] = h
+function getHistoryForAct(acteId: number): any[] {
+  if (acteId == null) return []
+  if (!priceHistoryCache.value[acteId] && !loadingHistory.value[acteId]) {
+    loadingHistory.value[acteId] = true
+    priceHistoryCache.value[acteId] = []
+    fetchPriceHistory(acteId).then(h => {
+      priceHistoryCache.value[acteId] = h
     }).finally(() => {
-      loadingHistory.value[actId] = false
+      loadingHistory.value[acteId] = false
     })
   }
-  return priceHistoryCache.value[actId]
+  return priceHistoryCache.value[acteId]
 }
 </script>
 
@@ -312,5 +384,30 @@ function getHistoryForAct(actId: number): ActPriceHistoryDto[] {
 
 .tt__preview-line strong {
   color: var(--cd-primary);
+}
+
+.tt__tariff-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.tt__spacer {
+  flex: 1;
+}
+
+.tt__badge :deep(.el-badge__content) {
+  z-index: 1;
+}
+
+.tt :deep(.tt__row-modified) {
+  background-color: var(--el-color-warning-light-9);
+}
+
+.tt :deep(.tt__row-modified:hover > td) {
+  background-color: var(--el-color-warning-light-8);
 }
 </style>

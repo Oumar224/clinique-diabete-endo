@@ -1,36 +1,19 @@
 import { container } from 'tsyringe'
 import { EmailConfigService } from '../services/email/email-config.service'
 import { EmailService } from '../services/email/email.service'
+import type { EmailConfigSaveDto } from '../dto/email-config.dto'
 import { createHandler } from '../utils/create-handler'
 
 export function registerEmailHandlers() {
-  // ══════════════════════════════════════════════════════════════
-  // email:get-config — Retourne la configuration (sans mot de passe)
-  // ══════════════════════════════════════════════════════════════
   createHandler('email:get-config', async () => {
-    const configService = container.resolve(EmailConfigService)
-    return await configService.getConfig()
+    return await container.resolve(EmailConfigService).getConfig()
   })
 
-  // ══════════════════════════════════════════════════════════════
-  // email:save-config — Sauvegarde la configuration (reçoit le mot de passe en clair)
-  // ══════════════════════════════════════════════════════════════
-  createHandler('email:save-config', async (dto: {
-    smtp_host: string
-    smtp_port: number
-    smtp_user: string
-    smtp_pass: string
-    sender_email: string
-    sender_name: string
-  }) => {
-    const configService = container.resolve(EmailConfigService)
-    await configService.saveConfig(dto)
+  createHandler('email:save-config', async (dto: EmailConfigSaveDto) => {
+    await container.resolve(EmailConfigService).saveConfig(dto)
     return { success: true }
   })
 
-  // ══════════════════════════════════════════════════════════════
-  // email:send-test — Envoie un email de test
-  // ══════════════════════════════════════════════════════════════
   createHandler('email:send-test', async ({ to }: { to?: string }) => {
     const configService = container.resolve(EmailConfigService)
     const config = await configService.getConfig()

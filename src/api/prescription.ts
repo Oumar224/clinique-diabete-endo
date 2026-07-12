@@ -1,11 +1,13 @@
 import { apiClient } from './client'
 
 export interface PrescriptionInput {
+  type: 'medicament' | 'soins'
   medicament: string
   dosage: string
   voie: string
   duree: number
   frequence: string[]
+  frequenceType?: string
   prn: boolean
   instructions: string | null
 }
@@ -18,8 +20,23 @@ export interface PrescriptionRecord extends PrescriptionInput {
   prescripteurNom?: string
   prescripteurRole?: string
   statut: string
+  type: 'medicament' | 'soins'
   createdAt: string
   updatedAt: string
+  // Medicament-specific
+  formeGalenique?: string
+  momentPrises?: string
+  quantiteTotale?: string
+  renouvellement?: boolean
+  nbRenouvellements?: number
+  allergiesAlertes?: string
+  // Soin-specific
+  nbSeances?: number
+  objectifClinique?: string
+  consignesSpecifiques?: string
+  dispositifsMedicaux?: string
+  professionnelCible?: string
+  frequenceType?: string
 }
 
 export interface PrescriptionCreateResult {

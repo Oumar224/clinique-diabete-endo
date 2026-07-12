@@ -43,12 +43,12 @@ describe('CurrencyService', () => {
   it('should list only active currencies when requested', async () => {
     const service = container.resolve(CurrencyService)
     // Deactivate one currency first
-    await service.update('XOF', { is_active: false })
+    await service.update({ code: 'XOF', is_active: 0 })
 
     const all = await service.list(false)
     const active = await service.list(true)
     expect(active.length).toBeLessThan(all.length)
-    expect(active.every(c => c.is_active === true)).toBe(true)
+    expect(active.every(c => c.is_active === 1)).toBe(true)
     expect(active.find(c => c.code === 'XOF')).toBeUndefined()
   })
 
@@ -82,7 +82,7 @@ describe('CurrencyService', () => {
     expect(created.name).toBe('Dollar américain')
     expect(created.symbol).toBe('$')
     expect(created.decimals).toBe(2)
-    expect(created.is_active).toBe(true)
+    expect(created.is_active).toBe(1)
   })
 
   it('should reject duplicate currency code', async () => {
@@ -134,7 +134,7 @@ describe('CurrencyService', () => {
 
   it('should update currency name, symbol, and decimals', async () => {
     const service = container.resolve(CurrencyService)
-    const updated = await service.update('XOF', {
+    const updated = await service.update({ code: 'XOF',
       name: 'Franc CFA BCEAO',
       symbol: 'F',
       decimals: 0,
@@ -146,7 +146,7 @@ describe('CurrencyService', () => {
 
   it('should keep code unchanged after update', async () => {
     const service = container.resolve(CurrencyService)
-    await service.update('XOF', { name: 'Updated Name' })
+    await service.update({ code: 'XOF', name: 'Updated Name' })
     const found = await service.getByCode('XOF')
     expect(found).toBeDefined()
     expect(found!.code).toBe('XOF')
@@ -158,7 +158,7 @@ describe('CurrencyService', () => {
   it('should throw when updating non-existent currency', async () => {
     const service = container.resolve(CurrencyService)
     await expect(
-      service.update('ZZZ', { name: 'Ghost' })
+      service.update({ code: 'ZZZ', name: 'Ghost' })
     ).rejects.toThrow('Devise introuvable')
   })
 
@@ -192,21 +192,25 @@ describe('CurrencyService', () => {
     const services = await svcService.list()
     const firstService = services[0]
 
-    // Create a medical act referencing USD
+    // Create a tariff referencing USD
     const { MedicalActService } = await import('../medical-act.service')
     const actService = container.resolve(MedicalActService)
-    await actService.create({
+    const act = await actService.create({
       code: 'USD-ACT-001',
       label: 'US Dollar Act',
-      price: 100,
-      currency_code: 'USD',
       service_id: firstService.id!,
     })
+    const { ConfigTarifService } = await import('../config-tarif.service')
+    const tarifService = container.resolve(ConfigTarifService)
+    await tarifService.create({
+      acte_id: act.id!,
+      code_tarif: 'USD',
+      prix_unitaire: 100,
+    })
 
-    // Deleting USD should fail because an act references it
-    await expect(service.delete('USD')).rejects.toThrow(
-      /acte\(s\) médical\(eaux\)/
-    )
+    // Currency is no longer tracked per-act (removed from medical_acts).
+    // Deleting USD should succeed even if a tariff with matching code exists.
+    await expect(service.delete('USD')).resolves.not.toThrow()
   })
 
   it('should succeed deleting an unused currency', async () => {

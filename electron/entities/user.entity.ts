@@ -1,6 +1,4 @@
 import type { UserDto } from '../dto/auth.dto'
-import type { Kysely } from 'kysely'
-import { CompiledQuery } from 'kysely'
 import { EntityRegistry } from '../automerge/entity-registry'
 import { UserConverter } from '../automerge/converters/user.converter'
 import type { AutomergeDocument } from '../automerge/utils/entity-types'
@@ -83,36 +81,6 @@ export class UserEntity {
     if (dto.is_active !== undefined) e.is_active = dto.is_active ? 1 : 0
     if (dto.is_validated !== undefined) e.is_validated = dto.is_validated ? 1 : 0
     return e
-  }
-
-  static async createSchema(db: Kysely<unknown>): Promise<void> {
-    await db.executeQuery(CompiledQuery.raw(`
-      CREATE TABLE IF NOT EXISTS user (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nom TEXT NOT NULL,
-        prenom TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('MEDECIN','SECRETAIRE','PHARMACIEN','COMPTABLE','ADMIN','INFIRMIER')),
-        service TEXT,
-        is_active INTEGER DEFAULT 1,
-        is_validated INTEGER DEFAULT 0,
-        automerge_id TEXT,
-        created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now'))
-      )
-    `))
-    await db.executeQuery(CompiledQuery.raw('CREATE INDEX IF NOT EXISTS idx_user_email ON user(email)'))
-    await db.executeQuery(CompiledQuery.raw('CREATE INDEX IF NOT EXISTS idx_user_role ON user(role)'))
-  }
-
-  static async dropSchema(db: Kysely<unknown>): Promise<void> {
-    await db.executeQuery(CompiledQuery.raw('DROP TABLE IF EXISTS user'))
-  }
-
-  static async recreateSchema(db: Kysely<unknown>): Promise<void> {
-    await this.dropSchema(db)
-    await this.createSchema(db)
   }
 
   static documentType(): string {

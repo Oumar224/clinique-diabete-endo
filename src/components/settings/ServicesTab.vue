@@ -6,7 +6,6 @@
         placeholder="Rechercher un service..."
         clearable
         style="width: 280px"
-        @input="onSearch"
       >
         <template #prefix>
           <el-icon><Search /></el-icon>
@@ -17,111 +16,183 @@
         <el-radio-button :label="'active'">Actifs</el-radio-button>
         <el-radio-button :label="'inactive'">Inactifs</el-radio-button>
       </el-radio-group>
-      <el-button type="primary" :icon="Plus" @click="openCreate">Nouveau service</el-button>
+      <el-button type="primary" :icon="Plus" @click="openCreate">
+        Nouveau service
+      </el-button>
+    </div>
+
+    <el-alert
+      v-if="error"
+      type="error"
+      :title="error"
+      closable
+      @close="error = null"
+      style="margin-bottom: 16px"
+    />
+
+    <div v-if="loading && services.length === 0" class="st__loading">
+      <el-skeleton :rows="5" animated />
     </div>
 
     <el-table
-      v-loading="loading"
-      :data="paginatedList"
+      v-else-if="filteredServices.length > 0"
+      :data="filteredServices"
       style="width: 100%"
-      :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
-      row-key="id"
+      stripe
+      size="small"
     >
-      <el-table-column width="36">
-        <template #default>
-          <el-icon class="st__drag"><Rank /></el-icon>
-        </template>
-      </el-table-column>
       <el-table-column prop="name" label="Nom" min-width="180" />
-      <el-table-column prop="duration" label="Durée" width="90" align="center">
+
+      <el-table-column prop="category" label="Catégorie" width="140">
         <template #default="{ row }">
-          {{ row.duration }} min
+          <el-tag size="small" :type="categoryTagType(row.category)">
+            {{ row.category }}
+          </el-tag>
         </template>
       </el-table-column>
+
+      <el-table-column label="Site(s)" width="200">
+        <template #default="{ row }">
+          <span v-if="row.site_ids && row.site_ids.length > 0">
+            <el-tag
+              v-for="siteId in row.site_ids"
+              :key="siteId"
+              size="small"
+              type="info"
+              style="margin-right: 4px"
+            >
+              {{ siteName(siteId) }}
+            </el-tag>
+          </span>
+          <span v-else class="st__no-sites">—</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column prop="duration" label="Durée" width="80" align="center">
+        <template #default="{ row }">
+          <el-tag v-if="row.duration" size="small" type="info">
+            {{ row.duration }} min
+          </el-tag>
+        </template>
+      </el-table-column>
+
       <el-table-column label="Couleur" width="70" align="center">
         <template #default="{ row }">
           <span
+            v-if="row.color"
             class="st__color-swatch"
-            :style="{ background: row.color || 'transparent' }"
+            :style="{ background: row.color }"
           />
         </template>
       </el-table-column>
-      <el-table-column label="Statut" width="90" align="center">
+
+      <el-table-column prop="is_active" label="Statut" width="90" align="center">
         <template #default="{ row }">
-          <el-switch
-            :model-value="row.is_active"
-            size="small"
-            @change="handleToggle(row)"
-          />
+          <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
+            {{ row.is_active ? 'Actif' : 'Inactif' }}
+          </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="Actions" width="110" align="center">
+
+      <el-table-column label="Actions" width="130" align="center" fixed="right">
         <template #default="{ row }">
           <el-button text type="primary" :icon="Edit" size="small" @click="openEdit(row)" />
-          <el-button text type="danger" :icon="Delete" size="small" @click="handleDelete(row)" />
+          <el-button
+            text
+            :type="row.is_active ? 'warning' : 'success'"
+            :icon="row.is_active ? CircleClose : CircleCheck"
+            size="small"
+            @click="handleToggle(row)"
+          />
+          <el-button
+            text
+            type="danger"
+            :icon="Delete"
+            size="small"
+            :disabled="isDeleteDisabled(row)"
+            @click="handleDelete(row)"
+          />
         </template>
       </el-table-column>
     </el-table>
 
-    <el-empty v-if="!loading && filteredList.length === 0" description="Aucun service" />
-
-    <el-row justify="center" style="margin-top: 20px">
-      <el-pagination
-        v-model:current-page="paginator.currPage"
-        v-model:page-size="paginator.pageSize"
-        background
-        layout="sizes, prev, pager, next"
-        :page-sizes="[10, 20, 50]"
-        :total="filteredList.length"
-      />
-    </el-row>
+    <el-empty v-else-if="!loading" description="Aucun service">
+      <el-button type="primary" :icon="Plus" @click="openCreate">
+        Créer le premier service
+      </el-button>
+    </el-empty>
 
     <ServiceFormDialog ref="dialogRef" @saved="onSaved" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { Plus, Search, Edit, Delete, Rank } from '@element-plus/icons-vue'
+import { ref, computed, onMounted } from 'vue'
+import { Plus, Search, Edit, Delete, CircleCheck, CircleClose } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useMedicalServices, type ServiceDto } from '@/composables/useMedicalServices'
+import { useSites } from '@/composables/useSites'
 
-const { services, loading, fetchServices, deleteService, toggleService } = useMedicalServices()
+const {
+  services,
+  loading,
+  error,
+  fetchServices,
+  toggleService,
+  deleteService,
+} = useMedicalServices()
+
+const { sites, fetchSites } = useSites()
 
 const searchQuery = ref('')
 const filterActive = ref('')
 const dialogRef = ref<InstanceType<typeof import('./ServiceFormDialog.vue').default> | null>(null)
 
-const paginator = reactive({ currPage: 1, pageSize: 10 })
-
 onMounted(async () => {
-  await fetchServices()
+  await Promise.all([fetchServices(), fetchSites()])
 })
 
-const filteredList = computed(() => {
-  let list = services.value
+const filteredServices = computed(() => {
+  let result = services.value
 
   if (filterActive.value === 'active') {
-    list = list.filter(s => s.is_active)
+    result = result.filter(s => s.is_active)
   } else if (filterActive.value === 'inactive') {
-    list = list.filter(s => !s.is_active)
+    result = result.filter(s => !s.is_active)
   }
 
-  const q = searchQuery.value.toLowerCase()
+  const q = searchQuery.value.toLowerCase().trim()
   if (q) {
-    list = list.filter(s => s.name.toLowerCase().includes(q))
+    result = result.filter(
+      s =>
+        s.name.toLowerCase().includes(q) ||
+        s.category.toLowerCase().includes(q),
+    )
   }
 
-  return list
+  return result
 })
 
-const paginatedList = computed(() => {
-  const start = (paginator.currPage - 1) * paginator.pageSize
-  return filteredList.value.slice(start, start + paginator.pageSize)
-})
+function siteName(siteId: number): string {
+  return sites.value.find(s => s.id === siteId)?.name ?? `Site #${siteId}`
+}
 
-function onSearch() {
-  paginator.currPage = 1
+function categoryTagType(category: string): 'primary' | 'success' | 'warning' | 'info' {
+  const map: Record<string, 'primary' | 'success' | 'warning' | 'info'> = {
+    Consultation: 'primary',
+    Hospitalisation: 'success',
+    Soins: 'warning',
+    Technique: 'info',
+    Radiologie: 'info',
+    Laboratoire: 'info',
+    Rééducation: 'warning',
+    Administration: 'info',
+  }
+  return map[category] ?? 'info'
+}
+
+function isDeleteDisabled(_service: ServiceDto): boolean {
+  return false
 }
 
 function openCreate() {
@@ -133,15 +204,17 @@ function openEdit(service: ServiceDto) {
 }
 
 async function handleToggle(row: ServiceDto) {
+  if (row.id == null) return
   await toggleService(row.id!, !row.is_active)
 }
 
 async function handleDelete(row: ServiceDto) {
+  if (row.id == null) return
   try {
     await ElMessageBox.confirm(
       `Supprimer le service « ${row.name} » ?`,
       'Confirmation',
-      { type: 'warning', confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler' }
+      { type: 'warning', confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler' },
     )
     const success = await deleteService(row.id!)
     if (success) ElMessage.success('Service supprimé')
@@ -151,7 +224,7 @@ async function handleDelete(row: ServiceDto) {
 }
 
 function onSaved() {
-  paginator.currPage = 1
+  // Services are refreshed by createService/updateService internally
 }
 </script>
 
@@ -164,18 +237,21 @@ function onSaved() {
   flex-wrap: wrap;
 }
 
-.st__drag {
-  cursor: grab;
-  color: var(--cd-gray-400);
-  font-size: 16px;
+.st__loading {
+  padding: 20px;
 }
 
 .st__color-swatch {
   display: inline-block;
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  border: 1px solid var(--cd-gray-200);
+  border: 1px solid var(--cd-gray-200, #e4e7ed);
   vertical-align: middle;
+}
+
+.st__no-sites {
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  font-size: 12px;
 }
 </style>

@@ -1,303 +1,539 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
-import { ref, computed } from 'vue'
+import { mount, flushPromises } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import VitalCheckTab from '../VitalCheckTab.vue'
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
 // ---------------------------------------------------------------------------
-const { mockSaveVitalSigns } = vi.hoisted(() => ({
-  mockSaveVitalSigns: vi.fn(),
+const {
+  mockGetVitalSignsItemsList,
+  mockSaveVitalSignsItem,
+} = vi.hoisted(() => ({
+  mockGetVitalSignsItemsList: vi.fn(),
+  mockSaveVitalSignsItem: vi.fn(),
 }))
 
 // ---------------------------------------------------------------------------
 // Module mocks
 // ---------------------------------------------------------------------------
-vi.mock('@/composables/useVitalSigns', () => ({
-  useVitalSigns: vi.fn(() => ({
-    vitalSigns: ref(null),
-    hasGlycemieToday: computed(() => false),
-    saveVitalSigns: mockSaveVitalSigns,
-    resetVitalSigns: vi.fn(),
-    loading: ref(false),
-    error: ref(null),
-    fetchVitalSigns: vi.fn(),
-  })),
+vi.mock('vue-router', () => ({
+  useRoute: vi.fn(() => ({ params: { id: '42' } })),
 }))
 
 vi.mock('element-plus', () => ({
   ElMessage: { success: vi.fn(), warning: vi.fn(), info: vi.fn(), error: vi.fn() },
 }))
 
-import { useVitalSigns } from '@/composables/useVitalSigns'
-const mockedUseVitalSigns = vi.mocked(useVitalSigns)
+vi.mock('@element-plus/icons-vue', () => ({
+  ArrowLeft: { render: () => {} },
+  ArrowRight: { render: () => {} },
+  Refresh: { render: () => {} },
+}))
+
+vi.mock('@/api/vitalSigns', () => ({
+  getVitalSignsItemsList: mockGetVitalSignsItemsList,
+  saveVitalSignsItem: mockSaveVitalSignsItem,
+}))
 
 // ---------------------------------------------------------------------------
-// Element Plus stubs
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Format a Date as YYYY-MM-DD using local time. */
+function fmtDate(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/** Compute Monday 00:00:00 of the week containing `date`. */
+function getWeekStart(date: Date): Date {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  d.setDate(diff)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+// ---------------------------------------------------------------------------
+// Test data
+// ---------------------------------------------------------------------------
+
+const MONDAY = getWeekStart(new Date())
+const MONDAY_STR = fmtDate(MONDAY)
+
+const RECORD_TEMPLATE: Record<string, any> = {
+  id: 1,
+  patientId: 42,
+  date: MONDAY_STR,
+  hour: 8,
+  createdBy: 1,
+  createdAt: '',
+  updatedAt: '',
+  taSystolique: 130,
+  taDiastolique: 85,
+  frequenceCardiaque: 78,
+  temperature: 37.2,
+  glycemie: 1.2,
+  cetonemie: null,
+  glucosurie: null,
+  cetonurie: null,
+  saO2: null,
+  diurese: null,
+  poids: null,
+}
+
+function makeRecord(overrides: Partial<typeof RECORD_TEMPLATE>) {
+  return { ...RECORD_TEMPLATE, ...overrides }
+}
+
+// ---------------------------------------------------------------------------
+// Element Plus stubs (minimal for dialog + grid)
 // ---------------------------------------------------------------------------
 const stubs = {
-  'el-card': {
-    template: '<div class="el-card"><div class="el-card__header"><slot name="header" /></div><slot /></div>',
+  'el-alert': {
+    template: '<div class="el-alert" v-if="title"><p class="el-alert__title">{{ title }}</p><slot /></div>',
+    props: ['title', 'type', 'showIcon', 'closable'],
+    emits: ['close'],
+  },
+  'el-button': {
+    template: '<button class="el-button" :disabled="disabled" :loading="loading" @click="$emit(\'click\', $event)"><slot /></button>',
+    props: ['disabled', 'type', 'size', 'icon', 'loading'],
+    emits: ['click'],
+  },
+  'el-button-group': {
+    template: '<div class="el-button-group"><slot /></div>',
+  },
+  'el-icon': {
+    template: '<span class="el-icon"><slot /></span>',
+  },
+  'el-input': {
+    template: '<input class="el-input" :value="modelValue" @input="onInput" />',
+    props: ['modelValue', 'size'],
+    emits: ['update:modelValue', 'change'],
+    methods: {
+      onInput(this: any, e: Event) {
+        const val = (e.target as HTMLInputElement).value
+        this.$emit('update:modelValue', val)
+        this.$emit('change', val)
+      },
+    },
+  },
+  'el-input-number': {
+    template:
+      '<input class="el-input-number" :value="modelValue" @change="onChange" :min="min" :max="max" :step="step" :precision="precision" />',
+    props: ['modelValue', 'min', 'max', 'step', 'precision', 'size', 'controls-position'],
+    emits: ['update:modelValue', 'change'],
+    methods: {
+      onChange(this: any, e: Event) {
+        const val = (e.target as HTMLInputElement).value
+        const num = val === '' ? null : Number(val)
+        this.$emit('update:modelValue', num)
+        this.$emit('change', num)
+      },
+    },
+  },
+  'el-select': {
+    template: '<select class="el-select" :value="modelValue" @change="onChange"><slot /></select>',
+    props: ['modelValue', 'placeholder', 'size', 'style'],
+    emits: ['update:modelValue', 'change'],
+    methods: {
+      onChange(this: any, e: Event) {
+        const val = (e.target as HTMLSelectElement).value
+        this.$emit('update:modelValue', val)
+        this.$emit('change', val)
+      },
+    },
+  },
+  'el-option': {
+    template: '<option class="el-option" :value="value" :label="label"><slot /></option>',
+    props: ['value', 'label'],
+  },
+  'el-dialog': {
+    template:
+      '<div class="el-dialog" v-if="modelValue"><div class="el-dialog__body"><slot /></div><div class="el-dialog__footer"><slot name="footer" /></div></div>',
+    props: ['modelValue', 'title', 'width', 'top'],
+    emits: ['update:modelValue'],
   },
   'el-form': {
     template: '<form class="el-form"><slot /></form>',
-    props: ['model', 'rules', 'labelPosition', 'size'],
-    methods: {
-      validate() { return Promise.resolve(true) },
-    },
+    props: ['model', 'labelPosition', 'size'],
   },
   'el-form-item': {
-    template: '<div class="el-form-item"><label class="el-form-item__label">{{ label }}</label><slot /></div>',
-    props: ['label', 'prop', 'required'],
+    template: '<div class="el-form-item"><label v-if="label">{{ label }}</label><slot /></div>',
+    props: ['label', 'prop'],
   },
-  'el-input-number': {
-    template: '<input class="el-input-number" :value="modelValue" @input="$emit(\'update:modelValue\', Number($event.target.value))" />',
-    props: ['modelValue', 'min', 'max', 'step', 'precision'],
+  'el-row': {
+    template: '<div class="el-row" :style="{ marginLeft: -gutter/2 + \'px\', marginRight: -gutter/2 + \'px\' }"><slot /></div>',
+    props: ['gutter'],
   },
-  'el-row': { template: '<div class="el-row"><slot /></div>', props: ['gutter'] },
-  'el-col': { template: '<div class="el-col"><slot /></div>', props: ['span'] },
-  'el-button': {
-    template: '<button class="el-button" :disabled="disabled" @click="$emit(\'click\', $event)"><slot /></button>',
-    props: ['disabled', 'type', 'size'],
-    emits: ['click'],
-  },
-  'el-divider': { template: '<hr class="el-divider" />' },
-  'el-empty': {
-    template: '<div class="el-empty"><p class="el-empty__description">{{ description }}</p></div>',
-    props: ['description', 'imageSize'],
+  'el-col': {
+    template: '<div class="el-col" :style="{ paddingLeft: gutter/2 + \'px\', paddingRight: gutter/2 + \'px\' }"><slot /></div>',
+    props: ['span', 'gutter'],
   },
 }
 
-function createMockState(overrides: { vitalSigns?: any } = {}) {
-  return {
-    vitalSigns: ref(overrides.vitalSigns ?? null),
-    hasGlycemieToday: computed(() => false),
-    saveVitalSigns: mockSaveVitalSigns,
-    resetVitalSigns: vi.fn(),
-    loading: ref(false),
-    error: ref(null),
-    fetchVitalSigns: vi.fn(),
-  }
+function waitForData() {
+  return new Promise(resolve => setTimeout(resolve, 0))
 }
 
 // ---------------------------------------------------------------------------
-// VitalCheckTab
+// VitalCheckTab — Hour-based grid layout
 // ---------------------------------------------------------------------------
-describe('VitalCheckTab', () => {
+describe('VitalCheckTab (hour-based grid)', () => {
   beforeEach(() => {
-    mockSaveVitalSigns.mockReset()
-    mockedUseVitalSigns.mockImplementation(() => createMockState())
+    mockGetVitalSignsItemsList.mockReset()
+    mockSaveVitalSignsItem.mockReset()
+    // Default: return empty list
+    mockGetVitalSignsItemsList.mockResolvedValue([])
   })
 
   // -----------------------------------------------------------------------
-  // Form rendering
+  // Week navigation
   // -----------------------------------------------------------------------
-  describe('form rendering', () => {
-    it('renders all expected input field labels', () => {
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      const labels = wrapper.findAll('.el-form-item__label').map(l => l.text())
-      expect(labels).toContain('TA Systolique (mmHg)')
-      expect(labels).toContain('TA Diastolique (mmHg)')
-      expect(labels).toContain('Fréquence cardiaque (bpm)')
-      expect(labels).toContain('Température (°C)')
-      expect(labels).toContain('Glycémie (g/L)')
+  describe('week navigation', () => {
+    it('renders week navigation with prev/next buttons and week label', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const groups = wrapper.findAll('.el-button-group')
+      expect(groups.length).toBe(1)
+
+      const buttons = groups[0].findAll('button.el-button')
+      expect(buttons.length).toBe(3) // prev, label, next
     })
 
-    it('renders the save button', () => {
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      const btn = wrapper.find('button.el-button')
-      expect(btn.exists()).toBe(true)
-      expect(btn.text()).toContain('Enregistrer')
-    })
-  })
+    it('renders week label with date range', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
 
-  // -----------------------------------------------------------------------
-  // Empty state
-  // -----------------------------------------------------------------------
-  describe('empty state', () => {
-    it('shows el-empty when no vital signs recorded', () => {
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      const empty = wrapper.find('.el-empty')
-      expect(empty.exists()).toBe(true)
-      expect(empty.text()).toContain('Aucune constante')
-    })
-
-    it('hides empty and shows values when vital signs exist', () => {
-      mockedUseVitalSigns.mockImplementation(() => createMockState({
-        vitalSigns: {
-          date: new Date().toISOString(),
-          taSystolique: 120,
-          taDiastolique: 80,
-          frequenceCardiaque: 72,
-          temperature: 37.0,
-          glycemie: null,
-        },
-      }))
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      expect(wrapper.find('.el-empty').exists()).toBe(false)
-      expect(wrapper.find('.vital-check__values').exists()).toBe(true)
+      const label = wrapper.find('.vital-check__week-label')
+      expect(label.exists()).toBe(true)
+      expect(label.text()).toMatch(/\d{2}\/\d{2}/)
     })
   })
 
   // -----------------------------------------------------------------------
-  // Last vital signs display
+  // Grid structure
   // -----------------------------------------------------------------------
-  describe('last vital signs display', () => {
-    it('shows heading when data exists', () => {
-      mockedUseVitalSigns.mockImplementation(() => createMockState({
-        vitalSigns: {
-          date: new Date().toISOString(),
-          taSystolique: 120,
-          taDiastolique: 80,
-          frequenceCardiaque: 72,
-          temperature: 37.0,
-          glycemie: 1.2,
-        },
-      }))
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      expect(wrapper.text()).toContain('Dernières constantes enregistrées')
+  describe('grid structure', () => {
+    it('renders 7 date headers with hour labels', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const headers = wrapper.findAll('.vital-check__date-header')
+      expect(headers.length).toBe(7)
     })
 
-    it('displays all vital sign values', () => {
-      mockedUseVitalSigns.mockImplementation(() => createMockState({
-        vitalSigns: {
-          date: new Date().toISOString(),
-          taSystolique: 130,
-          taDiastolique: 85,
-          frequenceCardiaque: 80,
-          temperature: 37.5,
-          glycemie: 1.5,
-        },
-      }))
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      expect(wrapper.text()).toContain('130')
-      expect(wrapper.text()).toContain('85')
-      expect(wrapper.text()).toContain('80')
-      expect(wrapper.text()).toContain('37.5')
-      expect(wrapper.text()).toContain('1.5')
+    it('highlights today column', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const todayHeader = wrapper.find('.vital-check__date-header--today')
+      expect(todayHeader.exists()).toBe(true)
+    })
+
+    it('renders the corner header with "Constantes" text', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const corner = wrapper.find('.vital-check__const-header')
+      expect(corner.exists()).toBe(true)
+      expect(corner.text()).toBe('Constantes')
+    })
+
+    it('renders all 11 constant rows', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const constCells = wrapper.findAll('.vital-check__const-cell')
+      expect(constCells.length).toBe(11)
+
+      const allText = wrapper.text()
+      expect(allText).toContain('TA Systolique')
+      expect(allText).toContain('FC')
+      expect(allText).toContain('Glycémie')
+      expect(allText).toContain('Cétonémie')
+      expect(allText).toContain('Glucosurie')
+      expect(allText).toContain('Cétonurie')
+      expect(allText).toContain('SaO₂')
+      expect(allText).toContain('Diurèse')
+      expect(allText).toContain('Poids')
+    })
+
+    it('renders 17 hour labels per day header', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const dateHours = wrapper.findAll('.vital-check__date-hour')
+      // 7 days × 17 hours = 119 hour labels
+      expect(dateHours.length).toBe(119)
+    })
+
+    it('renders 11 × 7 × 17 = 1309 data cells', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const cells = wrapper.findAll('.vital-check__cell')
+      expect(cells.length).toBe(1309)
     })
   })
 
   // -----------------------------------------------------------------------
-  // Save button
+  // Data fetching
   // -----------------------------------------------------------------------
-  describe('save button', () => {
-    it('calls saveVitalSigns with correct data', async () => {
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      const inputs = wrapper.findAll('input.el-input-number')
-      await inputs[0].setValue(130)
-      await inputs[1].setValue(85)
-      await inputs[2].setValue(80)
-      await inputs[3].setValue(37.5)
+  describe('data fetching', () => {
+    it('calls getVitalSignsItemsList on mount with patient ID and week range', async () => {
+      mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
 
-      await wrapper.find('button.el-button').trigger('click')
-      await new Promise(r => setTimeout(r, 10))
-
-      expect(mockSaveVitalSigns).toHaveBeenCalled()
-      const saved = mockSaveVitalSigns.mock.calls[0][0]
-      expect(saved.taSystolique).toBe(130)
-      expect(saved.taDiastolique).toBe(85)
-      expect(saved.frequenceCardiaque).toBe(80)
-      expect(saved.temperature).toBe(37.5)
-      expect(saved.date).toBeDefined()
+      expect(mockGetVitalSignsItemsList).toHaveBeenCalledTimes(1)
+      const [pid, start, end] = mockGetVitalSignsItemsList.mock.calls[0]
+      expect(pid).toBe(42)
+      expect(start).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(end).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     })
 
-    it('passes glycemia as null when not filled', async () => {
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      const inputs = wrapper.findAll('input.el-input-number')
-      await inputs[0].setValue(120)
-      await inputs[1].setValue(80)
-      await inputs[2].setValue(72)
-      await inputs[3].setValue(37.0)
+    it('re-fetches when week changes', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await flushPromises()
+      expect(mockGetVitalSignsItemsList).toHaveBeenCalledTimes(1)
 
-      await wrapper.find('button.el-button').trigger('click')
-      await new Promise(r => setTimeout(r, 10))
+      mockGetVitalSignsItemsList.mockResolvedValue([])
 
-      expect(mockSaveVitalSigns).toHaveBeenCalled()
-      expect(mockSaveVitalSigns.mock.calls[0][0].glycemie).toBeNull()
-    })
+      const vm = wrapper.vm as any
+      vm.nextWeek()
 
-    it('passes glycemia value when filled', async () => {
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      const inputs = wrapper.findAll('input.el-input-number')
-      await inputs[0].setValue(120)
-      await inputs[1].setValue(80)
-      await inputs[2].setValue(72)
-      await inputs[3].setValue(37.0)
-      await inputs[4].setValue(1.5)
+      await nextTick()
+      await flushPromises()
 
-      await wrapper.find('button.el-button').trigger('click')
-      await new Promise(r => setTimeout(r, 10))
-
-      expect(mockSaveVitalSigns).toHaveBeenCalled()
-      expect(mockSaveVitalSigns.mock.calls[0][0].glycemie).toBe(1.5)
+      expect(mockGetVitalSignsItemsList).toHaveBeenCalledTimes(2)
     })
   })
 
   // -----------------------------------------------------------------------
-  // Glycemia high class
+  // Value population
   // -----------------------------------------------------------------------
-  describe('glycemia --high class', () => {
-    it('applies --high class when glycemia > 1.1', () => {
-      mockedUseVitalSigns.mockImplementation(() => createMockState({
-        vitalSigns: {
-          date: new Date().toISOString(),
-          taSystolique: 120,
-          taDiastolique: 80,
-          frequenceCardiaque: 72,
-          temperature: 37.0,
-          glycemie: 1.5,
-        },
-      }))
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      expect(wrapper.find('.vital-check__data--high').exists()).toBe(true)
+  describe('value population', () => {
+    it('populates items map from fetched records', async () => {
+      mockGetVitalSignsItemsList.mockResolvedValue([
+        makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 140, glycemie: 2.5 }),
+        makeRecord({ date: MONDAY_STR, hour: 12, taDiastolique: 90, frequency: 80 }),
+      ])
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const vm = wrapper.vm as any
+      // getValue helper should return correct data
+      expect(vm.getValue(MONDAY_STR, 8, 'taSystolique')).toBe(140)
+      expect(vm.getValue(MONDAY_STR, 8, 'glycemie')).toBe(2.5)
+      expect(vm.getValue(MONDAY_STR, 12, 'taDiastolique')).toBe(90)
+      // Unrecorded slot should be null
+      expect(vm.getValue(MONDAY_STR, 8, 'cetonemie')).toBeNull()
     })
 
-    it('does not apply --high class when glycemia <= 1.1', () => {
-      mockedUseVitalSigns.mockImplementation(() => createMockState({
-        vitalSigns: {
-          date: new Date().toISOString(),
-          taSystolique: 120,
-          taDiastolique: 80,
-          frequenceCardiaque: 72,
-          temperature: 37.0,
-          glycemie: 0.9,
-        },
-      }))
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      expect(wrapper.find('.vital-check__data--high').exists()).toBe(false)
+    it('shows formatted cell values in the grid', async () => {
+      mockGetVitalSignsItemsList.mockResolvedValue([
+        makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 140, glycemie: 2.5 }),
+      ])
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      // Cell values are rendered as .vital-check__cell-value spans
+      const cellValues = wrapper.findAll('.vital-check__cell-value')
+      expect(cellValues.length).toBeGreaterThan(0)
+      // Some cells should contain "140" (taSystolique)
+      const texts = cellValues.map(c => c.text())
+      expect(texts.some(t => t === '140')).toBe(true)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Hour dialog
+  // -----------------------------------------------------------------------
+  describe('hour dialog', () => {
+    it('opens the dialog when clicking a cell', async () => {
+      mockGetVitalSignsItemsList.mockResolvedValue([])
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      // Click the first cell
+      const cells = wrapper.findAll('.vital-check__cell')
+      expect(cells.length).toBeGreaterThan(0)
+      await cells[0].trigger('click')
+
+      // Dialog should be visible
+      const dialog = wrapper.find('.el-dialog')
+      expect(dialog.exists()).toBe(true)
+      expect(dialog.isVisible()).toBe(true)
     })
 
-    it('does not apply --high class when glycemia is exactly 1.1', () => {
-      mockedUseVitalSigns.mockImplementation(() => createMockState({
-        vitalSigns: {
-          date: new Date().toISOString(),
-          taSystolique: 120,
-          taDiastolique: 80,
-          frequenceCardiaque: 72,
-          temperature: 37.0,
-          glycemie: 1.1,
-        },
-      }))
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      expect(wrapper.find('.vital-check__data--high').exists()).toBe(false)
+    it('opens the dialog when clicking an hour label', async () => {
+      mockGetVitalSignsItemsList.mockResolvedValue([])
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      // Click the first hour label
+      const hourLabels = wrapper.findAll('.vital-check__date-hour')
+      expect(hourLabels.length).toBeGreaterThan(0)
+      await hourLabels[0].trigger('click')
+
+      const dialog = wrapper.find('.el-dialog')
+      expect(dialog.exists()).toBe(true)
     })
 
-    it('does not apply --high class when glycemia is null', () => {
-      mockedUseVitalSigns.mockImplementation(() => createMockState({
-        vitalSigns: {
-          date: new Date().toISOString(),
-          taSystolique: 120,
-          taDiastolique: 80,
-          frequenceCardiaque: 72,
-          temperature: 37.0,
-          glycemie: null,
-        },
-      }))
-      const wrapper = mount(VitalCheckTab, { global: { stubs } })
-      expect(wrapper.find('.vital-check__data--high').exists()).toBe(false)
+    it('populates dialog fields from existing values', async () => {
+      mockGetVitalSignsItemsList.mockResolvedValue([
+        makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 145, glycemie: 1.8 }),
+      ])
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      // Open dialog for Monday 08:00
+      const vm = wrapper.vm as any
+      vm.openHourDialog(MONDAY_STR, 8)
+
+      await nextTick()
+
+      // The dialog form should be pre-populated
+      expect(vm.hourForm.taSystolique).toBe(145)
+      expect(vm.hourForm.glycemie).toBe(1.8)
+    })
+
+    it('saves all constants when clicking Enregistrer', async () => {
+      mockGetVitalSignsItemsList.mockResolvedValue([])
+      mockSaveVitalSignsItem.mockResolvedValue(
+        makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 135, glycemie: 1.0 }),
+      )
+
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      // Open dialog for Monday 08:00
+      const vm = wrapper.vm as any
+      vm.openHourDialog(MONDAY_STR, 8)
+
+      // Set some values
+      vm.hourForm.taSystolique = 135
+      vm.hourForm.glycemie = 1.0
+
+      await nextTick()
+
+      // Find save button by text
+      const footer = wrapper.find('.el-dialog__footer')
+      const saveBtn = footer.findAll('button.el-button').find(b => b.text() === 'Enregistrer')
+      expect(saveBtn).toBeDefined()
+      await saveBtn!.trigger('click')
+
+      await flushPromises()
+
+      expect(mockSaveVitalSignsItem).toHaveBeenCalledTimes(1)
+      const [pid, data] = mockSaveVitalSignsItem.mock.calls[0]
+      expect(pid).toBe(42)
+      expect(data.date).toBe(MONDAY_STR)
+      expect(data.hour).toBe(8)
+      expect(data.taSystolique).toBe(135)
+      expect(data.glycemie).toBe(1.0)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Alert thresholds
+  // -----------------------------------------------------------------------
+  describe('alert thresholds', () => {
+    it('returns true for glycemie above threshold', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const vm = wrapper.vm as any
+      expect(vm.isAlertValue('glycemie', 2.0)).toBe(true)
+      expect(vm.isAlertValue('glycemie', 0.9)).toBe(false)
+    })
+
+    it('returns true for temperature above threshold', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const vm = wrapper.vm as any
+      expect(vm.isAlertValue('temperature', 39.0)).toBe(true)
+      expect(vm.isAlertValue('temperature', 37.0)).toBe(false)
+    })
+
+    it('returns true for saO2 below 90', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const vm = wrapper.vm as any
+      expect(vm.isAlertValue('saO2', 85)).toBe(true)
+      expect(vm.isAlertValue('saO2', 95)).toBe(false)
+    })
+
+    it('returns false for null or empty values', async () => {
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      const vm = wrapper.vm as any
+      expect(vm.isAlertValue('glycemie', null)).toBe(false)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Error state
+  // -----------------------------------------------------------------------
+  describe('error state', () => {
+    it('shows error alert when fetch fails', async () => {
+      mockGetVitalSignsItemsList.mockRejectedValue(new Error('Erreur réseau'))
+      const wrapper = mount(VitalCheckTab, {
+        global: { stubs, directives: { loading: vi.fn() } },
+      })
+      await waitForData()
+
+      expect(wrapper.text()).toContain('Erreur réseau')
     })
   })
 })

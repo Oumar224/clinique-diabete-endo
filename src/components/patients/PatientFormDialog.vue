@@ -287,9 +287,9 @@ import { calculateAge } from '@/utils/age'
 import { useLocalites } from '@/composables/useLocalites'
 import PatientAttachmentsSection from './PatientAttachmentsSection.vue'
 import { ipcInvoke } from '@/utils/ipc'
-import { usePatientFormStore } from '@/stores/patientFormStore'
+import { usePatientFormDraft } from '@/composables/usePatientFormDraft'
 
-const patientFormStore = usePatientFormStore()
+const patientFormDraft = usePatientFormDraft()
 
 const emit = defineEmits<{ saved: [] }>()
 
@@ -611,7 +611,7 @@ function close() {
 }
 
 async function cancelAndClose() {
-  await patientFormStore.clearDraft()
+  await patientFormDraft.clearDraft()
   postSave.value = false
   resetForm()
   dialogVisible.value = false
@@ -620,11 +620,11 @@ async function cancelAndClose() {
 async function handleClose() {
   if (postSave.value) return   // Don't re-save draft if user clicked Terminer
   const formType = isEdit.value ? 'patient_edit' : 'patient_create'
-  await patientFormStore.saveDraft(formType, toRaw(form), activeStep.value, editId.value ?? undefined)
+  await patientFormDraft.saveDraft(formType, toRaw(form), activeStep.value, editId.value ?? undefined)
 }
 
 async function finishAndClose() {
-  await patientFormStore.clearDraft()
+  await patientFormDraft.clearDraft()
   postSave.value = false
   dialogVisible.value = false
 }
@@ -705,7 +705,7 @@ async function open(patient?: Patient) {
 
   if (!patient) {
     // Create mode: try loading draft from DB
-    const draft = await patientFormStore.loadDraft('patient_create')
+    const draft = await patientFormDraft.loadDraft('patient_create')
     if (draft) {
       Object.assign(form, draft.formData)
       activeStep.value = draft.activeStep
@@ -714,7 +714,7 @@ async function open(patient?: Patient) {
     }
   } else {
     // Edit mode: check for existing draft for this patient
-    const draft = await patientFormStore.loadDraft('patient_edit', patient.id)
+    const draft = await patientFormDraft.loadDraft('patient_edit', patient.id)
     if (draft) {
       try {
         await ElMessageBox.confirm(
@@ -728,7 +728,7 @@ async function open(patient?: Patient) {
         return
       } catch {
         // User chose to ignore draft, clear it
-        await patientFormStore.clearDraft()
+        await patientFormDraft.clearDraft()
       }
     }
 
@@ -811,7 +811,7 @@ async function submit() {
     }
     if (isPostCreate.value) {
       await submitTrustedPerson()
-      await patientFormStore.clearDraft()
+      await patientFormDraft.clearDraft()
       close()
       emit('saved')
       return
@@ -823,7 +823,7 @@ async function submit() {
       if (isEdit.value && editId.value) {
         await updatePatient({ ...patientPayload, id: editId.value })
         await submitTrustedPerson()
-        await patientFormStore.clearDraft()
+        await patientFormDraft.clearDraft()
         ElMessage.success('Modifications enregistrées')
         postSave.value = true
         emit('saved')
@@ -839,12 +839,12 @@ async function submit() {
             nip.value = created.nip
             form.nip = created.nip
           }
-          await patientFormStore.clearDraft()
+          await patientFormDraft.clearDraft()
           ElMessage.success('Patient créé. Vous pouvez ajouter des pièces jointes.')
           emit('saved')
         } else {
           await submitTrustedPerson()
-          await patientFormStore.clearDraft()
+          await patientFormDraft.clearDraft()
           ElMessage.success('Patient créé')
           close()
           emit('saved')

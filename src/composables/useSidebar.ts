@@ -4,7 +4,7 @@ const _collapsed = ref(false)
 
 export function useSidebar() {
   const isCollapsed = computed(() => _collapsed.value)
-  const sidebarWidth = computed(() => _collapsed.value ? '64px' : '220px')
+  const sidebarWidth = computed(() => _collapsed.value ? '64px' : '260px')
 
   function toggle() { _collapsed.value = !_collapsed.value }
   function expand() { _collapsed.value = false }

@@ -1,43 +1,27 @@
 import type { UserAttachmentDto, CreateAttachmentDto } from '../dto/user-attachment.dto'
 
-export interface UserAttachmentRow {
-  id: number
-  user_id: number
-  display_name: string
-  file_name: string
-  mime_type: string | null
-  file_size: number | null
-  file_data: string
-  attachment_type_id?: number | null
-  created_at: string
-}
-
 export class UserAttachmentEntity {
   id?: number
-  userId?: number
-  displayName?: string
-  fileName?: string
-  mimeType?: string | null
-  fileSize?: number | null
-  fileData?: string
-  attachmentTypeId?: number
-  createdAt?: string
-
-  static createSchema = {
-    attachmentTypeId: { type: 'number', optional: true },
-  }
+  user_id?: number
+  display_name?: string
+  file_name?: string
+  mime_type?: string | null
+  file_size?: number | null
+  file_data?: string
+  attachment_type_id?: number | null
+  created_at?: string
 
   static toDto(entity: UserAttachmentEntity): UserAttachmentDto {
     return {
       id: entity.id!,
-      userId: entity.userId!,
-      displayName: entity.displayName!,
-      fileName: entity.fileName!,
-      mimeType: entity.mimeType ?? null,
-      fileSize: entity.fileSize ?? null,
-      fileData: entity.fileData,
-      attachmentTypeId: entity.attachmentTypeId,
-      createdAt: entity.createdAt!,
+      user_id: entity.user_id!,
+      display_name: entity.display_name!,
+      file_name: entity.file_name!,
+      mime_type: entity.mime_type ?? null,
+      file_size: entity.file_size ?? null,
+      file_data: entity.file_data,
+      attachment_type_id: entity.attachment_type_id ?? undefined,
+      created_at: entity.created_at!,
     }
   }
 
@@ -48,14 +32,18 @@ export class UserAttachmentEntity {
   static fromDto(dto: UserAttachmentDto | CreateAttachmentDto): UserAttachmentEntity {
     const e = new UserAttachmentEntity()
     if ('id' in dto) e.id = dto.id
-    e.userId = dto.userId
-    e.displayName = dto.displayName
-    e.fileName = dto.fileName
-    e.mimeType = dto.mimeType ?? null
-    e.fileSize = dto.fileSize ?? null
-    e.fileData = 'fileData' in dto ? dto.fileData : undefined
-    e.attachmentTypeId = dto.attachmentTypeId
-    if ('createdAt' in dto) e.createdAt = dto.createdAt
+    e.user_id = dto.user_id
+    e.display_name = dto.display_name
+    e.file_name = dto.file_name
+    e.mime_type = dto.mime_type ?? null
+    e.file_size = dto.file_size ?? null
+    e.file_data = 'file_data' in dto ? dto.file_data : undefined
+    e.attachment_type_id = dto.attachment_type_id ?? null
+    if ('created_at' in dto) e.created_at = dto.created_at
     return e
   }
+
+  static documentType(): string { return 'UserAttachment' }
+  static documentSchema(): any { return {} }
+  static register(): void { /* No Automerge sync needed */ }
 }

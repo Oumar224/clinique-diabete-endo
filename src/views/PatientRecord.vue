@@ -17,10 +17,10 @@
               {{ getCiviliteSymbol(patient.civilite) }} {{ patient.prenom }} {{ patient.nom }}
             </h2>
             <div class="patient-record__meta">
-              <span><strong>N° SS/Assurance:</strong> {{ patient.nir }}</span>
-              <span><strong>Âge:</strong> {{ calculateAge(patient.date_naissance) }} ans</span>
-              <span><strong>Né(e) le:</strong> {{ formatDate(patient.date_naissance) }}</span>
-              <span><strong>NIP:</strong> {{ patient.nip }}</span>
+              <span><strong>N\u00b0 SS/Assurance&nbsp;:</strong> {{ patient.nir }}</span>
+              <span><strong>&Acirc;ge&nbsp;:</strong> {{ calculateAge(patient.date_naissance) }} ans</span>
+              <span><strong>N\u00e9(e) le&nbsp;:</strong> {{ formatDate(patient.date_naissance) }}</span>
+              <span><strong>NIP&nbsp;:</strong> {{ patient.nip }}</span>
             </div>
           </div>
         </div>
@@ -30,73 +30,76 @@
         </div>
       </div>
 
-      <!-- Informations personnelles -->
-      <el-card class="patient-record__card">
-        <template #header>
-          <span><strong>Informations personnelles</strong></span>
-        </template>
-        <div class="patient-record__fields">
-          <div class="patient-record__field">
-            <span class="patient-record__label">Email</span>
-            <span class="patient-record__value">{{ patient.email || '—' }}</span>
-          </div>
-          <div class="patient-record__field">
-            <span class="patient-record__label">Téléphone</span>
-            <span class="patient-record__value">{{ patient.telephone }}</span>
-          </div>
-          <div class="patient-record__field">
-            <span class="patient-record__label">Profession</span>
-            <span class="patient-record__value">{{ patient.profession || '—' }}</span>
-          </div>
-          <div class="patient-record__field">
-            <span class="patient-record__label">Lieu de naissance</span>
-            <span class="patient-record__value">{{ patient.lieu_naissance || '—' }}</span>
-          </div>
-          <!-- Allergies inline -->
-          <div class="patient-record__field">
-            <span class="patient-record__label">Allergies et autres</span>
-            <span class="patient-record__value">
-              <template v-if="!patient.allergies || patient.allergies.length === 0">
-                Aucune
-              </template>
-              <span v-else class="patient-record__allergies-tags">
-                <el-tag
-                  v-for="a in patient.allergies"
-                  :key="a"
-                  type="danger"
-                  size="small"
-                >
-                  {{ a }}
-                </el-tag>
+      <!-- Desktop: 2-column grid for info cards -->
+      <div class="patient-record__card-grid">
+        <!-- Informations personnelles -->
+        <el-card class="patient-record__card patient-record__card--personal">
+          <template #header>
+            <span><strong>Informations personnelles</strong></span>
+          </template>
+          <div class="patient-record__fields">
+            <div class="patient-record__field">
+              <span class="patient-record__label">Email</span>
+              <span class="patient-record__value">{{ patient.email || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Téléphone</span>
+              <span class="patient-record__value">{{ patient.telephone }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Profession</span>
+              <span class="patient-record__value">{{ patient.profession || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Lieu de naissance</span>
+              <span class="patient-record__value">{{ patient.lieu_naissance || '—' }}</span>
+            </div>
+            <!-- Allergies inline -->
+            <div class="patient-record__field">
+              <span class="patient-record__label">Allergies et autres</span>
+              <span class="patient-record__value">
+                <template v-if="!patient.allergies || patient.allergies.length === 0">
+                  Aucune
+                </template>
+                <span v-else class="patient-record__allergies-tags">
+                  <el-tag
+                    v-for="a in patient.allergies"
+                    :key="a"
+                    type="danger"
+                    size="small"
+                  >
+                    {{ a }}
+                  </el-tag>
+                </span>
               </span>
-            </span>
+            </div>
           </div>
-        </div>
-      </el-card>
+        </el-card>
 
-      <!-- Résidence -->
-      <el-card class="patient-record__card">
-        <template #header>
-          <span><strong>Résidence</strong></span>
-        </template>
-        <div class="patient-record__fields">
-          <div class="patient-record__field">
-            <span class="patient-record__label">Région</span>
-            <span class="patient-record__value">{{ patient.region || '—' }}</span>
+        <!-- Résidence -->
+        <el-card class="patient-record__card patient-record__card--residence">
+          <template #header>
+            <span><strong>Résidence</strong></span>
+          </template>
+          <div class="patient-record__fields">
+            <div class="patient-record__field">
+              <span class="patient-record__label">Région</span>
+              <span class="patient-record__value">{{ patient.region || '—' }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Commune</span>
+              <span class="patient-record__value">{{ residenceDisplay }}</span>
+            </div>
+            <div class="patient-record__field">
+              <span class="patient-record__label">Complément</span>
+              <span class="patient-record__value">{{ patient.complement_adresse || '—' }}</span>
+            </div>
           </div>
-          <div class="patient-record__field">
-            <span class="patient-record__label">Commune</span>
-            <span class="patient-record__value">{{ residenceDisplay }}</span>
-          </div>
-          <div class="patient-record__field">
-            <span class="patient-record__label">Complément</span>
-            <span class="patient-record__value">{{ patient.complement_adresse || '—' }}</span>
-          </div>
-        </div>
-      </el-card>
+        </el-card>
+      </div>
 
       <!-- Informations médicales -->
-      <el-card class="patient-record__card">
+      <el-card class="patient-record__card patient-record__card--medical">
         <template #header>
           <span><strong>Informations médicales</strong></span>
         </template>
@@ -124,7 +127,7 @@
         </div>
       </el-card>
 
-      <el-card class="patient-record__section">
+      <el-card class="patient-record__section patient-record__card--trusted">
         <template #header>
           <span><strong>Personne de confiance</strong></span>
         </template>
@@ -169,13 +172,13 @@
         </template>
       </el-card>
 
-      <el-card class="patient-record__section">
+      <el-card class="patient-record__section patient-record__card--attachments">
         <template #header>
           <span><strong>Pièces jointes</strong></span>
         </template>
         <PatientAttachmentsSection :patient-id="patient.id" category="patient" />
       </el-card>
-      <el-card class="patient-record__section">
+      <el-card class="patient-record__section patient-record__card--attachments-trusted">
         <template #header>
           <span><strong>Pièces jointes (personne de confiance)</strong></span>
         </template>
@@ -340,10 +343,10 @@ function onSaved() {
   justify-content: space-between;
   margin-bottom: 24px;
   padding: 28px 32px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-  border-radius: 12px;
+  background: var(--cd-widget-bg);
+  border-radius: 14px;
   border: 1px solid var(--cd-gray-200, #e4e7ed);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
   width: 100%;
   box-sizing: border-box;
 }
@@ -384,7 +387,7 @@ function onSaved() {
   gap: 28px;
   font-size: 18px;
   font-weight: 600;
-  color: var(--cd-gray-400);
+  color: var(--cd-gray-500);
   margin-top: 2px;
 }
 
@@ -393,33 +396,61 @@ function onSaved() {
   gap: 8px;
 }
 
-.patient-record__grid {
+/* ── Card grid: 2 columns on desktop ────────────────────── */
+.patient-record__card-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .patient-record__card-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ── Card base styling ──────────────────────────────────── */
+.patient-record__card {
   margin-bottom: 16px;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease;
+}
+
+.patient-record__card :deep(.el-card__body) {
+  padding: 20px 24px 24px;
+}
+
+.patient-record__card :deep(.el-card__header) {
+  padding: 14px 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 15px;
 }
 
 .patient-record__fields {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .patient-record__field {
   display: flex;
   gap: 12px;
+  align-items: baseline;
 }
 
 .patient-record__label {
-  min-width: 100px;
-  font-size: 13px;
+  min-width: 110px;
+  font-size: 14px;
   color: var(--cd-gray-600);
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
 .patient-record__value {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--cd-gray-900);
+  font-weight: 500;
 }
 
 .patient-record__allergies-tags {
@@ -430,5 +461,104 @@ function onSaved() {
 
 .patient-record__section {
   margin-bottom: 16px;
+}
+
+/* ── Card header bar colors ─────────────────────────────── */
+.patient-record__card--personal {
+  --patient-section-bg: #EBF2FA;
+}
+.patient-record__card--personal :deep(.el-card__header) {
+  background: #EBF2FA;
+}
+
+.patient-record__card--residence {
+  --patient-section-bg: #EBFAF2;
+}
+.patient-record__card--residence :deep(.el-card__header) {
+  background: #EBFAF2;
+}
+
+.patient-record__card--medical {
+  --patient-section-bg: #F5EBFA;
+}
+.patient-record__card--medical :deep(.el-card__header) {
+  background: #F5EBFA;
+}
+
+.patient-record__card--trusted {
+  --patient-section-bg: #FAF5EB;
+}
+.patient-record__card--trusted :deep(.el-card__header) {
+  background: #FAF5EB;
+}
+
+.patient-record__card--attachments,
+.patient-record__card--attachments-trusted {
+  --patient-section-bg: #F2F2F5;
+}
+.patient-record__card--attachments :deep(.el-card__header),
+.patient-record__card--attachments-trusted :deep(.el-card__header) {
+  background: #F2F2F5;
+}
+
+/* ── Responsive adjustments ─────────────────────────────── */
+@media (max-width: 767px) {
+  .patient-record__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .patient-record__name {
+    font-size: 24px;
+  }
+
+  .patient-record__meta {
+    font-size: 15px;
+    gap: 16px;
+  }
+
+  .patient-record__field {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .patient-record__label {
+    min-width: unset;
+    font-size: 12px;
+  }
+
+  .patient-record__value {
+    font-size: 14px;
+  }
+
+  .patient-record__card :deep(.el-card__body) {
+    padding: 16px 18px 20px;
+  }
+
+  .patient-record__card :deep(.el-card__header) {
+    padding: 12px 18px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .patient-record__card :deep(.el-card__body) {
+    padding: 24px 28px 28px;
+  }
+
+  .patient-record__label {
+    min-width: 120px;
+    font-size: 14px;
+  }
+
+  .patient-record__value {
+    font-size: 16px;
+  }
+
+  .patient-record__card :deep(.el-card__header) {
+    padding: 16px 28px;
+    font-size: 16px;
+  }
 }
 </style>

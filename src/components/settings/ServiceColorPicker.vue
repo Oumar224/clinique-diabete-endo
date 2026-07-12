@@ -36,7 +36,7 @@ const emit = defineEmits<{
 }>()
 
 const colors = [
-  '#0E5C5B',
+  '#1A5276',
   '#0891B2',
   '#2563EB',
   '#7C3AED',

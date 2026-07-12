@@ -1,9 +1,10 @@
 import { container } from 'tsyringe'
 import { InvoiceService } from '../services/invoice.service'
 import { createHandler } from '../utils/create-handler'
+import type { InvoiceCreateDto, InvoicePaymentDto, InvoiceListDto, InvoiceUpdateDto } from '../dto/invoice.dto'
 
 export function registerInvoiceHandlers() {
-  createHandler('invoices:list', async (params: { search?: string; status?: string; date_debut?: string; date_fin?: string }) => {
+  createHandler('invoices:list', async (params: InvoiceListDto) => {
     return await container.resolve(InvoiceService).list(params)
   })
 
@@ -15,15 +16,16 @@ export function registerInvoiceHandlers() {
     return await container.resolve(InvoiceService).getByPatient(patient_id)
   })
 
-  createHandler('invoices:create', async (dto: any) => {
+  createHandler('invoices:create', async (dto: InvoiceCreateDto) => {
     return await container.resolve(InvoiceService).create(dto)
   })
 
-  createHandler('invoices:update', async ({ id, ...data }: { id: number; notes?: string; status?: string }) => {
+  createHandler('invoices:update', async (dto: InvoiceUpdateDto) => {
+    const { id, ...data } = dto
     return await container.resolve(InvoiceService).update(id, data)
   })
 
-  createHandler('invoices:add-payment', async (payment: any) => {
+  createHandler('invoices:add-payment', async (payment: InvoicePaymentDto) => {
     return await container.resolve(InvoiceService).addPayment(payment)
   })
 

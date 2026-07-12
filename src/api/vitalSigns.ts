@@ -8,6 +8,12 @@ export interface VitalSignsInput {
   frequenceCardiaque: number | null
   temperature: number | null
   glycemie: number | null
+  cetonemie: number | null
+  glucosurie: string | null
+  cetonurie: string | null
+  saO2: number | null
+  diurese: number | null
+  poids: number | null
 }
 
 /** Full vital signs record as returned from the backend */
@@ -17,6 +23,13 @@ export interface VitalSignsRecord extends VitalSignsInput {
   createdBy: number
   createdAt: string
   updatedAt: string
+}
+
+/**
+ * Fetch vital signs for a patient within a date range.
+ */
+export function getVitalSignsList(patientId: number, startDate: string, endDate: string): Promise<VitalSignsRecord[]> {
+  return apiClient.get<VitalSignsRecord[]>('vital-signs:list', { patientId, startDate, endDate })
 }
 
 /**
@@ -33,4 +46,38 @@ export function getVitalSigns(patientId: number): Promise<VitalSignsRecord | nul
  */
 export function saveVitalSigns(patientId: number, data: VitalSignsInput): Promise<VitalSignsRecord> {
   return apiClient.post<VitalSignsRecord>('vital-signs:save', { patientId, ...data })
+}
+
+// ── Vital Signs Items (per-hour) ─────────────────────────────────────────
+
+export interface VitalSignsItemInput {
+  date: string
+  hour: number
+  taSystolique: number | null
+  taDiastolique: number | null
+  frequenceCardiaque: number | null
+  temperature: number | null
+  glycemie: number | null
+  cetonemie: number | null
+  glucosurie: string | null
+  cetonurie: string | null
+  saO2: number | null
+  diurese: number | null
+  poids: number | null
+}
+
+export interface VitalSignsItemRecord extends VitalSignsItemInput {
+  id: number
+  patientId: number
+  createdBy: number
+  createdAt: string
+  updatedAt: string
+}
+
+export function getVitalSignsItemsList(patientId: number, startDate: string, endDate: string): Promise<VitalSignsItemRecord[]> {
+  return apiClient.get<VitalSignsItemRecord[]>('vital-signs-items:list', { patientId, startDate, endDate })
+}
+
+export function saveVitalSignsItem(patientId: number, data: VitalSignsItemInput): Promise<VitalSignsItemRecord> {
+  return apiClient.post<VitalSignsItemRecord>('vital-signs-items:save', { patientId, ...data })
 }

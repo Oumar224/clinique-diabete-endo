@@ -4,15 +4,15 @@ import { ipcInvoke } from '@/utils/ipc'
 
 export interface AttachmentDto {
   id: number
-  userId: number
-  displayName: string
-  fileName: string
-  mimeType: string | null
-  fileSize: number | null
-  fileData?: string
-  createdAt: string
-  attachmentTypeId?: number | null
-  attachmentTypeName?: string | null
+  user_id: number
+  display_name: string
+  file_name: string
+  mime_type: string | null
+  file_size: number | null
+  file_data?: string
+  created_at: string
+  attachment_type_id?: number | null
+  attachment_type_name?: string | null
 }
 
 const attachments = ref<AttachmentDto[]>([])
@@ -34,13 +34,13 @@ export function useUserAttachments() {
   }
 
   async function addAttachment(dto: {
-    userId: number
-    displayName: string
-    fileName: string
-    mimeType: string
-    fileSize: number
-    fileData: string
-    attachmentTypeId?: number | null
+    user_id: number
+    display_name: string
+    file_name: string
+    mime_type: string
+    file_size: number
+    file_data: string
+    attachment_type_id?: number | null
   }): Promise<boolean> {
     try {
       const created = await ipcInvoke<AttachmentDto>('user-attachments:create', dto)
@@ -64,7 +64,7 @@ export function useUserAttachments() {
   async function getAttachmentFile(id: number): Promise<string | null> {
     try {
       const data = await ipcInvoke<AttachmentDto>('user-attachments:get', id)
-      return data.fileData ?? null
+      return data.file_data ?? null
     } catch {
       return null
     }

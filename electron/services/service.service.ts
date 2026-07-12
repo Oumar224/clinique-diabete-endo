@@ -2,7 +2,7 @@ import { inject, singleton } from 'tsyringe'
 import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
-import type { ServiceDto, ServiceCreateDto, ServiceUpdateDto } from '../dto/settings.dto'
+import { ServiceEntity } from '../entities/service.entity'
 
 @singleton()
 export class ServiceService {
@@ -12,12 +12,8 @@ export class ServiceService {
     this.db = datasource.getInstance()
   }
 
-  private toDto(row: Record<string, unknown>): ServiceDto {
-    return { ...row, is_active: !!row.is_active } as unknown as ServiceDto
-  }
-
-  // ─── List all services (optionally only active) ──────────────
-  async list(activeOnly = false): Promise<ServiceDto[]> {
+  // ─── List all services (flat, optionally only active) ────────
+  async list(activeOnly = false): Promise<ServiceEntity[]> {
     let query = this.db
       .selectFrom('services')
       .selectAll()
@@ -29,25 +25,52 @@ export class ServiceService {
     }
 
     const rows = await query.execute()
-    return rows.map(r => this.toDto(r))
+    const services = rows as unknown as ServiceEntity[]
+
+    for (const svc of services) {
+      svc.site_ids = await this.getSiteIds(svc.id!)
+    }
+
+    return services
   }
 
   // ─── Get single service ──────────────────────────────────────
-  async getById(id: number): Promise<ServiceDto | null> {
+  async getById(id: number): Promise<ServiceEntity | null> {
     const row = await this.db
       .selectFrom('services')
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst()
 
-    return row ? this.toDto(row) : null
+    if (!row) return null
+    const svc = row as unknown as ServiceEntity
+    svc.site_ids = await this.getSiteIds(id)
+    return svc
   }
 
-  // ─── Create a new service ────────────────────────────────────
-  async create(dto: ServiceCreateDto): Promise<ServiceDto> {
-    this.validateName(dto.name)
+  // ─── List services for a given site ───────────────────────────
+  async listBySite(siteId: number): Promise<ServiceEntity[]> {
+    const rows = await this.db
+      .selectFrom('services')
+      .innerJoin('service_sites', 'service_sites.service_id', 'services.id')
+      .selectAll('services')
+      .where('service_sites.site_id', '=', siteId)
+      .where('services.is_active', '=', 1)
+      .orderBy('services.sort_order', 'asc')
+      .orderBy('services.name', 'asc')
+      .execute()
 
-    let maxOrder
+    const services = rows as unknown as ServiceEntity[]
+    for (const svc of services) {
+      svc.site_ids = await this.getSiteIds(svc.id!)
+    }
+
+    return services
+  }
+
+  // ─── Compute next sort_order ─────────────────────────────────
+  private async nextSortOrder(): Promise<number> {
+    let maxOrder: any
     try {
       maxOrder = await this.db
         .selectFrom('services')
@@ -60,19 +83,27 @@ export class ServiceService {
       throw err
     }
 
-    const nextOrder = ((maxOrder as any)?.max_order ?? -1) + 1
+    return ((maxOrder as any)?.max_order ?? -1) + 1
+  }
+
+  // ─── Create a new service ────────────────────────────────────
+  async create(entity: ServiceEntity): Promise<ServiceEntity> {
+    this.validateName(entity.name ?? '')
+
+    const nextOrder = await this.nextSortOrder()
 
     let result
     try {
       result = await this.db
         .insertInto('services')
         .values({
-          name: dto.name.trim(),
-          description: dto.description ?? null,
-          duration: dto.duration ?? 30,
-          color: dto.color ?? '#0E5C5B',
+          name: (entity.name ?? '').trim(),
+          description: entity.description ?? null,
+          duration: entity.duration ?? 30,
+          color: entity.color ?? '#0E5C5B',
           sort_order: nextOrder,
-          is_active: 1,
+          is_active: entity.is_active ?? 1,
+          category: entity.category ?? 'Consultation',
         })
         .returningAll()
         .executeTakeFirst()
@@ -84,12 +115,21 @@ export class ServiceService {
     }
 
     if (!result) throw new Error('Échec de la création du service')
-    return this.toDto(result)
+
+    const created = result as unknown as ServiceEntity
+
+    // Insert service_sites
+    if (entity.site_ids?.length) {
+      await this.setSites(created.id!, entity.site_ids)
+    }
+
+    created.site_ids = entity.site_ids ?? []
+    return created
   }
 
   // ─── Update a service ────────────────────────────────────────
-  async update(dto: ServiceUpdateDto): Promise<ServiceDto> {
-    if (dto.id == null) {
+  async update(entity: ServiceEntity): Promise<ServiceEntity> {
+    if (entity.id == null) {
       throw new Error("L'identifiant du service est requis")
     }
 
@@ -98,7 +138,7 @@ export class ServiceService {
       existing = await this.db
         .selectFrom('services')
         .selectAll()
-        .where('id', '=', dto.id)
+        .where('id', '=', entity.id)
         .executeTakeFirst()
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
@@ -109,23 +149,24 @@ export class ServiceService {
 
     if (!existing) throw new Error('Service introuvable')
 
-    if (dto.name !== undefined) {
-      this.validateName(dto.name)
+    if (entity.name !== undefined) {
+      this.validateName(entity.name ?? '')
     }
 
     const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
     }
-    if (dto.name !== undefined) updateData.name = dto.name.trim()
-    if (dto.description !== undefined) updateData.description = dto.description
-    if (dto.duration !== undefined) updateData.duration = dto.duration
-    if (dto.color !== undefined) updateData.color = dto.color
+    if (entity.name !== undefined) updateData.name = (entity.name ?? '').trim()
+    if (entity.description !== undefined) updateData.description = entity.description
+    if (entity.duration !== undefined) updateData.duration = entity.duration
+    if (entity.color !== undefined) updateData.color = entity.color
+    if (entity.category !== undefined) updateData.category = entity.category
 
     try {
       await this.db
         .updateTable('services')
         .set(updateData)
-        .where('id', '=', dto.id)
+        .where('id', '=', entity.id)
         .execute()
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
@@ -134,13 +175,18 @@ export class ServiceService {
       throw err
     }
 
-    const updated = await this.getById(dto.id)
+    // Update service_sites if provided
+    if (entity.site_ids !== undefined) {
+      await this.setSites(entity.id, entity.site_ids)
+    }
+
+    const updated = await this.getById(entity.id)
     if (!updated) throw new Error('Service introuvable après mise à jour')
     return updated
   }
 
   // ─── Toggle active/inactive ──────────────────────────────────
-  async toggle(id: number, isActive: boolean): Promise<ServiceDto> {
+  async toggle(id: number, isActive: boolean): Promise<ServiceEntity> {
     if (id == null) throw new Error("L'identifiant du service est requis")
     const existing = await this.getById(id)
     if (!existing) throw new Error('Service introuvable')
@@ -162,7 +208,6 @@ export class ServiceService {
     const existing = await this.getById(id)
     if (!existing) throw new Error('Service introuvable')
 
-    // Check for referencing medical acts
     let refCount
     try {
       refCount = await this.db
@@ -199,10 +244,9 @@ export class ServiceService {
   }
 
   // ─── Reorder services ────────────────────────────────────────
-  async reorder(ids: number[]): Promise<ServiceDto[]> {
+  async reorder(ids: number[]): Promise<ServiceEntity[]> {
     if (!ids.length) throw new Error('La liste des IDs est vide')
 
-    // Verify all IDs exist
     const existing = await this.db
       .selectFrom('services')
       .select('id')
@@ -215,7 +259,6 @@ export class ServiceService {
       throw new Error(`Services introuvables : ${missing.join(', ')}`)
     }
 
-    // Batch update sort_order using a transaction
     await this.db.transaction().execute(async (trx) => {
       for (let i = 0; i < ids.length; i++) {
         await trx
@@ -227,6 +270,80 @@ export class ServiceService {
     })
 
     return await this.list()
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // SERVICE-SITE helpers
+  // ════════════════════════════════════════════════════════════════
+
+  private async getSiteIds(serviceId: number): Promise<number[]> {
+    const rows = await this.db
+      .selectFrom('service_sites')
+      .select('site_id')
+      .where('service_id', '=', serviceId)
+      .execute()
+
+    return rows.map(r => r.site_id)
+  }
+
+  private async setSites(serviceId: number, siteIds: number[]): Promise<void> {
+    await this.db
+      .deleteFrom('service_sites')
+      .where('service_id', '=', serviceId)
+      .execute()
+
+    if (siteIds.length > 0) {
+      await this.db
+        .insertInto('service_sites')
+        .values(siteIds.map(siteId => ({ service_id: serviceId, site_id: siteId })))
+        .execute()
+    }
+  }
+
+  async getSites(serviceId: number): Promise<number[]> {
+    return this.getSiteIds(serviceId)
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // FAVORITES
+  // ════════════════════════════════════════════════════════════════
+
+  async getFavorites(userId: number): Promise<ServiceEntity[]> {
+    const rows = await this.db
+      .selectFrom('user_favorite_services')
+      .innerJoin('services', 'services.id', 'user_favorite_services.service_id')
+      .selectAll('services')
+      .where('user_favorite_services.user_id', '=', userId)
+      .orderBy('services.sort_order', 'asc')
+      .orderBy('services.name', 'asc')
+      .execute()
+
+    return rows as unknown as ServiceEntity[]
+  }
+
+  async addFavorite(userId: number, serviceId: number): Promise<void> {
+    try {
+      await this.db
+        .insertInto('user_favorite_services')
+        .values({ user_id: userId, service_id: serviceId })
+        .execute()
+    } catch (err: any) {
+      if (err?.message?.includes('UNIQUE constraint failed')) {
+        return
+      }
+      if (err?.message?.includes('FOREIGN KEY constraint failed')) {
+        throw new Error('Utilisateur ou service introuvable')
+      }
+      throw err
+    }
+  }
+
+  async removeFavorite(userId: number, serviceId: number): Promise<void> {
+    await this.db
+      .deleteFrom('user_favorite_services')
+      .where('user_id', '=', userId)
+      .where('service_id', '=', serviceId)
+      .execute()
   }
 
   // ─── Validation ──────────────────────────────────────────────

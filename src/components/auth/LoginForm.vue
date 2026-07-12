@@ -33,7 +33,7 @@
       </el-form-item>
 
       <div class="forgot-password-link">
-        <router-link to="/forgot-password">Mot de passe oublié ?</router-link>
+        <router-link to="/forgot-password">Mot de passe oublié&nbsp;?</router-link>
       </div>
 
       <el-form-item>
@@ -52,11 +52,12 @@
         </el-button>
       </el-form-item>
 
-      <p v-if="error" class="login-form__error">
-        <el-icon><WarningFilled /></el-icon>
-        {{ error }}
-      </p>
-    </el-form>
+      </el-form>
+
+    <p v-if="error" class="login-form__error">
+      <el-icon><WarningFilled /></el-icon>
+      {{ error }}
+    </p>
 
     <p class="login-form__footer">
       Application sécurisée — accès réservé au personnel de la clinique.
@@ -145,12 +146,12 @@ const emits = defineEmits<{
 
 .forgot-password-link {
   text-align: right;
-  margin: -12px 0 12px;
+  margin: 4px 0 12px;
 }
 
 .forgot-password-link a {
   font-size: 13px;
-  color: #0E5C5B;
+  color: var(--cd-primary);
   text-decoration: none;
 }
 
@@ -164,7 +165,7 @@ const emits = defineEmits<{
   gap: 6px;
   color: var(--cd-secondary);
   font-size: 13px;
-  margin-top: -12px;
+  margin-top: 12px;
 }
 
 .login-form__footer {

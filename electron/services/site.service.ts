@@ -2,7 +2,7 @@ import { inject, singleton } from 'tsyringe'
 import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
-import type { SiteDto, SiteCreateDto, SiteUpdateDto } from '../dto/site.dto'
+import type { SiteEntity } from '../entities/site.entity'
 
 @singleton()
 export class SiteService {
@@ -12,16 +12,8 @@ export class SiteService {
     this.db = datasource.getInstance()
   }
 
-  private toDto(row: Record<string, unknown>): SiteDto {
-    return {
-      ...row,
-      is_default: !!row.is_default,
-      is_active: !!row.is_active,
-    } as unknown as SiteDto
-  }
-
   // ─── List sites (optionally only active) ──────────────────────
-  async list(activeOnly = false): Promise<SiteDto[]> {
+  async list(activeOnly = false): Promise<SiteEntity[]> {
     let query = this.db
       .selectFrom('sites')
       .selectAll()
@@ -33,45 +25,45 @@ export class SiteService {
     }
 
     const rows = await query.execute()
-    return rows.map(r => this.toDto(r))
+    return rows as unknown as SiteEntity[]
   }
 
   // ─── Get single site ──────────────────────────────────────────
-  async getById(id: number): Promise<SiteDto | null> {
+  async getById(id: number): Promise<SiteEntity | null> {
     const row = await this.db
       .selectFrom('sites')
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst()
 
-    return row ? this.toDto(row) : null
+    return row ? (row as unknown as SiteEntity) : null
   }
 
   // ─── Get default site ─────────────────────────────────────────
-  async getDefault(): Promise<SiteDto | null> {
+  async getDefault(): Promise<SiteEntity | null> {
     const row = await this.db
       .selectFrom('sites')
       .selectAll()
       .where('is_default', '=', 1)
       .executeTakeFirst()
 
-    return row ? this.toDto(row) : null
+    return row ? (row as unknown as SiteEntity) : null
   }
 
   // ─── Create a new site ────────────────────────────────────────
-  async create(dto: SiteCreateDto): Promise<SiteDto> {
-    this.validateName(dto.name)
+  async create(entity: SiteEntity): Promise<SiteEntity> {
+    this.validateName(entity.name ?? '')
 
     try {
       // Check uniqueness
       const existing = await this.db
         .selectFrom('sites')
         .selectAll()
-        .where('name', '=', dto.name.trim())
+        .where('name', '=', (entity.name ?? '').trim())
         .executeTakeFirst()
 
       if (existing) {
-        throw new Error(`Le site "${dto.name.trim()}" existe déjà`)
+        throw new Error(`Le site "${(entity.name ?? '').trim()}" existe déjà`)
       }
 
       // Check if any site exists — if not, this one becomes default
@@ -86,18 +78,18 @@ export class SiteService {
       const result = await this.db
         .insertInto('sites')
         .values({
-          name: dto.name.trim(),
-          address: dto.address ?? null,
-          phone: dto.phone ?? null,
-          email: dto.email ?? null,
+          name: (entity.name ?? '').trim(),
+          address: entity.address ?? null,
+          phone: entity.phone ?? null,
+          email: entity.email ?? null,
           is_default: isDefault,
-          is_active: 1,
+          is_active: entity.is_active ?? 1,
         })
         .returningAll()
         .executeTakeFirst()
 
       if (!result) throw new Error('Échec de la création du site')
-      return this.toDto(result)
+      return result as unknown as SiteEntity
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
         throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
@@ -107,53 +99,51 @@ export class SiteService {
   }
 
   // ─── Update a site ────────────────────────────────────────────
-  async update(dto: SiteUpdateDto): Promise<SiteDto> {
-    if (dto.id == null) {
+  async update(entity: SiteEntity): Promise<SiteEntity> {
+    if (entity.id == null) {
       throw new Error("L'identifiant du site est requis")
     }
 
-    const existing = await this.getById(dto.id)
+    const existing = await this.getById(entity.id)
     if (!existing) throw new Error('Site introuvable')
 
-    // If is_default is in the update payload, delegate to setDefault
-    if (dto.is_default !== undefined) {
-      if (dto.is_default) {
-        return await this.setDefault(dto.id)
+    // If is_default is in the update, delegate to setDefault
+    if (entity.is_default !== undefined) {
+      if (entity.is_default) {
+        return await this.setDefault(entity.id)
       }
-      // If setting is_default to false, we need at least one default site
-      // Just ignore setting to false — the frontend should use setDefault for another site instead
     }
 
-    if (dto.name !== undefined) this.validateName(dto.name)
+    if (entity.name !== undefined) this.validateName(entity.name)
 
     try {
       // Check name uniqueness if changing
-      if (dto.name !== undefined) {
+      if (entity.name !== undefined) {
         const conflict = await this.db
           .selectFrom('sites')
           .selectAll()
-          .where('name', '=', dto.name.trim())
-          .where('id', '!=', dto.id)
+          .where('name', '=', (entity.name ?? '').trim())
+          .where('id', '!=', entity.id)
           .executeTakeFirst()
 
         if (conflict) {
-          throw new Error(`Le nom "${dto.name.trim()}" est déjà utilisé par un autre site`)
+          throw new Error(`Le nom "${(entity.name ?? '').trim()}" est déjà utilisé par un autre site`)
         }
       }
 
       const updateData: Record<string, unknown> = {
         updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       }
-      if (dto.name !== undefined) updateData.name = dto.name.trim()
-      if (dto.address !== undefined) updateData.address = dto.address
-      if (dto.phone !== undefined) updateData.phone = dto.phone
-      if (dto.email !== undefined) updateData.email = dto.email
-      if (dto.is_active !== undefined) updateData.is_active = dto.is_active ? 1 : 0
+      if (entity.name !== undefined) updateData.name = (entity.name ?? '').trim()
+      if (entity.address !== undefined) updateData.address = entity.address
+      if (entity.phone !== undefined) updateData.phone = entity.phone
+      if (entity.email !== undefined) updateData.email = entity.email
+      if (entity.is_active !== undefined) updateData.is_active = entity.is_active ? 1 : 0
 
       await this.db
         .updateTable('sites')
         .set(updateData)
-        .where('id', '=', dto.id)
+        .where('id', '=', entity.id)
         .execute()
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
@@ -162,13 +152,13 @@ export class SiteService {
       throw err
     }
 
-    const updated = await this.getById(dto.id)
+    const updated = await this.getById(entity.id)
     if (!updated) throw new Error('Site introuvable après mise à jour')
     return updated
   }
 
   // ─── Toggle active/inactive ──────────────────────────────────
-  async toggle(id: number, isActive: boolean): Promise<SiteDto> {
+  async toggle(id: number, isActive: boolean): Promise<SiteEntity> {
     if (id == null) throw new Error("L'identifiant du site est requis")
     const existing = await this.getById(id)
     if (!existing) throw new Error('Site introuvable')
@@ -185,7 +175,7 @@ export class SiteService {
   }
 
   // ─── Set default site ─────────────────────────────────────────
-  async setDefault(id: number): Promise<SiteDto> {
+  async setDefault(id: number): Promise<SiteEntity> {
     if (id == null) throw new Error("L'identifiant du site est requis")
     const existing = await this.getById(id)
     if (!existing) throw new Error('Site introuvable')

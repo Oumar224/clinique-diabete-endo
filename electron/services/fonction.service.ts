@@ -2,7 +2,7 @@ import { inject, singleton } from 'tsyringe'
 import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
-import type { FonctionDto, FonctionCreateDto, FonctionUpdateDto } from '../dto/settings.dto'
+import type { FonctionEntity } from '../entities/fonction.entity'
 
 @singleton()
 export class FonctionService {
@@ -12,12 +12,8 @@ export class FonctionService {
     this.db = datasource.getInstance()
   }
 
-  private toDto(row: Record<string, unknown>): FonctionDto {
-    return { ...row, is_active: !!row.is_active } as unknown as FonctionDto
-  }
-
   // ─── List fonctions (optionally only active) ──────────────────
-  async list(activeOnly = false): Promise<FonctionDto[]> {
+  async list(activeOnly = false): Promise<FonctionEntity[]> {
     let query = this.db
       .selectFrom('fonctions')
       .selectAll()
@@ -28,47 +24,47 @@ export class FonctionService {
     }
 
     const rows = await query.execute()
-    return rows.map(r => this.toDto(r))
+    return rows as unknown as FonctionEntity[]
   }
 
   // ─── Get single fonction ──────────────────────────────────────
-  async getById(id: number): Promise<FonctionDto | null> {
+  async getById(id: number): Promise<FonctionEntity | null> {
     const row = await this.db
       .selectFrom('fonctions')
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst()
 
-    return row ? this.toDto(row) : null
+    return row ? (row as unknown as FonctionEntity) : null
   }
 
   // ─── Create a new fonction ────────────────────────────────────
-  async create(dto: FonctionCreateDto): Promise<FonctionDto> {
-    this.validateName(dto.name)
+  async create(entity: FonctionEntity): Promise<FonctionEntity> {
+    this.validateName(entity.name ?? '')
 
     try {
       // Check name uniqueness
       const existing = await this.db
         .selectFrom('fonctions')
         .selectAll()
-        .where('name', '=', dto.name.trim())
+        .where('name', '=', (entity.name ?? '').trim())
         .executeTakeFirst()
 
       if (existing) {
-        throw new Error(`La fonction "${dto.name.trim()}" existe déjà`)
+        throw new Error(`La fonction "${(entity.name ?? '').trim()}" existe déjà`)
       }
 
       const result = await this.db
         .insertInto('fonctions')
         .values({
-          name: dto.name.trim(),
-          is_active: 1,
+          name: (entity.name ?? '').trim(),
+          is_active: entity.is_active ?? 1,
         })
         .returningAll()
         .executeTakeFirst()
 
       if (!result) throw new Error('Échec de la création de la fonction')
-      return this.toDto(result)
+      return result as unknown as FonctionEntity
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
         throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
@@ -78,7 +74,8 @@ export class FonctionService {
   }
 
   // ─── Update a fonction ────────────────────────────────────────
-  async update(id: number, dto: FonctionUpdateDto): Promise<FonctionDto> {
+  async update(entity: FonctionEntity): Promise<FonctionEntity> {
+    const id = entity.id
     if (id == null) {
       throw new Error('L\'identifiant de la fonction est requis')
     }
@@ -86,28 +83,28 @@ export class FonctionService {
     const existing = await this.getById(id)
     if (!existing) throw new Error('Fonction introuvable')
 
-    if (dto.name !== undefined) this.validateName(dto.name)
+    if (entity.name !== undefined) this.validateName(entity.name)
 
     try {
       // Check name uniqueness if changing
-      if (dto.name !== undefined) {
+      if (entity.name !== undefined) {
         const conflict = await this.db
           .selectFrom('fonctions')
           .selectAll()
-          .where('name', '=', dto.name.trim())
+          .where('name', '=', (entity.name ?? '').trim())
           .where('id', '!=', id)
           .executeTakeFirst()
 
         if (conflict) {
-          throw new Error(`Le nom "${dto.name.trim()}" est déjà utilisé par une autre fonction`)
+          throw new Error(`Le nom "${(entity.name ?? '').trim()}" est déjà utilisé par une autre fonction`)
         }
       }
 
       const updateData: Record<string, unknown> = {
         updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       }
-      if (dto.name !== undefined) updateData.name = dto.name.trim()
-      if (dto.is_active !== undefined) updateData.is_active = dto.is_active ? 1 : 0
+      if (entity.name !== undefined) updateData.name = (entity.name ?? '').trim()
+      if (entity.is_active !== undefined) updateData.is_active = entity.is_active ? 1 : 0
 
       await this.db
         .updateTable('fonctions')
@@ -127,7 +124,7 @@ export class FonctionService {
   }
 
   // ─── Toggle active/inactive ───────────────────────────────────
-  async toggle(id: number): Promise<FonctionDto> {
+  async toggle(id: number): Promise<FonctionEntity> {
     if (id == null) throw new Error('L\'identifiant de la fonction est requis')
 
     const existing = await this.getById(id)

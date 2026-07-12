@@ -4,7 +4,8 @@ import { join } from 'path'
 import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
-import type { LocaliteDto, LocaliteCreateDto } from '../dto/localite.dto'
+import { LocaliteEntity } from '../entities/localite.entity'
+import type { LocaliteDto } from '../dto/localite.dto'
 
 interface LocaliteRaw {
   code: string
@@ -25,12 +26,8 @@ export class LocaliteService {
     this.db = datasource.getInstance()
   }
 
-  private toDto(row: Record<string, unknown>): LocaliteDto {
-    return { ...row, is_active: !!row.is_active } as unknown as LocaliteDto
-  }
-
   // ─── List localités (optionally only active) ──────────────────
-  async list(activeOnly = false): Promise<LocaliteDto[]> {
+  async list(activeOnly = false): Promise<LocaliteEntity[]> {
     let query = this.db
       .selectFrom('localites')
       .selectAll()
@@ -41,7 +38,7 @@ export class LocaliteService {
     }
 
     const rows = await query.execute()
-    return rows.map(r => this.toDto(r))
+    return rows as unknown as LocaliteEntity[]
   }
 
   // ─── Get hierarchical tree ────────────────────────────────────
@@ -52,7 +49,7 @@ export class LocaliteService {
     const map = new Map<number, LocaliteDto>()
     for (const loc of all) {
       if (loc.id != null) {
-        map.set(loc.id, { ...loc, children: [] })
+        map.set(loc.id, { ...LocaliteEntity.toDto(loc), children: [] })
       }
     }
 
@@ -72,29 +69,29 @@ export class LocaliteService {
   }
 
   // ─── Get single localité ─────────────────────────────────────
-  async getById(id: number): Promise<LocaliteDto | null> {
+  async getById(id: number): Promise<LocaliteEntity | null> {
     const row = await this.db
       .selectFrom('localites')
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst()
 
-    return row ? this.toDto(row) : null
+    return row ? (row as unknown as LocaliteEntity) : null
   }
 
   // ─── Get single localité by code ──────────────────────────────
-  async getByCode(code: string): Promise<LocaliteDto | null> {
+  async getByCode(code: string): Promise<LocaliteEntity | null> {
     const row = await this.db
       .selectFrom('localites')
       .selectAll()
       .where('code', '=', code)
       .executeTakeFirst()
 
-    return row ? this.toDto(row) : null
+    return row ? (row as unknown as LocaliteEntity) : null
   }
 
   // ─── Get children of a localité ───────────────────────────────
-  async getChildren(parentId: number): Promise<LocaliteDto[]> {
+  async getChildren(parentId: number): Promise<LocaliteEntity[]> {
     const rows = await this.db
       .selectFrom('localites')
       .selectAll()
@@ -102,7 +99,7 @@ export class LocaliteService {
       .orderBy('name', 'asc')
       .execute()
 
-    return rows.map(r => this.toDto(r))
+    return rows as unknown as LocaliteEntity[]
   }
 
   // ─── Import from gn-localites.json (idempotent) ───────────────
@@ -331,7 +328,7 @@ export class LocaliteService {
   }
 
   // ─── Toggle active/inactive ──────────────────────────────────
-  async toggle(id: number, isActive: boolean): Promise<LocaliteDto> {
+  async toggle(id: number, isActive: boolean): Promise<LocaliteEntity> {
     if (id == null) throw new Error("L'identifiant de la localité est requis")
     const existing = await this.getById(id)
     if (!existing) throw new Error('Localité introuvable')
@@ -351,7 +348,7 @@ export class LocaliteService {
   }
 
   // ─── Search by name or code ───────────────────────────────────
-  async search(query: string): Promise<LocaliteDto[]> {
+  async search(query: string): Promise<LocaliteEntity[]> {
     if (!query || query.trim().length === 0) {
       return []
     }
@@ -368,41 +365,41 @@ export class LocaliteService {
       .limit(50)
       .execute()
 
-    return rows.map(r => this.toDto(r))
+    return rows as unknown as LocaliteEntity[]
   }
 
-  // ─── Create localité (for future use) ─────────────────────────
-  async create(dto: LocaliteCreateDto): Promise<LocaliteDto> {
-    this.validateName(dto.name)
-    this.validateCode(dto.code)
+  // ─── Create localité ──────────────────────────────────────────
+  async create(entity: LocaliteEntity): Promise<LocaliteEntity> {
+    this.validateName(entity.name ?? '')
+    this.validateCode(entity.code ?? '')
 
     try {
       const existing = await this.db
         .selectFrom('localites')
         .selectAll()
-        .where('code', '=', dto.code.trim().toUpperCase())
+        .where('code', '=', (entity.code ?? '').trim().toUpperCase())
         .executeTakeFirst()
 
       if (existing) {
-        throw new Error(`Le code "${dto.code.trim().toUpperCase()}" est déjà utilisé`)
+        throw new Error(`Le code "${(entity.code ?? '').trim().toUpperCase()}" est déjà utilisé`)
       }
 
       const result = await this.db
         .insertInto('localites')
         .values({
-          code: dto.code.trim().toUpperCase(),
-          name: dto.name.trim(),
-          type: dto.type,
-          parent_id: dto.parent_id ?? null,
-          country: dto.country?.trim().toUpperCase() || 'GN',
-          is_active: 1,
-          region: dto.region ?? undefined,
+          code: (entity.code ?? '').trim().toUpperCase(),
+          name: (entity.name ?? '').trim(),
+          type: entity.type as string,
+          parent_id: entity.parent_id ?? null,
+          country: entity.country?.trim().toUpperCase() || 'GN',
+          is_active: entity.is_active ?? 1,
+          region: entity.region ?? undefined,
         })
         .returningAll()
         .executeTakeFirst()
 
       if (!result) throw new Error("Échec de la création de la localité")
-      return this.toDto(result)
+      return result as unknown as LocaliteEntity
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
         throw new Error("La base de données n'est pas initialisée correctement. Contactez l'administrateur.")

@@ -1,49 +1,50 @@
 <template>
   <div class="dossier-section">
-    <div class="dossier-section__scores-grid">
-      <el-card class="score-card">
-        <template #header><strong>Glasgow (Coma)</strong></template>
-        <div class="score-card__body">
-          <div v-for="item in glasgowItems" :key="item.key" class="score-field">
-            <label class="score-field__label">{{ item.label }}</label>
-            <el-radio-group v-model="glasgowValues[item.key]" class="score-field__radios">
-              <el-radio v-for="opt in item.options" :key="opt.value" :value="opt.value" size="small" border>
-                {{ opt.label }}
-              </el-radio>
-            </el-radio-group>
+    <SectionHeader label="Échelles cliniques" level="primary">
+      <div class="dossier-section__scores-grid">
+        <SectionHeader label="Glasgow (Coma)" level="tertiary">
+          <div class="score-card__body">
+            <div v-for="item in glasgowItems" :key="item.key" class="score-field">
+              <label class="score-field__label">{{ item.label }}</label>
+              <el-radio-group v-model="glasgowValues[item.key]" class="score-field__radios">
+                <el-radio v-for="opt in item.options" :key="opt.value" :value="opt.value" size="small" border>
+                  {{ opt.label }}
+                </el-radio>
+              </el-radio-group>
+            </div>
+            <div class="score-card__result">
+              Score Glasgow&nbsp;: <strong>{{ glasgowScore }}</strong> / 15
+              <el-tag :type="glasgowSeverity.type" size="small" style="margin-left:8px">
+                {{ glasgowSeverity.label }}
+              </el-tag>
+            </div>
           </div>
-          <div class="score-card__result">
-            Score Glasgow: <strong>{{ glasgowScore }}</strong> / 15
-            <el-tag :type="glasgowSeverity.type" size="small" style="margin-left:8px">
-              {{ glasgowSeverity.label }}
-            </el-tag>
-          </div>
-        </div>
-      </el-card>
+        </SectionHeader>
 
-      <el-card class="score-card">
-        <template #header><strong>Autonomie (SL)</strong></template>
-        <div class="score-card__body">
-          <div v-for="item in autonomieItems" :key="item.key" class="score-field">
-            <label class="score-field__label">{{ item.label }}</label>
-            <el-radio-group v-model="autonomieValues[item.key]" class="score-field__radios">
-              <el-radio v-for="opt in item.options" :key="opt.value" :value="opt.value" size="small" border>
-                {{ opt.label }}
-              </el-radio>
-            </el-radio-group>
+        <SectionHeader label="Autonomie (SL)" level="tertiary">
+          <div class="score-card__body">
+            <div v-for="item in autonomieItems" :key="item.key" class="score-field">
+              <label class="score-field__label">{{ item.label }}</label>
+              <el-radio-group v-model="autonomieValues[item.key]" class="score-field__radios">
+                <el-radio v-for="opt in item.options" :key="opt.value" :value="opt.value" size="small" border>
+                  {{ opt.label }}
+                </el-radio>
+              </el-radio-group>
+            </div>
+            <div class="score-card__result">
+              Niveau autonomie&nbsp;: <strong>{{ autonomieLevel }}</strong>
+            </div>
           </div>
-          <div class="score-card__result">
-            Niveau autonomie: <strong>{{ autonomieLevel }}</strong>
-          </div>
-        </div>
-      </el-card>
-    </div>
+        </SectionHeader>
+      </div>
+    </SectionHeader>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { calculateGlasgow, getGlasgowSeverity, calculateAutonomieLevel, type GlasgowValues, type AutonomieValues } from '@/composables/useScoresCliniques'
+import SectionHeader from '@/components/common/SectionHeader.vue'
 
 interface GlasgowOption { value: number; label: string }
 interface GlasgowItem { key: keyof GlasgowValues; label: string; options: GlasgowOption[] }
@@ -98,37 +99,49 @@ const autonomieLevel = computed(() => calculateAutonomieLevel(autonomieValues.va
 </script>
 
 <style scoped>
-.dossier-section__scores-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-.score-card__body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.score-field {
+.dossier-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
+.dossier-section__scores-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.score-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px;
+}
+
+.score-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .score-field__label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--cd-gray-600);
 }
+
 .score-field__radios {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
 }
+
 .score-card__result {
-  margin-top: 12px;
-  padding: 12px;
+  margin-top: 8px;
+  padding: 8px 10px;
   background: var(--cd-gray-50);
-  border-radius: 8px;
-  font-size: 14px;
+  border: 1px solid var(--cd-gray-200);
+  font-size: 13px;
   color: var(--cd-gray-900);
 }
 </style>

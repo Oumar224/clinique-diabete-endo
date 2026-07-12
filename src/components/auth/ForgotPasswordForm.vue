@@ -2,7 +2,7 @@
   <div class="forgot-password-form">
     <el-card v-if="!submitted" shadow="never" class="forgot-password-form__card">
       <div class="forgot-password-form__header">
-        <h1 class="forgot-password-form__title">Mot de passe oublié</h1>
+        <h1 class="forgot-password-form__title">Mot de passe oubli\u00e9&nbsp;?</h1>
         <p class="forgot-password-form__subtitle">
           Saisissez votre email pour recevoir un nouveau mot de passe temporaire
         </p>
@@ -45,7 +45,7 @@
 
     <el-card v-else shadow="never" class="forgot-password-form__card">
       <div class="forgot-password-form__success">
-        <el-icon :size="48" color="#0E5C5B"><CircleCheckFilled /></el-icon>
+        <el-icon :size="48" color="var(--cd-primary)"><CircleCheckFilled /></el-icon>
         <h2 class="forgot-password-form__success-title">Email envoyé</h2>
         <p class="forgot-password-form__success-message">
           Si un compte existe avec cet email, un message vous a été envoyé avec les instructions.
@@ -137,7 +137,7 @@ async function handleSubmit() {
 }
 
 .forgot-password-form__footer a {
-  color: #0E5C5B;
+  color: var(--cd-primary);
   text-decoration: none;
 }
 

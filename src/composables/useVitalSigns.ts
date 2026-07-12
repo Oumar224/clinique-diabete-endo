@@ -16,6 +16,12 @@ export interface VitalSigns {
   frequenceCardiaque: number | null
   temperature: number | null
   glycemie: number | null
+  cetonemie: number | null
+  glucosurie: string | null
+  cetonurie: string | null
+  saO2: number | null
+  diurese: number | null
+  poids: number | null
 }
 
 // ── Provide/Inject key ────────────────────────────────────────────────────
@@ -165,5 +171,11 @@ function toVitalSigns(record: VitalSignsRecord): VitalSigns {
     frequenceCardiaque: record.frequenceCardiaque,
     temperature: record.temperature,
     glycemie: record.glycemie,
+    cetonemie: record.cetonemie,
+    glucosurie: record.glucosurie,
+    cetonurie: record.cetonurie,
+    saO2: record.saO2,
+    diurese: record.diurese,
+    poids: record.poids,
   }
 }

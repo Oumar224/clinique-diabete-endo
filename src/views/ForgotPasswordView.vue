@@ -19,7 +19,7 @@ useAuth()
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: var(--cd-gray-50, #f5f7fa);
+  background: var(--cd-page-bg);
 }
 
 .forgot-password-view__card {

@@ -1,8 +1,43 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import DiagrammeSyntheseTab from '../DiagrammeSyntheseTab.vue'
+
+// ---------------------------------------------------------------------------
+// Helper: minimal VitalSignsRecord factory
+// ---------------------------------------------------------------------------
+function vitalSign(
+  overrides: Partial<{
+    id: number
+    patientId: number
+    createdBy: number
+    createdAt: string
+    updatedAt: string
+    date: string
+    temperature: number | null
+    taSystolique: number | null
+    taDiastolique: number | null
+    frequenceCardiaque: number | null
+    glycemie: number | null
+  }> = {},
+) {
+  return {
+    id: 1,
+    patientId: 42,
+    createdBy: 1,
+    createdAt: '2026-07-04T10:30:00',
+    updatedAt: '2026-07-04T10:30:00',
+    date: '2026-07-04',
+    temperature: null,
+    taSystolique: null,
+    taDiastolique: null,
+    frequenceCardiaque: null,
+    glycemie: null,
+    ...overrides,
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -25,6 +60,20 @@ vi.mock('vue-chartjs', () => ({
     props: ['data', 'options'],
     template: '<div class="chart-line" />',
   },
+}))
+
+// Mock API modules — return resolved empty arrays so fetchData completes
+vi.mock('@/api/vitalSigns', () => ({
+  getVitalSignsList: vi.fn().mockResolvedValue([]),
+}))
+
+vi.mock('@/api/planSoins', () => ({
+  getValidesPlanSoins: vi.fn().mockResolvedValue([]),
+}))
+
+// Mock vue-router
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { id: '42' } }),
 }))
 
 // ---------------------------------------------------------------------------
@@ -55,6 +104,27 @@ const stubs = {
       '<div class="el-timeline-item"><span class="el-timeline-item__timestamp">{{ timestamp }}</span><slot /></div>',
     props: ['timestamp', 'type', 'size', 'placement', 'hideTimestamp', 'color', 'icon', 'hollow'],
   },
+  'el-date-picker': {
+    template:
+      '<div class="el-date-picker" />',
+    props: ['modelValue', 'type', 'rangeSeparator', 'startPlaceholder', 'endPlaceholder', 'valueFormat', 'disabledDate'],
+    emits: ['change', 'update:modelValue'],
+  },
+  'el-alert': {
+    template:
+      '<div class="el-alert" v-if="title"><p class="el-alert__title">{{ title }}</p><slot /></div>',
+    props: ['title', 'type', 'showIcon', 'closable'],
+    emits: ['close'],
+  },
+  'el-select': {
+    template: '<div class="el-select"><slot /></div>',
+    props: ['modelValue'],
+    emits: ['update:modelValue', 'change'],
+  },
+  'el-option': {
+    template: '<div class="el-option" :data-value="value">{{ label }}</div>',
+    props: ['label', 'value'],
+  },
 }
 
 // ---------------------------------------------------------------------------
@@ -69,58 +139,68 @@ describe('DiagrammeSyntheseTab', () => {
   // Structure
   // -----------------------------------------------------------------------
   describe('structure', () => {
-    it('renders the title "Diagramme de synthèse — 24h"', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
+    it('renders the header with title and date picker', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      expect(wrapper.find('.diagramme__header').exists()).toBe(true)
       expect(wrapper.text()).toContain('Diagramme de synthèse')
-      expect(wrapper.text()).toContain('24h')
+      expect(wrapper.find('.el-date-picker').exists()).toBe(true)
     })
 
     it('renders the chart wrapper with a Line chart component', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
       expect(wrapper.find('.diagramme__chart-wrapper').exists()).toBe(true)
-      expect(wrapper.find('.chart-line').exists()).toBe(true)
     })
 
     it('renders the legend section', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
       expect(wrapper.text()).toContain('Légende')
       expect(wrapper.text()).toContain('Température (°C)')
+      expect(wrapper.text()).toContain('TA systolique (mmHg)')
       expect(wrapper.text()).toContain('Médicament validé')
     })
 
-    it('renders the "Administrations validées (24h)" section', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
+    it('renders the "Administrations validées" section', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
       expect(wrapper.text()).toContain('Administrations validées')
     })
   })
 
   // -----------------------------------------------------------------------
-  // Medication timeline
+  // State: date range defaults
   // -----------------------------------------------------------------------
-  describe('medication timeline', () => {
-    it('renders all 3 medication timeline items', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
-      const items = wrapper.findAll('.el-timeline-item')
-      expect(items.length).toBe(3)
+  describe('date range', () => {
+    it('defaults to today only', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      expect(vm.dateRange).toBeDefined()
+      expect(vm.dateRange.length).toBe(2)
+      // Both entries should be today's date
+      const today = new Date().toISOString().slice(0, 10)
+      expect(vm.dateRange[0]).toBe(today)
+      expect(vm.dateRange[1]).toBe(today)
     })
 
-    it('displays medication names (Furosémide, Metformine) in timeline', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
-      expect(wrapper.text()).toContain('Furosémide')
-      expect(wrapper.text()).toContain('Metformine')
+    it('allows selecting future dates (no disabled-date restriction)', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      expect(vm.dateRange).toBeDefined()
+      expect(vm.disableFutureDate).toBeUndefined()
     })
+  })
 
-    it('displays soignant name (IDE Diallo) in timeline', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
-      expect(wrapper.text()).toContain('IDE Diallo')
-    })
-
-    it('displays timestamps on timeline items', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
-      const items = wrapper.findAll('.el-timeline-item')
-      const firstTimestamp = items[0].find('.el-timeline-item__timestamp')
-      expect(firstTimestamp.exists()).toBe(true)
-      expect(firstTimestamp.text()).toBe('08:15')
+  // -----------------------------------------------------------------------
+  // Loading state
+  // -----------------------------------------------------------------------
+  describe('loading state', () => {
+    it('finishes with loading false and no error after data fetch', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      // onMounted triggers async fetchData. flushPromises drains the microtask
+      // queue so the mocked API promises resolve and loading goes back to false.
+      await flushPromises()
+      await nextTick()
+      expect(vm.loading).toBe(false)
+      expect(vm.error).toBeNull()
     })
   })
 
@@ -128,61 +208,203 @@ describe('DiagrammeSyntheseTab', () => {
   // Chart data computed
   // -----------------------------------------------------------------------
   describe('chart data computed', () => {
-    it('exposes chartData with 24 labels (00h–23h) and 24 data points', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
+    it('returns null when no vital signs data is loaded', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
       const vm = wrapper.vm as any
-      const data = vm.chartData
-      expect(data).toBeDefined()
-      expect(data.labels).toBeDefined()
-      expect(data.labels.length).toBe(24)
-      expect(data.labels[0]).toBe('00h')
-      expect(data.labels[23]).toBe('23h')
-    })
-
-    it('has exactly one dataset with correct label, borderColor and backgroundColor', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
-      const vm = wrapper.vm as any
-      const ds = vm.chartData.datasets
-      expect(ds.length).toBe(1)
-      expect(ds[0].label).toBe('Température (°C)')
-      expect(ds[0].borderColor).toBe('#FF3131')
-      expect(ds[0].backgroundColor).toBe('rgba(255, 49, 49, 0.08)')
-    })
-
-    it('has fill enabled and tension 0.4 on the dataset', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
-      const vm = wrapper.vm as any
-      const ds = vm.chartData.datasets[0]
-      expect(ds.fill).toBe(true)
-      expect(ds.tension).toBe(0.4)
+      await flushPromises()
+      await nextTick()
+      expect(vm.chartData).toBeNull()
     })
   })
 
   // -----------------------------------------------------------------------
-  // Chart options
+  // Chart data labels — Bug fix: date+time format
   // -----------------------------------------------------------------------
-  describe('chart options', () => {
-    it('has responsive enabled and legend hidden', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
+  describe('chart data labels', () => {
+    it('labels contain date and time (dd/mm/yyyy HH:MM) for single-day range', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
       const vm = wrapper.vm as any
-      const opts = vm.chartOptions
-      expect(opts.responsive).toBe(true)
-      expect(opts.plugins.legend.display).toBe(false)
+      await nextTick()
+
+      vm.vitalSignsData = [
+        vitalSign({ id: 1, createdAt: '2026-07-04T08:15:00', temperature: 37.0 }),
+        vitalSign({ id: 2, createdAt: '2026-07-04T14:45:00', temperature: 38.5 }),
+      ]
+      await nextTick()
+
+      expect(vm.chartData).not.toBeNull()
+      expect(vm.chartData.labels).toHaveLength(2)
+      // Both labels must follow dd/mm/yyyy HH:MM
+      expect(vm.chartData.labels[0]).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/)
+      expect(vm.chartData.labels[1]).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/)
     })
 
-    it('has tooltip callback that formats label as "{{y}} °C"', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
+    it('labels contain date and time (dd/mm/yyyy HH:MM) for multi-day range', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
       const vm = wrapper.vm as any
-      const tooltipLabel = vm.chartOptions.plugins.tooltip.callbacks.label
-      const result = tooltipLabel({ parsed: { y: 37.5 } })
-      expect(result).toBe('37.5 °C')
+      await nextTick()
+
+      vm.dateRange = ['2026-07-01', '2026-07-07']
+      vm.vitalSignsData = [
+        vitalSign({ id: 1, createdAt: '2026-07-01T08:15:00', date: '2026-07-01', temperature: 36.8 }),
+        vitalSign({ id: 2, createdAt: '2026-07-03T16:30:00', date: '2026-07-03', temperature: 37.2 }),
+      ]
+      await nextTick()
+
+      expect(vm.chartData).not.toBeNull()
+      expect(vm.chartData.labels).toHaveLength(2)
+      // Even with a multi-day range, labels must still show date+time
+      expect(vm.chartData.labels[0]).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/)
+      expect(vm.chartData.labels[1]).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/)
     })
 
-    it('has y-axis title "°C"', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
+    it('uses date fallback when createdAt is missing', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
       const vm = wrapper.vm as any
-      const yTitle = vm.chartOptions.scales.y.title
-      expect(yTitle.text).toBe('°C')
+      await nextTick()
+
+      vm.vitalSignsData = [
+        vitalSign({ id: 1, createdAt: '', temperature: 37.5 }),
+      ]
+      await nextTick()
+
+      expect(vm.chartData).not.toBeNull()
+      expect(vm.chartData.labels).toHaveLength(1)
+      // When createdAt is empty, the component falls back to v.date
+      expect(vm.chartData.labels[0]).toBe('2026-07-04')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Glycemia Y-axis max — Bug fix: dynamic max based on data
+  // -----------------------------------------------------------------------
+  describe('glycemia Y-axis max', () => {
+    it('computes dynamic max from data values + 20% margin, rounded to stepSize', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      await nextTick()
+
+      vm.selectedIndicator = 'glycemie'
+      vm.vitalSignsData = [
+        vitalSign({ id: 1, createdAt: '2026-07-04T08:00:00', glycemie: 1.5 }),
+        vitalSign({ id: 2, createdAt: '2026-07-04T12:00:00', glycemie: 2.8 }),
+      ]
+      await nextTick()
+
+      // dataMax = 2.8 → 2.8 × 1.2 = 3.36 → ceil(3.36 / 0.3) × 0.3 = 12 × 0.3 = 3.6
+      expect(vm.chartOptions.scales.y.max).toBeCloseTo(3.6, 5)
+    })
+
+    it('falls back to default max (3.0) when no vital signs data', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      await flushPromises()
+      await nextTick()
+
+      vm.selectedIndicator = 'glycemie'
+      await nextTick()
+
+      expect(vm.chartOptions.scales.y.max).toBe(3.0)
+    })
+
+    it('falls back to default max (3.0) when all glycemia values are null', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      await nextTick()
+
+      vm.selectedIndicator = 'glycemie'
+      vm.vitalSignsData = [
+        vitalSign({ id: 1, createdAt: '2026-07-04T08:00:00', temperature: 37.0, glycemie: null }),
+        vitalSign({ id: 2, createdAt: '2026-07-04T12:00:00', temperature: 38.0, glycemie: null }),
+      ]
+      await nextTick()
+
+      expect(vm.chartOptions.scales.y.max).toBe(3.0)
+    })
+
+    it('uses static max for non-glycemia indicators', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      await nextTick()
+
+      vm.selectedIndicator = 'taSystolique'
+      vm.vitalSignsData = [
+        vitalSign({ id: 1, createdAt: '2026-07-04T08:00:00', taSystolique: 130 }),
+      ]
+      await nextTick()
+
+      // taSystolique uses static config max of 200, NOT dynamic computation
+      expect(vm.chartOptions.scales.y.max).toBe(200)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+  describe('edge cases', () => {
+    it('returns null chartData when all indicator values are null', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      await nextTick()
+
+      // All values null for the selected indicator (temperature by default)
+      vm.vitalSignsData = [
+        vitalSign({ id: 1, createdAt: '2026-07-04T08:00:00', temperature: null }),
+        vitalSign({ id: 2, createdAt: '2026-07-04T12:00:00', temperature: null }),
+      ]
+      await nextTick()
+
+      expect(vm.chartData).toBeNull()
+    })
+
+    it('handles very high glycemia values with appropriate dynamic max', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      await nextTick()
+
+      vm.selectedIndicator = 'glycemie'
+      vm.vitalSignsData = [
+        vitalSign({ id: 1, createdAt: '2026-07-04T10:30:00', glycemie: 10.0 }),
+      ]
+      await nextTick()
+
+      // dataMax = 10.0 → 10.0 × 1.2 = 12.0 → ceil(12.0 / 0.3) × 0.3 = 40 × 0.3 = 12.0
+      expect(vm.chartOptions.scales.y.max).toBeCloseTo(12.0, 5)
+      // A single label present
+      expect(vm.chartData).not.toBeNull()
+      expect(vm.chartData.labels).toHaveLength(1)
+      expect(vm.chartData.labels[0]).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/)
+    })
+
+    it('handles single data point with correct label and y-axis max', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      await nextTick()
+
+      vm.selectedIndicator = 'glycemie'
+      vm.vitalSignsData = [
+        vitalSign({ id: 1, createdAt: '2026-07-04T18:00:00', glycemie: 1.2 }),
+      ]
+      await nextTick()
+
+      expect(vm.chartData).not.toBeNull()
+      expect(vm.chartData.labels).toHaveLength(1)
+      expect(vm.chartData.labels[0]).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/)
+
+      // dataMax = 1.2 → 1.2 × 1.2 = 1.44 → ceil(1.44 / 0.3) × 0.3 = 1.5
+      // The dynamic max has a floor of cfg.max (3.0), so it stays at 3.0
+      expect(vm.chartOptions.scales.y.max).toBe(3.0)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Medication timeline
+  // -----------------------------------------------------------------------
+  describe('medication timeline', () => {
+    it('renders empty timeline when no valides data', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const items = wrapper.findAll('.el-timeline-item')
+      expect(items.length).toBe(0)
     })
   })
 
@@ -190,16 +412,110 @@ describe('DiagrammeSyntheseTab', () => {
   // Legend items
   // -----------------------------------------------------------------------
   describe('legend items', () => {
-    it('renders legend dot with --temp class for temperature', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
-      const dot = wrapper.find('.diagramme__legend-dot--temp')
-      expect(dot.exists()).toBe(true)
+    it('renders legend dots for temp and TA', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      expect(wrapper.find('.diagramme__legend-dot--temp').exists()).toBe(true)
+      expect(wrapper.find('.diagramme__legend-dot--ta').exists()).toBe(true)
     })
 
-    it('renders both legend items (temp + medication)', () => {
-      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs } })
+    it('renders three legend items (temp, TA, medication)', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
       const items = wrapper.findAll('.diagramme__legend-item')
-      expect(items.length).toBe(2)
+      expect(items.length).toBe(3)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Chart options
+  // -----------------------------------------------------------------------
+  describe('chart options', () => {
+    it('has responsive enabled and legend visible at top', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      const opts = vm.chartOptions
+      expect(opts.responsive).toBe(true)
+      expect(opts.plugins.legend.display).toBe(true)
+      expect(opts.plugins.legend.position).toBe('top')
+    })
+
+    it('has tooltip callback that formats as "Label: y"', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      const tooltipLabel = vm.chartOptions.plugins.tooltip.callbacks.label
+      const result = tooltipLabel({ dataset: { label: 'Température (°C)' }, parsed: { y: 37.5 } })
+      expect(result).toBe('Température (°C): 37.5')
+    })
+
+    it('has left y-axis with temperature config by default', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      const scales = vm.chartOptions.scales
+      expect(scales.y).toBeDefined()
+      expect(scales.y.position).toBe('left')
+      expect(scales.y.title.text).toBe('°C')
+      expect(scales.y.min).toBe(35)
+      expect(scales.y.max).toBe(40)
+      expect(scales.y.ticks.stepSize).toBe(0.5)
+    })
+
+    it('switches Y-axis options when indicator changes', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      vm.selectedIndicator = 'taSystolique'
+      await nextTick()
+      const scales = vm.chartOptions.scales
+      expect(scales.y).toBeDefined()
+      expect(scales.y.title.text).toBe('mmHg')
+      expect(scales.y.min).toBe(60)
+      expect(scales.y.max).toBe(200)
+    })
+
+    it('sets X-axis title to Heure when date range is a single day', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      // Default is single day (today = today)
+      expect(vm.chartOptions.scales.x.title.text).toBe('Heure')
+    })
+
+    it('sets X-axis title to Date when date range spans multiple days', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      vm.dateRange = ['2026-07-01', '2026-07-07']
+      await nextTick()
+      expect(vm.chartOptions.scales.x.title.text).toBe('Date')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Indicator selection
+  // -----------------------------------------------------------------------
+  describe('indicator selection', () => {
+    it('defaults to temperature', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      expect(vm.selectedIndicator).toBe('temperature')
+    })
+
+    it('renders el-select with all indicator options', () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const select = wrapper.find('.el-select')
+      expect(select.exists()).toBe(true)
+      const options = wrapper.findAll('.el-option')
+      expect(options.length).toBe(5)
+      expect(wrapper.text()).toContain('Température (°C)')
+      expect(wrapper.text()).toContain('TA systolique (mmHg)')
+      expect(wrapper.text()).toContain('TA diastolique (mmHg)')
+      expect(wrapper.text()).toContain('Fréquence cardiaque (bpm)')
+      expect(wrapper.text()).toContain('Glycémie (g/L)')
+    })
+
+    it('replaces indicator when a new one is selected', async () => {
+      const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
+      const vm = wrapper.vm as any
+      expect(vm.selectedIndicator).toBe('temperature')
+      vm.selectedIndicator = 'taSystolique'
+      await nextTick()
+      expect(vm.selectedIndicator).toBe('taSystolique')
     })
   })
 })

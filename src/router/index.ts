@@ -53,9 +53,9 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/patients/DossierView.vue'),
           },
           {
-            path: 'labo',
-            name: 'patient-labo',
-            component: () => import('@/views/patients/LaboView.vue'),
+            path: 'dossier-clinic',
+            name: 'patient-dossier-clinic',
+            component: () => import('@/views/patients/DossierClinicView.vue'),
           },
           {
             path: 'prescription',
@@ -79,6 +79,11 @@ const routes: RouteRecordRaw[] = [
             name: 'patient-soins',
             component: () => import('@/views/patients/SoinsView.vue'),
             meta: { roles: ['MEDECIN', 'INFIRMIER', 'ADMIN'] },
+          },
+          {
+            path: 'contact',
+            name: 'patient-contact',
+            component: () => import('@/views/patients/ContactView.vue'),
           },
           {
             path: 'sejour',
@@ -117,6 +122,12 @@ const routes: RouteRecordRaw[] = [
         path: 'parametres',
         name: 'settings',
         component: () => import('@/views/SettingsView.vue'),
+      },
+      {
+        path: 'configuration-clinic',
+        name: 'configuration-clinic',
+        component: () => import('@/views/ConfigurationClinicView.vue'),
+        meta: { roles: ['ADMIN'] },
       },
       {
         path: 'profil',

@@ -1,24 +1,35 @@
 export interface PatientAttachmentDto {
   id: number
-  patientId: number
-  displayName: string
-  fileName: string
-  mimeType: string | null
-  fileSize: number | null
-  fileData?: string
+  patient_id: number
+  display_name: string
+  file_name: string
+  mime_type: string | null
+  file_size: number | null
+  file_data?: string
   category?: string
-  attachmentTypeId?: number
-  attachmentTypeName?: string
-  createdAt: string
+  attachment_type_id?: number
+  attachment_type_name?: string
+  created_at: string
 }
 
 export interface CreatePatientAttachmentDto {
-  patientId: number
-  displayName: string
-  fileName: string
-  mimeType?: string | null
-  fileSize?: number | null
-  fileData: string
+  patient_id: number
+  display_name: string
+  file_name: string
+  mime_type?: string | null
+  file_size?: number | null
+  file_data: string
   category?: string
-  attachmentTypeId?: number
+  attachment_type_id?: number
+}
+
+export interface UpdatePatientAttachmentDto {
+  id: number
+  display_name?: string
+  file_name?: string
+  mime_type?: string | null
+  file_size?: number | null
+  file_data?: string
+  category?: string
+  attachment_type_id?: number | null
 }

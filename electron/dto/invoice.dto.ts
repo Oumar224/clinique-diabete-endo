@@ -45,6 +45,19 @@ export interface InvoiceCreateDto {
   items: InvoiceItemDto[]
 }
 
+export interface InvoiceListDto {
+  search?: string
+  status?: string
+  date_debut?: string
+  date_fin?: string
+}
+
+export interface InvoiceUpdateDto {
+  id: number
+  notes?: string
+  status?: string
+}
+
 export interface InvoiceStatsDto {
   ca_jour: number
   en_attente: number

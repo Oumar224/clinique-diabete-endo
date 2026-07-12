@@ -118,6 +118,7 @@
           v-model="form.service_ids"
           multiple
           filterable
+          collapse-tags
           style="width: 100%"
           placeholder="Sélectionner des services"
           :loading="servicesLoading"
@@ -297,6 +298,7 @@ const {
   loading: servicesLoading,
   fetchServices: fetchMedicalServices,
 } = useMedicalServices()
+
 const { sites, loading: sitesLoading, fetchSites } = useSites()
 const {
   units: medicalUnits,
@@ -536,5 +538,31 @@ defineExpose({ open, close })
 
 .photo-remove:hover {
   transform: scale(1.15);
+}
+
+.uf__service-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.uf__service-code {
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-color-info, #909399);
+  background: var(--el-fill-color-light, #f5f7fa);
+  padding: 1px 5px;
+  border-radius: 2px;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+}
+
+.uf__service-depth {
+  font-size: 10px;
+  color: var(--el-text-color-secondary, #909399);
+  margin-left: auto;
+  flex-shrink: 0;
 }
 </style>

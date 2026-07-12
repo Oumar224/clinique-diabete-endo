@@ -18,7 +18,7 @@
     <el-table
       :data="filteredList"
       style="width: 100%"
-      :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
+      border
     >
       <el-table-column prop="dci" label="DCI" />
       <el-table-column prop="commercial" label="Nom commercial" />
@@ -43,8 +43,6 @@
         </template>
       </el-table-column>
     </el-table>
-
-    <el-empty v-if="filteredList.length === 0" description="Aucun médicament trouvé" />
 
     <el-row justify="center" style="margin-top: 20px">
       <el-pagination

@@ -1,62 +1,69 @@
 <template>
   <div class="patients-list">
-    <div class="patients-list__header">
-      <h1 class="patients-list__title">Patients</h1>
-      <div class="patients-list__actions">
+    <SectionHeader label="Gestion des Patients" :icon="User" level="primary">
+      <template #actions>
+        <el-button type="primary" :icon="Plus" size="small" @click="openCreate">Nouveau patient</el-button>
+      </template>
+      <div class="patients-list__toolbar">
         <el-input
           v-model="search"
           placeholder="Rechercher par nom, prénom ou N° SS..."
           :prefix-icon="Search"
           clearable
-          style="width: 320px"
+          style="width: 280px"
+          size="small"
           @input="onSearch"
         />
-        <el-button type="primary" :icon="Plus" @click="openCreate">Nouveau patient</el-button>
+        <el-button size="small" :loading="exportingExcel" @click="exportPatientsListExcel">
+          <el-icon><Download /></el-icon> Exporter (Excel)
+        </el-button>
       </div>
-    </div>
+    </SectionHeader>
 
     <el-table
       v-loading="loading"
       :data="filteredList"
       style="width: 100%"
       @row-click="onPatientClick"
-      :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
+      size="small"
+      border
+      highlight-current-row
     >
-      <el-table-column label="" width="50">
+      <el-table-column label="" width="38">
         <template #default="{ row }">
-          <el-avatar :size="32" :src="row.photo || undefined" shape="circle" :class="'patient-list__avatar--' + (row.civilite === 'M' ? 'male' : row.civilite === 'Mme' || row.civilite === 'Mlle' ? 'female' : 'none')">
-            <span style="font-size:18px">{{ getCiviliteSymbol(row.civilite) }}</span>
+          <el-avatar :size="24" :src="row.photo || undefined" shape="circle" :class="'patient-list__avatar--' + (row.civilite === 'M' ? 'male' : row.civilite === 'Mme' || row.civilite === 'Mlle' ? 'female' : 'none')">
+            <span style="font-size:13px">{{ getCiviliteSymbol(row.civilite) }}</span>
           </el-avatar>
         </template>
       </el-table-column>
-      <el-table-column label="Civ." width="100">
+      <el-table-column label="Civ." width="65">
         <template #default="{ row }">
-          <span style="font-size:14px">{{ getCiviliteLabel(row.civilite) }}</span>
+          <span style="font-size:12px">{{ getCiviliteLabel(row.civilite) }}</span>
         </template>
       </el-table-column>
       <el-table-column prop="nom" label="Nom" />
       <el-table-column prop="prenom" label="Prénom" />
-      <el-table-column label="Âge">
+      <el-table-column label="Âge" width="60">
         <template #default="{ row }">
           {{ calculateAge(row.date_naissance) }} ans
         </template>
       </el-table-column>
-      <el-table-column prop="nip" label="NIP" width="130" />
-      <el-table-column prop="region" label="Région" width="120">
+      <el-table-column prop="nip" label="NIP" width="100" />
+      <el-table-column prop="region" label="Région" width="100">
         <template #default="{ row }">
           <span v-if="row.region">{{ row.region }}</span>
-          <span v-else class="patients-list__none">—</span>
+          <span v-else class="patients-list__none">\u2014</span>
         </template>
       </el-table-column>
-      <el-table-column prop="nir" label="N° SS" width="140" />
-      <el-table-column label="Assurance/Mutuelle" width="160">
+      <el-table-column prop="nir" label="N° SS" width="110" />
+      <el-table-column label="Assurance" width="120">
         <template #default="{ row }">
           <span v-if="row.assuranceMutuelle">{{ row.assuranceMutuelle }}</span>
-          <span v-else class="patients-list__none">—</span>
+          <span v-else class="patients-list__none">\u2014</span>
         </template>
       </el-table-column>
-      <el-table-column prop="telephone" label="Téléphone" width="130" />
-      <el-table-column label="Actions" width="120" align="center">
+      <el-table-column prop="telephone" label="Téléphone" width="110" />
+      <el-table-column label="Actions" width="90" align="center">
         <template #default="{ row }">
           <el-button text type="primary" :icon="Edit" size="small" @click.stop="openEdit(row)" />
           <el-button text type="danger" :icon="Delete" size="small" @click.stop="onDelete(row)" />
@@ -64,17 +71,16 @@
       </el-table-column>
     </el-table>
 
-    <el-empty v-if="!loading && patients.length === 0" description="Aucun patient trouvé" />
-
-    <el-row justify="center" style="margin-top: 20px">
+    <div class="patients-list__pagination">
       <el-pagination
         v-model:current-page="paginator.currPage"
         background
         layout="prev, pager, next"
         :page-size="paginator.pageSize"
         :total="patients.length"
+        small
       />
-    </el-row>
+    </div>
 
     <PatientFormDialog ref="formDialogRef" @saved="onSaved" />
   </div>
@@ -83,7 +89,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onErrorCaptured } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
+import { Search, Plus, Edit, Delete, User, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { patients, fetchPatients, deletePatient } from '@/composables/usePatients'
 import { calculateAge } from '@/utils/age'
@@ -91,9 +97,12 @@ import { getCiviliteSymbol, getCiviliteLabel } from '@/utils/civilite'
 import type { PatientDto } from '@/composables/usePatients'
 import { usePatientContext } from '@/composables/usePatientContext'
 import PatientFormDialog from '@/components/patients/PatientFormDialog.vue'
+import SectionHeader from '@/components/common/SectionHeader.vue'
+import { useExport } from '@/composables/useExport'
 
 const router = useRouter()
 const { setActivePatient } = usePatientContext()
+const { exportingExcel, exportPatientsListExcel } = useExport()
 const loading = ref(true)
 const search = ref('')
 const formDialogRef = ref<InstanceType<typeof PatientFormDialog> | null>(null)
@@ -144,7 +153,7 @@ function onPatientClick(patient: PatientDto) {
 
 function openCreate() {
   if (!formDialogRef.value) {
-    console.error('[PatientsListView] formDialogRef is null — PatientFormDialog may have failed to mount')
+    console.error('[PatientsListView] formDialogRef is null')
     ElMessage.error('Erreur: le formulaire patient n\'est pas disponible')
     return
   }
@@ -153,7 +162,6 @@ function openCreate() {
 
 function openEdit(patient: PatientDto) {
   if (!formDialogRef.value) {
-    console.error('[PatientsListView] formDialogRef is null — PatientFormDialog may have failed to mount')
     ElMessage.error('Erreur: le formulaire patient n\'est pas disponible')
     return
   }
@@ -172,9 +180,7 @@ function onDelete(patient: PatientDto) {
     } catch (e) {
       ElMessage.error(`Erreur lors de la suppression: ${(e as Error).message}`)
     }
-  }).catch(() => {
-    // user cancelled
-  })
+  }).catch(() => {})
 }
 
 async function onSaved() {
@@ -184,42 +190,41 @@ async function onSaved() {
     ElMessage.error(`Erreur lors du rafraîchissement: ${(e as Error).message}`)
   }
 }
-
 </script>
 
 <style scoped>
-.patients-list__header {
+.patients-list {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.patients-list__title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--cd-gray-900);
-}
-
-.patients-list__actions {
+.patients-list__toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .patients-list__none {
   color: var(--cd-gray-400);
-  font-size: 13px;
+  font-size: 12px;
 }
+
+.patients-list__pagination {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
 .patient-list__avatar--male {
-  background: var(--el-color-primary, #409eff) !important;
+  background: var(--cd-primary) !important;
 }
+
 .patient-list__avatar--female {
-  background: var(--el-color-danger, #f56c6c) !important;
+  background: var(--cd-secondary) !important;
 }
+
 .patient-list__avatar--none {
-  background: var(--el-color-info, #909399) !important;
+  background: var(--cd-gray-400) !important;
 }
 </style>

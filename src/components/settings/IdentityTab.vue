@@ -20,7 +20,7 @@
             style="display: none"
             @change="onFileSelected"
           />
-          <p class="identity-tab__logo-hint">Formats: PNG, JPEG. Max: 2 Mo</p>
+          <p class="identity-tab__logo-hint">Formats&nbsp;: PNG, JPEG. Max&nbsp;: 2 Mo</p>
         </div>
       </div>
     </div>
@@ -93,9 +93,11 @@ import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useHospitalInfo } from '@/composables/useHospitalInfo'
+import { useLogo } from '@/composables/useLogo'
 import { ipcInvoke } from '@/utils/ipc'
 
 const { info, loadInfo, saveInfo, saveLogo } = useHospitalInfo()
+const { refreshLogo } = useLogo()
 
 const formRef = ref<FormInstance>()
 const fileInputRef = ref<HTMLInputElement>()
@@ -176,6 +178,7 @@ async function handleSave() {
         saving.value = false
         return
       }
+      await refreshLogo()
       pendingLogo.value = null
     }
 
@@ -221,7 +224,7 @@ async function handleApplySystemIcon() {
 }
 
 .identity-tab__card {
-  background: var(--cd-white);
+  background: var(--cd-widget-bg);
   border-radius: 10px;
   border: 1px solid var(--cd-gray-200);
   padding: 20px;

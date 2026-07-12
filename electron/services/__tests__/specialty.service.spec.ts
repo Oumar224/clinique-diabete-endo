@@ -44,14 +44,14 @@ describe('SpecialtyService', () => {
 
     const active = await service.list(true)
     expect(active.length).toBe(9)
-    expect(active.every(s => s.is_active === true)).toBe(true)
+    expect(active.every(s => s.is_active === 1)).toBe(true)
   })
 
   it('should return specialties sorted by name asc', async () => {
     const service = container.resolve(SpecialtyService)
     const list = await service.list()
     for (let i = 1; i < list.length; i++) {
-      expect(list[i].name >= list[i - 1].name).toBe(true)
+      expect((list[i] as any).name >= (list[i - 1] as any).name).toBe(true)
     }
   })
 
@@ -110,7 +110,7 @@ describe('SpecialtyService', () => {
     expect(created.name).toBe('Dermatologie')
     expect(created.code).toBe('DERM')
     expect(created.title_prefix).toBe('Pr')
-    expect(created.is_active).toBe(true)
+    expect(created.is_active).toBe(1)
   })
 
   it('should default title_prefix to "Dr" if not provided', async () => {
@@ -225,13 +225,13 @@ describe('SpecialtyService', () => {
       name: 'Toggle Spec',
       code: 'TOGS',
     })
-    expect(created.is_active).toBe(true)
+    expect(created.is_active).toBe(1)
 
     const disabled = await service.toggle(created.id!, false)
-    expect(disabled.is_active).toBe(false)
+    expect(disabled.is_active).toBe(0)
 
     const enabled = await service.toggle(created.id!, true)
-    expect(enabled.is_active).toBe(true)
+    expect(enabled.is_active).toBe(1)
   })
 
   it('should throw when toggling non-existent specialty', async () => {

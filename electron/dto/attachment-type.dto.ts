@@ -1,7 +1,7 @@
 export interface AttachmentTypeDto {
   id: number
   name: string
-  createdAt: string
+  created_at: string
 }
 
 export interface CreateAttachmentTypeDto {

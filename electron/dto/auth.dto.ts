@@ -36,3 +36,23 @@ export interface LoginResult {
   user: UserDto
   mustChangePassword?: boolean
 }
+
+export interface ValidatePasswordDto {
+  userId: number
+  oldPassword: string
+  newPassword: string
+}
+
+export interface SyncUserRelationsDto {
+  id: number
+  specialty_ids?: number[]
+  service_ids?: number[]
+  site_ids?: number[]
+  medical_unit_ids?: number[]
+}
+
+export interface TerminateContractDto {
+  id: number
+  motif: string
+  resilie_par?: number
+}

@@ -13,7 +13,7 @@
         v-else
         :data="types"
         style="width: 100%"
-        :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
+        border
         max-height="500"
       >
         <el-table-column prop="name" label="Nom" min-width="200" />

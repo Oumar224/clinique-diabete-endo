@@ -1,3 +1,5 @@
+export type FrequenceType = 'moments' | 'fixed-times' | 'interval'
+
 export interface PrescriptionDto {
   id: number
   patientId: number
@@ -6,6 +8,7 @@ export interface PrescriptionDto {
   voie: string
   duree: number
   frequence: string[] // array from comma-separated
+  frequenceType: FrequenceType
   prn: boolean
   instructions: string | null
   datePrescription: string
@@ -13,6 +16,7 @@ export interface PrescriptionDto {
   prescripteurNom?: string   // resolved from user table
   prescripteurRole?: string  // "MEDECIN", "INFIRMIER", etc.
   statut: string
+  type: 'medicament' | 'soins'
   createdAt: string
   updatedAt: string
 }

@@ -50,17 +50,17 @@
     <div v-for="att in attachments" :key="att.id" class="attachments-section__item">
       <div class="attachments-section__item-info">
         <span class="attachments-section__item-icon">
-          <template v-if="att.mimeType?.startsWith('image/')"><el-icon><PictureFilled /></el-icon></template>
-          <template v-else-if="att.mimeType?.includes('pdf')"><el-icon><Document /></el-icon></template>
-          <template v-else><el-icon><Paperclip /></el-icon></template>
-        </span>
-        <div>
-          <div class="attachments-section__item-name">{{ att.displayName }}</div>
-          <div v-if="att.attachmentTypeName" class="attachments-section__item-type">
-            {{ att.attachmentTypeName }}
-          </div>
-          <div class="attachments-section__item-meta">
-            {{ att.fileName }} — {{ formatSize(att.fileSize) }}
+            <template v-if="att.mime_type?.startsWith('image/')"><el-icon><PictureFilled /></el-icon></template>
+            <template v-else-if="att.mime_type?.includes('pdf')"><el-icon><Document /></el-icon></template>
+            <template v-else><el-icon><Paperclip /></el-icon></template>
+          </span>
+          <div>
+            <div class="attachments-section__item-name">{{ att.display_name }}</div>
+            <div v-if="att.attachment_type_name" class="attachments-section__item-type">
+              {{ att.attachment_type_name }}
+            </div>
+            <div class="attachments-section__item-meta">
+              {{ att.file_name }} — {{ formatSize(att.file_size) }}
           </div>
         </div>
       </div>
@@ -153,13 +153,13 @@ async function handleAdd() {
 
   adding.value = true
   const success = await addAttachment({
-    userId: props.userId,
-    displayName: selectedFile.value.name,
-    fileName: selectedFile.value.name,
-    mimeType: selectedFile.value.type || 'application/octet-stream',
-    fileSize: selectedFile.value.size,
-    fileData: fileData.value,
-    attachmentTypeId: selectedAttachmentTypeId.value,
+    user_id: props.userId,
+    display_name: selectedFile.value.name,
+    file_name: selectedFile.value.name,
+    mime_type: selectedFile.value.type || 'application/octet-stream',
+    file_size: selectedFile.value.size,
+    file_data: fileData.value,
+    attachment_type_id: selectedAttachmentTypeId.value,
   })
 
   if (success) {

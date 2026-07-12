@@ -1,6 +1,8 @@
 import { container } from 'tsyringe'
 import { createHandler } from '../utils/create-handler'
 import { PrescriptionService } from '../services/prescription.service'
+import { PrescriptionEntity } from '../entities/prescription.entity'
+import type { PrescriptionDto } from '../dto/prescription.dto'
 
 export function registerPrescriptionHandlers() {
   // ── List prescriptions for a patient ────────────────────────────
@@ -8,7 +10,8 @@ export function registerPrescriptionHandlers() {
     const { patientId } = params
     if (!patientId) throw new Error('patientId requis')
     const service = container.resolve(PrescriptionService)
-    return await service.listByPatient(patientId)
+    const entities = await service.listByPatient(patientId)
+    return PrescriptionEntity.toDtos(entities)
   })
 
   // ── Get a single prescription by id ─────────────────────────────
@@ -16,42 +19,24 @@ export function registerPrescriptionHandlers() {
     const { id } = params
     if (!id) throw new Error('id requis')
     const service = container.resolve(PrescriptionService)
-    return await service.getById(id)
+    const entity = await service.getById(id)
+    return entity ? PrescriptionEntity.toDto(entity) : null
   })
 
   // ── Create a prescription (and generate plan_soins_items) ───────
-  createHandler('prescription:create', async (params: {
-    patientId: number
-    medicament: string
-    dosage: string
-    voie: string
-    duree: number
-    frequence: string[]
-    prn: boolean
-    instructions: string | null
-    prescripteurId: number
-  }) => {
-    const { patientId, ...data } = params
-    if (!patientId) throw new Error('patientId requis')
+  createHandler('prescription:create', async (dto: PrescriptionDto) => {
+    const entity = PrescriptionEntity.fromDto(dto)
     const service = container.resolve(PrescriptionService)
-    return await service.create({ patientId, ...data })
+    const result = await service.create(entity)
+    return { prescription: PrescriptionEntity.toDto(result.prescription), itemsGenerated: result.itemsGenerated }
   })
 
   // ── Update a prescription (regenerates en_attente items) ────────
-  createHandler('prescription:update', async (params: {
-    id: number
-    medicament?: string
-    dosage?: string
-    voie?: string
-    duree?: number
-    frequence?: string[]
-    prn?: boolean
-    instructions?: string | null
-  }) => {
-    const { id, ...data } = params
-    if (!id) throw new Error('id requis')
+  createHandler('prescription:update', async (dto: PrescriptionDto) => {
+    const entity = PrescriptionEntity.fromDto(dto)
     const service = container.resolve(PrescriptionService)
-    return await service.update(id, data)
+    const result = await service.update(entity)
+    return { prescription: PrescriptionEntity.toDto(result.prescription), itemsGenerated: result.itemsGenerated }
   })
 
   // ── Stop a prescription ─────────────────────────────────────────

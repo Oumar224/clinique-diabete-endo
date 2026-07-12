@@ -48,7 +48,7 @@
       v-loading="loading"
       :data="paginatedTree"
       style="width: 100%"
-      :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
+      border
       row-key="id"
       :tree-props="{ children: 'children' }"
       default-expand-all
@@ -370,7 +370,7 @@ async function handleCustomImport() {
 .lt__custom-import-title {
   font-size: 15px;
   font-weight: 600;
-  color: #0E5C5B;
+  color: var(--cd-primary);
   margin-bottom: 12px;
 }
 
@@ -393,7 +393,7 @@ async function handleCustomImport() {
 }
 
 .lt__custom-import-hint a {
-  color: #0E5C5B;
+  color: var(--cd-primary);
   text-decoration: underline;
 }
 </style>

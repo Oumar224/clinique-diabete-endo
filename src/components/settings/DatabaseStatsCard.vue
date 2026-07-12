@@ -30,7 +30,7 @@ defineProps<{
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: var(--cd-white);
+  background: var(--cd-widget-bg);
   border-radius: 10px;
   border: 1px solid var(--cd-gray-200);
 }

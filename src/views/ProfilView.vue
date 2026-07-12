@@ -200,7 +200,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #0E5C5B;
+  color: var(--cd-primary);
   font-size: 17px;
   font-weight: 600;
   margin-bottom: 24px;
@@ -212,9 +212,9 @@ onMounted(() => {
   gap: 20px;
   padding: 24px;
   margin-bottom: 24px;
-  background: #F8FAFB;
+  background: var(--cd-widget-bg);
   border-radius: 12px;
-  border: 1px solid #E5EDF0;
+  border: 1px solid var(--cd-border);
 }
 
 .profil__identity {
@@ -226,19 +226,19 @@ onMounted(() => {
 .profil__name {
   font-size: 20px;
   font-weight: 700;
-  color: #1A2E2D;
+  color: var(--cd-gray-900);
 }
 
 :deep(.profil__descriptions .el-descriptions__title) {
   font-size: 14px;
   font-weight: 600;
-  color: #0E5C5B;
+  color: var(--cd-primary);
 }
 
 :deep(.profil__descriptions .el-descriptions__label) {
   font-weight: 600;
-  color: #4A6B6A;
-  background: #F8FAFB;
+  color: var(--cd-gray-600);
+  background: var(--cd-widget-bg);
   width: 130px;
 }
 

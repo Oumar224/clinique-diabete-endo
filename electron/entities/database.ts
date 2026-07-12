@@ -3,184 +3,117 @@ import { PatientEntity } from './patient.entity'
 import { AppointmentEntity } from './appointment.entity'
 import { AutomergeDocumentEntity } from './automerge-document.entity'
 import { InvoiceEntity } from './invoice.entity'
+import { VitalSignEntity } from './vital-sign.entity'
+import { VitalSignsItemEntity } from './vital-signs-item.entity'
+import { PlanSoinsEntity, PlanSoinsItemEntity } from './plan-soins.entity'
+import { PrescriptionEntity } from './prescription.entity'
+import { DispositifEntity } from './dispositif.entity'
+import { TrustedPersonEntity } from './trusted-person.entity'
+import { PatientAttachmentEntity } from './patient-attachment.entity'
+import { UserAttachmentEntity } from './user-attachment.entity'
+import { AttachmentTypeEntity } from './attachment-type.entity'
+import { FormDraftEntity } from './form-draft.entity'
+import { SessionEntity } from './session.entity'
+import { InvoiceItemEntity } from './invoice-item.entity'
+import { InvoicePaymentEntity } from './invoice-payment.entity'
+import { CurrencyEntity } from './currency.entity'
+import { ServiceEntity } from './service.entity'
+import { MedicalActEntity } from './medical-act.entity'
+import { ActPriceHistoryEntity } from './act-price-history.entity'
+import { ConfigTarifEntity } from './config-tarif.entity'
+import { PatientActeEntity } from './patient-acte.entity'
+import { MedicalUnitEntity } from './medical-unit.entity'
+import { SiteEntity } from './site.entity'
+import { SpecialtyEntity } from './specialty.entity'
+import { EmailConfigEntity } from './email-config.entity'
+import { FonctionEntity } from './fonction.entity'
+import { LocaliteEntity } from './localite.entity'
+import { ConservateurStockageEntity } from './conservateur-stockage.entity'
+import { ConservateurChampLocalisationEntity } from './conservateur-champ-localisation.entity'
+import { AppSettingsEntity } from './app-settings.entity'
+import { UserSpecialtyEntity } from './user-specialty.entity'
+import { UserSiteEntity } from './user-site.entity'
+import { UserServiceEntity } from './user-service.entity'
+import { UserMedicalUnitEntity } from './user-medical-unit.entity'
+import { UserFavoriteServiceEntity } from './user-favorite-service.entity'
+import { ContactOriginEntity } from './contact-origin.entity'
+import { InsuranceEntity } from './insurance.entity'
+import { ContactCategoryEntity } from './contact-category.entity'
+import { VoieTypeEntity } from './voie-type.entity'
+import { DispositifTypeEntity } from './dispositif-type.entity'
+import { EncounterEntity, EncounterMovementEntity } from './encounter.entity'
+import { StayEntity, StayMovementEntity } from './stay.entity'
+import { CareUnitEntity } from './care-unit.entity'
+import { ClinicalDocumentTypeEntity } from './clinical-document-type.entity'
+import { ClinicalDocumentEntity } from './clinical-document.entity'
+import { ClinicalDocumentSignatureEntity } from './clinical-document-signature.entity'
+import { ExamCategoryEntity } from './exam-category.entity'
+import { ExamTypeEntity } from './exam-type.entity'
 import type { Entity } from './entity'
+
+export interface ServiceSiteEntity {
+  service_id: number
+  site_id: number
+}
 
 export interface DB {
   user: UserEntity
-  patient: PatientEntity & { site_id?: number; assurance_mutuelle?: string; consentement_etude?: string }
-  appointment: AppointmentEntity
-  session: { id: string; user_id: number; created_at?: string; expires_at: string; last_activity?: string; remember_me?: number }
-  app_settings: { key: string; value: string }
+  patient: PatientEntity
+  appointment: AppointmentEntity & { service_name?: string; care_unit_name?: string; medecin_name?: string }
+  session: SessionEntity
+  app_settings: AppSettingsEntity
   invoice: InvoiceEntity
-  invoice_item: { id?: number; invoice_id: number; libelle: string; quantite: number; prix_unitaire: number; montant: number; type: string; created_at?: string }
-  invoice_payment: { id?: number; invoice_id: number; montant: number; mode_paiement: string; date_paiement: string; reference?: string; created_by?: number; created_at?: string }
-  automerge_documents: { document_id: string; data: Buffer; last_modified: number }
-  currency: {
-    code: string
-    name: string
-    symbol: string
-    decimals: number
-    is_active: number
-  }
-  services: {
-    id?: number
-    name: string
-    description: string | null
-    duration: number
-    color: string | null
-    sort_order: number
-    is_active: number
-    created_at?: string
-    updated_at?: string
-  }
-  medical_acts: {
-    id?: number
-    code: string
-    label: string
-    price: number
-    currency_code: string
-    service_id: number
-    is_active: number
-    created_at?: string
-    updated_at?: string
-  }
-  act_price_history: {
-    id?: number
-    act_id: number
-    old_price: number | null
-    new_price: number
-    change_reason: string | null
-    changed_at?: string
-  }
-  medical_units: {
-    id?: number
-    code: string
-    name: string
-    is_active: number
-    created_at?: string
-    updated_at?: string
-  }
-  sites: {
-    id?: number
-    name: string
-    address: string | null
-    phone: string | null
-    email: string | null
-    is_default: number
-    is_active: number
-    created_at?: string
-    updated_at?: string
-  }
-  specialties: {
-    id?: number
-    name: string
-    code: string
-    title_prefix: string
-    is_active: number
-    created_at?: string
-    updated_at?: string
-  }
-  user_specialties: {
-    user_id: number
-    specialty_id: number
-  }
-  user_sites: {
-    user_id: number
-    site_id: number
-  }
-  user_services: {
-    user_id: number
-    service_id: number
-  }
-  user_medical_units: {
-    user_id: number
-    medical_unit_id: number
-  }
-  email_config: {
-    id: number
-    smtp_host: string
-    smtp_port: number
-    smtp_user: string
-    smtp_pass_encrypted: string
-    sender_email: string
-    sender_name: string
-    is_configured: number
-    created_at?: string
-    updated_at?: string
-  }
-  fonctions: {
-    id?: number
-    name: string
-    is_active: number
-    created_at?: string
-    updated_at?: string
-  }
-  localites: {
-    id?: number
-    code: string
-    name: string
-    type: string
-    parent_id: number | null
-    country: string
-    region?: string
-    is_active: number
-    created_at?: string
-    updated_at?: string
-  }
-  user_attachments: {
-    id?: number
-    user_id: number
-    display_name: string
-    file_name: string
-    mime_type: string | null
-    file_size: number | null
-    file_data: string
-    attachment_type_id?: number | null
-    created_at?: string
-  }
-  patient_attachments: {
-    id?: number
-    patient_id: number
-    display_name: string
-    file_name: string
-    mime_type: string | null
-    file_size: number | null
-    file_data: string
-    category: string
-    attachment_type_id?: number | null
-    created_at?: string
-  }
-  attachment_types: {
-    id?: number
-    name: string
-    created_at?: string
-  }
-  form_drafts: {
-    id?: number
-    form_type: string
-    form_data: string
-    patient_id: number | null
-    active_step: number
-    created_at?: string
-    updated_at?: string
-  }
-  trusted_persons: {
-    id?: number
-    patient_id: number
-    has_trusted: number
-    nom?: string
-    prenom?: string
-    profession?: string
-    residence?: string
-    residence_code?: string
-    telephone?: string
-    email?: string
-    complement_adresse?: string
-    lien_parente?: string
-    attachments?: string
-    created_at?: string
-    updated_at?: string
-  }
+  invoice_item: InvoiceItemEntity
+  invoice_payment: InvoicePaymentEntity
+  automerge_documents: AutomergeDocumentEntity
+  currency: CurrencyEntity
+  services: ServiceEntity
+  medical_acts: MedicalActEntity
+  act_price_history: ActPriceHistoryEntity
+  medical_units: MedicalUnitEntity
+  sites: SiteEntity
+  specialties: SpecialtyEntity
+  user_specialties: UserSpecialtyEntity
+  user_sites: UserSiteEntity
+  user_services: UserServiceEntity
+  user_medical_units: UserMedicalUnitEntity
+  email_config: EmailConfigEntity
+  fonctions: FonctionEntity
+  localites: LocaliteEntity
+  user_attachments: UserAttachmentEntity
+  patient_attachments: PatientAttachmentEntity
+  attachment_types: AttachmentTypeEntity
+  form_drafts: FormDraftEntity
+  plan_soins: PlanSoinsEntity
+  plan_soins_items: PlanSoinsItemEntity
+  prescriptions: PrescriptionEntity
+  vital_signs: VitalSignEntity
+  vital_signs_items: VitalSignsItemEntity
+  dispositifs: DispositifEntity
+  trusted_persons: TrustedPersonEntity
+  conservateurs_stockage: ConservateurStockageEntity
+  conservateurs_champs_localisation: ConservateurChampLocalisationEntity
+  service_sites: ServiceSiteEntity
+  user_favorite_services: UserFavoriteServiceEntity
+  contact_origins: ContactOriginEntity
+  insurances: InsuranceEntity
+  contact_categories: ContactCategoryEntity
+  voie_types: VoieTypeEntity
+  dispositif_types: DispositifTypeEntity
+  encounters: EncounterEntity
+  encounter_movements: EncounterMovementEntity
+  stays: StayEntity
+  stay_movements: StayMovementEntity
+  config_tarifs: ConfigTarifEntity
+  patient_actes: PatientActeEntity
+  care_units: CareUnitEntity
+  clinical_document_types: ClinicalDocumentTypeEntity
+  patient_clinical_documents: ClinicalDocumentEntity
+  clinical_document_signatures: ClinicalDocumentSignatureEntity
+  exam_categories: ExamCategoryEntity
+  exam_types: ExamTypeEntity
+  lab_exam_categories: ExamCategoryEntity
+  lab_exams: ExamTypeEntity
 }
 
 export const ENTITIES: Entity[] = [
@@ -189,4 +122,52 @@ export const ENTITIES: Entity[] = [
   PatientEntity,
   AppointmentEntity,
   InvoiceEntity,
+  SessionEntity,
+  InvoiceItemEntity,
+  InvoicePaymentEntity,
+  CurrencyEntity,
+  ServiceEntity,
+  MedicalActEntity,
+  ActPriceHistoryEntity,
+  MedicalUnitEntity,
+  SiteEntity,
+  SpecialtyEntity,
+  EmailConfigEntity,
+  FonctionEntity,
+  LocaliteEntity,
+  ConservateurStockageEntity,
+  ConservateurChampLocalisationEntity,
+  AppSettingsEntity,
+  UserSpecialtyEntity,
+  UserSiteEntity,
+  UserServiceEntity,
+  UserMedicalUnitEntity,
+  UserFavoriteServiceEntity,
+  AttachmentTypeEntity,
+  PatientAttachmentEntity,
+  UserAttachmentEntity,
+  FormDraftEntity,
+  TrustedPersonEntity,
+  VitalSignEntity,
+  VitalSignsItemEntity,
+  PlanSoinsEntity,
+  PrescriptionEntity,
+  DispositifEntity,
+  ContactOriginEntity,
+  InsuranceEntity,
+  ContactCategoryEntity,
+  VoieTypeEntity,
+  DispositifTypeEntity,
+  EncounterEntity,
+  EncounterMovementEntity,
+  StayEntity,
+  StayMovementEntity,
+  ConfigTarifEntity,
+  PatientActeEntity,
+  CareUnitEntity,
+  ClinicalDocumentTypeEntity,
+  ClinicalDocumentEntity,
+  ClinicalDocumentSignatureEntity,
+  ExamCategoryEntity,
+  ExamTypeEntity,
 ]

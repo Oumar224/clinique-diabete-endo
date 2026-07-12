@@ -3,8 +3,6 @@ import { type Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { TrustedPersonEntity } from '../entities/trusted-person.entity'
-import type { TrustedPersonDto } from '../dto/trusted-person.dto'
-import type { TrustedPersonRow } from '../entities/trusted-person.entity'
 
 @singleton()
 export class TrustedPersonService {
@@ -14,19 +12,17 @@ export class TrustedPersonService {
     this.db = datasource.getInstance()
   }
 
-  async getByPatientId(patientId: number): Promise<TrustedPersonDto | null> {
+  async getByPatientId(patientId: number): Promise<TrustedPersonEntity | null> {
     const row = await this.db
       .selectFrom('trusted_persons')
       .selectAll()
       .where('patient_id', '=', patientId)
       .executeTakeFirst()
 
-    return row ? TrustedPersonEntity.toDto(row as TrustedPersonRow) : null
+    return row ?? null
   }
 
-  async upsert(dto: TrustedPersonDto): Promise<TrustedPersonDto> {
-    const entity = TrustedPersonEntity.fromDto(dto)
-
+  async upsert(entity: TrustedPersonEntity): Promise<TrustedPersonEntity> {
     const existing = await this.db
       .selectFrom('trusted_persons')
       .selectAll()
@@ -79,7 +75,7 @@ export class TrustedPersonService {
       .executeTakeFirst()
 
     if (!row) throw new Error('Échec de la récupération de la personne de confiance')
-    return TrustedPersonEntity.toDto(row as TrustedPersonRow)
+    return row
   }
 
   async delete(patientId: number): Promise<void> {

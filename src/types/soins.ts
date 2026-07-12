@@ -15,6 +15,8 @@ export interface SoinItem {
   validePar?: string
   valideA?: string
   motifSuspension?: string
+  prescriptionId?: number
+  prescriptionType?: 'medicament' | 'soins'
   createdAt?: string
   updatedAt?: string
 }

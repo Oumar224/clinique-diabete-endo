@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import nodemailer from 'nodemailer'
 import { AppDatabaseDatasource } from '../../sqlite-data-source'
 import type { DB } from '../../entities/database'
+import type { EmailConfigDto, EmailConfigSaveDto } from '../../dto/email-config.dto'
 
 const ALGORITHM = 'aes-256-gcm'
 const ENCRYPTION_KEY = crypto.createHash('sha256').update('cde-email-encryption-key-2024').digest()
@@ -21,24 +22,6 @@ function decrypt(ciphertext: string): string {
   const decipher = crypto.createDecipheriv(ALGORITHM, ENCRYPTION_KEY, Buffer.from(ivHex, 'hex'))
   decipher.setAuthTag(Buffer.from(tagHex, 'hex'))
   return decipher.update(Buffer.from(encryptedHex, 'hex'), undefined, 'utf8') + decipher.final('utf8')
-}
-
-export interface EmailConfigDto {
-  smtp_host: string
-  smtp_port: number
-  smtp_user: string
-  sender_email: string
-  sender_name: string
-  is_configured: boolean
-}
-
-export interface EmailConfigSaveDto {
-  smtp_host: string
-  smtp_port: number
-  smtp_user: string
-  smtp_pass: string
-  sender_email: string
-  sender_name: string
 }
 
 @singleton()

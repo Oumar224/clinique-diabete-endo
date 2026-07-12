@@ -12,6 +12,17 @@ import { registerPatientAttachmentHandlers } from './patient-attachment.handler'
 import { registerAttachmentTypeHandlers } from './attachment-type.handler'
 import { registerFormDraftHandlers } from './form-draft.handler'
 import { registerPatientCareHandlers } from './patient-care.handler'
+import { registerPrescriptionHandlers } from './prescription.handler'
+import { registerConservateurHandlers } from './conservateur.handler'
+import { registerEncounterHandlers } from './encounter.handler'
+import { registerStayHandlers } from './stay.handler'
+import { registerPatientActeHandlers } from './patient-acte.handler'
+import { registerCareUnitHandlers } from './care-unit.handler'
+import { registerContactOriginHandlers } from './contact-origin.handler'
+import { registerInsuranceHandlers } from './insurance.handler'
+import { registerContactCategoryHandlers } from './contact-category.handler'
+import { registerClinicalDocumentHandlers } from './clinical-document.handler'
+import { registerExamTypeHandlers } from './exam-type.handler'
 
 export function registerAllHandlers(): void {
   registerAuthHandlers()
@@ -28,4 +39,15 @@ export function registerAllHandlers(): void {
   registerAttachmentTypeHandlers()
   registerFormDraftHandlers()
   registerPatientCareHandlers()
+  registerPrescriptionHandlers()
+  registerConservateurHandlers()
+  registerEncounterHandlers()
+  registerStayHandlers()
+  registerPatientActeHandlers()
+  registerCareUnitHandlers()
+  registerContactOriginHandlers()
+  registerInsuranceHandlers()
+  registerContactCategoryHandlers()
+  registerClinicalDocumentHandlers()
+  registerExamTypeHandlers()
 }

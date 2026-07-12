@@ -14,6 +14,7 @@ export interface PatientDto {
   nip?: string
   lieu_naissance?: string
   residence_code?: string
+  adresse?: string
   complement_adresse?: string
   region?: string
   profession?: string

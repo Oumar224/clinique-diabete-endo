@@ -7,6 +7,17 @@
         <span><strong>Nouvelle demande</strong></span>
       </template>
       <el-form ref="formRef" :model="form" :rules="formRules" label-position="top">
+        <el-form-item label="Prescripteur" prop="prescripteur">
+          <el-select v-model="form.prescripteur" placeholder="Sélectionner un prescripteur" style="width:100%" filterable>
+            <el-option
+              v-for="medecin in medecins"
+              :key="medecin.id!"
+              :label="formatMedecin(medecin)"
+              :value="medecin.id!"
+            />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="Type de demande" prop="type">
           <el-radio-group v-model="form.type">
             <el-radio value="imagerie" size="large" border>
@@ -15,10 +26,10 @@
                 <span>Imagerie (Radio, Scanner, IRM)</span>
               </span>
             </el-radio>
-            <el-radio value="consultation" size="large" border>
+            <el-radio value="avis" size="large" border>
               <span class="examens-radio-content">
                 <el-icon><UserFilled /></el-icon>
-                <span>Consultation spécialisée</span>
+                <span>Avis spécialisé</span>
               </span>
             </el-radio>
             <el-radio value="laboratoire" size="large" border>
@@ -31,16 +42,17 @@
         </el-form-item>
 
         <el-form-item v-if="form.type === 'imagerie'" label="Examen demandé" prop="examen">
-          <el-select v-model="form.examen" placeholder="Sélectionner un examen" style="width:100%">
-            <el-option label="Radiographie thoracique" value="Radio thoracique" />
-            <el-option label="Scanner cérébral" value="Scanner cérébral" />
-            <el-option label="IRM cardiaque" value="IRM cardiaque" />
-            <el-option label="Échographie abdominale" value="Écho abdominale" />
-            <el-option label="Scanner abdomino-pelvien" value="Scanner TAP" />
+          <el-select v-model="form.examen" placeholder="Sélectionner un examen" style="width:100%" filterable>
+            <el-option
+              v-for="examen in imageriesDisponibles"
+              :key="examen.id!"
+              :label="examen.label"
+              :value="examen.label"
+            />
           </el-select>
         </el-form-item>
 
-        <el-form-item v-if="form.type === 'consultation'" label="Spécialité" prop="examen">
+        <el-form-item v-if="form.type === 'avis'" label="Spécialité" prop="examen">
           <el-select v-model="form.examen" placeholder="Sélectionner une spécialité" style="width:100%">
             <el-option label="Cardiologie" value="Cardiologie" />
             <el-option label="Neurologie" value="Neurologie" />
@@ -50,17 +62,26 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item v-if="form.type === 'laboratoire'" label="Analyse demandée" prop="examen">
-          <el-select v-model="form.examen" placeholder="Sélectionner une analyse" style="width:100%">
-            <el-option label="NFS (Numération formule sanguine)" value="NFS" />
-            <el-option label="Ionogramme sanguin" value="Ionogramme" />
-            <el-option label="Bilan hépatique" value="Bilan hépatique" />
-            <el-option label="Bilan rénal" value="Bilan rénal" />
-            <el-option label="Hémoglobine glyquée (HbA1c)" value="HbA1c" />
+        <el-form-item v-if="form.type === 'laboratoire'" label="Analyses demandées" prop="examens">
+          <el-select
+            v-model="form.examens"
+            multiple
+            filterable
+            placeholder="Rechercher et sélectionner des analyses"
+            style="width:100%"
+            collapse-tags
+            collapse-tags-tooltip
+          >
+            <el-option
+              v-for="analyse in analysesDisponibles"
+              :key="analyse.id!"
+              :label="analyse.label"
+              :value="analyse.id!"
+            />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Motif clinique de la demande" prop="motif">
+        <el-form-item v-if="form.type !== 'laboratoire'" label="Motif clinique de la demande" prop="motif">
           <el-input v-model="form.motif" type="textarea" :rows="3" placeholder="Décrire le motif clinique..." />
         </el-form-item>
 
@@ -89,26 +110,57 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, watch, onMounted } from 'vue'
 import { Camera, UserFilled, DataAnalysis } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import { useAuth } from '@/composables/useAuth'
+import { users as allUsers, loadUsers, getUserDisplayName, type UserDto } from '@/composables/useUsers'
+import { useExamTypes, type ExamTypeDto } from '@/composables/useExamTypes'
 
+const { user } = useAuth()
+const { fetchAllByCategory, allTypes } = useExamTypes()
 const formRef = ref<FormInstance>()
 
+const imageriesDisponibles = ref<ExamTypeDto[]>([])
+const analysesDisponibles = ref<ExamTypeDto[]>([])
+const medecins = ref<UserDto[]>([])
+
 function createExamForm() {
-  return { type: '', examen: '', motif: '' }
+  return {
+    type: '',
+    examen: '',
+    examens: [] as number[],
+    motif: '',
+    prescripteur: null as number | null,
+  }
 }
 
 const form = reactive(createExamForm())
 
 const formRules: FormRules = {
+  prescripteur: [{ required: true, message: 'Sélectionnez un prescripteur', trigger: 'change' }],
   type: [{ required: true, message: 'Sélectionnez un type de demande', trigger: 'change' }],
   examen: [{ required: true, message: 'Sélectionnez un examen', trigger: 'change' }],
+  examens: [{ required: true, message: 'Sélectionnez au moins une analyse', trigger: 'change' }],
   motif: [{ required: true, message: 'Le motif clinique est requis', trigger: 'blur' }],
 }
 
-watch(() => form.type, () => { form.examen = '' })
+watch(() => form.type, async (newType) => {
+  form.examen = ''
+  form.examens = []
+  if (newType === 'imagerie') {
+    await fetchAllByCategory('imagerie')
+    imageriesDisponibles.value = [...allTypes.value]
+  } else if (newType === 'laboratoire') {
+    await fetchAllByCategory('laboratoire')
+    analysesDisponibles.value = [...allTypes.value]
+  }
+})
+
+function formatMedecin(m: UserDto): string {
+  return getUserDisplayName(m)
+}
 
 const mockDemandes = ref([
   { date: '26/06/2026', type: 'Imagerie', examen: 'IRM cardiaque', motif: 'Insuffisance cardiaque à évaluer', statut: 'En cours' },
@@ -122,21 +174,39 @@ async function onEnvoyer() {
 
   const typeLabels: Record<string, string> = {
     imagerie: 'Imagerie',
-    consultation: 'Consultation spécialisée',
+    avis: 'Avis spécialisé',
     laboratoire: 'Laboratoire',
   }
+
+  const examensLabel = form.type === 'laboratoire'
+    ? form.examens.map(id => analysesDisponibles.value.find(a => a.id === id)?.label || '').join(', ')
+    : form.examen
 
   mockDemandes.value.unshift({
     date: new Date().toLocaleDateString('fr-FR'),
     type: typeLabels[form.type] || form.type,
-    examen: form.examen,
-    motif: form.motif,
+    examen: examensLabel,
+    motif: form.type !== 'laboratoire' ? form.motif : '',
     statut: 'En cours',
   })
   ElMessage.success('Demande envoyée')
   formRef.value.resetFields()
   Object.assign(form, createExamForm())
 }
+
+onMounted(async () => {
+  try {
+    await loadUsers()
+    medecins.value = allUsers.value.filter(u => u.role === 'MEDECIN' || u.role === 'ADMIN')
+    if (user.value && medecins.value.some(m => m.id === user.value!.id)) {
+      form.prescripteur = user.value.id as number
+    } else if (medecins.value.length > 0 && medecins.value[0].id != null) {
+      form.prescripteur = medecins.value[0].id
+    }
+  } catch {
+    // Silently fail - prescripteur selection will still work with empty list
+  }
+})
 </script>
 
 <style scoped>

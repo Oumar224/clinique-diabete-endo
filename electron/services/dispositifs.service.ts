@@ -2,7 +2,7 @@ import { inject, singleton } from 'tsyringe'
 import { type Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
-import type { DispositifDto } from '../dto/dispositif.dto'
+import { DispositifEntity } from '../entities/dispositif.entity'
 
 @singleton()
 export class DispositifsService {
@@ -12,7 +12,7 @@ export class DispositifsService {
     this.db = datasource.getInstance()
   }
 
-  async list(patientId: number): Promise<DispositifDto[]> {
+  async list(patientId: number): Promise<DispositifEntity[]> {
     const rows = await this.db
       .selectFrom('dispositifs')
       .selectAll()
@@ -20,26 +20,20 @@ export class DispositifsService {
       .orderBy('id', 'desc')
       .execute()
 
-    return rows.map(r => this.toDto(r))
+    return rows as unknown as DispositifEntity[]
   }
 
-  async create(data: {
-    patientId: number
-    type: string
-    datePose: string
-    aspect: string
-    volumeMl: number | null
-  }): Promise<DispositifDto> {
+  async create(entity: DispositifEntity): Promise<DispositifEntity> {
     const now = new Date().toISOString()
     const result = await this.db
       .insertInto('dispositifs')
       .values({
-        patient_id: data.patientId,
-        type: data.type,
-        date_pose: data.datePose,
-        aspect: data.aspect,
-        volume_ml: data.volumeMl,
-        created_by: 1,
+        patient_id: entity.patient_id,
+        type: entity.type,
+        date_pose: entity.date_pose,
+        aspect: entity.aspect,
+        volume_ml: entity.volume_ml,
+        created_by: entity.created_by ?? 1,
         created_at: now,
         updated_at: now,
       })
@@ -52,7 +46,7 @@ export class DispositifsService {
       .where('id', '=', id)
       .executeTakeFirst()
 
-    return this.toDto(saved!)
+    return saved as unknown as DispositifEntity
   }
 
   async delete(id: number): Promise<void> {
@@ -60,19 +54,5 @@ export class DispositifsService {
       .deleteFrom('dispositifs')
       .where('id', '=', id)
       .execute()
-  }
-
-  private toDto(row: Record<string, unknown>): DispositifDto {
-    return {
-      id: row.id as number,
-      patientId: row.patient_id as number,
-      type: row.type as string,
-      datePose: row.date_pose as string,
-      aspect: row.aspect as string,
-      volumeMl: row.volume_ml as number | null,
-      createdBy: row.created_by as number,
-      createdAt: row.created_at as string,
-      updatedAt: row.updated_at as string,
-    }
   }
 }

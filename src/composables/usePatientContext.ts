@@ -21,6 +21,7 @@ export interface Patient {
   nip?: string
   lieu_naissance?: string
   residence_code?: string
+  adresse?: string
   complement_adresse?: string
   region?: string
   site_id?: number

@@ -1,4 +1,4 @@
-// ─── Clinic Service ────────────────────────────────────────────
+// ─── Service ──────────────────────────────────────────────────
 export interface ServiceDto {
   id?: number
   name: string
@@ -7,6 +7,8 @@ export interface ServiceDto {
   color?: string | null
   sort_order: number
   is_active: boolean
+  category: string
+  site_ids?: number[]
   created_at?: string
   updated_at?: string
 }
@@ -16,6 +18,8 @@ export interface ServiceCreateDto {
   description?: string | null
   duration?: number
   color?: string | null
+  category?: string
+  site_ids?: number[]
 }
 
 export interface ServiceUpdateDto {
@@ -24,6 +28,8 @@ export interface ServiceUpdateDto {
   description?: string | null
   duration?: number
   color?: string | null
+  category?: string
+  site_ids?: number[]
 }
 
 export interface ServiceToggleDto {
@@ -63,8 +69,6 @@ export interface MedicalActDto {
   id?: number
   code: string
   label: string
-  price: number
-  currency_code?: string
   service_id: number
   service_name?: string
   is_active: boolean
@@ -75,8 +79,6 @@ export interface MedicalActDto {
 export interface MedicalActCreateDto {
   code: string
   label: string
-  price: number
-  currency_code?: string
   service_id: number
 }
 
@@ -84,8 +86,6 @@ export interface MedicalActUpdateDto {
   id: number
   code?: string
   label?: string
-  price?: number
-  currency_code?: string
   service_id?: number
   is_active?: boolean
 }
@@ -98,6 +98,38 @@ export interface ActPriceHistoryDto {
   new_price: number
   change_reason?: string | null
   changed_at: string
+}
+
+// ─── Tarifs (pricing) ──────────────────────────────────────────
+export interface TarifDto {
+  id?: number
+  acte_id: number
+  code_tarif: string
+  prix_unitaire: number
+  date_application: string
+  created_at?: string
+  updated_at?: string
+  acte_code?: string
+  acte_label?: string
+  service_name?: string
+}
+
+export interface TarifCreateDto {
+  acte_id: number
+  code_tarif?: string
+  prix_unitaire: number
+  date_application?: string
+}
+
+export interface TarifBulkUpdateItem {
+  acte_id: number
+  code_tarif: string
+  prix_unitaire: number
+}
+
+export interface TarifBulkUpdateDto {
+  items: TarifBulkUpdateItem[]
+  date_application?: string
 }
 
 // ─── System ────────────────────────────────────────────────────
@@ -157,6 +189,31 @@ export interface FonctionUpdateDto {
   is_active?: boolean
 }
 
+// ─── Service Favorites ──────────────────────────────────────────
+export interface ServiceFavoriteDto {
+  user_id: number
+  service_id: number
+  created_at?: string
+}
+
+// ─── Dispositif Type (catalog of device types) ──────────────────
+export interface DispositifTypeDto {
+  id?: number
+  label: string
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+// ─── Voie Type (catalog of administration routes) ──────────────
+export interface VoieTypeDto {
+  id?: number
+  label: string
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
 // ─── Hospital Identity ──────────────────────────────────────────
 export interface HospitalInfoDto {
   name: string
@@ -165,4 +222,26 @@ export interface HospitalInfoDto {
   email: string
   city: string
   regNumber: string
+}
+
+// ─── Exam Categories ────────────────────────────────────────────
+export interface ExamCategoryDto {
+  id?: number
+  code: string
+  label: string
+  sort_order: number
+}
+
+// ─── Exam Types ─────────────────────────────────────────────────
+export interface ExamTypeDto {
+  id?: number
+  category_id: number
+  parent_id?: number | null
+  code?: string
+  label: string
+  is_active: boolean
+  category_label?: string
+  parent_label?: string
+  created_at?: string
+  updated_at?: string
 }

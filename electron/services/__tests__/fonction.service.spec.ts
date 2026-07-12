@@ -35,7 +35,7 @@ describe('FonctionService', () => {
     const created = await service.create({ name: 'Médecin Chef' })
     expect(created.id).toBeDefined()
     expect(created.name).toBe('Médecin Chef')
-    expect(created.is_active).toBe(true)
+    expect(created.is_active).toBe(1)
   })
 
   it('should reject empty name', async () => {
@@ -83,7 +83,7 @@ describe('FonctionService', () => {
     await service.toggle(b.id!)
 
     const active = await service.list(true)
-    expect(active.every(f => f.is_active === true)).toBe(true)
+    expect(active.every(f => f.is_active === 1)).toBe(true)
     expect(active.find(f => f.id === a.id)).toBeDefined()
     expect(active.find(f => f.id === b.id)).toBeUndefined()
   })
@@ -109,7 +109,7 @@ describe('FonctionService', () => {
   it('should update fonction name', async () => {
     const service = container.resolve(FonctionService)
     const created = await service.create({ name: 'Ancien Nom' })
-    const updated = await service.update(created.id!, { name: 'Nouveau Nom' })
+    const updated = await service.update({ id: created.id!, name: 'Nouveau Nom' })
     expect(updated.name).toBe('Nouveau Nom')
 
     // Verify via getById
@@ -120,7 +120,7 @@ describe('FonctionService', () => {
   it('should throw when updating non-existent fonction', async () => {
     const service = container.resolve(FonctionService)
     await expect(
-      service.update(9999, { name: 'Ghost' })
+      service.update({ id: 9999, name: 'Ghost' })
     ).rejects.toThrow('Fonction introuvable')
   })
 
@@ -129,7 +129,7 @@ describe('FonctionService', () => {
     const a = await service.create({ name: 'Fonction A' })
     await service.create({ name: 'Fonction B' })
     await expect(
-      service.update(a.id!, { name: 'Fonction B' })
+      service.update({ id: a.id!, name: 'Fonction B' })
     ).rejects.toThrow('est déjà utilisé')
   })
 
@@ -138,13 +138,13 @@ describe('FonctionService', () => {
   it('should toggle is_active from true to false and back', async () => {
     const service = container.resolve(FonctionService)
     const created = await service.create({ name: 'Toggle Test' })
-    expect(created.is_active).toBe(true)
+    expect(created.is_active).toBe(1)
 
     const toggledOff = await service.toggle(created.id!)
-    expect(toggledOff.is_active).toBe(false)
+    expect(toggledOff.is_active).toBe(0)
 
     const toggledOn = await service.toggle(created.id!)
-    expect(toggledOn.is_active).toBe(true)
+    expect(toggledOn.is_active).toBe(1)
   })
 
   it('should throw when toggling non-existent fonction', async () => {

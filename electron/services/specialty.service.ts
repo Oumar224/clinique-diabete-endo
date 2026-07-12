@@ -2,7 +2,7 @@ import { inject, singleton } from 'tsyringe'
 import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
-import type { SpecialtyDto, SpecialtyCreateDto, SpecialtyUpdateDto } from '../dto/specialty.dto'
+import type { SpecialtyEntity } from '../entities/specialty.entity'
 
 @singleton()
 export class SpecialtyService {
@@ -12,12 +12,8 @@ export class SpecialtyService {
     this.db = datasource.getInstance()
   }
 
-  private toDto(row: Record<string, unknown>): SpecialtyDto {
-    return { ...row, is_active: !!row.is_active } as unknown as SpecialtyDto
-  }
-
   // ─── List specialties (optionally only active) ────────────────
-  async list(activeOnly = false): Promise<SpecialtyDto[]> {
+  async list(activeOnly = false): Promise<SpecialtyEntity[]> {
     let query = this.db
       .selectFrom('specialties')
       .selectAll()
@@ -28,61 +24,61 @@ export class SpecialtyService {
     }
 
     const rows = await query.execute()
-    return rows.map(r => this.toDto(r))
+    return rows as unknown as SpecialtyEntity[]
   }
 
   // ─── Get single specialty ─────────────────────────────────────
-  async getById(id: number): Promise<SpecialtyDto | null> {
+  async getById(id: number): Promise<SpecialtyEntity | null> {
     const row = await this.db
       .selectFrom('specialties')
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst()
 
-    return row ? this.toDto(row) : null
+    return row ? (row as unknown as SpecialtyEntity) : null
   }
 
   // ─── Create a new specialty ───────────────────────────────────
-  async create(dto: SpecialtyCreateDto): Promise<SpecialtyDto> {
-    this.validateName(dto.name)
-    this.validateCode(dto.code)
+  async create(entity: SpecialtyEntity): Promise<SpecialtyEntity> {
+    this.validateName(entity.name ?? '')
+    this.validateCode(entity.code ?? '')
 
     try {
       // Check name uniqueness
       const existingName = await this.db
         .selectFrom('specialties')
         .selectAll()
-        .where('name', '=', dto.name.trim())
+        .where('name', '=', (entity.name ?? '').trim())
         .executeTakeFirst()
 
       if (existingName) {
-        throw new Error(`La spécialité "${dto.name.trim()}" existe déjà`)
+        throw new Error(`La spécialité "${(entity.name ?? '').trim()}" existe déjà`)
       }
 
       // Check code uniqueness
       const existingCode = await this.db
         .selectFrom('specialties')
         .selectAll()
-        .where('code', '=', dto.code.trim().toUpperCase())
+        .where('code', '=', (entity.code ?? '').trim().toUpperCase())
         .executeTakeFirst()
 
       if (existingCode) {
-        throw new Error(`Le code "${dto.code.trim().toUpperCase()}" est déjà utilisé par une autre spécialité`)
+        throw new Error(`Le code "${(entity.code ?? '').trim().toUpperCase()}" est déjà utilisé par une autre spécialité`)
       }
 
       const result = await this.db
         .insertInto('specialties')
         .values({
-          name: dto.name.trim(),
-          code: dto.code.trim().toUpperCase(),
-          title_prefix: dto.title_prefix?.trim() || 'Dr',
-          is_active: 1,
+          name: (entity.name ?? '').trim(),
+          code: (entity.code ?? '').trim().toUpperCase(),
+          title_prefix: entity.title_prefix?.trim() || 'Dr',
+          is_active: entity.is_active ?? 1,
         })
         .returningAll()
         .executeTakeFirst()
 
       if (!result) throw new Error('Échec de la création de la spécialité')
-      return this.toDto(result)
+      return result as unknown as SpecialtyEntity
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
         throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
@@ -92,40 +88,40 @@ export class SpecialtyService {
   }
 
   // ─── Update a specialty ───────────────────────────────────────
-  async update(dto: SpecialtyUpdateDto): Promise<SpecialtyDto> {
-    if (dto.id == null) {
+  async update(entity: SpecialtyEntity): Promise<SpecialtyEntity> {
+    if (entity.id == null) {
       throw new Error("L'identifiant de la spécialité est requis")
     }
 
-    const existing = await this.getById(dto.id)
+    const existing = await this.getById(entity.id)
     if (!existing) throw new Error('Spécialité introuvable')
 
-    if (dto.name !== undefined) this.validateName(dto.name)
-    if (dto.code !== undefined) this.validateCode(dto.code)
+    if (entity.name !== undefined) this.validateName(entity.name)
+    if (entity.code !== undefined) this.validateCode(entity.code)
 
     try {
       // Check name uniqueness if changing
-      if (dto.name !== undefined) {
+      if (entity.name !== undefined) {
         const conflict = await this.db
           .selectFrom('specialties')
           .selectAll()
-          .where('name', '=', dto.name.trim())
-          .where('id', '!=', dto.id)
+          .where('name', '=', (entity.name ?? '').trim())
+          .where('id', '!=', entity.id)
           .executeTakeFirst()
 
         if (conflict) {
-          throw new Error(`Le nom "${dto.name.trim()}" est déjà utilisé par une autre spécialité`)
+          throw new Error(`Le nom "${(entity.name ?? '').trim()}" est déjà utilisé par une autre spécialité`)
         }
       }
 
       // Check code uniqueness if changing
-      if (dto.code !== undefined) {
-        const newCode = dto.code.trim().toUpperCase()
+      if (entity.code !== undefined) {
+        const newCode = entity.code.trim().toUpperCase()
         const conflict = await this.db
           .selectFrom('specialties')
           .selectAll()
           .where('code', '=', newCode)
-          .where('id', '!=', dto.id)
+          .where('id', '!=', entity.id)
           .executeTakeFirst()
 
         if (conflict) {
@@ -136,15 +132,15 @@ export class SpecialtyService {
       const updateData: Record<string, unknown> = {
         updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       }
-      if (dto.name !== undefined) updateData.name = dto.name.trim()
-      if (dto.code !== undefined) updateData.code = dto.code.trim().toUpperCase()
-      if (dto.title_prefix !== undefined) updateData.title_prefix = dto.title_prefix.trim()
-      if (dto.is_active !== undefined) updateData.is_active = dto.is_active ? 1 : 0
+      if (entity.name !== undefined) updateData.name = (entity.name ?? '').trim()
+      if (entity.code !== undefined) updateData.code = entity.code.trim().toUpperCase()
+      if (entity.title_prefix !== undefined) updateData.title_prefix = entity.title_prefix.trim()
+      if (entity.is_active !== undefined) updateData.is_active = entity.is_active ? 1 : 0
 
       await this.db
         .updateTable('specialties')
         .set(updateData)
-        .where('id', '=', dto.id)
+        .where('id', '=', entity.id)
         .execute()
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
@@ -153,13 +149,13 @@ export class SpecialtyService {
       throw err
     }
 
-    const updated = await this.getById(dto.id)
+    const updated = await this.getById(entity.id)
     if (!updated) throw new Error('Spécialité introuvable après mise à jour')
     return updated
   }
 
   // ─── Toggle active/inactive ──────────────────────────────────
-  async toggle(id: number, isActive: boolean): Promise<SpecialtyDto> {
+  async toggle(id: number, isActive: boolean): Promise<SpecialtyEntity> {
     if (id == null) throw new Error("L'identifiant de la spécialité est requis")
     const existing = await this.getById(id)
     if (!existing) throw new Error('Spécialité introuvable')

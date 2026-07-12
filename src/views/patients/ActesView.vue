@@ -1,63 +1,104 @@
 <template>
   <div class="actes-view">
-    <h3 class="actes-view__title">Plan de soins global</h3>
+    <h3 class="actes-view__title">Actes médicaux prescrits</h3>
 
-    <el-table :data="sortedActes" size="small" style="width:100%">
-      <el-table-column prop="priorite" label="Priorité" width="100">
+    <el-table v-loading="loading" :data="patientActes" size="small" style="width:100%">
+      <el-table-column prop="acte_code" label="Code" width="100" />
+      <el-table-column prop="acte_label" label="Libellé" min-width="200" />
+      <el-table-column prop="quantite" label="Qté" width="80" align="center" />
+      <el-table-column label="Prix unitaire" width="130" align="right">
         <template #default="{ row }">
-          <el-tag :type="prioriteType(row.priorite)" size="small">{{ row.priorite }}</el-tag>
+          {{ row.prix_unitaire != null ? formatCurrency(row.prix_unitaire) : '—' }}
         </template>
       </el-table-column>
-      <el-table-column prop="type" label="Type" width="120" />
-      <el-table-column prop="libelle" label="Libellé" />
-      <el-table-column prop="prescripteur" label="Prescripteur" width="150" />
-      <el-table-column prop="datePrescription" label="Date" width="110" />
-      <el-table-column prop="valide" label="Validé" width="80">
+      <el-table-column label="Statut paiement" width="140" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.valide ? 'success' : 'warning'" size="small">{{ row.valide ? 'Oui' : 'Non' }}</el-tag>
+          <el-tag :type="row.statut_paiement === 'PAYE' ? 'success' : 'warning'" size="small">
+            {{ row.statut_paiement === 'PAYE' ? 'Payé' : 'À payer' }}
+          </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="Actions" width="80" align="center">
-        <el-button text type="primary" size="small" :icon="Edit" />
+      <el-table-column label="Actions" width="100" align="center">
+        <template #default="{ row }">
+          <el-button
+            v-if="row.statut_paiement === 'A_PAYER'"
+            text
+            type="success"
+            size="small"
+            @click="handleMarquerPaye(row)"
+          >
+            Payer
+          </el-button>
+          <el-button
+            v-if="row.statut_paiement === 'PAYE'"
+            text
+            type="warning"
+            size="small"
+            @click="handleMarquerAPayer(row)"
+          >
+            Dé-payer
+          </el-button>
+        </template>
       </el-table-column>
     </el-table>
+
+    <el-empty v-if="!loading && patientActes.length === 0" description="Aucun acte prescrit" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Edit } from '@element-plus/icons-vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { ElMessageBox, ElMessage } from 'element-plus'
+import { usePatientActes } from '@/composables/usePatientActes'
+import { useCurrencies } from '@/composables/useCurrencies'
 
-interface Acte {
-  priorite: string
-  type: string
-  libelle: string
-  prescripteur: string
-  datePrescription: string
-  valide: boolean
-}
+const route = useRoute()
+const { patientActes, loading, fetchPatientActes, updateStatut } = usePatientActes()
+const { formatCurrency, fetchCurrencies } = useCurrencies()
 
-const mockActes: Acte[] = [
-  { priorite: 'Haute', type: 'Médicament', libelle: 'Furosémide 40 mg - 2x/jour', prescripteur: 'Dr. Diallo', datePrescription: '26/06/2026', valide: true },
-  { priorite: 'Haute', type: 'Médicament', libelle: 'Metformine 500 mg - 3x/jour', prescripteur: 'Dr. Diallo', datePrescription: '26/06/2026', valide: true },
-  { priorite: 'Normale', type: 'Soin infirmier', libelle: 'Pansement plaie opératoire', prescripteur: 'Dr. Camara', datePrescription: '26/06/2026', valide: false },
-  { priorite: 'Basse', type: 'Rééducation', libelle: 'Kinésithérapie respiratoire', prescripteur: 'Dr. Diallo', datePrescription: '25/06/2026', valide: true },
-  { priorite: 'Normale', type: 'Examen', libelle: 'IRM cardiaque', prescripteur: 'Dr. Diallo', datePrescription: '26/06/2026', valide: false },
-  { priorite: 'Haute', type: 'Surveillance', libelle: 'Surveillance tension artérielle - 3x/jour', prescripteur: 'Dr. Camara', datePrescription: '26/06/2026', valide: true },
-]
+const patientId = ref(0)
 
-const priorityOrder: Record<string, number> = { Urgente: 0, Haute: 1, Normale: 2, Basse: 3 }
-
-const sortedActes = computed(() => {
-  return [...mockActes].sort((a, b) => (priorityOrder[a.priorite] ?? 99) - (priorityOrder[b.priorite] ?? 99))
+onMounted(() => {
+  fetchCurrencies()
+  loadData()
 })
 
-function prioriteType(p: string): 'danger' | 'warning' | 'success' | 'info' {
-  switch (p) {
-    case 'Urgente': return 'danger'
-    case 'Haute': return 'warning'
-    case 'Normale': return 'success'
-    default: return 'info'
+watch(() => route.params.id, () => loadData())
+
+async function loadData() {
+  patientId.value = Number(route.params.id)
+  if (!patientId.value) return
+  await fetchPatientActes(patientId.value)
+}
+
+async function handleMarquerPaye(row: any) {
+  if (row.id == null) return
+  try {
+    await ElMessageBox.confirm(
+      'Marquer cet acte comme payé ?',
+      'Confirmation',
+      { type: 'info', confirmButtonText: 'Oui', cancelButtonText: 'Annuler' }
+    )
+    const ok = await updateStatut(row.id, 'PAYE')
+    if (ok) ElMessage.success('Acte marqué comme payé')
+  } catch {
+    // cancelled or error
+  }
+}
+
+async function handleMarquerAPayer(row: any) {
+  if (row.id == null) return
+  try {
+    await ElMessageBox.confirm(
+      'Repasser cet acte en statut « À payer » ?',
+      'Confirmation',
+      { type: 'warning', confirmButtonText: 'Oui', cancelButtonText: 'Annuler' }
+    )
+    const ok = await updateStatut(row.id, 'A_PAYER')
+    if (ok) ElMessage.success('Acte repassé en attente de paiement')
+  } catch {
+    // cancelled or error
   }
 }
 </script>

@@ -9,13 +9,28 @@ export interface ServiceDto {
   color?: string | null
   sort_order: number
   is_active: boolean
+  category: string
+  site_ids?: number[]
   created_at?: string
   updated_at?: string
 }
 
+export const SERVICE_CATEGORIES = [
+  'Consultation',
+  'Hospitalisation',
+  'Soins',
+  'Technique',
+  'Radiologie',
+  'Laboratoire',
+  'Rééducation',
+  'Administration',
+] as const
+
 const services = ref<ServiceDto[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+const favorites = ref<number[]>([])
 
 export function useMedicalServices() {
   async function fetchServices(activeOnly?: boolean): Promise<void> {
@@ -30,7 +45,14 @@ export function useMedicalServices() {
     }
   }
 
-  async function createService(dto: { name: string; description?: string | null; duration?: number; color?: string | null }): Promise<ServiceDto | null> {
+  async function createService(dto: {
+    name: string
+    category?: string
+    description?: string | null
+    duration?: number
+    color?: string | null
+    site_ids?: number[]
+  }): Promise<ServiceDto | null> {
     try {
       const created = await ipcInvoke<ServiceDto>('services:create', dto)
       await fetchServices()
@@ -40,7 +62,17 @@ export function useMedicalServices() {
     }
   }
 
-  async function updateService(id: number, dto: { name?: string; description?: string | null; duration?: number; color?: string | null }): Promise<ServiceDto | null> {
+  async function updateService(
+    id: number,
+    dto: {
+      name?: string
+      category?: string
+      description?: string | null
+      duration?: number
+      color?: string | null
+      site_ids?: number[]
+    },
+  ): Promise<ServiceDto | null> {
     try {
       const updated = await ipcInvoke<ServiceDto>('services:update', { id, ...dto })
       await fetchServices()
@@ -81,15 +113,83 @@ export function useMedicalServices() {
     }
   }
 
+  async function fetchServicesBySite(siteId: number): Promise<ServiceDto[]> {
+    try {
+      return await ipcInvoke<ServiceDto[]>('services:list-by-site', { siteId })
+    } catch {
+      return []
+    }
+  }
+
+  async function getServiceSites(serviceId: number): Promise<number[]> {
+    try {
+      return await ipcInvoke<number[]>('services:get-sites', { id: serviceId })
+    } catch {
+      return []
+    }
+  }
+
+  /* ─── Favorites ────────────────────────────────────────────── */
+
+  async function fetchFavorites(userId: number): Promise<void> {
+    try {
+      favorites.value = await ipcInvoke<number[]>('favorites:list', { userId })
+    } catch {
+      favorites.value = []
+    }
+  }
+
+  async function addFavorite(serviceId: number): Promise<void> {
+    try {
+      await ipcInvoke('favorites:add', { serviceId })
+      if (!favorites.value.includes(serviceId)) {
+        favorites.value.push(serviceId)
+      }
+    } catch {
+      // silently fail
+    }
+  }
+
+  async function removeFavorite(serviceId: number): Promise<void> {
+    try {
+      await ipcInvoke('favorites:remove', { serviceId })
+      favorites.value = favorites.value.filter(id => id !== serviceId)
+    } catch {
+      // silently fail
+    }
+  }
+
+  function isFavorite(serviceId: number): boolean {
+    return favorites.value.includes(serviceId)
+  }
+
+  async function toggleFavorite(serviceId: number): Promise<void> {
+    if (isFavorite(serviceId)) {
+      await removeFavorite(serviceId)
+    } else {
+      await addFavorite(serviceId)
+    }
+  }
+
   return {
     services,
     loading,
     error,
+    favorites,
+
     fetchServices,
     createService,
     updateService,
     deleteService,
     toggleService,
     reorderServices,
+    fetchServicesBySite,
+    getServiceSites,
+
+    fetchFavorites,
+    addFavorite,
+    removeFavorite,
+    isFavorite,
+    toggleFavorite,
   }
 }

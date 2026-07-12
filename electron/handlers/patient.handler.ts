@@ -3,6 +3,7 @@ import { PatientService } from '../services/patient.service'
 import { TrustedPersonService } from '../services/trusted-person.service'
 import { AuthService } from '../services/auth.service'
 import { PatientEntity } from '../entities/patient.entity'
+import { TrustedPersonEntity } from '../entities/trusted-person.entity'
 import type { PatientDto } from '../dto/patient.dto'
 import type { TrustedPersonDto } from '../dto/trusted-person.dto'
 import { createHandler } from '../utils/create-handler'
@@ -36,11 +37,14 @@ export function registerPatientHandlers() {
   })
 
   createHandler('trusted-person:get', async ({ patientId }: { patientId: number }) => {
-    return await container.resolve(TrustedPersonService).getByPatientId(patientId)
+    const entity = await container.resolve(TrustedPersonService).getByPatientId(patientId)
+    return entity ? TrustedPersonEntity.toDto(entity) : null
   })
 
   createHandler('trusted-person:upsert', async (dto: TrustedPersonDto) => {
-    return await container.resolve(TrustedPersonService).upsert(dto)
+    const entity = TrustedPersonEntity.fromDto(dto)
+    const created = await container.resolve(TrustedPersonService).upsert(entity)
+    return TrustedPersonEntity.toDto(created)
   })
 
   createHandler('trusted-person:delete', async ({ patientId }: { patientId: number }) => {

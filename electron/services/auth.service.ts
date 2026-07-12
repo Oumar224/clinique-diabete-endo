@@ -372,7 +372,7 @@ export class AuthService {
       services: services as Array<{ id: number; name: string }>,
       sites: sites as Array<{ id: number; name: string }>,
       medical_units: medicalUnits as Array<{ id: number; name: string; code: string }>,
-      fonction: fonction ? { id: fonction.id!, name: fonction.name } : null,
+      fonction: fonction ? { id: fonction.id!, name: fonction.name! } : null,
       statut_contrat: this.computeStatutContrat(user),
     }
   }

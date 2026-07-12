@@ -24,12 +24,12 @@ describe('MigrationService', () => {
     fs.rmSync(dbDir, { recursive: true, force: true })
   })
 
-  it('should run all 30 migrations successfully', async () => {
+  it('should run all 40 migrations successfully', async () => {
     const svc = new MigrationService(db)
     await expect(svc.runMigrations()).resolves.not.toThrow()
 
     const rows = await sql`SELECT name FROM kysely_migration`.execute(db)
-    expect(rows.rows.length).toBe(30)
+    expect(rows.rows.length).toBe(40)
 
     const names = rows.rows.map((r: any) => r.name)
     expect(names).toContain('025-attachment-types')
@@ -38,6 +38,14 @@ describe('MigrationService', () => {
     expect(names).toContain('028-form-drafts')
     expect(names).toContain('029-patient-consentement-etude')
     expect(names).toContain('030-user-attachment-type')
+    expect(names).toContain('031-patient-care')
+    expect(names).toContain('032-seed-plan-soins')
+    expect(names).toContain('033-prescriptions')
+    expect(names).toContain('034-seed-week-plan-soins')
+    expect(names).toContain('035-seed-vital-signs-range')
+    expect(names).toContain('042-vital-signs-new-columns')
+    expect(names).toContain('043-vital-signs-items')
+    expect(names).toContain('046-service-hierarchy')
   })
 
   it('should create all settings tables', async () => {

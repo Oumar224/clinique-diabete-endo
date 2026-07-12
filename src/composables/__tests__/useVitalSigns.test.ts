@@ -56,6 +56,12 @@ function makeRecord(overrides: Partial<{
   frequenceCardiaque: number | null
   temperature: number | null
   glycemie: number | null
+  cetonemie: number | null
+  glucosurie: string | null
+  cetonurie: string | null
+  saO2: number | null
+  diurese: number | null
+  poids: number | null
   createdBy: number
   createdAt: string
   updatedAt: string
@@ -69,6 +75,12 @@ function makeRecord(overrides: Partial<{
     frequenceCardiaque: 72,
     temperature: 37.0,
     glycemie: null,
+    cetonemie: null,
+    glucosurie: null,
+    cetonurie: null,
+    saO2: null,
+    diurese: null,
+    poids: null,
     createdBy: 1,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -168,6 +180,12 @@ describe('provideVitalSigns', () => {
         frequenceCardiaque: 80,
         temperature: 37.5,
         glycemie: 1.5,
+        cetonemie: null,
+        glucosurie: null,
+        cetonurie: null,
+        saO2: null,
+        diurese: null,
+        poids: null,
       }
       await ctx.saveVitalSigns(data)
 
@@ -189,6 +207,12 @@ describe('provideVitalSigns', () => {
         frequenceCardiaque: 72,
         temperature: 37.0,
         glycemie: 1.2,
+        cetonemie: null,
+        glucosurie: null,
+        cetonurie: null,
+        saO2: null,
+        diurese: null,
+        poids: null,
       })
 
       expect(ctx.hasGlycemieToday.value).toBe(true)
@@ -206,6 +230,12 @@ describe('provideVitalSigns', () => {
         frequenceCardiaque: 72,
         temperature: 37.0,
         glycemie: 1.2,
+        cetonemie: null,
+        glucosurie: null,
+        cetonurie: null,
+        saO2: null,
+        diurese: null,
+        poids: null,
       })
 
       expect(mockSaveVitalSigns).not.toHaveBeenCalled()
@@ -257,6 +287,12 @@ describe('provideVitalSigns', () => {
         frequenceCardiaque: 72,
         temperature: 37.0,
         glycemie: 1.2,
+        cetonemie: null,
+        glucosurie: null,
+        cetonurie: null,
+        saO2: null,
+        diurese: null,
+        poids: null,
       })
 
       expect(ctx.vitalSigns.value).not.toBeNull()
@@ -305,6 +341,12 @@ describe('provideVitalSigns', () => {
         frequenceCardiaque: 72,
         temperature: 37.0,
         glycemie: 1.2,
+        cetonemie: null,
+        glucosurie: null,
+        cetonurie: null,
+        saO2: null,
+        diurese: null,
+        poids: null,
       })
 
       expect(ctx.error.value).toBe('DB timeout')

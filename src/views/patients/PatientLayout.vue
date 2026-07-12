@@ -5,12 +5,11 @@
     </div>
 
     <template v-else-if="activePatient">
-      <header class="patient-layout__section-header">
-        <el-icon :size="24" v-if="currentSection.icon">
-          <component :is="currentSection.icon" />
-        </el-icon>
-        <h1 class="patient-layout__section-title">{{ currentSection.label }}</h1>
-      </header>
+      <PatientBanner :patient="activePatient" :age="age" @edit="openEditPatient" />
+
+      <PatientContextToolbar :patient-id="activePatient.id" :show-pdf="routeName === 'patient-dossier'">
+        <SectionHeader :label="currentSection.label" :icon="currentSection.icon" level="primary" />
+      </PatientContextToolbar>
 
       <div class="patient-layout__content">
         <router-view />
@@ -28,6 +27,9 @@ import {
 } from '@element-plus/icons-vue'
 import { usePatientContext } from '@/composables/usePatientContext'
 import { getPatient } from '@/composables/usePatients'
+import SectionHeader from '@/components/common/SectionHeader.vue'
+import PatientBanner from '@/components/patients/PatientBanner.vue'
+import PatientContextToolbar from '@/components/patients/PatientContextToolbar.vue'
 import type { Component } from 'vue'
 
 interface SectionInfo {
@@ -36,27 +38,34 @@ interface SectionInfo {
 }
 
 const SECTION_INFO: Record<string, SectionInfo> = {
-  'patient-dossier': { label: 'Dossier Patient', icon: FolderOpened },
+  'patient-dossier': { label: 'Fiche Patient', icon: FolderOpened },
+  'patient-dossier-clinic': { label: 'Dossier Clinic', icon: FolderOpened },
   'patient-labo': { label: 'Résultats Bio', icon: DataAnalysis },
-  'patient-prescription': { label: 'Prescription / Soins', icon: Tickets },
+  'patient-prescription': { label: 'Prescriptions, Soins & Médicaments', icon: Tickets },
   'patient-examens': { label: 'Demande Examens', icon: Search },
-  'patient-actes': { label: 'Actes / Soins', icon: List },
-  'patient-soins': { label: 'Administration Soins', icon: Aim },
+  'patient-actes': { label: 'Actes, Soins & Médicaments', icon: List },
+  'patient-soins': { label: 'Administration Soins & Médicaments', icon: Aim },
+  'patient-contact': { label: 'Contacts', icon: HomeFilled },
   'patient-sejour': { label: 'Patient & Séjour', icon: HomeFilled },
   'patient-rdv': { label: 'Rendez-vous', icon: Calendar },
   'patient-factures': { label: 'Factures', icon: Money },
 }
 
 const route = useRoute()
-const { activePatient, setActivePatient } = usePatientContext()
+const { activePatient, age, setActivePatient } = usePatientContext()
 
 const loading = ref(false)
 const patientNotFound = ref(false)
 
+const routeName = computed(() => typeof route.name === 'string' ? route.name : '')
+
 const currentSection = computed<SectionInfo>(() => {
-  const name = typeof route.name === 'string' ? route.name : ''
-  return SECTION_INFO[name] ?? { label: '', icon: FolderOpened }
+  return SECTION_INFO[routeName.value] ?? { label: '', icon: FolderOpened }
 })
+
+function openEditPatient() {
+  ElMessage.info('Modification du patient - fonction a implementer')
+}
 
 onMounted(async () => {
   const id = Number(route.params.id)
@@ -100,6 +109,7 @@ async function loadPatient(id: number) {
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
 .patient-layout__not-found {
@@ -107,23 +117,6 @@ async function loadPatient(id: number) {
   align-items: center;
   justify-content: center;
   height: 60vh;
-}
-
-.patient-layout__section-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-bottom: 20px;
-  color: var(--cd-gray-900);
-}
-
-.patient-layout__section-title {
-  font-size: 22px;
-  font-weight: 700;
-  margin: 0;
-  line-height: 1.3;
-  color: var(--cd-gray-900);
 }
 
 .patient-layout__content {

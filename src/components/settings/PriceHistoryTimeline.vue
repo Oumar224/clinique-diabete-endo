@@ -4,43 +4,43 @@
       <el-timeline-item
         v-for="entry in history"
         :key="entry.id"
-        :timestamp="formatDate(entry.changed_at)"
+        :timestamp="formatDate(entry.date_application)"
         placement="top"
       >
         <div class="pht__entry">
-          <span v-if="entry.old_price !== null" class="pht__price">
-            <span class="pht__old">{{ format(entry.old_price) }}</span>
-            <el-icon class="pht__arrow"><ArrowRight /></el-icon>
-            <span class="pht__new">{{ format(entry.new_price) }}</span>
+          <span class="pht__price">
+            <span class="pht__new">{{ format(entry.prix_unitaire) }}</span>
           </span>
-          <span v-else class="pht__price">
-            <span class="pht__new">{{ format(entry.new_price) }}</span>
-            <span class="pht__initial">(Prix initial)</span>
-          </span>
-          <span v-if="entry.change_reason && entry.change_reason !== 'Prix initial'" class="pht__reason">
-            {{ entry.change_reason }}
+          <span class="pht__meta">
+            <el-tag size="small" type="info">{{ entry.code_tarif }}</el-tag>
           </span>
         </div>
       </el-timeline-item>
     </el-timeline>
-    <el-empty v-else description="Aucun historique — prix d'origine" :image-size="80" />
+    <el-empty v-else description="Aucun historique de prix" :image-size="80" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ArrowRight } from '@element-plus/icons-vue'
-import type { ActPriceHistoryDto } from '@/composables/useMedicalActs'
 import { useCurrencies } from '@/composables/useCurrencies'
 import { formatDate } from '@/utils/date'
 
+export interface PriceHistoryEntry {
+  id: number
+  acte_id: number
+  code_tarif: string
+  prix_unitaire: number
+  date_application: string
+}
+
 defineProps<{
-  history: ActPriceHistoryDto[]
+  history: PriceHistoryEntry[]
 }>()
 
 const { formatCurrency } = useCurrencies()
 
 function format(amount: number | null): string {
-  if (amount === null) return '—'
+  if (amount === null) return '\u2014'
   return formatCurrency(amount)
 }
 </script>
@@ -52,8 +52,8 @@ function format(amount: number | null): string {
 
 .pht__entry {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
 }
 
 .pht__price {
@@ -64,30 +64,13 @@ function format(amount: number | null): string {
   font-weight: 500;
 }
 
-.pht__old {
-  color: var(--cd-secondary);
-  text-decoration: line-through;
-}
-
 .pht__new {
   color: var(--cd-primary);
   font-weight: 700;
 }
 
-.pht__arrow {
-  color: var(--cd-gray-400);
-  font-size: 14px;
-}
-
-.pht__initial {
-  font-size: 12px;
-  color: var(--cd-gray-400);
-  font-weight: 400;
-  margin-left: 4px;
-}
-
-.pht__reason {
-  font-size: 12px;
-  color: var(--cd-gray-400);
+.pht__meta {
+  display: flex;
+  align-items: center;
 }
 </style>

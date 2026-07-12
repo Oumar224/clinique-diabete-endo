@@ -10,7 +10,6 @@ export function registerExportHandlers(): void {
   })
 
   createHandler('export:user-profile-pdf', async (params: { userId: number }) => {
-    if (typeof params.userId !== 'number') throw new Error('ID utilisateur invalide')
     return await exportService.exportUserProfilePdf(params.userId)
   })
 
@@ -19,7 +18,18 @@ export function registerExportHandlers(): void {
   })
 
   createHandler('export:user-profile-excel', async (params: { userId: number }) => {
-    if (typeof params.userId !== 'number') throw new Error('ID utilisateur invalide')
     return await exportService.exportUserProfileExcel(params.userId)
+  })
+
+  createHandler('export:patient-profile-pdf', async (params: { patientId: number }) => {
+    return await exportService.exportPatientProfilePdf(params.patientId)
+  })
+
+  createHandler('export:crh-diabete-pdf', async (params: { documentId: string }) => {
+    return await exportService.exportCrhDiabetePdf(params.documentId)
+  })
+
+  createHandler('export:patients-list-excel', async (filters?: unknown) => {
+    return await exportService.exportPatientsListExcel(filters)
   })
 }

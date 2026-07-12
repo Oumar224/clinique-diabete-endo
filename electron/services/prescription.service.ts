@@ -2,7 +2,7 @@ import { inject, singleton } from 'tsyringe'
 import { type Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
-import type { PrescriptionDto } from '../dto/prescription.dto'
+import { PrescriptionEntity } from '../entities/prescription.entity'
 
 /**
  * Mapping from frequency labels to time blocks in the distribution calendar.
@@ -25,7 +25,7 @@ export class PrescriptionService {
   /**
    * List all active prescriptions for a given patient.
    */
-  async listByPatient(patientId: number): Promise<PrescriptionDto[]> {
+  async listByPatient(patientId: number): Promise<PrescriptionEntity[]> {
     const rows = await this.db
       .selectFrom('prescriptions')
       .leftJoin('user', 'user.id', 'prescriptions.prescripteur_id')
@@ -37,11 +37,13 @@ export class PrescriptionService {
         'prescriptions.voie',
         'prescriptions.duree',
         'prescriptions.frequence',
+        'prescriptions.frequence_type as frequence_type',
         'prescriptions.prn',
         'prescriptions.instructions',
         'prescriptions.date_prescription',
         'prescriptions.prescripteur_id',
         'prescriptions.statut',
+        'prescriptions.prescription_type',
         'prescriptions.created_at',
         'prescriptions.updated_at',
         'user.prenom',
@@ -53,13 +55,13 @@ export class PrescriptionService {
       .orderBy('prescriptions.id', 'desc')
       .execute()
 
-    return rows.map(r => this.toDto(r))
+    return rows as unknown as PrescriptionEntity[]
   }
 
   /**
    * Get a single prescription by id.
    */
-  async getById(id: number): Promise<PrescriptionDto | null> {
+  async getById(id: number): Promise<PrescriptionEntity | null> {
     const row = await this.db
       .selectFrom('prescriptions')
       .leftJoin('user', 'user.id', 'prescriptions.prescripteur_id')
@@ -71,11 +73,13 @@ export class PrescriptionService {
         'prescriptions.voie',
         'prescriptions.duree',
         'prescriptions.frequence',
+        'prescriptions.frequence_type as frequence_type',
         'prescriptions.prn',
         'prescriptions.instructions',
         'prescriptions.date_prescription',
         'prescriptions.prescripteur_id',
         'prescriptions.statut',
+        'prescriptions.prescription_type',
         'prescriptions.created_at',
         'prescriptions.updated_at',
         'user.prenom',
@@ -85,24 +89,14 @@ export class PrescriptionService {
       .where('prescriptions.id', '=', id)
       .executeTakeFirst()
 
-    return row ? this.toDto(row) : null
+    return row ? (row as unknown as PrescriptionEntity) : null
   }
 
   /**
    * Create a new prescription and generate corresponding plan_soins_items
    * in the distribution calendar for the entire duration.
    */
-  async create(data: {
-    patientId: number
-    medicament: string
-    dosage: string
-    voie: string
-    duree: number
-    frequence: string[]       // ['Matin','Midi','Soir','Nuit']
-    prn: boolean
-    instructions: string | null
-    prescripteurId: number
-  }): Promise<{ prescription: PrescriptionDto; itemsGenerated: number }> {
+  async create(entity: PrescriptionEntity): Promise<{ prescription: PrescriptionEntity; itemsGenerated: number }> {
     const now = new Date().toISOString()
     const today = this.formatLocalDate(new Date()) // local 'YYYY-MM-DD'
 
@@ -110,17 +104,19 @@ export class PrescriptionService {
     const insertResult = await this.db
       .insertInto('prescriptions')
       .values({
-        patient_id: data.patientId,
-        medicament: data.medicament,
-        dosage: data.dosage,
-        voie: data.voie,
-        duree: data.duree,
-        frequence: data.frequence.join(','),
-        prn: data.prn ? 1 : 0,
-        instructions: data.instructions,
-        date_prescription: today,
-        prescripteur_id: data.prescripteurId,
-        statut: 'active',
+        patient_id: entity.patient_id,
+        medicament: entity.medicament,
+        dosage: entity.dosage,
+        voie: entity.voie,
+        duree: entity.duree,
+        frequence: entity.frequence,
+        frequence_type: entity.frequence_type ?? 'moments',
+        prn: entity.prn ?? 0,
+        instructions: entity.instructions,
+        date_prescription: entity.date_prescription ?? today,
+        prescripteur_id: entity.prescripteur_id,
+        statut: entity.statut ?? 'active',
+        prescription_type: entity.type ?? 'medicament',
         created_at: now,
         updated_at: now,
       })
@@ -129,19 +125,21 @@ export class PrescriptionService {
     const prescriptionId = Number(insertResult.insertId!)
 
     // ── 2. Generate plan_soins_items for each day × frequency ──────
+    const frequenceArr = (entity.frequence ?? '').split(',').filter(Boolean)
     const itemsGenerated = await this.generatePlanItems({
       prescriptionId,
-      patientId: data.patientId,
-      startDate: today,
-      duree: data.duree,
-      frequence: data.frequence,
-      prn: data.prn,
-      medicament: data.medicament,
-      dosage: data.dosage,
-      voie: data.voie,
-      createdBy: data.prescripteurId,
+      patientId: entity.patient_id!,
+      startDate: entity.date_prescription ?? today,
+      duree: entity.duree ?? 0,
+      frequence: frequenceArr,
+      frequenceType: (entity.frequence_type ?? 'moments') as 'moments' | 'fixed-times' | 'interval',
+      prn: entity.prn === 1,
+      medicament: entity.medicament ?? '',
+      dosage: entity.dosage ?? '',
+      voie: entity.voie ?? '',
+      createdBy: entity.prescripteur_id!,
     })
-    console.log(`[PrescriptionService.create] ✅ prescriptionId=${prescriptionId} itemsGenerated=${itemsGenerated} medicament="${data.medicament}" dosage="${data.dosage}" duree=${data.duree} frequence=[${data.frequence}]`)
+    console.log(`[PrescriptionService.create] ✅ prescriptionId=${prescriptionId} itemsGenerated=${itemsGenerated} medicament="${entity.medicament}" dosage="${entity.dosage}" duree=${entity.duree} frequence=["${entity.frequence}"]`)
 
     // ── 3. Return the created prescription ─────────────────────────
     const saved = await this.db
@@ -155,11 +153,13 @@ export class PrescriptionService {
         'prescriptions.voie',
         'prescriptions.duree',
         'prescriptions.frequence',
+        'prescriptions.frequence_type as frequence_type',
         'prescriptions.prn',
         'prescriptions.instructions',
         'prescriptions.date_prescription',
         'prescriptions.prescripteur_id',
         'prescriptions.statut',
+        'prescriptions.prescription_type',
         'prescriptions.created_at',
         'prescriptions.updated_at',
         'user.prenom',
@@ -170,7 +170,7 @@ export class PrescriptionService {
       .executeTakeFirst()
 
     return {
-      prescription: this.toDto(saved!),
+      prescription: saved as unknown as PrescriptionEntity,
       itemsGenerated,
     }
   }
@@ -181,17 +181,11 @@ export class PrescriptionService {
    * to preserve clinical history.
    */
   async update(
-    id: number,
-    data: {
-      medicament?: string
-      dosage?: string
-      voie?: string
-      duree?: number
-      frequence?: string[]
-      prn?: boolean
-      instructions?: string | null
-    },
-  ): Promise<{ prescription: PrescriptionDto; itemsGenerated: number }> {
+    entity: PrescriptionEntity,
+  ): Promise<{ prescription: PrescriptionEntity; itemsGenerated: number }> {
+    const id = entity.id
+    if (id == null) throw new Error('id requis pour la mise à jour')
+
     const existing = await this.db
       .selectFrom('prescriptions')
       .selectAll()
@@ -203,13 +197,15 @@ export class PrescriptionService {
     }
 
     const updatedData = {
-      medicament: data.medicament ?? existing.medicament,
-      dosage: data.dosage ?? existing.dosage,
-      voie: data.voie ?? existing.voie,
-      duree: data.duree ?? existing.duree,
-      frequence: (data.frequence ?? existing.frequence.split(',')).join(','),
-      prn: data.prn !== undefined ? (data.prn ? 1 : 0) : existing.prn,
-      instructions: data.instructions !== undefined ? data.instructions : existing.instructions,
+      medicament: entity.medicament ?? existing.medicament,
+      dosage: entity.dosage ?? existing.dosage,
+      voie: entity.voie ?? existing.voie,
+      duree: entity.duree ?? existing.duree,
+      frequence: entity.frequence ?? existing.frequence,
+      frequence_type: entity.frequence_type ?? existing.frequence_type,
+      prn: entity.prn !== undefined ? entity.prn : existing.prn,
+      instructions: entity.instructions !== undefined ? entity.instructions : existing.instructions,
+      prescription_type: entity.type ?? existing.prescription_type ?? 'medicament',
       updated_at: new Date().toISOString(),
     }
 
@@ -229,24 +225,26 @@ export class PrescriptionService {
       .execute()
 
     // Regenerate items based on merged data
-    const mergedFrequence = data.frequence ?? existing.frequence.split(',')
-    const mergedPrn = data.prn !== undefined ? data.prn : existing.prn === 1
-    const mergedDuree = data.duree ?? existing.duree
-    const mergedMedicament = data.medicament ?? existing.medicament
-    const mergedDosage = data.dosage ?? existing.dosage
-    const mergedVoie = data.voie ?? existing.voie
+    const mergedFrequence = entity.frequence ? entity.frequence.split(',').filter(Boolean) : existing.frequence!.split(',')
+    const mergedFrequenceType = (entity.frequence_type ?? existing.frequence_type ?? 'moments') as 'moments' | 'fixed-times' | 'interval'
+    const mergedPrn = entity.prn !== undefined ? entity.prn === 1 : existing.prn === 1
+    const mergedDuree = entity.duree ?? existing.duree!
+    const mergedMedicament = entity.medicament ?? existing.medicament!
+    const mergedDosage = entity.dosage ?? existing.dosage!
+    const mergedVoie = entity.voie ?? existing.voie!
 
     const itemsGenerated = await this.generatePlanItems({
       prescriptionId: id,
-      patientId: existing.patient_id,
-      startDate: existing.date_prescription,
+      patientId: existing.patient_id!,
+      startDate: existing.date_prescription!,
       duree: mergedDuree,
       frequence: mergedFrequence,
+      frequenceType: mergedFrequenceType,
       prn: mergedPrn,
       medicament: mergedMedicament,
       dosage: mergedDosage,
       voie: mergedVoie,
-      createdBy: existing.prescripteur_id,
+      createdBy: existing.prescripteur_id!,
     })
 
     const updated = await this.db
@@ -260,11 +258,13 @@ export class PrescriptionService {
         'prescriptions.voie',
         'prescriptions.duree',
         'prescriptions.frequence',
+        'prescriptions.frequence_type as frequence_type',
         'prescriptions.prn',
         'prescriptions.instructions',
         'prescriptions.date_prescription',
         'prescriptions.prescripteur_id',
         'prescriptions.statut',
+        'prescriptions.prescription_type',
         'prescriptions.created_at',
         'prescriptions.updated_at',
         'user.prenom',
@@ -275,13 +275,15 @@ export class PrescriptionService {
       .executeTakeFirst()
 
     return {
-      prescription: this.toDto(updated!),
+      prescription: updated as unknown as PrescriptionEntity,
       itemsGenerated,
     }
   }
 
   /**
-   * Stop (deactivate) a prescription by setting statut to 'stopped'.
+   * Stop (deactivate) a prescription by setting statut to 'stopped'
+   * and suspending all en_attente plan_soins_items (they remain visible
+   * in the calendar as suspended, not actionable).
    */
   async stop(id: number): Promise<void> {
     await this.db
@@ -292,14 +294,35 @@ export class PrescriptionService {
       })
       .where('id', '=', id)
       .execute()
+
+    // Suspend all en_attente items so they no longer appear actionable
+    await this.db
+      .updateTable('plan_soins_items')
+      .set({
+        statut: 'suspendu',
+        motif_suspension: 'Prescription arrêtée',
+        updated_at: new Date().toISOString(),
+      })
+      .where('prescription_id', '=', id)
+      .where('statut', '=', 'en_attente')
+      .execute()
   }
 
   /**
-   * Hard-delete a prescription and disassociate all related plan_soins_items.
-   * Items are kept (prescription_id set to NULL) to preserve administration history.
+   * Hard-delete a prescription and remove/clean up related plan_soins_items.
+   * - en_attente items are deleted (orphaned, no clinical value).
+   * - valide/suspendu items are kept (prescription_id set to NULL) to preserve
+   *   administration history.
    */
   async delete(id: number): Promise<void> {
-    // Disassociate items first
+    // Delete orphaned en_attente items (they have no clinical value)
+    await this.db
+      .deleteFrom('plan_soins_items')
+      .where('prescription_id', '=', id)
+      .where('statut', '=', 'en_attente')
+      .execute()
+
+    // Keep valide/suspendu items but disassociate them from the prescription
     await this.db
       .updateTable('plan_soins_items')
       .set({ prescription_id: null })
@@ -334,6 +357,11 @@ export class PrescriptionService {
    *
    * For the findOrCreatePlanSoins helper, `createdBy` is used when a new
    * plan_soins row must be created (e.g. for dates beyond the original range).
+   *
+   * Frequency type handling:
+   * - 'moments'    : values are moment labels (Matin, Midi, Soir, Nuit) mapped via FREQUENCE_TO_BLOC
+   * - 'fixed-times': values are already time block strings (08h00, 12h00, etc.) used directly
+   * - 'interval'   : single value "Toutes les Xh" generates blocks from 08h00 to 22h00 at X-hour intervals
    */
   private async generatePlanItems(params: {
     prescriptionId: number
@@ -341,6 +369,7 @@ export class PrescriptionService {
     startDate: string       // 'YYYY-MM-DD'
     duree: number
     frequence: string[]
+    frequenceType: 'moments' | 'fixed-times' | 'interval'
     prn: boolean
     medicament: string
     dosage: string
@@ -349,6 +378,35 @@ export class PrescriptionService {
   }): Promise<number> {
     if (params.prn) return 0
 
+    // ── Resolve time blocks based on frequency type ──────────────
+    let blocHeures: string[]
+
+    if (params.frequenceType === 'fixed-times') {
+      // Values are already time block strings like "08h00", "12h00", "18h00"
+      blocHeures = params.frequence.filter(Boolean)
+    } else if (params.frequenceType === 'interval') {
+      // Value format: "Toutes les Xh" (e.g., "Toutes les 8h")
+      // Generate blocks from 08h00 to 22h00 at X-hour intervals
+      const match = params.frequence[0]?.match(/Toutes les (\d+)h/)
+      blocHeures = []
+      if (match) {
+        const intervalHours = parseInt(match[1], 10)
+        if (intervalHours > 0) {
+          for (let h = 8; h <= 22; h += intervalHours) {
+            blocHeures.push(`${String(h).padStart(2, '0')}h00`)
+          }
+        }
+      }
+    } else {
+      // 'moments' — current behavior using FREQUENCE_TO_BLOC mapping
+      blocHeures = params.frequence
+        .map(freq => FREQUENCE_TO_BLOC[freq])
+        .filter(Boolean)
+    }
+
+    if (blocHeures.length === 0) return 0
+
+    // ── Generate items for each day ──────────────────────────────
     const now = new Date().toISOString()
     const startParts = params.startDate.split('-').map(Number)
     let count = 0
@@ -365,10 +423,7 @@ export class PrescriptionService {
         params.createdBy ?? 0,
       )
 
-      for (const freq of params.frequence) {
-        const blocHeure = FREQUENCE_TO_BLOC[freq]
-        if (!blocHeure) continue
-
+      for (const blocHeure of blocHeures) {
         await this.db
           .insertInto('plan_soins_items')
           .values({
@@ -423,24 +478,4 @@ export class PrescriptionService {
     return Number(result.insertId!)
   }
 
-  private toDto(row: Record<string, unknown>): PrescriptionDto {
-    return {
-      id: row.id as number,
-      patientId: row.patient_id as number,
-      medicament: row.medicament as string,
-      dosage: row.dosage as string,
-      voie: row.voie as string,
-      duree: row.duree as number,
-      frequence: (row.frequence as string).split(',').map(f => f.trim()),
-      prn: (row.prn as number) === 1,
-      instructions: row.instructions as string | null,
-      datePrescription: row.date_prescription as string,
-      prescripteurId: row.prescripteur_id as number,
-      prescripteurNom: row.prenom && row.nom ? `${row.prenom} ${row.nom}` : undefined,
-      prescripteurRole: row.role as string | undefined,
-      statut: row.statut as string,
-      createdAt: row.created_at as string,
-      updatedAt: row.updated_at as string,
-    }
-  }
 }

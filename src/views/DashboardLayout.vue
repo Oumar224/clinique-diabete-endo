@@ -40,7 +40,7 @@ onMounted(() => {
   height: 100vh;
   display: flex;
   flex-direction: row;
-  background: var(--cd-gray-50);
+  background: var(--cd-page-bg);
 }
 
 .dashboard__main-area {
@@ -54,8 +54,6 @@ onMounted(() => {
 .dashboard__main {
   flex: 1;
   overflow: auto;
-  padding: 24px;
+  padding: 12px;
 }
-
-
 </style>

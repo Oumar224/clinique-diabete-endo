@@ -1,9 +1,9 @@
 export interface FormDraftDto {
   id?: number
-  formType: 'patient_create' | 'patient_edit'
-  formData: string       // JSON string
-  patientId?: number | null
-  activeStep: number
-  createdAt?: string
-  updatedAt?: string
+  form_type: 'patient_create' | 'patient_edit'
+  form_data: string       // JSON string
+  patient_id?: number | null
+  active_step: number
+  created_at?: string
+  updated_at?: string
 }

@@ -3,7 +3,7 @@ import { AuthService } from '../services/auth.service'
 import { SessionService } from '../services/auth/session.service'
 import { EmailService } from '../services/email/email.service'
 import { UserEntity } from '../entities/user.entity'
-import type { UserDto } from '../dto/auth.dto'
+import type { UserDto, ValidatePasswordDto, SyncUserRelationsDto, TerminateContractDto } from '../dto/auth.dto'
 import { createHandler } from '../utils/create-handler'
 
 export function registerAuthHandlers() {
@@ -19,14 +19,13 @@ export function registerAuthHandlers() {
     authService.login(email, password, rememberMe)
   )
 
-  createHandler('auth:validate-password', ({ userId, oldPassword, newPassword }: { userId: number; oldPassword: string; newPassword: string }) =>
-    authService.validatePassword(userId, oldPassword, newPassword)
-  )
+  createHandler('auth:validate-password', async (dto: ValidatePasswordDto) => {
+    return await authService.validatePassword(dto.userId, dto.oldPassword, dto.newPassword)
+  })
 
   createHandler('users:list', () => authService.listUsers())
   createHandler('users:create', async (dto: UserDto & { sendEmail?: boolean }) => {
     const user = await authService.createUser(dto)
-    // Fire-and-forget : envoi de l'email de bienvenue si demandé
     if (dto.sendEmail && user.email) {
       const emailService = container.resolve(EmailService)
       const tempPassword = dto.password || 'changeme'
@@ -47,24 +46,16 @@ export function registerAuthHandlers() {
     return await authService.enrichUserWithRelations(id)
   })
 
-  createHandler('users:sync-relations', async ({ id, specialty_ids, service_ids, site_ids, medical_unit_ids }: {
-    id: number
-    specialty_ids?: number[]
-    service_ids?: number[]
-    site_ids?: number[]
-    medical_unit_ids?: number[]
-  }) => {
-    await authService.syncUserRelations(id, { specialty_ids, service_ids, site_ids, medical_unit_ids })
+  createHandler('users:sync-relations', async (dto: SyncUserRelationsDto) => {
+    const { id, ...relations } = dto
+    await authService.syncUserRelations(id, relations)
     return { success: true }
   })
 
-  createHandler('users:terminate-contract', async ({ id, motif, resilie_par }: { id: number; motif: string; resilie_par?: number }) => {
-    // Verify user exists — terminateContract does this too, but early validation
-    const user = await authService.getUserById(id)
+  createHandler('users:terminate-contract', async (dto: TerminateContractDto) => {
+    const user = await authService.getUserById(dto.id)
     if (!user) throw new Error('Utilisateur introuvable')
-    // TODO: The frontend should send the current user's ID as resilie_par.
-    // For now, fall back to admin ID 1 if not provided.
-    await authService.terminateContract(id, motif, resilie_par ?? 1)
+    await authService.terminateContract(dto.id, dto.motif, dto.resilie_par ?? 1)
     return { success: true }
   })
 

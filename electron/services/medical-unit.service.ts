@@ -2,7 +2,7 @@ import { inject, singleton } from 'tsyringe'
 import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
-import type { MedicalUnitDto, MedicalUnitCreateDto, MedicalUnitUpdateDto } from '../dto/medical-unit.dto'
+import type { MedicalUnitEntity } from '../entities/medical-unit.entity'
 
 @singleton()
 export class MedicalUnitService {
@@ -12,12 +12,8 @@ export class MedicalUnitService {
     this.db = datasource.getInstance()
   }
 
-  private toDto(row: Record<string, unknown>): MedicalUnitDto {
-    return { ...row, is_active: !!row.is_active } as unknown as MedicalUnitDto
-  }
-
   // ─── List medical units (optionally filter by active) ──
-  async list(activeOnly = false): Promise<MedicalUnitDto[]> {
+  async list(activeOnly = false): Promise<MedicalUnitEntity[]> {
     let query = this.db
       .selectFrom('medical_units')
       .selectAll()
@@ -28,49 +24,49 @@ export class MedicalUnitService {
     }
 
     const rows = await query.execute()
-    return rows.map(r => this.toDto(r))
+    return rows as unknown as MedicalUnitEntity[]
   }
 
   // ─── Get single medical unit ──────────────────────────────────
-  async getById(id: number): Promise<MedicalUnitDto | null> {
+  async getById(id: number): Promise<MedicalUnitEntity | null> {
     const row = await this.db
       .selectFrom('medical_units')
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst()
 
-    return row ? this.toDto(row) : null
+    return row ? (row as unknown as MedicalUnitEntity) : null
   }
 
   // ─── Create a new medical unit ────────────────────────────────
-  async create(dto: MedicalUnitCreateDto): Promise<MedicalUnitDto> {
-    this.validateCode(dto.code)
-    this.validateName(dto.name)
+  async create(entity: MedicalUnitEntity): Promise<MedicalUnitEntity> {
+    this.validateCode(entity.code ?? '')
+    this.validateName(entity.name ?? '')
 
     try {
       // Check uniqueness
       const existing = await this.db
         .selectFrom('medical_units')
         .selectAll()
-        .where('code', '=', dto.code.trim().toUpperCase())
+        .where('code', '=', (entity.code ?? '').trim().toUpperCase())
         .executeTakeFirst()
 
       if (existing) {
-        throw new Error(`L'unité médicale "${dto.code.trim().toUpperCase()}" existe déjà`)
+        throw new Error(`L'unité médicale "${(entity.code ?? '').trim().toUpperCase()}" existe déjà`)
       }
 
       const result = await this.db
         .insertInto('medical_units')
         .values({
-          code: dto.code.trim().toUpperCase(),
-          name: dto.name.trim(),
-          is_active: 1,
+          code: (entity.code ?? '').trim().toUpperCase(),
+          name: (entity.name ?? '').trim(),
+          is_active: entity.is_active ?? 1,
         })
         .returningAll()
         .executeTakeFirst()
 
       if (!result) throw new Error("Échec de la création de l'unité médicale")
-      return this.toDto(result)
+      return result as unknown as MedicalUnitEntity
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
         throw new Error('La base de données n\'est pas initialisée correctement. Contactez l\'administrateur.')
@@ -80,26 +76,26 @@ export class MedicalUnitService {
   }
 
   // ─── Update a medical unit ────────────────────────────────────
-  async update(dto: MedicalUnitUpdateDto): Promise<MedicalUnitDto> {
-    if (dto.id == null) {
+  async update(entity: MedicalUnitEntity): Promise<MedicalUnitEntity> {
+    if (entity.id == null) {
       throw new Error("L'identifiant de l'unité médicale est requis")
     }
 
-    const existing = await this.getById(dto.id)
+    const existing = await this.getById(entity.id)
     if (!existing) throw new Error('Unité médicale introuvable')
 
-    if (dto.code !== undefined) this.validateCode(dto.code)
-    if (dto.name !== undefined) this.validateName(dto.name)
+    if (entity.code !== undefined) this.validateCode(entity.code)
+    if (entity.name !== undefined) this.validateName(entity.name)
 
     try {
       // Check code uniqueness if changing
-      if (dto.code !== undefined) {
-        const newCode = dto.code.trim().toUpperCase()
+      if (entity.code !== undefined) {
+        const newCode = entity.code.trim().toUpperCase()
         const conflict = await this.db
           .selectFrom('medical_units')
           .selectAll()
           .where('code', '=', newCode)
-          .where('id', '!=', dto.id)
+          .where('id', '!=', entity.id)
           .executeTakeFirst()
 
         if (conflict) {
@@ -110,14 +106,14 @@ export class MedicalUnitService {
       const updateData: Record<string, unknown> = {
         updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       }
-      if (dto.code !== undefined) updateData.code = dto.code.trim().toUpperCase()
-      if (dto.name !== undefined) updateData.name = dto.name.trim()
-      if (dto.is_active !== undefined) updateData.is_active = dto.is_active ? 1 : 0
+      if (entity.code !== undefined) updateData.code = entity.code.trim().toUpperCase()
+      if (entity.name !== undefined) updateData.name = entity.name.trim()
+      if (entity.is_active !== undefined) updateData.is_active = entity.is_active ? 1 : 0
 
       await this.db
         .updateTable('medical_units')
         .set(updateData)
-        .where('id', '=', dto.id)
+        .where('id', '=', entity.id)
         .execute()
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
@@ -126,13 +122,13 @@ export class MedicalUnitService {
       throw err
     }
 
-    const updated = await this.getById(dto.id)
+    const updated = await this.getById(entity.id)
     if (!updated) throw new Error('Unité médicale introuvable après mise à jour')
     return updated
   }
 
   // ─── Toggle active/inactive ──────────────────────────────────
-  async toggle(id: number, isActive: boolean): Promise<MedicalUnitDto> {
+  async toggle(id: number, isActive: boolean): Promise<MedicalUnitEntity> {
     if (id == null) throw new Error("L'identifiant de l'unité médicale est requis")
     const existing = await this.getById(id)
     if (!existing) throw new Error('Unité médicale introuvable')

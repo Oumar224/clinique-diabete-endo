@@ -107,7 +107,7 @@ describe('LocaliteService', () => {
     await service.toggle(b.id!, false)
 
     const active = await service.list(true)
-    expect(active.every(l => l.is_active === true)).toBe(true)
+    expect(active.every(l => l.is_active === 1)).toBe(true)
     expect(active.find(l => l.id === a.id)).toBeDefined()
     expect(active.find(l => l.id === b.id)).toBeUndefined()
   })

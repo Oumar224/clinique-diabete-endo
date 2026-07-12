@@ -54,8 +54,8 @@
       :data="filteredList"
       style="width: 100%"
       v-loading="loading"
-      :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
       @row-click="viewUser"
+      border
     >
       <el-table-column label="Photo + Nom" width="220">
         <template #default="{ row }">

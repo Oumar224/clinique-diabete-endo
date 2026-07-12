@@ -44,8 +44,6 @@
       </el-table-column>
     </el-table>
 
-    <el-empty v-if="!loading && invoices.length === 0" description="Aucune facture pour ce patient" />
-
     <InvoiceFormDialog ref="formDialogRef" @created="onCreated" />
     <InvoicePaymentDialog ref="paymentDialogRef" @paid="refresh" />
     <InvoicePrintView ref="printDialogRef" />

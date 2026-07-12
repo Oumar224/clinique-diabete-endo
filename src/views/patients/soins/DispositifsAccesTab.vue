@@ -26,7 +26,6 @@
       </el-table-column>
     </el-table>
 
-    <el-empty v-if="dispositifs.length === 0" description="Aucun dispositif" :image-size="60" />
   </div>
 </template>
 

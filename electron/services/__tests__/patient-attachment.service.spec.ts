@@ -69,39 +69,39 @@ describe('PatientAttachmentService', () => {
 
   it('creates a minimal attachment and returns DTO with id and all fields correct', async () => {
     const result = await service.create({
-      patientId,
-      displayName: 'Ordonnance.pdf',
-      fileName: 'ordonnance.pdf',
-      mimeType: 'application/pdf',
-      fileSize: 1024,
-      fileData: 'data:application/pdf;base64,dGVzdA==',
+      patient_id: patientId,
+      display_name: 'Ordonnance.pdf',
+      file_name: 'ordonnance.pdf',
+      mime_type: 'application/pdf',
+      file_size: 1024,
+      file_data: 'data:application/pdf;base64,dGVzdA==',
     })
 
     expect(result.id).toBeDefined()
     expect(result.id).toBeGreaterThan(0)
-    expect(result.patientId).toBe(patientId)
-    expect(result.displayName).toBe('Ordonnance.pdf')
-    expect(result.fileName).toBe('ordonnance.pdf')
-    expect(result.mimeType).toBe('application/pdf')
-    expect(result.fileSize).toBe(1024)
-    expect(result.createdAt).toBeDefined()
-    expect(typeof result.createdAt).toBe('string')
-    // fileData is not returned by create (consistent with list DTO)
-    expect(result.fileData).toBeUndefined()
+    expect(result.patient_id).toBe(patientId)
+    expect(result.display_name).toBe('Ordonnance.pdf')
+    expect(result.file_name).toBe('ordonnance.pdf')
+    expect(result.mime_type).toBe('application/pdf')
+    expect(result.file_size).toBe(1024)
+    expect(result.created_at).toBeDefined()
+    expect(typeof result.created_at).toBe('string')
+    // file_data is returned by create (returningAll on entity)
+    expect(result.file_data).toBeDefined()
   })
 
   it('creates with null mime_type and null file_size (nullable fields)', async () => {
     const result = await service.create({
-      patientId,
-      displayName: 'Photo',
-      fileName: 'photo.jpg',
-      mimeType: null,
-      fileSize: null,
-      fileData: 'data:image/jpeg;base64,/9j/4AAQ==',
+      patient_id: patientId,
+      display_name: 'Photo',
+      file_name: 'photo.jpg',
+      mime_type: null,
+      file_size: null,
+      file_data: 'data:image/jpeg;base64,/9j/4AAQ==',
     })
 
-    expect(result.mimeType).toBeNull()
-    expect(result.fileSize).toBeNull()
+    expect(result.mime_type).toBeNull()
+    expect(result.file_size).toBeNull()
   })
 
   it('creates with base64 data — verifies file_data stored and returned in getById', async () => {
@@ -109,24 +109,23 @@ describe('PatientAttachmentService', () => {
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 
     const created = await service.create({
-      patientId,
-      displayName: 'Rapport.png',
-      fileName: 'rapport.png',
-      mimeType: 'image/png',
-      fileSize: 1024,
-      fileData,
+      patient_id: patientId,
+      display_name: 'Rapport.png',
+      file_name: 'rapport.png',
+      mime_type: 'image/png',
+      file_size: 1024,
+      file_data: fileData,
     })
 
     const found = await service.getById(created.id!)
-    expect(found.fileData).toBe(fileData)
+    expect(found.file_data).toBe(fileData)
   })
 
   it('creating without required fields throws (patientId missing)', async () => {
-    // @ts-expect-error — intentionally omitting required patientId
     const promise = service.create({
-      displayName: 'Test',
-      fileName: 'test.pdf',
-      fileData: 'data:,',
+      display_name: 'Test',
+      file_name: 'test.pdf',
+      file_data: 'data:,',
     })
     await expect(promise).rejects.toThrow()
   })
@@ -138,12 +137,12 @@ describe('PatientAttachmentService', () => {
 
     await expect(
       service.create({
-        patientId,
-        displayName: 'Huge.bin',
-        fileName: 'huge.bin',
-        mimeType: 'application/octet-stream',
-        fileSize: 11 * 1024 * 1024,
-        fileData: bigBase64,
+        patient_id: patientId,
+        display_name: 'Huge.bin',
+        file_name: 'huge.bin',
+        mime_type: 'application/octet-stream',
+        file_size: 11 * 1024 * 1024,
+        file_data: bigBase64,
       }),
     ).rejects.toThrow('La taille du fichier ne doit pas dépasser 10 Mo')
   })
@@ -153,11 +152,11 @@ describe('PatientAttachmentService', () => {
 
     await expect(
       service.create({
-        patientId,
-        displayName: 'Huge.bin',
-        fileName: 'huge.bin',
-        fileData: bigBase64,
-        fileSize: 100, // small declared size, but decoded is large
+        patient_id: patientId,
+        display_name: 'Huge.bin',
+        file_name: 'huge.bin',
+        file_data: bigBase64,
+        file_size: 100, // small declared size, but decoded is large
       }),
     ).rejects.toThrow('La taille du fichier décodé ne doit pas dépasser 10 Mo')
   })
@@ -166,28 +165,28 @@ describe('PatientAttachmentService', () => {
 
   it('lists attachments for a patient — returns only that patient\'s attachments (isolation)', async () => {
     await service.create({
-      patientId,
-      displayName: 'A1',
-      fileName: 'a1.pdf',
-      fileData: 'data:,',
+      patient_id: patientId,
+      display_name: 'A1',
+      file_name: 'a1.pdf',
+      file_data: 'data:,',
     })
     await service.create({
-      patientId,
-      displayName: 'A2',
-      fileName: 'a2.pdf',
-      fileData: 'data:,',
+      patient_id: patientId,
+      display_name: 'A2',
+      file_name: 'a2.pdf',
+      file_data: 'data:,',
     })
     await service.create({
-      patientId: patientId2,
-      displayName: 'B1',
-      fileName: 'b1.pdf',
-      fileData: 'data:,',
+      patient_id: patientId2,
+      display_name: 'B1',
+      file_name: 'b1.pdf',
+      file_data: 'data:,',
     })
 
     const list = await service.listByPatient(patientId)
 
     expect(list.length).toBe(2)
-    expect(list.every(a => a.patientId === patientId)).toBe(true)
+    expect(list.every(a => a.patient_id === patientId)).toBe(true)
   })
 
   it('returns empty array for patient with no attachments', async () => {
@@ -213,51 +212,51 @@ describe('PatientAttachmentService', () => {
 
     // Create a newer attachment via service (uses datetime('now'))
     await service.create({
-      patientId,
-      displayName: 'New Attachment',
-      fileName: 'new.pdf',
-      fileData: 'data:,new',
+      patient_id: patientId,
+      display_name: 'New Attachment',
+      file_name: 'new.pdf',
+      file_data: 'data:,new',
     })
 
     const list = await service.listByPatient(patientId)
 
     expect(list.length).toBe(2)
-    expect(list[0].displayName).toBe('New Attachment')
-    expect(list[1].displayName).toBe('Old Attachment')
+    expect(list[0].display_name).toBe('New Attachment')
+    expect(list[1].display_name).toBe('Old Attachment')
   })
 
   it('list does NOT return fileData column (data minimization)', async () => {
     await service.create({
-      patientId,
-      displayName: 'Secret.pdf',
-      fileName: 'secret.pdf',
-      fileData: 'super-secret-data-should-not-leak',
+      patient_id: patientId,
+      display_name: 'Secret.pdf',
+      file_name: 'secret.pdf',
+      file_data: 'super-secret-data-should-not-leak',
     })
 
     const list = await service.listByPatient(patientId)
 
     expect(list.length).toBe(1)
-    expect(list[0].fileData).toBeUndefined()
+    expect(list[0].file_data).toBeUndefined()
   })
 
   it('returns multiple attachments for same patient', async () => {
     await service.create({
-      patientId,
-      displayName: 'A',
-      fileName: 'a.pdf',
-      fileData: 'data:,a',
+      patient_id: patientId,
+      display_name: 'A',
+      file_name: 'a.pdf',
+      file_data: 'data:,a',
     })
     await service.create({
-      patientId,
-      displayName: 'B',
-      fileName: 'b.pdf',
-      fileData: 'data:,b',
+      patient_id: patientId,
+      display_name: 'B',
+      file_name: 'b.pdf',
+      file_data: 'data:,b',
     })
     await service.create({
-      patientId,
-      displayName: 'C',
-      fileName: 'c.pdf',
-      fileData: 'data:,c',
+      patient_id: patientId,
+      display_name: 'C',
+      file_name: 'c.pdf',
+      file_data: 'data:,c',
     })
 
     const list = await service.listByPatient(patientId)
@@ -268,24 +267,24 @@ describe('PatientAttachmentService', () => {
 
   it('returns full attachment including fileData', async () => {
     const created = await service.create({
-      patientId,
-      displayName: 'Full.pdf',
-      fileName: 'full.pdf',
-      mimeType: 'application/pdf',
-      fileSize: 2048,
-      fileData: 'data:application/pdf;base64,Zm9v',
+      patient_id: patientId,
+      display_name: 'Full.pdf',
+      file_name: 'full.pdf',
+      mime_type: 'application/pdf',
+      file_size: 2048,
+      file_data: 'data:application/pdf;base64,Zm9v',
     })
 
     const found = await service.getById(created.id!)
 
     expect(found.id).toBe(created.id!)
-    expect(found.patientId).toBe(patientId)
-    expect(found.displayName).toBe('Full.pdf')
-    expect(found.fileName).toBe('full.pdf')
-    expect(found.mimeType).toBe('application/pdf')
-    expect(found.fileSize).toBe(2048)
-    expect(found.fileData).toBe('data:application/pdf;base64,Zm9v')
-    expect(found.createdAt).toBeDefined()
+    expect(found.patient_id).toBe(patientId)
+    expect(found.display_name).toBe('Full.pdf')
+    expect(found.file_name).toBe('full.pdf')
+    expect(found.mime_type).toBe('application/pdf')
+    expect(found.file_size).toBe(2048)
+    expect(found.file_data).toBe('data:application/pdf;base64,Zm9v')
+    expect(found.created_at).toBeDefined()
   })
 
   it('throws French error for non-existent id', async () => {
@@ -297,26 +296,26 @@ describe('PatientAttachmentService', () => {
       'data:application/octet-stream;base64,AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8='
 
     const created = await service.create({
-      patientId,
-      displayName: 'Binary.dat',
-      fileName: 'binary.dat',
-      mimeType: 'application/octet-stream',
-      fileSize: 32,
-      fileData: binaryData,
+      patient_id: patientId,
+      display_name: 'Binary.dat',
+      file_name: 'binary.dat',
+      mime_type: 'application/octet-stream',
+      file_size: 32,
+      file_data: binaryData,
     })
 
     const found = await service.getById(created.id!)
-    expect(found.fileData).toBe(binaryData)
+    expect(found.file_data).toBe(binaryData)
   })
 
   // ─── Delete ─────────────────────────────────────────────────────
 
   it('deletes attachment by id', async () => {
     const created = await service.create({
-      patientId,
-      displayName: 'DeleteMe.pdf',
-      fileName: 'delete.pdf',
-      fileData: 'data:,',
+      patient_id: patientId,
+      display_name: 'DeleteMe.pdf',
+      file_name: 'delete.pdf',
+      file_data: 'data:,',
     })
 
     await service.delete(created.id!)
@@ -331,16 +330,16 @@ describe('PatientAttachmentService', () => {
 
   it('deleting one attachment does not affect other attachments for same patient', async () => {
     const a1 = await service.create({
-      patientId,
-      displayName: 'A',
-      fileName: 'a.pdf',
-      fileData: 'data:,a',
+      patient_id: patientId,
+      display_name: 'A',
+      file_name: 'a.pdf',
+      file_data: 'data:,a',
     })
     const a2 = await service.create({
-      patientId,
-      displayName: 'B',
-      fileName: 'b.pdf',
-      fileData: 'data:,b',
+      patient_id: patientId,
+      display_name: 'B',
+      file_name: 'b.pdf',
+      file_data: 'data:,b',
     })
 
     await service.delete(a1.id!)
@@ -352,10 +351,10 @@ describe('PatientAttachmentService', () => {
 
   it('deleted attachment is not returned in list', async () => {
     const created = await service.create({
-      patientId,
-      displayName: 'Gone.pdf',
-      fileName: 'gone.pdf',
-      fileData: 'data:,gone',
+      patient_id: patientId,
+      display_name: 'Gone.pdf',
+      file_name: 'gone.pdf',
+      file_data: 'data:,gone',
     })
 
     // Verify it exists before delete
@@ -372,10 +371,10 @@ describe('PatientAttachmentService', () => {
 
   it('deleting a patient cascades to delete their attachments', async () => {
     const created = await service.create({
-      patientId,
-      displayName: 'Cascaded.pdf',
-      fileName: 'cascaded.pdf',
-      fileData: 'data:,cascade',
+      patient_id: patientId,
+      display_name: 'Cascaded.pdf',
+      file_name: 'cascaded.pdf',
+      file_data: 'data:,cascade',
     })
 
     // Delete the parent patient directly — FK cascade should remove the attachment
@@ -392,10 +391,10 @@ describe('PatientAttachmentService', () => {
   it('cannot create attachment for non-existent patient (FK constraint)', async () => {
     await expect(
       service.create({
-        patientId: 9999,
-        displayName: 'Orphan.pdf',
-        fileName: 'orphan.pdf',
-        fileData: 'data:,',
+        patient_id: 9999,
+        display_name: 'Orphan.pdf',
+        file_name: 'orphan.pdf',
+        file_data: 'data:,',
       }),
     ).rejects.toThrow()
   })
@@ -405,39 +404,39 @@ describe('PatientAttachmentService', () => {
   it('handles very long display_name and file_name', async () => {
     const longName = 'A'.repeat(500)
     const result = await service.create({
-      patientId,
-      displayName: longName,
-      fileName: longName + '.pdf',
-      fileData: 'data:,long',
+      patient_id: patientId,
+      display_name: longName,
+      file_name: longName + '.pdf',
+      file_data: 'data:,long',
     })
-    expect(result.displayName).toBe(longName)
-    expect(result.fileName).toBe(longName + '.pdf')
+    expect(result.display_name).toBe(longName)
+    expect(result.file_name).toBe(longName + '.pdf')
   })
 
   it('handles empty string file_data', async () => {
     const result = await service.create({
-      patientId,
-      displayName: 'Empty.txt',
-      fileName: 'empty.txt',
-      fileData: '',
+      patient_id: patientId,
+      display_name: 'Empty.txt',
+      file_name: 'empty.txt',
+      file_data: '',
     })
     expect(result.id).toBeGreaterThan(0)
 
     const found = await service.getById(result.id!)
-    expect(found.fileData).toBe('')
+    expect(found.file_data).toBe('')
   })
 
   it('handles file_data with special characters and unicode', async () => {
     const unicodeData =
       'data:text/plain;base64,' + Buffer.from('Hello 世界 🌍').toString('base64')
     const result = await service.create({
-      patientId,
-      displayName: 'Unicode.txt',
-      fileName: 'unicode.txt',
-      fileData: unicodeData,
+      patient_id: patientId,
+      display_name: 'Unicode.txt',
+      file_name: 'unicode.txt',
+      file_data: unicodeData,
     })
     const found = await service.getById(result.id!)
-    expect(found.fileData).toBe(unicodeData)
+    expect(found.file_data).toBe(unicodeData)
   })
   // ─── End of tests ────────────────────────────────────────────────
 
@@ -455,18 +454,18 @@ describe('PatientAttachmentService', () => {
       }).returningAll().executeTakeFirstOrThrow()
   
       const attachment = await service.create({
-        patientId: newPatient.id!,
-        displayName: 'PostCreate.pdf',
-        fileName: 'post-create.pdf',
-        fileData: 'data:application/pdf;base64,cG9zdC1jcmVhdGU=',
+        patient_id: newPatient.id!,
+        display_name: 'PostCreate.pdf',
+        file_name: 'post-create.pdf',
+        file_data: 'data:application/pdf;base64,cG9zdC1jcmVhdGU=',
       })
   
       expect(attachment.id).toBeGreaterThan(0)
-      expect(attachment.patientId).toBe(newPatient.id!)
+      expect(attachment.patient_id).toBe(newPatient.id!)
   
       const list = await service.listByPatient(newPatient.id!)
       expect(list.length).toBe(1)
-      expect(list[0].displayName).toBe('PostCreate.pdf')
+      expect(list[0].display_name).toBe('PostCreate.pdf')
     })
   
     it('preserves existing attachments when adding new ones after creation', async () => {
@@ -481,17 +480,17 @@ describe('PatientAttachmentService', () => {
       }).returningAll().executeTakeFirstOrThrow()
   
       await service.create({
-        patientId: patient.id!,
-        displayName: 'First.pdf',
-        fileName: 'first.pdf',
-        fileData: 'data:,first',
+        patient_id: patient.id!,
+        display_name: 'First.pdf',
+        file_name: 'first.pdf',
+        file_data: 'data:,first',
       })
   
       await service.create({
-        patientId: patient.id!,
-        displayName: 'Second.pdf',
-        fileName: 'second.pdf',
-        fileData: 'data:,second',
+        patient_id: patient.id!,
+        display_name: 'Second.pdf',
+        file_name: 'second.pdf',
+        file_data: 'data:,second',
       })
   
       const list = await service.listByPatient(patient.id!)

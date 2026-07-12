@@ -35,7 +35,7 @@ describe('SiteService', () => {
     const list = await service.list()
     expect(list.length).toBeGreaterThanOrEqual(1)
 
-    const defaultSite = list.find(s => s.is_default === true)
+    const defaultSite = list.find(s => s.is_default === 1)
     expect(defaultSite).toBeDefined()
     expect(defaultSite!.name).toBe('Site principal')
   })
@@ -49,7 +49,7 @@ describe('SiteService', () => {
     await service.toggle(second.id!, false)
 
     const active = await service.list(true)
-    expect(active.every(s => s.is_active === true)).toBe(true)
+    expect(active.every(s => s.is_active === 1)).toBe(true)
     expect(active.find(s => s.name === 'Site secondaire')).toBeUndefined()
   })
 
@@ -57,7 +57,7 @@ describe('SiteService', () => {
     const service = container.resolve(SiteService)
     await service.create({ name: 'Autre site' })
     const list = await service.list()
-    expect(list[0].is_default).toBe(true)
+    expect(list[0].is_default).toBe(1)
   })
 
   // ─── GetById ──────────────────────────────────────────────────
@@ -84,7 +84,7 @@ describe('SiteService', () => {
     const def = await service.getDefault()
     expect(def).toBeDefined()
     expect(def!.name).toBe('Site principal')
-    expect(def!.is_default).toBe(true)
+    expect(def!.is_default).toBe(1)
   })
 
   // ─── Create ───────────────────────────────────────────────────
@@ -102,8 +102,8 @@ describe('SiteService', () => {
     expect(created.address).toBe('123 Rue de la Santé, Conakry')
     expect(created.phone).toBe('+224 620 00 00 00')
     expect(created.email).toBe('nord@clinique.gn')
-    expect(created.is_active).toBe(true)
-    expect(created.is_default).toBe(false) // already a default site seeded
+    expect(created.is_active).toBe(1)
+    expect(created.is_default).toBe(0) // already a default site seeded
   })
 
   it('should reject duplicate name', async () => {
@@ -162,13 +162,13 @@ describe('SiteService', () => {
   it('should toggle a site active/inactive', async () => {
     const service = container.resolve(SiteService)
     const created = await service.create({ name: 'Toggle Site' })
-    expect(created.is_active).toBe(true)
+    expect(created.is_active).toBe(1)
 
     const disabled = await service.toggle(created.id!, false)
-    expect(disabled.is_active).toBe(false)
+    expect(disabled.is_active).toBe(0)
 
     const enabled = await service.toggle(created.id!, true)
-    expect(enabled.is_active).toBe(true)
+    expect(enabled.is_active).toBe(1)
   })
 
   it('should throw when toggling non-existent site', async () => {
@@ -188,11 +188,11 @@ describe('SiteService', () => {
 
     // Set new default
     const result = await service.setDefault(newSite.id!)
-    expect(result.is_default).toBe(true)
+    expect(result.is_default).toBe(1)
 
     // Old default should no longer be default
     const oldSite = await service.getById(oldDefault!.id!)
-    expect(oldSite!.is_default).toBe(false)
+    expect(oldSite!.is_default).toBe(0)
 
     // getDefault should return the new one
     const currentDefault = await service.getDefault()

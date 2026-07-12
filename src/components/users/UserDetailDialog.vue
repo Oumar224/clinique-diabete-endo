@@ -308,7 +308,7 @@ defineExpose({ open, close })
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #0E5C5B;
+  color: var(--cd-primary);
   font-size: 17px;
   font-weight: 600;
 }
@@ -323,9 +323,9 @@ defineExpose({ open, close })
   gap: 16px;
   padding: 20px;
   margin-bottom: 24px;
-  background: #F8FAFB;
+  background: var(--cd-widget-bg);
   border-radius: 12px;
-  border: 1px solid #E5EDF0;
+  border: 1px solid var(--cd-border);
 }
 
 .detail-identity {
@@ -337,19 +337,19 @@ defineExpose({ open, close })
 .detail-name {
   font-size: 18px;
   font-weight: 700;
-  color: #1A2E2D;
+  color: var(--cd-gray-900);
 }
 
 :deep(.detail-descriptions .el-descriptions__title) {
   font-size: 14px;
   font-weight: 600;
-  color: #0E5C5B;
+  color: var(--cd-primary);
 }
 
 :deep(.detail-descriptions .el-descriptions__label) {
   font-weight: 600;
-  color: #4A6B6A;
-  background: #F8FAFB;
+  color: var(--cd-gray-600);
+  background: var(--cd-widget-bg);
   width: 130px;
 }
 

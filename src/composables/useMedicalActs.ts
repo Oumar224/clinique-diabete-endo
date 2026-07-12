@@ -5,22 +5,11 @@ export interface MedicalActDto {
   id?: number
   code: string
   label: string
-  price: number
-  currency_code?: string
   service_id: number
   service_name?: string
   is_active: boolean
   created_at?: string
   updated_at?: string
-}
-
-export interface ActPriceHistoryDto {
-  id: number
-  act_id: number
-  old_price: number | null
-  new_price: number
-  change_reason?: string | null
-  changed_at: string
 }
 
 const acts = ref<MedicalActDto[]>([])
@@ -42,7 +31,7 @@ export function useMedicalActs() {
     }
   }
 
-  async function createAct(dto: { code: string; label: string; price: number; service_id: number; currency_code?: string }): Promise<MedicalActDto | null> {
+  async function createAct(dto: { code: string; label: string; service_id: number }): Promise<MedicalActDto | null> {
     try {
       const created = await ipcInvoke<MedicalActDto>('acts:create', dto)
       await fetchActs()
@@ -52,7 +41,7 @@ export function useMedicalActs() {
     }
   }
 
-  async function updateAct(id: number, dto: { code?: string; label?: string; price?: number; currency_code?: string; service_id?: number; is_active?: boolean }): Promise<MedicalActDto | null> {
+  async function updateAct(id: number, dto: { code?: string; label?: string; service_id?: number; is_active?: boolean }): Promise<MedicalActDto | null> {
     try {
       const updated = await ipcInvoke<MedicalActDto>('acts:update', { id, ...dto })
       await fetchActs()
@@ -72,15 +61,6 @@ export function useMedicalActs() {
     }
   }
 
-  async function fetchPriceHistory(actId: number): Promise<ActPriceHistoryDto[]> {
-    if (actId == null) return []
-    try {
-      return await ipcInvoke<ActPriceHistoryDto[]>('acts:price-history', { actId })
-    } catch {
-      return []
-    }
-  }
-
   return {
     acts,
     loading,
@@ -89,6 +69,5 @@ export function useMedicalActs() {
     createAct,
     updateAct,
     deleteAct,
-    fetchPriceHistory,
   }
 }

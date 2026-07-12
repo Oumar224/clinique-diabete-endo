@@ -88,7 +88,7 @@
             <div style="padding: 8px 0; font-size: 13px; line-height: 1.6;">
               <p><strong>Gmail :</strong> Utilisez un mot de passe d'application (App Password). Activez d'abord l'authentification à 2 facteurs dans votre compte Google, puis générez un mot de passe d'application.</p>
               <p style="margin-top: 8px;"><strong>SendGrid :</strong> Créez une clé API SendGrid avec les permissions 'Mail Send'. Utilisez 'apikey' comme nom d'utilisateur et la clé API comme mot de passe.</p>
-              <p style="margin-top: 8px;"><strong>Général :</strong> Contactez votre administrateur réseau pour les paramètres SMTP de votre organisation. Les paramètres courants sont : Serveur: smtp.votredomaine.com, Port: 587 (STARTTLS) ou 465 (SSL).</p>
+              <p style="margin-top: 8px;"><strong>Général :</strong> Contactez votre administrateur réseau pour les paramètres SMTP de votre organisation. Les paramètres courants sont : Serveur&nbsp;: smtp.votredomaine.com, Port&nbsp;: 587 (STARTTLS) ou 465 (SSL).</p>
             </div>
           </el-collapse-item>
         </el-collapse>
@@ -253,7 +253,7 @@ async function handleSaveEmail() {
 }
 
 .systab__card {
-  background: var(--cd-white);
+  background: var(--cd-widget-bg);
   border-radius: 10px;
   border: 1px solid var(--cd-gray-200);
   padding: 4px 16px;

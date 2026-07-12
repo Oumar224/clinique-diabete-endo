@@ -11,11 +11,11 @@ export const usePatientFormStore = defineStore('patientForm', () => {
     try {
       const result = await ipcInvoke<any>('form-draft:get', { formType, patientId })
       if (result) {
-        const parsed = JSON.parse(result.formData)
+        const parsed = JSON.parse(result.form_data)
         currentFormType.value = formType as any
         currentPatientId.value = patientId ?? null
         hasDraft.value = true
-        return { formData: parsed, activeStep: result.activeStep }
+        return { formData: parsed, activeStep: result.active_step }
       }
     } catch {}
     return null
@@ -24,10 +24,10 @@ export const usePatientFormStore = defineStore('patientForm', () => {
   async function saveDraft(formType: string, data: Record<string, any>, step: number, patientId?: number) {
     try {
       await ipcInvoke('form-draft:upsert', {
-        formType,
-        formData: JSON.stringify(data),
-        patientId,
-        activeStep: step,
+        form_type: formType,
+        form_data: JSON.stringify(data),
+        patient_id: patientId,
+        active_step: step,
       })
       currentFormType.value = formType as any
       currentPatientId.value = patientId ?? null

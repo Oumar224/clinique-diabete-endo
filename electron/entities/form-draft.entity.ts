@@ -1,46 +1,23 @@
 import type { FormDraftDto } from '../dto/form-draft.dto'
 
-export interface FormDraftRow {
-  id: number
-  form_type: string
-  form_data: string
-  patient_id: number | null
-  active_step: number
-  created_at: string
-  updated_at: string
-}
-
 export class FormDraftEntity {
   id?: number
-  formType?: string
-  formData?: string
-  patientId?: number | null
-  activeStep?: number
-  createdAt?: string
-  updatedAt?: string
-
-  static createSchema = {
-    formType: { type: 'string', required: true },
-    formData: { type: 'string', required: true },
-    patientId: { type: 'number', optional: true },
-    activeStep: { type: 'number', required: true },
-  }
-
-  static updateSchema = {
-    formData: { type: 'string', optional: true },
-    activeStep: { type: 'number', optional: true },
-    updatedAt: { type: 'string', optional: true },
-  }
+  form_type?: string
+  form_data?: string
+  patient_id?: number | null
+  active_step?: number
+  created_at?: string
+  updated_at?: string
 
   static toDto(entity: FormDraftEntity): FormDraftDto {
     return {
       id: entity.id!,
-      formType: entity.formType as 'patient_create' | 'patient_edit',
-      formData: entity.formData!,
-      patientId: entity.patientId ?? null,
-      activeStep: entity.activeStep!,
-      createdAt: entity.createdAt!,
-      updatedAt: entity.updatedAt!,
+      form_type: entity.form_type as 'patient_create' | 'patient_edit',
+      form_data: entity.form_data!,
+      patient_id: entity.patient_id ?? null,
+      active_step: entity.active_step!,
+      created_at: entity.created_at!,
+      updated_at: entity.updated_at!,
     }
   }
 
@@ -48,27 +25,19 @@ export class FormDraftEntity {
     return entities.map(FormDraftEntity.toDto)
   }
 
-  static fromRow(row: FormDraftRow): FormDraftEntity {
-    const e = new FormDraftEntity()
-    e.id = row.id
-    e.formType = row.form_type
-    e.formData = row.form_data
-    e.patientId = row.patient_id
-    e.activeStep = row.active_step
-    e.createdAt = row.created_at
-    e.updatedAt = row.updated_at
-    return e
-  }
-
   static fromDto(dto: FormDraftDto): FormDraftEntity {
     const e = new FormDraftEntity()
     e.id = dto.id
-    e.formType = dto.formType
-    e.formData = dto.formData
-    e.patientId = dto.patientId ?? null
-    e.activeStep = dto.activeStep
-    e.createdAt = dto.createdAt
-    e.updatedAt = dto.updatedAt
+    e.form_type = dto.form_type
+    e.form_data = dto.form_data
+    e.patient_id = dto.patient_id ?? null
+    e.active_step = dto.active_step
+    e.created_at = dto.created_at
+    e.updated_at = dto.updated_at
     return e
   }
+
+  static documentType(): string { return 'FormDraft' }
+  static documentSchema(): any { return {} }
+  static register(): void { /* No Automerge sync needed */ }
 }

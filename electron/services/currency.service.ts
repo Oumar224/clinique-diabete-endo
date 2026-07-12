@@ -2,7 +2,7 @@ import { inject, singleton } from 'tsyringe'
 import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
-import type { CurrencyDto, CurrencyCreateDto, CurrencyUpdateDto } from '../dto/settings.dto'
+import type { CurrencyEntity } from '../entities/currency.entity'
 
 @singleton()
 export class CurrencyService {
@@ -12,12 +12,8 @@ export class CurrencyService {
     this.db = datasource.getInstance()
   }
 
-  private toDto(row: Record<string, unknown>): CurrencyDto {
-    return { ...row, is_active: !!row.is_active } as unknown as CurrencyDto
-  }
-
   // ─── List all currencies (optionally only active) ────────────
-  async list(activeOnly = false): Promise<CurrencyDto[]> {
+  async list(activeOnly = false): Promise<CurrencyEntity[]> {
     try {
       let query = this.db
         .selectFrom('currency')
@@ -29,7 +25,7 @@ export class CurrencyService {
       }
 
       const rows = await query.execute()
-      return rows.map(r => this.toDto(r))
+      return rows as unknown as CurrencyEntity[]
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) return []
       throw err
@@ -37,7 +33,7 @@ export class CurrencyService {
   }
 
   // ─── Get single currency by code ─────────────────────────────
-  async getByCode(code: string): Promise<CurrencyDto | null> {
+  async getByCode(code: string): Promise<CurrencyEntity | null> {
     try {
       const row = await this.db
         .selectFrom('currency')
@@ -45,7 +41,7 @@ export class CurrencyService {
         .where('code', '=', code)
         .executeTakeFirst()
 
-      return row ? this.toDto(row) : null
+      return row ? (row as unknown as CurrencyEntity) : null
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) return null
       throw err
@@ -53,12 +49,11 @@ export class CurrencyService {
   }
 
   // ─── Create a new currency ───────────────────────────────────
-  async create(dto: CurrencyCreateDto): Promise<CurrencyDto> {
-    this.validateCode(dto.code)
-    this.validateName(dto.name)
-    this.validateSymbol(dto.symbol)
-
-    const code = dto.code.trim().toUpperCase()
+  async create(entity: CurrencyEntity): Promise<CurrencyEntity> {
+    const code = (entity.code ?? '').trim().toUpperCase()
+    this.validateCode(code)
+    this.validateName(entity.name ?? '')
+    this.validateSymbol(entity.symbol ?? '')
 
     const existing = await this.getByCode(code)
     if (existing) {
@@ -71,10 +66,10 @@ export class CurrencyService {
         .insertInto('currency')
         .values({
           code,
-          name: dto.name.trim(),
-          symbol: dto.symbol.trim(),
-          decimals: dto.decimals ?? 0,
-          is_active: 1,
+          name: (entity.name ?? '').trim(),
+          symbol: (entity.symbol ?? '').trim(),
+          decimals: entity.decimals ?? 0,
+          is_active: entity.is_active ?? 1,
         })
         .returningAll()
         .executeTakeFirst()
@@ -86,25 +81,26 @@ export class CurrencyService {
     }
 
     if (!result) throw new Error("Échec de la création de la devise")
-    return this.toDto(result)
+    return result as unknown as CurrencyEntity
   }
 
   // ─── Update a currency ───────────────────────────────────────
-  async update(code: string, dto: CurrencyUpdateDto): Promise<CurrencyDto> {
+  async update(entity: CurrencyEntity): Promise<CurrencyEntity> {
+    const code = entity.code ?? ''
     const existing = await this.getByCode(code)
     if (!existing) throw new Error('Devise introuvable')
 
-    if (dto.name !== undefined) this.validateName(dto.name)
-    if (dto.symbol !== undefined) this.validateSymbol(dto.symbol)
+    if (entity.name !== undefined) this.validateName(entity.name ?? '')
+    if (entity.symbol !== undefined) this.validateSymbol(entity.symbol ?? '')
 
     const updateData: Record<string, unknown> = {}
-    if (dto.name !== undefined) updateData.name = dto.name.trim()
-    if (dto.symbol !== undefined) updateData.symbol = dto.symbol.trim()
-    if (dto.decimals !== undefined) updateData.decimals = dto.decimals
-    if (dto.is_active !== undefined) updateData.is_active = dto.is_active ? 1 : 0
+    if (entity.name !== undefined) updateData.name = (entity.name ?? '').trim()
+    if (entity.symbol !== undefined) updateData.symbol = (entity.symbol ?? '').trim()
+    if (entity.decimals !== undefined) updateData.decimals = entity.decimals
+    if (entity.is_active !== undefined) updateData.is_active = entity.is_active ? 1 : 0
 
     if (Object.keys(updateData).length === 0) {
-      return this.toDto(existing as unknown as Record<string, unknown>)
+      return existing
     }
 
     try {
@@ -150,28 +146,8 @@ export class CurrencyService {
       )
     }
 
-    // Check if medical acts reference this currency
-    let count = 0
-    try {
-      const refCount = await this.db
-        .selectFrom('medical_acts')
-        .select(this.db.fn.countAll<number>().as('count'))
-        .where('currency_code', '=', code)
-        .executeTakeFirst()
-      count = (refCount as any)?.count ?? 0
-    } catch (err: any) {
-      if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
-        count = 0
-      } else {
-        throw err
-      }
-    }
-    if (count > 0) {
-      throw new Error(
-        `Impossible de supprimer cette devise : ${count} acte(s) médical(eaux) l'utilisent. ` +
-        'Modifiez d\'abord la devise des actes concernés.'
-      )
-    }
+    // Currency is no longer tracked per-act — the clinic uses a default currency.
+    // No referential integrity check needed here.
 
     try {
       await this.db

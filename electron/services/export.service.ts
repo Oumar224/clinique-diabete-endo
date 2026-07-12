@@ -2,11 +2,47 @@ import { inject, singleton } from 'tsyringe'
 import { BrowserWindow, dialog, app } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs'
+import type { Worksheet } from 'exceljs'
+import * as ExcelJS from 'exceljs'
 import { AuthService } from './auth.service'
 import { SettingsService } from './settings.service'
 import { LogoService } from './logo.service'
-import { generateUserListHtml, generateUserProfileHtml } from '../export-templates'
-import * as ExcelJS from 'exceljs'
+import { PatientExportService } from './patient-export.service'
+import { PatientService } from './patient.service'
+import { ClinicalDocumentService } from './clinical-document.service'
+import { PatientEntity } from '../entities/patient.entity'
+import { generateUserListHtml, generateUserProfileHtml, generatePatientProfileHtml, generateCrhDiabeteHtml } from '../export-templates'
+import { roleLabel } from '../utils/role-labels'
+import {
+  COLORS,
+  FONT,
+  THIN_GREY_BORDER,
+  HEADER_FILL,
+  ZEBRA_FILL,
+  LABEL_FILL,
+  SECTION_FILL,
+  SECTION_TOP_BORDER,
+  HAIRLINE_BOTTOM_BORDER,
+  PAGE_SETUP_LANDSCAPE,
+  PAGE_SETUP_PORTRAIT,
+} from '../excel/styles'
+import {
+  buildRepublicHeader,
+  buildDeviseLine,
+  buildSeparatorLine,
+  buildInstitutionLine,
+  buildContactLine,
+  buildTitleAndDate,
+  buildProfileTitle,
+} from '../excel/header-builder'
+
+const COLUMN_COUNT = 11
+
+interface ColumnDef {
+  header: string
+  key: string
+  width: number
+}
 
 @singleton()
 export class ExportService {
@@ -14,6 +50,9 @@ export class ExportService {
     @inject(AuthService) private authService: AuthService,
     @inject(SettingsService) private settingsService: SettingsService,
     @inject(LogoService) private logoService: LogoService,
+    @inject(PatientExportService) private patientExportService: PatientExportService,
+    @inject(PatientService) private patientService: PatientService,
+    @inject(ClinicalDocumentService) private clinicalDocumentService: ClinicalDocumentService,
   ) {}
 
   async exportUsersListPdf(_filters?: any): Promise<string> {
@@ -55,12 +94,61 @@ export class ExportService {
       this.settingsService.getHospitalInfo(),
     ])
 
+    const workbook = this.createWorkbook('Utilisateurs')
+    const sheet = workbook.getWorksheet('Utilisateurs')!
+
+    const columnDefs = this.buildColumnDefs()
+    sheet.columns = columnDefs
+
+    this.buildListHeader(sheet, hospital)
+    this.buildHeaderRow(sheet, columnDefs)
+    this.buildDataRows(sheet, users)
+    this.buildSummaryRow(sheet, users)
+    this.configureListSheet(sheet, users)
+
+    return this.writeAndSave(workbook, 'liste-utilisateurs.xlsx')
+  }
+
+  async exportUserProfileExcel(userId: number): Promise<string> {
+    const [user, relations] = await Promise.all([
+      this.authService.getUserById(userId),
+      this.authService.enrichUserWithRelations(userId),
+    ])
+    if (!user) throw new Error('Utilisateur introuvable')
+
+    const merged = { ...user, ...relations }
+    const hospital = await this.settingsService.getHospitalInfo()
+
+    const profileColumnCount = 2
+    const workbook = this.createWorkbook('Fiche utilisateur')
+    const sheet = workbook.getWorksheet('Fiche utilisateur')!
+    sheet.columns = [
+      { header: 'Champ', key: 'label', width: 28 },
+      { header: 'Valeur', key: 'value', width: 55 },
+    ]
+
+    this.buildProfileHeader(sheet, hospital, profileColumnCount)
+    this.writeProfileSections(sheet, merged)
+
+    sheet.pageSetup = PAGE_SETUP_PORTRAIT
+
+    const buffer = (await workbook.xlsx.writeBuffer()) as unknown as Buffer
+    const safeName = `utilisateur-${user.nom || 'inconnu'}.xlsx`.replace(/[^a-zA-Z0-9\-_.]/g, '_')
+    return this.saveFile(buffer, safeName, [
+      { name: 'Excel', extensions: ['xlsx'] },
+    ])
+  }
+
+  private createWorkbook(sheetName: string): ExcelJS.Workbook {
     const workbook = new ExcelJS.Workbook()
     workbook.creator = 'CDE'
     workbook.created = new Date()
-    const sheet = workbook.addWorksheet('Utilisateurs')
+    workbook.addWorksheet(sheetName)
+    return workbook
+  }
 
-    const columnDefs = [
+  private buildColumnDefs(): ColumnDef[] {
+    return [
       { header: 'Noms', key: 'nom', width: 30 },
       { header: 'Rôle', key: 'role', width: 18 },
       { header: 'Fonction', key: 'fonction', width: 22 },
@@ -73,83 +161,47 @@ export class ExportService {
       { header: 'Statut contrat', key: 'statut_contrat', width: 18 },
       { header: 'Pays', key: 'pays', width: 18 },
     ]
-    sheet.columns = columnDefs
+  }
 
-    const borderAll: Partial<ExcelJS.Borders> = {
-      top: { style: 'thin', color: { argb: 'FF999999' } },
-      bottom: { style: 'thin', color: { argb: 'FF999999' } },
-      left: { style: 'thin', color: { argb: 'FF999999' } },
-      right: { style: 'thin', color: { argb: 'FF999999' } },
-    }
+  private buildListHeader(sheet: Worksheet, hospital: any): void {
+    buildRepublicHeader(sheet, COLUMN_COUNT)
+    buildDeviseLine(sheet, COLUMN_COUNT)
+    buildSeparatorLine(sheet, COLUMN_COUNT, 3)
+    buildInstitutionLine(sheet, COLUMN_COUNT, 4, hospital)
+    buildContactLine(sheet, COLUMN_COUNT, 5, hospital)
+    buildSeparatorLine(sheet, COLUMN_COUNT, 6)
+    buildTitleAndDate(sheet, COLUMN_COUNT, 8, 'Liste des utilisateurs — Tous les détails', 9)
+  }
 
-    sheet.mergeCells('A1:K1')
-    const cellR1 = sheet.getCell('A1')
-    cellR1.value = 'RÉPUBLIQUE DE GUINÉE'
-    cellR1.font = { bold: true, size: 14, color: { argb: 'FF0B3B6B' }, name: 'Calibri' }
-    cellR1.alignment = { horizontal: 'center', vertical: 'middle' }
+  private buildProfileHeader(sheet: Worksheet, hospital: any, columnCount: number): void {
+    buildRepublicHeader(sheet, columnCount)
+    buildDeviseLine(sheet, columnCount)
+    buildSeparatorLine(sheet, columnCount, 3)
 
-    sheet.mergeCells('A2:K2')
-    const cellR2 = sheet.getCell('A2')
-    cellR2.value = 'Travail — Justice — Solidarité'
-    cellR2.font = { size: 11, italic: true, color: { argb: 'FF666666' }, name: 'Calibri' }
-    cellR2.alignment = { horizontal: 'center', vertical: 'middle' }
+    const cell3 = sheet.getCell('A3')
+    cell3.value = hospital.name || 'Établissement de Santé'
+    cell3.font = { bold: true, size: FONT.INSTITUTION_SIZE, color: { argb: COLORS.DARK_BLUE }, name: FONT.FAMILY }
 
-    sheet.mergeCells('A3:K3')
-    const cellR3 = sheet.getCell('A3')
-    cellR3.value = ''
-    cellR3.border = {
-      bottom: { style: 'medium', color: { argb: 'FF0B3B6B' } },
-    }
+    buildContactLine(sheet, columnCount, 4, { ...hospital, address: undefined })
+    buildSeparatorLine(sheet, columnCount, 5)
+    buildProfileTitle(sheet, columnCount, 6, 'Fiche individuelle — Personnel')
+  }
 
-    const institutionLine = [
-      hospital.name || 'Établissement de Santé',
-      [hospital.address, hospital.city].filter(Boolean).join(', '),
-    ].filter(Boolean).join(' — ')
-    sheet.mergeCells('A4:K4')
-    const cellR4 = sheet.getCell('A4')
-    cellR4.value = institutionLine
-    cellR4.font = { bold: true, size: 12, color: { argb: 'FF0B3B6B' }, name: 'Calibri' }
-
-    const contactParts = [`Tél : ${hospital.phone || '—'}`]
-    if (hospital.email) contactParts.push(`Email : ${hospital.email}`)
-    if (hospital.regNumber) contactParts.push(`N° agrément : ${hospital.regNumber}`)
-    sheet.mergeCells('A5:K5')
-    const cellR5 = sheet.getCell('A5')
-    cellR5.value = contactParts.join('  |  ')
-    cellR5.font = { size: 10, color: { argb: 'FF555555' }, name: 'Calibri' }
-
-    sheet.mergeCells('A6:K6')
-    const cellR6 = sheet.getCell('A6')
-    cellR6.value = ''
-    cellR6.border = {
-      bottom: { style: 'medium', color: { argb: 'FF0B3B6B' } },
-    }
-
-    sheet.mergeCells('A8:K8')
-    const titleCell = sheet.getCell('A8')
-    const displayDate = new Date().toLocaleDateString('fr-FR', {
-      day: 'numeric', month: 'long', year: 'numeric',
-    })
-    titleCell.value = 'Liste des utilisateurs — Tous les détails'
-    titleCell.font = { bold: true, size: 13, color: { argb: 'FF0B3B6B' }, name: 'Calibri' }
-
-    sheet.mergeCells('A9:K9')
-    const dateCell = sheet.getCell('A9')
-    dateCell.value = `Éditée le ${displayDate}`
-    dateCell.font = { italic: true, size: 10, color: { argb: 'FF888888' }, name: 'Calibri' }
-
+  private buildHeaderRow(sheet: Worksheet, columnDefs: ColumnDef[]): void {
     const headerRowNumber = 11
     const headerRow = sheet.getRow(headerRowNumber)
     columnDefs.forEach((col, idx) => {
       const cell = headerRow.getCell(idx + 1)
       cell.value = col.header
-      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' }
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B3B6B' } }
+      cell.font = { bold: true, color: { argb: COLORS.WHITE }, size: FONT.HEADER_ROW_SIZE, name: FONT.FAMILY }
+      cell.fill = HEADER_FILL
       cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-      cell.border = borderAll
+      cell.border = THIN_GREY_BORDER
     })
     headerRow.height = 22
+  }
 
+  private buildDataRows(sheet: Worksheet, users: any[]): void {
     users.forEach((u: any, i: number) => {
       const fonctionName = typeof u.fonction === 'object' && u.fonction?.name ? u.fonction.name : (u.fonction || '')
       const specialties = (u.specialties || []).map((s: any) => s.name).join(', ')
@@ -168,28 +220,35 @@ export class ExportService {
         u.pays || '',
       ])
       row.eachCell((cell) => {
-        cell.border = borderAll
-        cell.font = { size: 9.5, name: 'Calibri' }
+        cell.border = THIN_GREY_BORDER
+        cell.font = { size: FONT.DATA_SIZE, name: FONT.FAMILY }
         cell.alignment = { vertical: 'top', wrapText: true }
       })
       if (i % 2 === 1) {
         row.eachCell((cell) => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4FA' } }
+          cell.fill = ZEBRA_FILL
         })
       }
     })
+  }
 
+  private buildSummaryRow(sheet: Worksheet, users: any[]): void {
+    const headerRowNumber = 11
     const summaryRowNumber = headerRowNumber + users.length + 1
     const summaryRow = sheet.getRow(summaryRowNumber)
     const summaryCell = summaryRow.getCell(1)
     summaryCell.value = `Total : ${users.length} utilisateur${users.length > 1 ? 's' : ''}`
-    summaryCell.font = { bold: true, size: 10, color: { argb: 'FF0B3B6B' }, name: 'Calibri' }
+    summaryCell.font = { bold: true, size: FONT.HEADER_ROW_SIZE, color: { argb: COLORS.DARK_BLUE }, name: FONT.FAMILY }
     sheet.mergeCells(`A${summaryRowNumber}:K${summaryRowNumber}`)
+  }
+
+  private configureListSheet(sheet: Worksheet, users: any[]): void {
+    const headerRowNumber = 11
 
     if (users.length > 0) {
       sheet.autoFilter = {
         from: { row: headerRowNumber, column: 1 },
-        to: { row: headerRowNumber + users.length, column: 11 },
+        to: { row: headerRowNumber + users.length, column: COLUMN_COUNT },
       }
     }
 
@@ -198,132 +257,41 @@ export class ExportService {
     ]
 
     sheet.pageSetup = {
-      paperSize: 9,
-      orientation: 'landscape',
-      fitToPage: true,
-      fitToWidth: 1,
-      fitToHeight: 0,
-      margins: {
-        top: 0.5, bottom: 0.5, left: 0.3, right: 0.3, header: 0.2, footer: 0.2,
-      },
+      ...PAGE_SETUP_LANDSCAPE,
       printTitlesRow: `${headerRowNumber}:${headerRowNumber}`,
     }
-
-    const buffer = (await workbook.xlsx.writeBuffer()) as unknown as Buffer
-    return this.saveFile(buffer, 'liste-utilisateurs.xlsx', [
-      { name: 'Excel', extensions: ['xlsx'] },
-    ])
   }
 
-  async exportUserProfileExcel(userId: number): Promise<string> {
-    const [user, relations] = await Promise.all([
-      this.authService.getUserById(userId),
-      this.authService.enrichUserWithRelations(userId),
-    ])
-    if (!user) throw new Error('Utilisateur introuvable')
-
-    const merged = { ...user, ...relations }
-    const hospital = await this.settingsService.getHospitalInfo()
-
-    const workbook = new ExcelJS.Workbook()
-    workbook.creator = 'CDE'
-    workbook.created = new Date()
-    const sheet = workbook.addWorksheet('Fiche utilisateur')
-
-    const columnDefs = [
-      { header: 'Champ', key: 'label', width: 28 },
-      { header: 'Valeur', key: 'value', width: 55 },
-    ]
-    sheet.columns = columnDefs
-
-    const borderAll: Partial<ExcelJS.Borders> = {
-      top: { style: 'thin', color: { argb: 'FF999999' } },
-      bottom: { style: 'thin', color: { argb: 'FF999999' } },
-      left: { style: 'thin', color: { argb: 'FF999999' } },
-      right: { style: 'thin', color: { argb: 'FF999999' } },
-    }
-
-    const headerBg = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFE0EAF5' } }
-    const sectionBg = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFF2F6FA' } }
-
-    let rowNum = 1
-
-    sheet.mergeCells('A1:B1')
-    const c1 = sheet.getCell('A1')
-    c1.value = 'RÉPUBLIQUE DE GUINÉE'
-    c1.font = { bold: true, size: 14, color: { argb: 'FF0B3B6B' }, name: 'Calibri' }
-    c1.alignment = { horizontal: 'center', vertical: 'middle' }
-
-    sheet.mergeCells('A2:B2')
-    const c2 = sheet.getCell('A2')
-    c2.value = 'Travail — Justice — Solidarité'
-    c2.font = { size: 11, italic: true, color: { argb: 'FF666666' }, name: 'Calibri' }
-    c2.alignment = { horizontal: 'center', vertical: 'middle' }
-
-    sheet.mergeCells('A3:B3')
-    const c3 = sheet.getCell('A3')
-    c3.value = hospital.name || 'Établissement de Santé'
-    c3.font = { bold: true, size: 12, color: { argb: 'FF0B3B6B' }, name: 'Calibri' }
-
-    sheet.mergeCells('A4:B4')
-    const contactParts = [`Tél : ${hospital.phone || '—'}`]
-    if (hospital.email) contactParts.push(`Email : ${hospital.email}`)
-    if (hospital.address) contactParts.push(hospital.address)
-    if (hospital.regNumber) contactParts.push(`N° agrément : ${hospital.regNumber}`)
-    const c4 = sheet.getCell('A4')
-    c4.value = contactParts.join('  |  ')
-    c4.font = { size: 10, color: { argb: 'FF555555' }, name: 'Calibri' }
-
-    rowNum = 5
-    sheet.mergeCells(`A${rowNum}:B${rowNum}`)
-    sheet.getCell(`A${rowNum}`).border = {
-      bottom: { style: 'medium', color: { argb: 'FF0B3B6B' } },
-    }
-
-    rowNum = 6
-    sheet.mergeCells(`A${rowNum}:B${rowNum}`)
-    const titleCell = sheet.getCell(`A${rowNum}`)
-    const displayDate = new Date().toLocaleDateString('fr-FR', {
-      day: 'numeric', month: 'long', year: 'numeric',
-    })
-    titleCell.value = `Fiche individuelle — Personnel — ${displayDate}`
-    titleCell.font = { bold: true, size: 13, color: { argb: 'FF0B3B6B' }, name: 'Calibri' }
-
+  private writeProfileSections(sheet: Worksheet, merged: any): void {
     const m = merged as any
     const fonctionName = m.fonction?.name || m.fonction || ''
+    let rowNum = 6
 
-    function writeField(label: string, value: string, withBorder = true) {
+    const writeField = (label: string, value: string, withBorder = true) => {
       rowNum++
       const row = sheet.getRow(rowNum)
       row.getCell(1).value = label
-      row.getCell(1).font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF333333' } }
-      row.getCell(1).fill = headerBg
+      row.getCell(1).font = { bold: true, size: FONT.LABEL_SIZE, name: FONT.FAMILY, color: { argb: COLORS.BODY_TEXT } }
+      row.getCell(1).fill = LABEL_FILL
       row.getCell(2).value = value || '—'
-      row.getCell(2).font = { size: 10.5, name: 'Calibri' }
+      row.getCell(2).font = { size: FONT.VALUE_SIZE, name: FONT.FAMILY }
       if (withBorder) {
-        row.getCell(1).border = borderAll
-        row.getCell(2).border = borderAll
+        row.getCell(1).border = THIN_GREY_BORDER
+        row.getCell(2).border = THIN_GREY_BORDER
       }
     }
 
-    function writeSection(title: string) {
+    const writeSection = (title: string) => {
       rowNum++
       sheet.mergeCells(`A${rowNum}:B${rowNum}`)
       const cell = sheet.getCell(`A${rowNum}`)
       cell.value = title
-      cell.font = { bold: true, size: 10, color: { argb: 'FF0B3B6B' }, name: 'Calibri' }
-      cell.fill = sectionBg
-      cell.border = {
-        top: { style: 'thin', color: { argb: 'FF0B3B6B' } },
-        bottom: { style: 'thin', color: { argb: 'FF999999' } },
-        left: { style: 'thin', color: { argb: 'FF999999' } },
-        right: { style: 'thin', color: { argb: 'FF999999' } },
-      }
+      cell.font = { bold: true, size: FONT.LABEL_SIZE, color: { argb: COLORS.DARK_BLUE }, name: FONT.FAMILY }
+      cell.fill = SECTION_FILL
+      cell.border = SECTION_TOP_BORDER
       rowNum++
       sheet.mergeCells(`A${rowNum}:B${rowNum}`)
-      sheet.getCell(`A${rowNum}`).border = {
-        bottom: { style: 'hair', color: { argb: 'FFCCCCCC' } },
-      }
+      sheet.getCell(`A${rowNum}`).border = HAIRLINE_BOTTOM_BORDER
     }
 
     writeSection('IDENTITÉ')
@@ -363,26 +331,173 @@ export class ExportService {
     writeSection('COMPTE')
     writeField('Statut du compte', m.is_validated ? 'Validé ✓' : 'En attente')
     writeField('Actif', m.is_active ? 'Oui' : 'Non')
+  }
 
-    sheet.pageSetup = {
-      paperSize: 9,
-      orientation: 'portrait',
-      fitToPage: true,
-      fitToWidth: 1,
-      fitToHeight: 0,
-      margins: {
-        top: 0.5, bottom: 0.5, left: 0.3, right: 0.3, header: 0.2, footer: 0.2,
-      },
+  async exportPatientProfilePdf(patientId: number): Promise<string> {
+    const { patient, trustedPerson, hospital, logo } = await this.patientExportService.enrich(patientId)
+    const html = generatePatientProfileHtml(patient, trustedPerson, hospital, logo)
+    const buffer = await this.generatePdf(html)
+    const safeName = `patient-${patient.nom || 'inconnu'}-${patient.prenom || ''}.pdf`.replace(/[^a-zA-Z0-9\-_.]/g, '_')
+    return this.saveFile(buffer, safeName, [
+      { name: 'PDF', extensions: ['pdf'] },
+    ])
+  }
+
+  async exportCrhDiabetePdf(documentId: string): Promise<string> {
+    const doc = await this.clinicalDocumentService.getDocumentById(documentId)
+    if (!doc) throw new Error('Document introuvable')
+
+    const patientId = await this.clinicalDocumentService.getPatientIdByDocument(doc.contactId)
+    const { patient, hospital, logo } = await this.patientExportService.enrich(patientId)
+
+    const contact = {
+      id: doc.contactId,
+      service_name: doc.serviceId ?? undefined,
     }
 
-    const buffer = (await workbook.xlsx.writeBuffer()) as unknown as Buffer
-    const safeName = `utilisateur-${user.nom || 'inconnu'}.xlsx`.replace(/[^a-zA-Z0-9\-_.]/g, '_')
+    const formData = doc.formData ? JSON.parse(doc.formData) : {}
+
+    let signedByName: string | undefined
+    if (doc.signedBy) {
+      const user = await this.authService.getUserById(Number(doc.signedBy))
+      signedByName = user ? `${user.prenom || ''} ${(user.nom || '').toUpperCase()}`.trim() : undefined
+    }
+
+    const html = generateCrhDiabeteHtml(formData, patient, contact, hospital as any, logo, doc.signedAt ?? undefined, signedByName)
+    const buffer = await this.generatePdf(html, { top: 0, bottom: 0, left: 0, right: 0 })
+    const safeName = `crh-${patient.nom || 'inconnu'}-${patient.prenom || ''}.pdf`.replace(/[^a-zA-Z0-9\-_.]/g, '_')
     return this.saveFile(buffer, safeName, [
+      { name: 'PDF', extensions: ['pdf'] },
+    ])
+  }
+
+  async exportPatientsListExcel(_filters?: any): Promise<string> {
+    const patients = await this.patientService.list()
+    const hospital = await this.settingsService.getHospitalInfo()
+
+    const columnCount = 11
+    const workbook = this.createWorkbook('Patients')
+    const sheet = workbook.getWorksheet('Patients')!
+
+    const columnDefs: ColumnDef[] = [
+      { header: 'Civilité', key: 'civilite', width: 14 },
+      { header: 'Nom', key: 'nom', width: 24 },
+      { header: 'Prénom', key: 'prenom', width: 24 },
+      { header: 'Date naissance', key: 'date_naissance', width: 18 },
+      { header: 'Âge', key: 'age', width: 8 },
+      { header: 'NIP', key: 'nip', width: 14 },
+      { header: 'N° SS', key: 'nir', width: 18 },
+      { header: 'Téléphone', key: 'telephone', width: 18 },
+      { header: 'Assurance', key: 'assurance', width: 20 },
+      { header: 'Région', key: 'region', width: 16 },
+      { header: 'Profession', key: 'profession', width: 22 },
+    ]
+
+    sheet.columns = columnDefs
+
+    this.buildPatientListHeader(sheet, hospital, columnCount)
+    this.buildPatientListHeaderRow(sheet, columnDefs)
+    this.buildPatientListDataRows(sheet, patients)
+    this.buildPatientListSummaryRow(sheet, patients)
+    this.configurePatientListSheet(sheet, patients, columnDefs)
+
+    return this.writeAndSave(workbook, 'liste-patients.xlsx')
+  }
+
+  private buildPatientListHeader(sheet: Worksheet, hospital: any, columnCount: number): void {
+    buildRepublicHeader(sheet, columnCount)
+    buildDeviseLine(sheet, columnCount)
+    buildSeparatorLine(sheet, columnCount, 3)
+    buildInstitutionLine(sheet, columnCount, 4, hospital)
+    buildContactLine(sheet, columnCount, 5, hospital)
+    buildSeparatorLine(sheet, columnCount, 6)
+    buildTitleAndDate(sheet, columnCount, 8, 'Liste des patients — Tous les détails', 9)
+  }
+
+  private buildPatientListHeaderRow(sheet: Worksheet, columnDefs: ColumnDef[]): void {
+    const headerRowNumber = 11
+    const headerRow = sheet.getRow(headerRowNumber)
+    columnDefs.forEach((col, idx) => {
+      const cell = headerRow.getCell(idx + 1)
+      cell.value = col.header
+      cell.font = { bold: true, color: { argb: COLORS.WHITE }, size: FONT.HEADER_ROW_SIZE, name: FONT.FAMILY }
+      cell.fill = HEADER_FILL
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+      cell.border = THIN_GREY_BORDER
+    })
+    headerRow.height = 22
+  }
+
+  private buildPatientListDataRows(sheet: Worksheet, patients: any[]): void {
+    patients.forEach((p: any, i: number) => {
+      const age = p.date_naissance
+        ? Math.floor((new Date().getTime() - new Date(p.date_naissance).getTime()) / 31557600000)
+        : ''
+      const dto = PatientEntity.toDto(p)
+      const row = sheet.addRow([
+        dto.civilite || '',
+        dto.nom || '',
+        dto.prenom || '',
+        dto.date_naissance || '',
+        age,
+        dto.nip || '',
+        dto.nir || '',
+        dto.telephone || '',
+        dto.assuranceMutuelle || '',
+        dto.region || '',
+        dto.profession || '',
+      ])
+      row.eachCell((cell) => {
+        cell.border = THIN_GREY_BORDER
+        cell.font = { size: FONT.DATA_SIZE, name: FONT.FAMILY }
+        cell.alignment = { vertical: 'top', wrapText: true }
+      })
+      if (i % 2 === 1) {
+        row.eachCell((cell) => {
+          cell.fill = ZEBRA_FILL
+        })
+      }
+    })
+  }
+
+  private buildPatientListSummaryRow(sheet: Worksheet, patients: any[]): void {
+    const headerRowNumber = 11
+    const summaryRowNumber = headerRowNumber + patients.length + 1
+    const summaryRow = sheet.getRow(summaryRowNumber)
+    const summaryCell = summaryRow.getCell(1)
+    summaryCell.value = `Total : ${patients.length} patient${patients.length > 1 ? 's' : ''}`
+    summaryCell.font = { bold: true, size: FONT.HEADER_ROW_SIZE, color: { argb: COLORS.DARK_BLUE }, name: FONT.FAMILY }
+    sheet.mergeCells(`A${summaryRowNumber}:K${summaryRowNumber}`)
+  }
+
+  private configurePatientListSheet(sheet: Worksheet, patients: any[], columnDefs: ColumnDef[]): void {
+    const headerRowNumber = 11
+
+    if (patients.length > 0) {
+      sheet.autoFilter = {
+        from: { row: headerRowNumber, column: 1 },
+        to: { row: headerRowNumber + patients.length, column: columnDefs.length },
+      }
+    }
+
+    sheet.views = [
+      { state: 'frozen', ySplit: headerRowNumber, xSplit: 0, activeCell: 'A12' },
+    ]
+
+    sheet.pageSetup = {
+      ...PAGE_SETUP_LANDSCAPE,
+      printTitlesRow: `${headerRowNumber}:${headerRowNumber}`,
+    }
+  }
+
+  private async writeAndSave(workbook: ExcelJS.Workbook, defaultName: string): Promise<string> {
+    const buffer = (await workbook.xlsx.writeBuffer()) as unknown as Buffer
+    return this.saveFile(buffer, defaultName, [
       { name: 'Excel', extensions: ['xlsx'] },
     ])
   }
 
-  private async generatePdf(html: string): Promise<Buffer> {
+  private async generatePdf(html: string, margins?: { top: number; bottom: number; left: number; right: number }): Promise<Buffer> {
     const win = new BrowserWindow({ show: false, width: 800, height: 600 })
     win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
     await new Promise<void>((resolve) => {
@@ -390,7 +505,7 @@ export class ExportService {
     })
     const buffer = await win.webContents.printToPDF({
       printBackground: true,
-      margins: { top: 0.79, bottom: 0.79, left: 0.59, right: 0.59 },
+      margins: margins ?? { top: 0.79, bottom: 0.79, left: 0.59, right: 0.59 },
     })
     win.close()
     return buffer
@@ -409,16 +524,4 @@ export class ExportService {
     fs.writeFileSync(result.filePath, buffer)
     return result.filePath
   }
-}
-
-function roleLabel(role?: string): string {
-  const labels: Record<string, string> = {
-    MEDECIN: 'Médecin',
-    SECRETAIRE: 'Secrétaire',
-    PHARMACIEN: 'Pharmacien',
-    COMPTABLE: 'Comptable',
-    ADMIN: 'Administrateur',
-    INFIRMIER: 'Infirmier d\'État',
-  }
-  return labels[role || ''] || role || ''
 }

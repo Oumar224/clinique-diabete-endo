@@ -1,21 +1,20 @@
 import { container } from 'tsyringe'
 import { createHandler } from '../utils/create-handler'
 import { FormDraftService } from '../services/form-draft.service'
+import { FormDraftEntity } from '../entities/form-draft.entity'
+import type { FormDraftDto } from '../dto/form-draft.dto'
 
 export function registerFormDraftHandlers(): void {
   createHandler('form-draft:get', async (params: { formType: string; patientId?: number }) => {
     const service = container.resolve(FormDraftService)
-    return await service.getByType(params.formType, params.patientId)
+    const entity = await service.getByType(params.formType, params.patientId)
+    return entity ? FormDraftEntity.toDto(entity) : null
   })
 
-  createHandler('form-draft:upsert', async (params: { formType: string; formData: string; patientId?: number; activeStep: number }) => {
+  createHandler('form-draft:upsert', async (dto: FormDraftDto) => {
     const service = container.resolve(FormDraftService)
-    await service.upsert({
-      formType: params.formType as 'patient_create' | 'patient_edit',
-      formData: params.formData,
-      patientId: params.patientId,
-      activeStep: params.activeStep,
-    })
+    const entity = FormDraftEntity.fromDto(dto)
+    await service.upsert(entity)
     return { success: true }
   })
 

@@ -43,7 +43,7 @@ describe('MedicalUnitService', () => {
 
     const active = await service.list(true)
     expect(active.length).toBe(24)
-    expect(active.every(u => u.is_active === true)).toBe(true)
+    expect(active.every(u => u.is_active === 1)).toBe(true)
   })
 
   // ─── Seed verification ────────────────────────────────────────
@@ -115,7 +115,7 @@ describe('MedicalUnitService', () => {
     expect(created.id).toBeDefined()
     expect(created.code).toBe('TEST')
     expect(created.name).toBe('Unité de test')
-    expect(created.is_active).toBe(true)
+    expect(created.is_active).toBe(1)
   })
 
   it('should uppercase the code on create', async () => {
@@ -232,13 +232,13 @@ describe('MedicalUnitService', () => {
       code: 'TOG',
       name: 'Toggle Unit',
     })
-    expect(created.is_active).toBe(true)
-
-    const disabled = await service.toggle(created.id!, false)
-    expect(disabled.is_active).toBe(false)
+    expect(created.is_active).toBe(1)
+ 
+     const disabled = await service.toggle(created.id!, false)
+    expect(disabled.is_active).toBe(0)
 
     const enabled = await service.toggle(created.id!, true)
-    expect(enabled.is_active).toBe(true)
+    expect(enabled.is_active).toBe(1)
   })
 
   it('should throw when toggling non-existent unit', async () => {

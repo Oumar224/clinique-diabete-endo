@@ -2,7 +2,7 @@ import { inject, singleton } from 'tsyringe'
 import { type Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
-import type { PlanSoinsItemEntity } from '../entities/plan-soins.entity'
+import { PlanSoinsEntity, type PlanSoinsItemEntity } from '../entities/plan-soins.entity'
 import type { PlanSoinsDto, BlocHoraireDto } from '../dto/plan-soins.dto'
 import type { SoinItem } from '../../src/types/soins'
 
@@ -28,20 +28,29 @@ export class PlanSoinsService {
       .selectFrom('plan_soins_items')
       .selectAll()
       .where('plan_soins_id', '=', plan.id!)
+      .where((eb) => eb.or([
+        eb('prescription_id', 'is not', null),
+        eb('statut', 'in', ['valide', 'suspendu']),
+      ]))
       .orderBy('id', 'asc')
       .execute()
 
-    const blocs = this.groupItemsByBloc(items)
-
-    return {
-      id: plan.id!,
-      patientId: plan.patient_id,
-      date: plan.date,
-      blocs,
-      createdBy: plan.created_by,
-      createdAt: plan.created_at!,
-      updatedAt: plan.updated_at!,
+    const prescriptionIds = [...new Set(items.map(i => i.prescription_id).filter((id): id is number => id != null))]
+    let typeMap = new Map<number, 'medicament' | 'soins'>()
+    if (prescriptionIds.length > 0) {
+      const prescriptions = await this.db
+        .selectFrom('prescriptions')
+        .select(['id', 'prescription_type'])
+        .where('id', 'in', prescriptionIds)
+        .execute()
+      for (const p of prescriptions) {
+        typeMap.set(p.id as number, (p.prescription_type as 'medicament' | 'soins') ?? 'medicament')
+      }
     }
+
+    const planDto = PlanSoinsEntity.toDto(plan)
+    planDto.blocs = this.groupItemsByBloc(items, typeMap)
+    return planDto
   }
 
   async listValidesByPatientAndDateRange(patientId: number, startDate: string, endDate: string): Promise<{
@@ -106,7 +115,7 @@ export class PlanSoinsService {
 
     if (!updated) throw new Error(`Soin ${soinId} introuvable`)
 
-    return this.toSoinItem(updated)
+    return this.toSoinItem(updated, await this.resolvePrescriptionType(updated.prescription_id))
   }
 
   async suspendreSoin(soinId: number, motif: string): Promise<SoinItem> {
@@ -128,7 +137,7 @@ export class PlanSoinsService {
 
     if (!updated) throw new Error(`Soin ${soinId} introuvable`)
 
-    return this.toSoinItem(updated)
+    return this.toSoinItem(updated, await this.resolvePrescriptionType(updated.prescription_id))
   }
 
   async reprendreSoin(soinId: number): Promise<SoinItem> {
@@ -152,7 +161,7 @@ export class PlanSoinsService {
 
     if (!updated) throw new Error(`Soin ${soinId} introuvable`)
 
-    return this.toSoinItem(updated)
+    return this.toSoinItem(updated, await this.resolvePrescriptionType(updated.prescription_id))
   }
 
   async suspendrePrescription(prescriptionId: number, motif: string): Promise<SoinItem[]> {
@@ -166,13 +175,14 @@ export class PlanSoinsService {
       .where('prescription_id', '=', prescriptionId)
       .execute()
 
+    const type = await this.resolvePrescriptionType(prescriptionId)
     const updated = await this.db
       .selectFrom('plan_soins_items')
       .selectAll()
       .where('prescription_id', '=', prescriptionId)
       .execute()
 
-    return updated.map(r => this.toSoinItem(r))
+    return updated.map(r => this.toSoinItem(r, type))
   }
 
   async reprendrePrescription(prescriptionId: number): Promise<SoinItem[]> {
@@ -188,40 +198,52 @@ export class PlanSoinsService {
       .where('prescription_id', '=', prescriptionId)
       .execute()
 
+    const type = await this.resolvePrescriptionType(prescriptionId)
     const updated = await this.db
       .selectFrom('plan_soins_items')
       .selectAll()
       .where('prescription_id', '=', prescriptionId)
       .execute()
 
-    return updated.map(r => this.toSoinItem(r))
+    return updated.map(r => this.toSoinItem(r, type))
   }
 
   // ── helpers ────────────────────────────────────────────────────────
-  private groupItemsByBloc(items: PlanSoinsItemEntity[]): BlocHoraireDto[] {
+  private groupItemsByBloc(items: PlanSoinsItemEntity[], typeMap: Map<number, 'medicament' | 'soins'> = new Map()): BlocHoraireDto[] {
     const map = new Map<string, SoinItem[]>()
     for (const item of items) {
-      const existing = map.get(item.bloc_heure) ?? []
-      existing.push(this.toSoinItem(item))
-      map.set(item.bloc_heure, existing)
+      const existing = map.get(item.bloc_heure!) ?? []
+      existing.push(this.toSoinItem(item, item.prescription_id != null ? typeMap.get(item.prescription_id) : undefined))
+      map.set(item.bloc_heure!, existing)
     }
     return Array.from(map.entries()).map(([heure, soins]) => ({ heure, soins }))
   }
 
-  private toSoinItem(row: PlanSoinsItemEntity): SoinItem {
+  private toSoinItem(row: PlanSoinsItemEntity, prescriptionType?: 'medicament' | 'soins'): SoinItem {
     return {
       id: row.id!,
-      planSoinsId: row.plan_soins_id,
-      medicament: row.medicament,
-      dosage: row.dosage,
-      voie: row.voie as SoinItem['voie'],
-      statut: row.statut as SoinItem['statut'],
-      validePar: row.valide_par ?? undefined,
-      valideA: row.valide_a ?? undefined,
-      motifSuspension: row.motif_suspension ?? undefined,
-      prescriptionId: row.prescription_id ?? undefined,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }
+      planSoinsId: row.plan_soins_id!,
+      medicament: row.medicament!,
+      dosage: row.dosage!,
+      voie: row.voie! as SoinItem['voie'],
+      statut: row.statut! as SoinItem['statut'],
+      validePar: row.valide_par ?? null,
+      valideA: row.valide_a ?? null,
+      motifSuspension: row.motif_suspension ?? null,
+      prescriptionId: row.prescription_id ?? null,
+      prescriptionType: prescriptionType ?? null,
+      createdAt: row.created_at ?? null,
+      updatedAt: row.updated_at ?? null,
+    } as unknown as SoinItem
+  }
+
+  private async resolvePrescriptionType(prescriptionId: number | null | undefined): Promise<'medicament' | 'soins' | undefined> {
+    if (prescriptionId == null) return undefined
+    const p = await this.db
+      .selectFrom('prescriptions')
+      .select('prescription_type')
+      .where('id', '=', prescriptionId)
+      .executeTakeFirst()
+    return (p?.prescription_type as 'medicament' | 'soins') ?? undefined
   }
 }

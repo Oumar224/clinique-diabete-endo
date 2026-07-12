@@ -39,7 +39,7 @@
       v-loading="loading"
       :data="paginatedList"
       style="width: 100%"
-      :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
+      border
     >
       <el-table-column prop="numero" label="N° Facture" width="160" />
       <el-table-column label="Patient" width="200">
@@ -85,8 +85,6 @@
         </template>
       </el-table-column>
     </el-table>
-
-    <el-empty v-if="!loading && filteredList.length === 0" description="Aucune facture" />
 
     <el-row justify="center" style="margin-top: 20px">
       <el-pagination
@@ -232,7 +230,7 @@ function formatDate(dateStr: string): string {
   flex-direction: column;
   gap: 4px;
   padding: 16px 20px;
-  background: var(--cd-white);
+  background: var(--cd-widget-bg);
   border-radius: 10px;
   border: 1px solid var(--cd-gray-200);
 }

@@ -2,7 +2,7 @@ import { inject, singleton } from 'tsyringe'
 import { type Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
-import type { VitalSignsDto } from '../dto/vital-signs.dto'
+import { VitalSignEntity } from '../entities/vital-sign.entity'
 
 @singleton()
 export class VitalSignsService {
@@ -12,7 +12,7 @@ export class VitalSignsService {
     this.db = datasource.getInstance()
   }
 
-  async listByPatientAndDateRange(patientId: number, startDate: string, endDate: string): Promise<VitalSignsDto[]> {
+  async listByPatientAndDateRange(patientId: number, startDate: string, endDate: string): Promise<VitalSignEntity[]> {
     const rows = await this.db
       .selectFrom('vital_signs')
       .selectAll()
@@ -23,10 +23,10 @@ export class VitalSignsService {
       .orderBy('id', 'asc')
       .execute()
 
-    return rows.map(r => this.toDto(r))
+    return rows as unknown as VitalSignEntity[]
   }
 
-  async getToday(patientId: number): Promise<VitalSignsDto | null> {
+  async getToday(patientId: number): Promise<VitalSignEntity | null> {
     const today = new Date().toISOString().slice(0, 10)
     const row = await this.db
       .selectFrom('vital_signs')
@@ -37,43 +37,33 @@ export class VitalSignsService {
 
     if (!row) return null
 
-    return this.toDto(row)
+    return row as unknown as VitalSignEntity
   }
 
-  async save(patientId: number, data: {
-    date: string
-    taSystolique: number | null
-    taDiastolique: number | null
-    frequenceCardiaque: number | null
-    temperature: number | null
-    glycemie: number | null
-    cetonemie: number | null
-    glucosurie: string | null
-    cetonurie: string | null
-    saO2: number | null
-    diurese: number | null
-    poids: number | null
-  }): Promise<VitalSignsDto> {
+  async save(entity: VitalSignEntity): Promise<VitalSignEntity> {
+    const patientId = entity.patient_id!
+    const date = entity.date!
+
     const existing = await this.db
       .selectFrom('vital_signs')
       .selectAll()
       .where('patient_id', '=', patientId)
-      .where('date', '=', data.date)
+      .where('date', '=', date)
       .executeTakeFirst()
 
     const now = new Date().toISOString()
     const setValues = {
-      ta_systolique: data.taSystolique,
-      ta_diastolique: data.taDiastolique,
-      frequence_cardiaque: data.frequenceCardiaque,
-      temperature: data.temperature,
-      glycemie: data.glycemie,
-      cetonemie: data.cetonemie,
-      glucosurie: data.glucosurie,
-      cetonurie: data.cetonurie,
-      sa_o2: data.saO2,
-      diurese: data.diurese,
-      poids: data.poids,
+      ta_systolique: entity.ta_systolique,
+      ta_diastolique: entity.ta_diastolique,
+      frequence_cardiaque: entity.frequence_cardiaque,
+      temperature: entity.temperature,
+      glycemie: entity.glycemie,
+      cetonemie: entity.cetonemie,
+      glucosurie: entity.glucosurie,
+      cetonurie: entity.cetonurie,
+      sa_o2: entity.sa_o2,
+      diurese: entity.diurese,
+      poids: entity.poids,
       updated_at: now,
     }
 
@@ -88,9 +78,9 @@ export class VitalSignsService {
         .insertInto('vital_signs')
         .values({
           patient_id: patientId,
-          date: data.date,
+          date,
           ...setValues,
-          created_by: 1,
+          created_by: entity.created_by ?? 1,
           created_at: now,
         })
         .execute()
@@ -100,31 +90,9 @@ export class VitalSignsService {
       .selectFrom('vital_signs')
       .selectAll()
       .where('patient_id', '=', patientId)
-      .where('date', '=', data.date)
+      .where('date', '=', date)
       .executeTakeFirst()
 
-    return this.toDto(saved!)
-  }
-
-  private toDto(row: Record<string, unknown>): VitalSignsDto {
-    return {
-      id: row.id as number,
-      patientId: row.patient_id as number,
-      date: row.date as string,
-      taSystolique: row.ta_systolique as number | null,
-      taDiastolique: row.ta_diastolique as number | null,
-      frequenceCardiaque: row.frequence_cardiaque as number | null,
-      temperature: row.temperature as number | null,
-      glycemie: row.glycemie as number | null,
-      cetonemie: row.cetonemie as number | null,
-      glucosurie: row.glucosurie as string | null,
-      cetonurie: row.cetonurie as string | null,
-      saO2: row.sa_o2 as number | null,
-      diurese: row.diurese as number | null,
-      poids: row.poids as number | null,
-      createdBy: row.created_by as number,
-      createdAt: row.created_at as string,
-      updatedAt: row.updated_at as string,
-    }
+    return saved as unknown as VitalSignEntity
   }
 }

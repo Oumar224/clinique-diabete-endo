@@ -46,14 +46,14 @@ async function handleValidatePassword(formRef: FormInstance | undefined, form: V
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: var(--cd-gray-50);
+  background: var(--cd-page-bg);
   padding: 24px;
 }
 
 .validate-password__card {
   width: 100%;
   max-width: 420px;
-  background: var(--cd-white);
+  background: var(--cd-widget-bg);
   border-radius: 16px;
   padding: 40px 32px;
   border: 1px solid var(--cd-gray-200);

@@ -22,7 +22,6 @@ export function registerIdentityHandlers(): void {
   })
 
   createHandler('identity:save-logo', async (base64Data: string) => {
-    if (typeof base64Data !== 'string') throw new Error('Données invalides')
     const logoService = container.resolve(LogoService)
     await logoService.saveLogo(base64Data)
     return { success: true }

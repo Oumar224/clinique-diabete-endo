@@ -29,7 +29,7 @@ export class NodeSqliteConnection implements DatabaseConnection {
     } as QueryResult<R>)
   }
 
-  async *streamQuery(): AsyncIterableIterator<never> {
-    throw new Error('Streaming not supported with node:sqlite')
+  streamQuery<R>(_: CompiledQuery, __?: number): AsyncIterableIterator<QueryResult<R>> {
+    throw new Error("Method not implemented.")
   }
 }

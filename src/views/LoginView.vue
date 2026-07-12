@@ -46,7 +46,7 @@ async function handleLoginSubmit(formRef: FormInstance | undefined, form: LoginC
 }
 
 .login__brand {
-  background: linear-gradient(135deg, #0E5C5B 0%, #094544 100%);
+  background: linear-gradient(135deg, #1A5276 0%, #0E3A54 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -95,7 +95,7 @@ async function handleLoginSubmit(formRef: FormInstance | undefined, form: LoginC
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--cd-white);
+  background: var(--cd-widget-bg);
 }
 
 @media (max-width: 768px) {

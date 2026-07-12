@@ -148,7 +148,7 @@ function onCellClick(_date: string, _hour: number) {
   border: 1px solid var(--cd-gray-200);
   border-radius: 8px;
   overflow: hidden;
-  background: var(--cd-white);
+  background: var(--cd-widget-bg);
 }
 
 .planning__time-header,

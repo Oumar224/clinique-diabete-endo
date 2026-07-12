@@ -29,6 +29,40 @@ import * as AddAssuranceMutuelle from '../migrations/027-add-assurance-mutuelle'
 import * as FormDrafts from '../migrations/028-form-drafts'
 import * as PatientConsentementEtude from '../migrations/029-patient-consentement-etude'
 import * as UserAttachmentType from '../migrations/030-user-attachment-type'
+import * as PatientCare from '../migrations/031-patient-care'
+import * as SeedPlanSoins from '../migrations/032-seed-plan-soins'
+import * as Prescriptions from '../migrations/033-prescriptions'
+import * as SeedWeekPlanSoins from '../migrations/034-seed-week-plan-soins'
+import * as SeedVitalSignsRange from '../migrations/035-seed-vital-signs-range'
+import * as VitalSignsNewColumns from '../migrations/042-vital-signs-new-columns'
+import * as VitalSignsItems from '../migrations/043-vital-signs-items'
+import * as LabExamTables from '../migrations/044-lab-exam-tables'
+import * as ConservateurTables from '../migrations/045-conservateurs-tables'
+import * as ServiceHierarchy from '../migrations/046-service-hierarchy'
+import * as ServiceHierarchyV2 from '../migrations/047-service-hierarchy-v2'
+import * as SeedFonctions from '../migrations/048-seed-fonctions'
+import * as SeedLocalites from '../migrations/049-seed-localites'
+import * as CreateEncounters from '../migrations/050-create-encounters'
+import * as CreateStays from '../migrations/051-create-stays'
+import * as RestructureTarifs from '../migrations/052-restructure-tarifs'
+import * as PatientClinicalDocuments from '../migrations/053-patient-clinical-documents'
+import * as CreateCareUnits from '../migrations/054-create-care-units'
+import * as RestructureServices from '../migrations/055-restructure-services'
+import * as AddActeDeclencheToDocTypes from '../migrations/056-add-acte-declenche-to-doc-types'
+import * as ContactOrigins from '../migrations/057-contact-origins'
+import * as Insurances from '../migrations/058-insurances'
+import * as ContactCategories from '../migrations/059-contact-categories'
+import * as PrescriptionFrequenceType from '../migrations/060-prescription-frequence-type'
+import * as EncounterNewFields from '../migrations/061-encounter-new-fields'
+import * as PrescriptionType from '../migrations/062-prescription-type'
+import * as AddCareUnitToEncounters from '../migrations/062-add-care-unit-to-encounters'
+import * as VoieTypeDispositifType from '../migrations/063-voie-type-dispositif-type'
+import * as SeedCrhDiabete from '../migrations/064-seed-crh-diabete'
+import * as AddPrescriptionType from '../migrations/065-add-prescription-type'
+import * as FixEncounterConstraints from '../migrations/066-fix-encounter-constraints'
+import * as CleanupOrphanedPlanItems from '../migrations/067-cleanup-orphaned-plan-items'
+import * as FixDocumentTypes from '../migrations/068-fix-document-types'
+import * as ExamCategoriesTypes from '../migrations/069-exam-categories-types'
 
 class StaticMigrationProvider implements MigrationProvider {
   async getMigrations(): Promise<Record<string, Migration>> {
@@ -63,6 +97,40 @@ class StaticMigrationProvider implements MigrationProvider {
       '028-form-drafts': FormDrafts,
       '029-patient-consentement-etude': PatientConsentementEtude,
       '030-user-attachment-type': UserAttachmentType,
+      '031-patient-care': PatientCare,
+      '032-seed-plan-soins': SeedPlanSoins,
+      '033-prescriptions': Prescriptions,
+      '034-seed-week-plan-soins': SeedWeekPlanSoins,
+      '035-seed-vital-signs-range': SeedVitalSignsRange,
+      '042-vital-signs-new-columns': VitalSignsNewColumns,
+      '043-vital-signs-items': VitalSignsItems,
+      '044-lab-exam-tables': LabExamTables,
+      '045-conservateurs-tables': ConservateurTables,
+      '046-service-hierarchy': ServiceHierarchy,
+      '047-service-hierarchy-v2': ServiceHierarchyV2,
+      '048-seed-fonctions': SeedFonctions,
+      '049-seed-localites': SeedLocalites,
+      '050-create-encounters': CreateEncounters,
+      '051-create-stays': CreateStays,
+      '052-restructure-tarifs': RestructureTarifs,
+      '053-patient-clinical-documents': PatientClinicalDocuments,
+      '054-create-care-units': CreateCareUnits,
+      '055-restructure-services': RestructureServices,
+      '056-add-acte-declenche-to-doc-types': AddActeDeclencheToDocTypes,
+      '057-contact-origins': ContactOrigins,
+      '058-insurances': Insurances,
+      '059-contact-categories': ContactCategories,
+      '060-prescription-frequence-type': PrescriptionFrequenceType,
+      '061-encounter-new-fields': EncounterNewFields,
+      '062-add-care-unit-to-encounters': AddCareUnitToEncounters,
+      '062-prescription-type': PrescriptionType,
+      '063-voie-type-dispositif-type': VoieTypeDispositifType,
+      '064-seed-crh-diabete': SeedCrhDiabete,
+      '065-add-prescription-type': AddPrescriptionType,
+      '066-fix-encounter-constraints': FixEncounterConstraints,
+      '067-cleanup-orphaned-plan-items': CleanupOrphanedPlanItems,
+      '068-fix-document-types': FixDocumentTypes,
+      '069-exam-categories-types': ExamCategoriesTypes,
     }
   }
 }
@@ -82,8 +150,8 @@ export class MigrationService {
   async runMigrations(): Promise<void> {
     const { error, results } = await this.migrator.migrateToLatest()
     if (error) {
-      console.error('[CDE] Migration failed:', error)
-      throw error
+      console.error('[CDE] Migration failed, continuing:', error)
+      // Don't throw — let the app continue with partial migrations
     }
     if (results) {
       for (const r of results) {

@@ -1,25 +1,28 @@
 <template>
   <div class="dashboard-home">
-    <div class="dashboard-home__header">
-      <div>
-        <h1 class="dashboard-home__title">Bonjour, {{ user?.prenom }}</h1>
-        <p class="dashboard-home__date">{{ formattedDate }}</p>
+    <SectionHeader label="Accueil" :icon="HomeFilled" level="primary">
+      <div class="dashboard-home__header">
+        <div>
+          <span class="dashboard-home__title">Bonjour, {{ user?.prenom }}</span>
+          <span class="dashboard-home__date">{{ formattedDate }}</span>
+        </div>
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="au"
+          start-placeholder="Début"
+          end-placeholder="Fin"
+          format="dd/MM/yyyy"
+          size="small"
+          style="width: 200px"
+        />
       </div>
-      <el-date-picker
-        v-model="dateRange"
-        type="daterange"
-        range-separator="au"
-        start-placeholder="Début"
-        end-placeholder="Fin"
-        format="dd/MM/yyyy"
-        size="default"
-      />
-    </div>
+    </SectionHeader>
 
     <div class="dashboard-home__cards">
       <div class="stat-card">
         <div class="stat-card__icon stat-card__icon--primary">
-          <el-icon :size="22"><User /></el-icon>
+          <el-icon :size="16"><User /></el-icon>
         </div>
         <div class="stat-card__body">
           <span class="stat-card__value">12</span>
@@ -28,7 +31,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-card__icon stat-card__icon--accent">
-          <el-icon :size="22"><Calendar /></el-icon>
+          <el-icon :size="16"><Calendar /></el-icon>
         </div>
         <div class="stat-card__body">
           <span class="stat-card__value">8</span>
@@ -37,7 +40,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-card__icon stat-card__icon--danger">
-          <el-icon :size="22"><Document /></el-icon>
+          <el-icon :size="16"><Document /></el-icon>
         </div>
         <div class="stat-card__body">
           <span class="stat-card__value">5</span>
@@ -46,7 +49,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-card__icon stat-card__icon--primary">
-          <el-icon :size="22"><Money /></el-icon>
+          <el-icon :size="16"><Money /></el-icon>
         </div>
         <div class="stat-card__body">
           <span class="stat-card__value">{{ formatCurrency(2450) }}</span>
@@ -56,64 +59,73 @@
     </div>
 
     <div class="dashboard-home__grid">
-      <div class="dashboard-home__section">
-        <h2 class="dashboard-home__section-title">Prochains rendez-vous</h2>
+      <SectionHeader label="Prochains rendez-vous" :icon="Calendar" level="secondary" collapsible>
         <el-table
           :data="upcomingAppointments"
           style="width: 100%"
           size="small"
-          :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
+          border
         >
-          <el-table-column prop="time" label="Heure" width="80" />
+          <el-table-column prop="time" label="Heure" width="60" />
           <el-table-column prop="patient" label="Patient" />
           <el-table-column prop="motif" label="Motif" />
-          <el-table-column prop="status" label="Statut" width="100">
+          <el-table-column prop="status" label="Statut" width="90">
             <template #default="{ row }">
               <el-tag :type="row.statusType" size="small">{{ row.status }}</el-tag>
             </template>
           </el-table-column>
         </el-table>
-        <div v-if="upcomingAppointments.length === 0" class="dashboard-home__empty">
-          Aucun rendez-vous programmé.
-        </div>
-      </div>
+      </SectionHeader>
 
-      <div class="dashboard-home__section">
-        <h2 class="dashboard-home__section-title">Derniers patients</h2>
+      <SectionHeader label="Derniers patients" :icon="User" level="secondary" collapsible>
         <el-table
           :data="recentPatients"
           style="width: 100%"
           size="small"
-          :header-cell-style="{ background: '#0E5C5B', color: '#ffffff', fontWeight: 600 }"
+          border
         >
           <el-table-column prop="nom" label="Nom" />
           <el-table-column prop="prenom" label="Prénom" />
-          <el-table-column prop="date" label="Dernière visite" width="130" />
+          <el-table-column prop="date" label="Dernière visite" width="110" />
         </el-table>
-        <div v-if="recentPatients.length === 0" class="dashboard-home__empty">
-          Aucun patient récent.
-        </div>
-      </div>
+      </SectionHeader>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   User,
   Calendar,
   Document,
   Money,
+  HomeFilled,
 } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
 import { useCurrency } from '@/currency/useCurrency'
+import { useMedicalServices } from '@/composables/useMedicalServices'
+import SectionHeader from '@/components/common/SectionHeader.vue'
 
+const router = useRouter()
 const { formatCurrency, loadCurrency } = useCurrency()
 
-onMounted(() => { loadCurrency() })
-
 const { user } = useAuth()
+const { fetchFavorites, favorites } = useMedicalServices()
+
+onMounted(async () => {
+  loadCurrency()
+
+  // Auto-navigate to first favorite on app open
+  if (user.value?.id) {
+    await fetchFavorites(user.value.id)
+  }
+  if (favorites.value.length > 0) {
+    // Navigate to planning (general landing for service context)
+    router.replace('/app/planning')
+  }
+})
 const dateRange = ref<[Date, Date]>([new Date(), new Date()])
 
 const formattedDate = computed(() => {
@@ -140,22 +152,27 @@ const recentPatients = ref([
 </script>
 
 <style scoped>
+.dashboard-home {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .dashboard-home__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 28px;
 }
 
 .dashboard-home__title {
-  font-size: 24px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--cd-gray-900);
-  margin-bottom: 4px;
+  margin-right: 10px;
 }
 
 .dashboard-home__date {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--cd-gray-400);
   text-transform: capitalize;
 }
@@ -163,42 +180,41 @@ const recentPatients = ref([
 .dashboard-home__cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 28px;
+  gap: 8px;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: var(--cd-white);
-  border-radius: 12px;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--cd-widget-bg);
   border: 1px solid var(--cd-gray-200);
+  border-radius: 2px;
 }
 
 .stat-card__icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border-radius: 2px;
 }
 
 .stat-card__icon--primary {
-  background: #EBF6F5;
+  background: var(--cd-primary-light);
   color: var(--cd-primary);
 }
 
 .stat-card__icon--accent {
   background: #FEF3C7;
-  color: #D97706;
+  color: var(--cd-color-warning);
 }
 
 .stat-card__icon--danger {
-  background: #FEF2F2;
+  background: #FDE8E8;
   color: var(--cd-secondary);
 }
 
@@ -208,42 +224,28 @@ const recentPatients = ref([
 }
 
 .stat-card__value {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--cd-gray-900);
   line-height: 1.2;
 }
 
 .stat-card__label {
-  font-size: 13px;
-  color: var(--cd-gray-400);
-  margin-top: 2px;
+  font-size: 11px;
+  color: var(--cd-gray-500);
+  margin-top: 1px;
 }
 
 .dashboard-home__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.dashboard-home__section {
-  background: var(--cd-white);
-  border-radius: 12px;
-  border: 1px solid var(--cd-gray-200);
-  padding: 20px;
-}
-
-.dashboard-home__section-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--cd-gray-900);
-  margin-bottom: 16px;
+  gap: 10px;
 }
 
 .dashboard-home__empty {
   text-align: center;
-  padding: 32px;
+  padding: 16px;
   color: var(--cd-gray-400);
-  font-size: 14px;
+  font-size: 12px;
 }
 </style>
