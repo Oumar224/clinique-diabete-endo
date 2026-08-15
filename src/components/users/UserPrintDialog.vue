@@ -12,10 +12,10 @@
           <div class="institution-name">{{ hospitalName }}</div>
           <div class="institution-addr">{{ hospitalAddress }}</div>
           <div class="institution-contact">
-            T\u00e9l\u00a0: {{ hospitalPhone }}{{ hospitalEmail ? ' | Email\u00a0: ' + hospitalEmail : '' }}
+            Tél : {{ hospitalPhone }}{{ hospitalEmail ? ' | Email\u00a0: ' + hospitalEmail : '' }}
           </div>
           <div v-if="hospitalRegNumber" class="institution-reg">
-            N\u00b0 agr\u00e9ment\u00a0: {{ hospitalRegNumber }}
+            N° agrément : {{ hospitalRegNumber }}
           </div>
         </div>
       </div>
@@ -26,7 +26,7 @@
         <div class="doc-title">Liste des utilisateurs</div>
         <div class="doc-meta">
           <span class="doc-date">Éditée le {{ formatDate(new Date()) }}</span>
-          <span class="doc-total">Total\u00a0: <strong>{{ users.length }}</strong> utilisateur{{ users.length > 1 ? 's' : '' }}</span>
+          <span class="doc-total">Total : <strong>{{ users.length }}</strong> utilisateur{{ users.length > 1 ? 's' : '' }}</span>
         </div>
       </div>
 

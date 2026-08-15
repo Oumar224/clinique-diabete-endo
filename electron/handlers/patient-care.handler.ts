@@ -21,7 +21,7 @@ export function registerPatientCareHandlers() {
     // 🔍 Trace every soin's prescriptionId in the raw service output
     if (result?.blocs) {
       for (const bloc of result.blocs) {
-        for (const soin of bloc.soins) {
+        for (const soin of bloc.soins ?? []) {
           console.log(`[IPC plan-soins:list] date=${date} soin id=${soin.id} medicament="${soin.medicament}" prescriptionId=${soin.prescriptionId} (typeof=${typeof soin.prescriptionId})`);
         }
       }
@@ -106,6 +106,13 @@ export function registerPatientCareHandlers() {
     const service = container.resolve(VitalSignsItemService)
     const saved = await service.save(entity)
     return VitalSignsItemEntity.toDto(saved)
+  })
+
+  createHandler('vital-signs-items:delete', async (params: { id: number }) => {
+    const { id } = params
+    if (!id) throw new Error('id requis')
+    const service = container.resolve(VitalSignsItemService)
+    await service.delete(id)
   })
 
   // ── Dispositifs d'accès ──────────────────────────────────────────

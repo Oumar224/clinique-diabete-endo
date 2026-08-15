@@ -41,15 +41,15 @@
       style="width: 100%"
       border
     >
+      <el-table-column prop="date" label="Date" width="110">
+        <template #default="{ row }">
+          {{ formatDate(row.date) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="numero" label="N° Facture" width="160" />
       <el-table-column label="Patient" width="200">
         <template #default="{ row }">
           {{ row.patient_prenom }} {{ row.patient_nom }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="date" label="Date" width="110">
-        <template #default="{ row }">
-          {{ formatDate(row.date) }}
         </template>
       </el-table-column>
       <el-table-column prop="montant_total" label="Montant" width="120" align="right">

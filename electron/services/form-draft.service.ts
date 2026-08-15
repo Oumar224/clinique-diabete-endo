@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { FormDraftEntity } from '../entities/form-draft.entity'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class FormDraftService {
@@ -27,15 +28,17 @@ export class FormDraftService {
         .set({ form_data: entity.form_data!, active_step: entity.active_step!, updated_at: new Date().toISOString() })
         .where('id', '=', existing.id!)
         .execute()
+      entityEventBus.emitEntityChange({ entityType: 'form_draft', action: 'updated', id: existing.id!, entity, source: 'local', timestamp: Date.now() })
     } else {
       await this.db.insertInto('form_drafts')
         .values({
           form_type: entity.form_type!,
           form_data: entity.form_data!,
-          patient_id: entity.patient_id ?? null,
+          patient_id: entity.patient_id ?? undefined,
           active_step: entity.active_step!,
         })
         .execute()
+      entityEventBus.emitEntityChange({ entityType: 'form_draft', action: 'created', id: entity.form_type!, entity, source: 'local', timestamp: Date.now() })
     }
   }
 

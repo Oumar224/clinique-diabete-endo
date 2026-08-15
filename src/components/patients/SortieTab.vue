@@ -1,107 +1,198 @@
 <template>
   <el-form label-position="top" class="tab-form">
-    <el-divider content-position="left">Clôture Administrative</el-divider>
-    <el-row :gutter="16">
-      <el-col :span="6">
-        <el-form-item label="Date de sortie">
-          <el-date-picker v-model="data.dateSortie" type="date" value-format="YYYY-MM-DD" style="width:100%" @change="emitChange" />
-        </el-form-item>
-      </el-col>
-      <el-col :span="8">
-        <el-form-item label="Destination de sortie">
-          <el-select v-model="data.destinationSortie" placeholder="Sélectionner" style="width:100%" @change="emitChange">
-            <el-option label="Retour domicile" value="Retour domicile" />
-            <el-option label="Autre site AP-HP" value="Autre site AP-HP" />
-            <el-option label="HAD" value="HAD" />
-          </el-select>
-        </el-form-item>
-      </el-col>
-    </el-row>
+    <StagedCollapsibleSection
+      :ref="setSectionRef('clotureAdmin')"
+      title="Clôture Administrative"
+      :keys="['dateSortie', 'destinationSortie']"
+      :model-value="data"
+      @save="emit('change')"
+    >
+      <template #default="{ draft }">
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="Date de sortie" data-history-path="sortie.dateSortie">
+              <el-date-picker v-model="draft.dateSortie" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Destination de sortie" data-history-path="sortie.destinationSortie">
+              <el-select v-model="draft.destinationSortie" placeholder="Sélectionner" style="width:100%">
+                <el-option label="Retour domicile" value="Retour domicile" />
+                <el-option label="Autre site AP-HP" value="Autre site AP-HP" />
+                <el-option label="HAD" value="HAD" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </template>
+    </StagedCollapsibleSection>
 
-    <el-divider content-position="left">Clôture Médicale</el-divider>
-    <el-row :gutter="16">
-      <el-col :span="16">
-        <el-form-item label="Conclusion de sortie">
-          <el-input v-model="data.conclusionSortie" type="textarea" :rows="4" placeholder="Résumé de sortie indispensable pour le médecin traitant..." @input="emitChange" />
-        </el-form-item>
-      </el-col>
-    </el-row>
-
-    <el-divider content-position="left">Suivi et Planification des Soins</el-divider>
-    <div v-for="(rdv, idx) in sortedRdvs" :key="rdv._key" class="rdv-card">
-      <div class="rdv-card__header">
-        <span class="rdv-card__title">RDV #{{ idx + 1 }}</span>
-        <el-button text type="danger" size="small" @click="removeRdv(rdv)">Supprimer</el-button>
-      </div>
-      <el-row :gutter="16">
-        <el-col :span="5">
-          <el-form-item label="Date du RDV">
-            <el-date-picker v-model="rdv.date" type="date" value-format="YYYY-MM-DD" style="width:100%" @change="emitChange" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="4">
-          <el-form-item label="Heure">
-            <el-time-picker v-model="rdv.heure" value-format="HH:mm" style="width:100%" @change="emitChange" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="6">
-          <el-form-item label="Intitulé / Spécialité">
-            <el-input v-model="rdv.intitule" placeholder="BCH CONSULT CHIR VASC TH" @input="emitChange" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="6">
-          <el-form-item label="Lieu / Praticien">
-            <el-input v-model="rdv.lieuPraticien" placeholder="Bichat / LRB HDJ Centre Diabète" @input="emitChange" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+    <div class="section-preview">
+      <FormPreview
+        title="Clôture Administrative"
+        variant="compact"
+        :fields="clotureAdminPreviewFields"
+        @edit="() => openSection('clotureAdmin')"
+      />
     </div>
-    <el-button type="primary" text size="small" @click="addRdv">
-      + Ajouter un RDV de suivi
-    </el-button>
+
+    <StagedCollapsibleSection
+      :ref="setSectionRef('clotureMedicale')"
+      title="Clôture Médicale"
+      :keys="['conclusionSortie']"
+      :model-value="data"
+      @save="emit('change')"
+    >
+      <template #default="{ draft }">
+        <el-row :gutter="16">
+          <el-col :span="24">
+            <el-form-item label="Conclusion de sortie">
+              <RichTextEditor v-model="draft.conclusionSortie" :rows="4" placeholder="Résumé de sortie indispensable pour le médecin référent..." />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </template>
+    </StagedCollapsibleSection>
+
+    <div class="section-preview">
+      <FormPreview
+        title="Clôture Médicale"
+        variant="compact"
+        :fields="clotureMedicalePreviewFields"
+        @edit="() => openSection('clotureMedicale')"
+      />
+    </div>
+
+    <StagedCollapsibleSection
+      :ref="setSectionRef('suivi')"
+      title="Suivi et Planification des Soins"
+      :keys="['rdvSuivi']"
+      :model-value="data"
+      @save="emit('change')"
+    >
+      <template #default="{ draft }">
+        <div v-for="(rdv, idx) in sortedRdvs(draft.rdvSuivi)" :key="rdv._key" class="rdv-card">
+          <div class="rdv-card__header">
+            <span class="rdv-card__title">RDV #{{ idx + 1 }}</span>
+            <el-button
+              text
+              type="danger"
+              size="small"
+              class="rdv-card__delete"
+              :aria-label="`Supprimer RDV #${idx + 1}`"
+              :title="`Supprimer RDV #${idx + 1}`"
+              @click="removeRdv(draft.rdvSuivi, rdv)"
+            >
+              <Delete class="rdv-card__delete-icon" aria-hidden="true" />
+            </el-button>
+          </div>
+          <el-row :gutter="16">
+            <el-col :span="5">
+              <el-form-item label="Date du RDV">
+                <el-date-picker v-model="rdv.date" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="4">
+              <el-form-item label="Heure">
+                <el-time-picker v-model="rdv.heure" value-format="HH:mm" style="width:100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="Intitulé / Spécialité">
+                <el-input v-model="rdv.intitule" placeholder="BCH CONSULT CHIR VASC TH" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="Lieu / Praticien">
+                <el-input v-model="rdv.lieuPraticien" placeholder="Bichat / LRB HDJ Centre Diabète" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </div>
+        <el-button type="primary" text size="small" @click="addRdv(draft.rdvSuivi)">
+          + Ajouter un RDV de suivi
+        </el-button>
+      </template>
+    </StagedCollapsibleSection>
   </el-form>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, nextTick } from 'vue'
+import { Delete } from '@element-plus/icons-vue'
 import type { SortieData } from '@/types/crh-diabete'
+import type { RdvSuivi } from '@/types/crh-diabete'
+import StagedCollapsibleSection from '@/components/common/StagedCollapsibleSection.vue'
+import FormPreview from '@/components/common/FormPreview.vue'
+import type { FormPreviewField } from '@/components/common/FormPreview.vue'
+import RichTextEditor from '@/components/patients/RichTextEditor.vue'
+import { htmlToPlainText } from '@/utils/rich-text'
+
+const FIELD_PREFIX = 'sortie'
 
 const props = defineProps<{
   data: SortieData
+  fieldMeta?: Record<string, string>
 }>()
 
 const emit = defineEmits<{
   change: []
 }>()
 
-const sortedRdvs = computed(() => {
-  return [...props.data.rdvSuivi].sort((a, b) => {
+function metaFor(key: string): string | null {
+  return props.fieldMeta?.[key] ?? null
+}
+
+const sectionRefs = ref<Record<string, InstanceType<typeof StagedCollapsibleSection> | null>>({})
+
+function setSectionRef(key: string) {
+  return (el: unknown) => {
+    sectionRefs.value[key] = el as InstanceType<typeof StagedCollapsibleSection> | null
+  }
+}
+
+async function openSection(key: string) {
+  const section = sectionRefs.value[key]
+  if (section && typeof section.open === 'function') {
+    section.open()
+  }
+  await nextTick()
+  sectionRefs.value[key]?.$el?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+}
+
+const clotureAdminPreviewFields = computed<FormPreviewField[]>(() => [
+  { label: 'Date de sortie', value: props.data.dateSortie, key: `${FIELD_PREFIX}.dateSortie`, updatedAt: metaFor(`${FIELD_PREFIX}.dateSortie`), tracked: !!props.fieldMeta },
+  { label: 'Destination de sortie', value: props.data.destinationSortie, key: `${FIELD_PREFIX}.destinationSortie`, updatedAt: metaFor(`${FIELD_PREFIX}.destinationSortie`), tracked: !!props.fieldMeta },
+])
+
+const clotureMedicalePreviewFields = computed<FormPreviewField[]>(() => [
+  { label: 'Conclusion de sortie', value: htmlToPlainText(props.data.conclusionSortie), key: `${FIELD_PREFIX}.conclusionSortie`, updatedAt: metaFor(`${FIELD_PREFIX}.conclusionSortie`), tracked: !!props.fieldMeta },
+])
+
+// ── RDV logic ──────────────────────────────────────────────────────────────
+
+function sortedRdvs(rdvs: RdvSuivi[]): RdvSuivi[] {
+  return [...rdvs].sort((a, b) => {
     if (a.date !== b.date) return a.date.localeCompare(b.date)
     return (a.heure || '').localeCompare(b.heure || '')
   })
-})
+}
 
-function addRdv() {
-  props.data.rdvSuivi.push({
+function addRdv(rdvs: RdvSuivi[]) {
+  rdvs.push({
     _key: crypto.randomUUID(),
     date: '',
     heure: '',
     intitule: '',
     lieuPraticien: '',
   })
-  emit('change')
 }
 
-function removeRdv(rdv: { _key: string }) {
-  const idx = props.data.rdvSuivi.findIndex(r => r._key === rdv._key)
+function removeRdv(rdvs: RdvSuivi[], rdv: { _key: string }) {
+  const idx = rdvs.findIndex(r => r._key === rdv._key)
   if (idx !== -1) {
-    props.data.rdvSuivi.splice(idx, 1)
-    emit('change')
+    rdvs.splice(idx, 1)
   }
-}
-
-function emitChange() {
-  emit('change')
 }
 </script>
 
@@ -122,5 +213,19 @@ function emitChange() {
 .rdv-card__title {
   font-weight: 600;
   font-size: 13px;
+}
+.rdv-card__delete {
+  padding: 4px;
+}
+.rdv-card__delete-icon {
+  width: 14px;
+  height: 14px;
+}
+.section-preview {
+  margin: 8px 0 16px;
+}
+
+.el-form-item[data-history-path]:hover {
+  cursor: default;
 }
 </style>

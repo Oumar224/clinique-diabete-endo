@@ -1,78 +1,67 @@
 import type { EncounterDto, EncounterMovementDto } from '../dto/encounter.dto'
-
-export interface EncounterRow {
-  id: number
-  patient_id: number
-  contact_type: string
-  contact_type_precision: string | null
-  start_date: string
-  end_date: string | null
-  service_id: number
-  medecin_id: number | null
-  responsable_id: number | null
-  origin: string
-  origin_precision: string | null
-  zone_situation: string
-  zone_precision: string | null
-  prise_en_charge: string
-  prise_en_charge_precision: string | null
-  contact_category_id: number | null
-  care_unit_id: number | null
-  sinistre_info: string | null
-  notes: string | null
-  status: string
-  created_by: number | null
-  created_at: string | null
-  updated_at: string | null
-}
+import { EntityRegistry } from '../automerge/entity-registry'
+import { EncounterConverter } from '../automerge/converters/encounter.converter'
+import { EncounterMovementConverter } from '../automerge/converters/encounter-movement.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class EncounterEntity {
-  id?: number
-  patient_id?: number
-  contact_type?: string
-  contact_type_precision?: string | null
-  start_date?: string
-  end_date?: string | null
-  service_id?: number
-  medecin_id?: number | null
-  responsable_id?: number | null
-  origin?: string
-  origin_precision?: string | null
-  zone_situation?: string
-  zone_precision?: string | null
-  prise_en_charge?: string
-  prise_en_charge_precision?: string | null
-  contact_category_id?: number | null
-  care_unit_id?: number | null
-  sinistre_info?: string | null
-  notes?: string | null
-  status?: string
-  created_by?: number | null
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() patient_id?: number
+  @SchemaField() contact_type?: string
+  @SchemaField() contact_type_precision?: string
+  @SchemaField() start_date?: string
+  @SchemaField() end_date?: string
+  @SchemaField() service_id?: number
+  @SchemaField() medecin_id?: number
+  @SchemaField() responsable_id?: number
+  @SchemaField() origin?: string
+  @SchemaField() origin_precision?: string
+  @SchemaField() zone_situation?: string
+  @SchemaField() zone_precision?: string
+  @SchemaField() prise_en_charge?: string
+  @SchemaField() prise_en_charge_precision?: string
+  @SchemaField() care_unit_id?: number
+  @SchemaField() sinistre_info?: string
+  @SchemaField() notes?: string
+  @SchemaField() status?: string
+  @SchemaField() created_by?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
+
+  // Joined fields (populated by SQL JOIN queries)
+  service_name?: string
+  medecin_name?: string
+  responsable_name?: string
+  care_unit_name?: string
 
   static documentType(): string { return 'Encounter' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<EncounterEntity> { return buildDocumentSchema(EncounterEntity) as AutomergeDocument<EncounterEntity> }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'encounter',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: EncounterConverter.toDocument, toEntity: EncounterConverter.toEntity },
+    })
+  }
 
-  static toDto(entity: EncounterRow & { service_name?: string; medecin_name?: string; responsable_name?: string; contact_category_label?: string; care_unit_name?: string }): EncounterDto {
+  static toDto(entity: EncounterEntity): EncounterDto {
     return {
       id: entity.id,
       patient_id: entity.patient_id,
       contact_type: entity.contact_type as EncounterDto['contact_type'],
       contact_type_precision: entity.contact_type_precision,
       start_date: entity.start_date,
-      end_date: entity.end_date ?? undefined,
+      end_date: entity.end_date,
       service_id: entity.service_id,
       service_name: entity.service_name,
       medecin_id: entity.medecin_id,
-      medecin_name: entity.medecin_name ?? null,
+      medecin_name: entity.medecin_name,
       responsable_id: entity.responsable_id,
-      responsable_name: entity.responsable_name ?? null,
-      contact_category_id: entity.contact_category_id,
-      contact_category_label: entity.contact_category_label ?? null,
+      responsable_name: entity.responsable_name,
       care_unit_id: entity.care_unit_id,
-      care_unit_name: entity.care_unit_name ?? null,
+      care_unit_name: entity.care_unit_name,
       origin: entity.origin,
       origin_precision: entity.origin_precision,
       zone_situation: entity.zone_situation,
@@ -83,12 +72,12 @@ export class EncounterEntity {
       notes: entity.notes,
       status: entity.status as EncounterDto['status'],
       created_by: entity.created_by,
-      created_at: entity.created_at ?? undefined,
-      updated_at: entity.updated_at ?? undefined,
+      created_at: entity.created_at,
+      updated_at: entity.updated_at,
     }
   }
 
-  static toDtos(entities: (EncounterRow & { service_name?: string; medecin_name?: string; responsable_name?: string; contact_category_label?: string; care_unit_name?: string })[]): EncounterDto[] {
+  static toDtos(entities: EncounterEntity[]): EncounterDto[] {
     return entities.map(EncounterEntity.toDto)
   }
 
@@ -97,53 +86,74 @@ export class EncounterEntity {
     e.id = dto.id
     e.patient_id = dto.patient_id
     e.contact_type = dto.contact_type
-    e.contact_type_precision = dto.contact_type_precision ?? null
+    e.contact_type_precision = dto.contact_type_precision
     e.start_date = dto.start_date
-    e.end_date = dto.end_date ?? null
+    e.end_date = dto.end_date
     e.service_id = dto.service_id
-    e.medecin_id = dto.medecin_id ?? null
+    e.medecin_id = dto.medecin_id
     e.responsable_id = dto.responsable_id
-    e.contact_category_id = dto.contact_category_id
-    e.care_unit_id = dto.care_unit_id ?? null
+    e.care_unit_id = dto.care_unit_id
     e.origin = dto.origin
-    e.origin_precision = dto.origin_precision ?? null
+    e.origin_precision = dto.origin_precision
     e.zone_situation = dto.zone_situation
-    e.zone_precision = dto.zone_precision ?? null
+    e.zone_precision = dto.zone_precision
     e.prise_en_charge = dto.prise_en_charge
-    e.prise_en_charge_precision = dto.prise_en_charge_precision ?? null
-    e.sinistre_info = dto.sinistre_info ?? null
-    e.notes = dto.notes ?? null
+    e.prise_en_charge_precision = dto.prise_en_charge_precision
+    e.sinistre_info = dto.sinistre_info
+    e.notes = dto.notes
     e.status = dto.status
-    e.created_by = dto.created_by ?? null
+    e.created_by = dto.created_by
     return e
   }
 }
 
 export class EncounterMovementEntity {
-  id?: number
-  encounter_id?: number
-  service_id?: number | null
-  step_label?: string
-  entered_at?: string
-  exited_at?: string | null
-  notes?: string | null
-  created_at?: string
+  @SchemaField() id?: number
+  @SchemaField() encounter_id?: number
+  @SchemaField() from_service_id?: number
+  @SchemaField() service_id?: number
+  @SchemaField() step_label?: string
+  @SchemaField() entered_at?: string
+  @SchemaField() exited_at?: string
+  @SchemaField() motif?: string
+  @SchemaField() notes?: string
+  @SchemaField() created_by?: number
+  @SchemaField() created_at?: string
+
+  // Joined fields
+  service_name?: string
+  from_service_name?: string
 
   static documentType(): string { return 'EncounterMovement' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<EncounterMovementEntity> { return buildDocumentSchema(EncounterMovementEntity) as AutomergeDocument<EncounterMovementEntity> }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'encounter_movement',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: EncounterMovementConverter.toDocument, toEntity: EncounterMovementConverter.toEntity },
+    })
+  }
 
-  static toDto(entity: EncounterMovementEntity & { service_name?: string }): EncounterMovementDto {
+  static toDto(entity: EncounterMovementEntity): EncounterMovementDto {
     return {
       id: entity.id,
-      encounter_id: entity.encounter_id!,
+      encounter_id: entity.encounter_id,
+      from_service_id: entity.from_service_id,
+      from_service_name: entity.from_service_name,
       service_id: entity.service_id,
       service_name: entity.service_name,
-      step_label: entity.step_label!,
-      entered_at: entity.entered_at!,
+      step_label: entity.step_label,
+      entered_at: entity.entered_at,
       exited_at: entity.exited_at,
+      motif: entity.motif,
       notes: entity.notes,
+      created_by: entity.created_by,
       created_at: entity.created_at,
     }
+  }
+
+  static toDtos(entities: EncounterMovementEntity[]): EncounterMovementDto[] {
+    return entities.map(EncounterMovementEntity.toDto)
   }
 }

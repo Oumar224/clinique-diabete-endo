@@ -1,16 +1,20 @@
 import type { EmailConfigDto, EmailConfigSaveDto } from '../dto/email-config.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { EmailConfigConverter } from '../automerge/converters/email-config.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class EmailConfigEntity {
-  id?: number
-  smtp_host?: string
-  smtp_port?: number
-  smtp_user?: string
-  smtp_pass_encrypted?: string
-  sender_email?: string
-  sender_name?: string
-  is_configured?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() smtp_host?: string
+  @SchemaField() smtp_port?: number
+  @SchemaField() smtp_user?: string
+  @SchemaField() smtp_pass_encrypted?: string
+  @SchemaField() sender_email?: string
+  @SchemaField() sender_name?: string
+  @SchemaField() is_configured?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: EmailConfigEntity): EmailConfigDto {
     return {
@@ -43,6 +47,15 @@ export class EmailConfigEntity {
   }
 
   static documentType(): string { return 'EmailConfig' }
-  static documentSchema(): any { return {} }
-  static register(): void { /* No Automerge sync needed */ }
+  static documentSchema(): AutomergeDocument<EmailConfigEntity> {
+    return buildDocumentSchema(EmailConfigEntity) as AutomergeDocument<EmailConfigEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'email_config',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: EmailConfigConverter.toDocument, toEntity: EmailConfigConverter.toEntity },
+    })
+  }
 }

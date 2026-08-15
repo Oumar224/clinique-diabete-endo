@@ -1,13 +1,17 @@
 import type { ChampLocalisationDto } from '../dto/conservateur.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { ConservateurChampLocalisationConverter } from '../automerge/converters/conservateur-champ-localisation.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class ConservateurChampLocalisationEntity {
-  id?: number
-  stockage_id?: number
-  cle?: string
-  label?: string
-  type?: string
-  sort_order?: number
-  created_at?: string
+  @SchemaField() id?: number
+  @SchemaField() stockage_id?: number
+  @SchemaField() cle?: string
+  @SchemaField() label?: string
+  @SchemaField() type?: string
+  @SchemaField() sort_order?: number
+  @SchemaField() created_at?: string
 
   static toDto(entity: ConservateurChampLocalisationEntity): ChampLocalisationDto {
     return {
@@ -38,6 +42,15 @@ export class ConservateurChampLocalisationEntity {
   }
 
   static documentType(): string { return 'ConservateurChampLocalisation' }
-  static documentSchema(): any { return {} }
-  static register(): void { /* No Automerge sync needed */ }
+  static documentSchema(): AutomergeDocument<ConservateurChampLocalisationEntity> {
+    return buildDocumentSchema(ConservateurChampLocalisationEntity) as AutomergeDocument<ConservateurChampLocalisationEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'conservateur_champ_localisation',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: ConservateurChampLocalisationConverter.toDocument, toEntity: ConservateurChampLocalisationConverter.toEntity },
+    })
+  }
 }

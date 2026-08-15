@@ -25,11 +25,38 @@ export function registerExportHandlers(): void {
     return await exportService.exportPatientProfilePdf(params.patientId)
   })
 
-  createHandler('export:crh-diabete-pdf', async (params: { documentId: string }) => {
-    return await exportService.exportCrhDiabetePdf(params.documentId)
+  interface CrhDiabeteExportParams {
+    documentId?: string | null
+    formData?: Record<string, any>
+    patientId?: number | null
+    contactId?: string | number | null
+  }
+
+  createHandler('export:crh-diabete-pdf', async (params: CrhDiabeteExportParams) => {
+    return await exportService.exportCrhDiabetePdf(params?.documentId ?? null, params?.formData, params?.patientId ?? null, params?.contactId ?? null)
+  })
+
+  createHandler('export:crc-diabete-pdf', async (params: CrhDiabeteExportParams) => {
+    return await exportService.exportCrcDiabetePdf(params?.documentId ?? null, params?.formData, params?.patientId ?? null, params?.contactId ?? null)
+  })
+
+  createHandler('export:crh-diabete-preview', async (params: CrhDiabeteExportParams) => {
+    return await exportService.previewCrhDiabete(params?.documentId ?? null, params?.formData, params?.patientId ?? null, params?.contactId ?? null)
+  })
+
+  createHandler('export:crc-diabete-preview', async (params: CrhDiabeteExportParams) => {
+    return await exportService.previewCrcDiabete(params?.documentId ?? null, params?.formData, params?.patientId ?? null, params?.contactId ?? null)
   })
 
   createHandler('export:patients-list-excel', async (filters?: unknown) => {
     return await exportService.exportPatientsListExcel(filters)
+  })
+
+  createHandler('export:prescription-preview', async (params: { patientId: number; prescriptionIds?: number[]; inlinePrescriptions?: Array<{ medicament: string; dosage: string; unite: string; voie: string; duree: number; frequenceType: string; frequence: string[]; prn: boolean; instructions: string }> }) => {
+    return await exportService.generateOrdonnancePreview(params)
+  })
+
+  createHandler('export:prescription-pdf', async (params: { patientId: number; prescriptionIds?: number[]; inlinePrescriptions?: Array<{ medicament: string; dosage: string; unite: string; voie: string; duree: number; frequenceType: string; frequence: string[]; prn: boolean; instructions: string }> }) => {
+    return await exportService.exportOrdonnancePdf(params)
   })
 }

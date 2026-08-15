@@ -5,9 +5,14 @@ export interface ExamRequestDto {
   id?: number
   patientId: number
   encounterId?: number | null
-  type: 'imagerie' | 'laboratoire'
+  type: 'imagerie' | 'laboratoire' | 'avis'
   examenId?: number | null
   examIds?: number[]
+  specialite?: string
+  specialtyId?: number | null
+  specialtyName?: string
+  plannedHour?: number | null
+  plannedDate?: string | null
   motif?: string
   statut: 'en_attente' | 'en_cours' | 'realise' | 'annule'
   prescripteurId?: number | null
@@ -37,11 +42,29 @@ export function useExamRequests() {
     }
   }
 
+  async function fetchByDate(patientId: number, date: string): Promise<ExamRequestDto[]> {
+    loading.value = true
+    error.value = null
+    try {
+      const result = await ipcInvoke<ExamRequestDto[]>('exam-request:list-by-date', { patientId, date })
+      return Array.isArray(result) ? result : []
+    } catch (e) {
+      error.value = (e as Error).message
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function createRequest(dto: {
     patientId: number
-    type: 'imagerie' | 'laboratoire'
+    type: 'imagerie' | 'laboratoire' | 'avis'
     examenId?: number | null
     examIds?: number[]
+    specialite?: string
+    specialtyId?: number | null
+    plannedHour?: number | null
+    plannedDate?: string | null
     motif?: string
     prescripteurId?: number | null
   }): Promise<ExamRequestDto | null> {
@@ -67,6 +90,27 @@ export function useExamRequests() {
     }
   }
 
+  async function updateRequest(id: number, dto: Partial<{
+    type: ExamRequestDto['type']
+    examenId: number | null
+    examIds: number[]
+    specialite: string
+    specialtyId: number | null
+    plannedHour: number | null
+    plannedDate: string | null
+    motif: string
+    statut: ExamRequestDto['statut']
+    prescripteurId: number | null
+  }>): Promise<ExamRequestDto | null> {
+    try {
+      const updated = await ipcInvoke<ExamRequestDto>('exam-request:update', { id, ...dto })
+      return updated
+    } catch (e) {
+      error.value = (e as Error).message
+      return null
+    }
+  }
+
   async function deleteRequest(id: number): Promise<boolean> {
     try {
       await ipcInvoke('exam-request:delete', { id })
@@ -82,7 +126,9 @@ export function useExamRequests() {
     loading,
     error,
     fetchRequests,
+    fetchByDate,
     createRequest,
+    updateRequest,
     updateStatut,
     deleteRequest,
   }

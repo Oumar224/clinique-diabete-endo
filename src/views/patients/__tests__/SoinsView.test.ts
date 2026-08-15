@@ -11,9 +11,8 @@ vi.mock('vue-router', () => ({
   useRoute: vi.fn(() => ({ params: { id: '42' } })),
 }))
 
-vi.mock('@/api/vitalSigns', () => ({
-  getVitalSigns: vi.fn().mockResolvedValue(null),
-  saveVitalSigns: vi.fn().mockResolvedValue({ id: 1, patientId: 42 }),
+vi.mock('@/utils/ipc', () => ({
+  ipcInvoke: vi.fn().mockResolvedValue(null),
 }))
 
 // ---------------------------------------------------------------------------
@@ -26,7 +25,7 @@ const stubs = {
     emits: ['update:modelValue'],
   },
   'el-tab-pane': {
-    template: '<div class="el-tab-pane"><slot /><div class="el-tab-pane__label">{{ label }}</div></div>',
+    template: '<div class="el-tab-pane"><slot /><div class="el-tab-pane__label"><slot name="label" /></div></div>',
     props: ['label', 'name'],
   },
   PlanDistributionTab: {
@@ -55,9 +54,9 @@ describe('SoinsView', () => {
   // Tab panes
   // -----------------------------------------------------------------------
   describe('tab panes', () => {
-    it('renders 4 tab panes', () => {
+    it('renders 3 tab panes', () => {
       const wrapper = mount(SoinsView, { global: { stubs } })
-      expect(wrapper.findAll('.el-tab-pane').length).toBe(4)
+      expect(wrapper.findAll('.el-tab-pane').length).toBe(3)
     })
 
     it('renders correct tab labels', () => {
@@ -65,15 +64,13 @@ describe('SoinsView', () => {
       const labels = wrapper.findAll('.el-tab-pane__label').map(l => l.text())
       expect(labels).toContain('Plan Distribution')
       expect(labels).toContain('Vital Check')
-      expect(labels).toContain('Dispositifs & Accès')
       expect(labels).toContain('Diagramme de Synthèse')
     })
 
-    it('renders all four child component stubs', () => {
+    it('renders all three child component stubs', () => {
       const wrapper = mount(SoinsView, { global: { stubs } })
       expect(wrapper.find('.tab-plan-distribution').exists()).toBe(true)
       expect(wrapper.find('.tab-vital-check').exists()).toBe(true)
-      expect(wrapper.find('.tab-dispositifs').exists()).toBe(true)
       expect(wrapper.find('.tab-diagramme').exists()).toBe(true)
     })
   })

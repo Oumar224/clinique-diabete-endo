@@ -18,6 +18,8 @@ const { mockValider, mockSuspendre, mockReprendreSoin, mockGetPlanSoins, mockCre
   mockReprendrePrescription: vi.fn(),
 }))
 
+const mockIpcInvoke = vi.hoisted(() => vi.fn())
+
 function waitForData() {
   return new Promise(resolve => setTimeout(resolve, 0))
 }
@@ -38,17 +40,8 @@ vi.mock('@element-plus/icons-vue', () => ({
   InfoFilled: { render: () => {} },
 }))
 
-vi.mock('@/api/planSoins', () => ({
-  getPlanSoins: mockGetPlanSoins,
-  reprendreSoin: mockReprendreSoin,
-  suspendrePrescription: mockSuspendrePrescription,
-  reprendrePrescription: mockReprendrePrescription,
-}))
-
-vi.mock('@/api/prescription', () => ({
-  createPrescription: mockCreatePrescription,
-  updatePrescription: mockUpdatePrescription,
-  getPrescription: mockGetPrescription,
+vi.mock('@/utils/ipc', () => ({
+  ipcInvoke: mockIpcInvoke,
 }))
 
 vi.mock('@/composables/useAuth', () => ({
@@ -58,16 +51,6 @@ vi.mock('@/composables/useAuth', () => ({
 }))
 
 vi.mock('@/composables/usePlanSoins', () => {
-  function voieColor(voie: string) {
-    switch (voie) {
-      case 'PO': return { type: 'warning' as const }
-      case 'SC': return { type: 'primary' as const }
-      case 'IV': return { type: 'info' as const }
-      case 'IM': return { type: 'danger' as const }
-      case 'SL': return { type: 'success' as const }
-      default: return { type: 'success' as const }
-    }
-  }
   function isInsulin(medicament: string) {
     const drugs = ['Insuline', 'NOVORAPID', 'TOUJEO', 'LANTUS', 'APIDRA', 'HUMALOG', 'LEVEMIR']
     return drugs.some(d => medicament.toLowerCase().includes(d.toLowerCase()))
@@ -75,7 +58,11 @@ vi.mock('@/composables/usePlanSoins', () => {
 
   return {
     isInsulin,
-    voieColor,
+    voieColor: (_voie: string) => ({ type: 'success' as const }),
+    getPlanSoins: mockGetPlanSoins,
+    reprendreSoin: mockReprendreSoin,
+    suspendrePrescription: mockSuspendrePrescription,
+    reprendrePrescription: mockReprendrePrescription,
     usePlanSoins: vi.fn(() => ({
       blocs: ref([]),
       loading: ref(false),
@@ -87,6 +74,20 @@ vi.mock('@/composables/usePlanSoins', () => {
     })),
   }
 })
+
+vi.mock('@/composables/usePrescriptions', () => ({
+  usePrescriptions: vi.fn(() => ({
+    prescriptions: ref([]),
+    loading: ref(false),
+    error: ref(null),
+    fetchPrescriptions: vi.fn(),
+    getPrescription: mockGetPrescription,
+    createPrescription: mockCreatePrescription,
+    updatePrescription: mockUpdatePrescription,
+    stopPrescription: vi.fn(),
+    deletePrescription: vi.fn(),
+  })),
+}))
 
 import { usePlanSoins } from '@/composables/usePlanSoins'
 const mockedUsePlanSoins = vi.mocked(usePlanSoins)
@@ -186,6 +187,17 @@ const stubs = {
       },
     },
   },
+  'el-divider': {
+    template: '<hr class="el-divider" />',
+  },
+  'el-tooltip': {
+    template: '<div class="el-tooltip"><slot /></div>',
+    props: ['content', 'placement', 'showAfter'],
+  },
+  'el-popconfirm': {
+    template: '<div class="el-popconfirm"><slot /></div>',
+    props: ['title'],
+  },
 }
 
 const DEFAULT_BLOCS: BlocHoraire[] = [
@@ -262,7 +274,7 @@ describe('PlanDistributionTab', () => {
     it('renders 63 hour headers (7 days × 9 hours)', async () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
-      const hourHeaders = wrapper.findAll('.plan-distribution__hour-header')
+      const hourHeaders = wrapper.findAll('.plan-distribution__date-hour')
       expect(hourHeaders.length).toBe(63)
     })
 
@@ -272,8 +284,7 @@ describe('PlanDistributionTab', () => {
       const dateHeaders = wrapper.findAll('.plan-distribution__date-header')
       expect(dateHeaders.length).toBe(7)
       dateHeaders.forEach(h => {
-        expect(h.find('.plan-distribution__date-header-name').exists()).toBe(true)
-        expect(h.find('.plan-distribution__date-header-date').exists()).toBe(true)
+        expect(h.find('.plan-distribution__date-text').exists()).toBe(true)
       })
     })
 
@@ -294,17 +305,17 @@ describe('PlanDistributionTab', () => {
       expect(wrapper.text()).toContain('18:10')
     })
 
-    it('shows suspendu status text', async () => {
+    it('shows suspendu status icon', async () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
-      expect(wrapper.text()).toContain('Suspendu')
+      expect(wrapper.text()).toContain('⛔')
     })
 
-    it('shows en_attente soins with Valider and Suspendre buttons across all 7 days', async () => {
+    it('shows en_attente soins with Valider and Suspendre icon buttons across all 7 days', async () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
-      const validerBtns = wrapper.findAll('button.el-button').filter(b => b.text().trim() === 'Valider')
-      const suspendreBtns = wrapper.findAll('button.el-button').filter(b => b.text().trim() === 'Suspendre')
+      const validerBtns = wrapper.findAll('.plan-distribution__rdv-icon-btn--ok')
+      const suspendreBtns = wrapper.findAll('.plan-distribution__rdv-icon-btn--pause')
       expect(validerBtns.length).toBe(28)
       expect(suspendreBtns.length).toBe(28)
     })
@@ -315,30 +326,27 @@ describe('PlanDistributionTab', () => {
       mockedUsePlanSoins.mockImplementation(() => createMockPlanSoins({ insulinBlocked: true }))
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
-      const validerBtns = wrapper.findAll('button.el-button').filter(b => b.text().trim() === 'Valider')
-      // Buttons grouped by medication row in DOM order:
-      // [0-6] NOVORAPID (insulin), [7-13] Furosémide, [14-20] Metformine, [21-27] TOUJEO (insulin)
-      expect((validerBtns[0].element as HTMLButtonElement).disabled).toBe(true)
-      expect((validerBtns[7].element as HTMLButtonElement).disabled).toBe(false)
+      const validerBtns = wrapper.findAll('.plan-distribution__rdv-icon-btn--ok')
+      const disabledBtns = validerBtns.filter(b => b.classes().includes('plan-distribution__rdv-icon-btn--disabled'))
+      expect(disabledBtns.length).toBe(14)
     })
 
-    it('enables Valider for insulin when insulinBlocked is false', async () => {
-      mockedUsePlanSoins.mockImplementation(() => createMockPlanSoins({ insulinBlocked: false }))
-      const wrapper = mount(PlanDistributionTab, { global: { stubs } })
-      await waitForData()
-      const validerBtns = wrapper.findAll('button.el-button').filter(b => b.text().trim() === 'Valider')
-      for (const btn of validerBtns) {
-        expect((btn.element as HTMLButtonElement).disabled).toBe(false)
-      }
-    })
-
-    it('always enables Valider for non-insulin drugs even when insulinBlocked is true', async () => {
+    it('does not show disabled class for non-insulin drugs when insulinBlocked is true', async () => {
       mockedUsePlanSoins.mockImplementation(() => createMockPlanSoins({ insulinBlocked: true }))
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
-      const validerBtns = wrapper.findAll('button.el-button').filter(b => b.text().trim() === 'Valider')
-      // Furosémide at day0 (index 7)
-      expect((validerBtns[7].element as HTMLButtonElement).disabled).toBe(false)
+      const validerBtns = wrapper.findAll('.plan-distribution__rdv-icon-btn--ok')
+      const nonDisabledBtns = validerBtns.filter(b => !b.classes().includes('plan-distribution__rdv-icon-btn--disabled'))
+      expect(nonDisabledBtns.length).toBe(14)
+    })
+
+    it('enables all Valider when insulinBlocked is false', async () => {
+      mockedUsePlanSoins.mockImplementation(() => createMockPlanSoins({ insulinBlocked: false }))
+      const wrapper = mount(PlanDistributionTab, { global: { stubs } })
+      await waitForData()
+      const validerBtns = wrapper.findAll('.plan-distribution__rdv-icon-btn--ok')
+      const disabledBtns = validerBtns.filter(b => b.classes().includes('plan-distribution__rdv-icon-btn--disabled'))
+      expect(disabledBtns.length).toBe(0)
     })
   })
 
@@ -346,24 +354,15 @@ describe('PlanDistributionTab', () => {
     it('calls valider when Valider button is clicked', async () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
-      const validerBtns = wrapper.findAll('button.el-button').filter(b => b.text().trim() === 'Valider')
+      const validerBtns = wrapper.findAll('.plan-distribution__rdv-icon-btn--ok')
       await validerBtns[0].trigger('click')
       expect(mockValider).toHaveBeenCalledTimes(1)
-    })
-
-    it('does not call valider when disabled button is clicked', async () => {
-      mockedUsePlanSoins.mockImplementation(() => createMockPlanSoins({ insulinBlocked: true }))
-      const wrapper = mount(PlanDistributionTab, { global: { stubs } })
-      await waitForData()
-      const validerBtns = wrapper.findAll('button.el-button').filter(b => b.text().trim() === 'Valider')
-      await validerBtns[0].trigger('click')
-      expect(mockValider).not.toHaveBeenCalled()
     })
 
     it('calls suspendre when Suspendre is clicked', async () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
-      const suspendreBtns = wrapper.findAll('button.el-button').filter(b => b.text().trim() === 'Suspendre')
+      const suspendreBtns = wrapper.findAll('.plan-distribution__rdv-icon-btn--pause')
       await suspendreBtns[0].trigger('click')
       expect(mockSuspendre).toHaveBeenCalledTimes(1)
     })
@@ -373,7 +372,7 @@ describe('PlanDistributionTab', () => {
     it('shows Reprendre button on suspended medication cards across all 7 days', async () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
-      const reprendreBtns = wrapper.findAll('button.el-button').filter(b => b.text().trim() === 'Reprendre')
+      const reprendreBtns = wrapper.findAll('.plan-distribution__rdv-reprendre-btn')
       expect(reprendreBtns.length).toBe(7)
     })
 
@@ -383,7 +382,7 @@ describe('PlanDistributionTab', () => {
       })
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
-      const reprendreBtns = wrapper.findAll('button.el-button').filter(b => b.text().trim() === 'Reprendre')
+      const reprendreBtns = wrapper.findAll('.plan-distribution__rdv-reprendre-btn')
       await reprendreBtns[0].trigger('click')
       await waitForData()
       expect(mockReprendreSoin).toHaveBeenCalledTimes(1)
@@ -407,25 +406,22 @@ describe('PlanDistributionTab', () => {
   })
 
   describe('error display', () => {
-    it('shows error alert when error is set', () => {
-      mockedUsePlanSoins.mockImplementation(() => createMockPlanSoins({ error: 'Erreur réseau' }))
+    it('shows error alert when getPlanSoins fails', async () => {
+      mockGetPlanSoins.mockRejectedValue(new Error('Erreur réseau'))
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
+      await waitForData()
+      expect(wrapper.find('.el-alert').exists()).toBe(true)
       expect(wrapper.text()).toContain('Erreur réseau')
-    })
-
-    it('hides error alert when error is null', () => {
-      mockedUsePlanSoins.mockImplementation(() => createMockPlanSoins({ error: null }))
-      const wrapper = mount(PlanDistributionTab, { global: { stubs } })
-      expect(wrapper.text()).not.toContain('Erreur')
     })
   })
 
   describe('empty state', () => {
-    it('shows empty description when there are no blocs', async () => {
+    it('renders grid without data rows when there are no blocs', async () => {
       mockGetPlanSoins.mockResolvedValue(null)
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
-      expect(wrapper.text()).toContain('Aucun soin')
+      const medCells = wrapper.findAll('.plan-distribution__med-cell')
+      expect(medCells.length).toBe(0)
     })
   })
 

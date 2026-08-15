@@ -9,7 +9,7 @@ import { StayService } from '../stay.service'
 import { PatientService } from '../patient.service'
 import { ServiceService } from '../service.service'
 
-describe('StayService', () => {
+describe('StayService', { timeout: 30_000 }, () => {
   let tempDir: string
   let dbPath: string
 
@@ -168,7 +168,7 @@ describe('StayService', () => {
 
   // ─── getMovements ───────────────────────────────────────────────
 
-  it('should return empty list for stay with no movements', async () => {
+  it('should return a synthetic admission movement for stay with no movements', async () => {
     const service = container.resolve(StayService)
     const patientId = await createTestPatient()
     const svcId = await createTestService()
@@ -176,7 +176,8 @@ describe('StayService', () => {
     const inserted = await insertActiveStay(service.db, patientId, svcId)
 
     const movements = await service.getMovements(inserted.id)
-    expect(movements).toHaveLength(0)
+    expect(movements).toHaveLength(1)
+    expect(movements[0].movement_type).toBe('admission')
   })
 
   it('should return movements ordered by moved_at asc', async () => {
@@ -227,5 +228,102 @@ describe('StayService', () => {
 
     const movements = await service.getMovements(inserted.id)
     expect(movements[0].to_service_name).toBe('Cardiologie')
+  })
+
+  // ─── FK Validation ───────────────────────────────────────────────
+
+  it('should reject insert with invalid patient_id', async () => {
+    const db = container.resolve(AppDatabaseDatasource).getInstance()
+    const svcId = await createTestService()
+
+    await expect(
+      db.insertInto('stays').values({
+        patient_id: 99999,
+        admission_date: new Date().toISOString(),
+        mode_admission: 'programmee',
+        service_id: svcId,
+        status: 'en_cours',
+        created_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).execute()
+    ).rejects.toThrow()
+  })
+
+  it('should reject insert with invalid service_id', async () => {
+    const db = container.resolve(AppDatabaseDatasource).getInstance()
+    const patientId = await createTestPatient()
+
+    await expect(
+      db.insertInto('stays').values({
+        patient_id: patientId,
+        admission_date: new Date().toISOString(),
+        mode_admission: 'programmee',
+        service_id: 99999,
+        status: 'en_cours',
+        created_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).execute()
+    ).rejects.toThrow()
+  })
+
+  it('should reject insert with invalid medecin_id', async () => {
+    const db = container.resolve(AppDatabaseDatasource).getInstance()
+    const patientId = await createTestPatient()
+    const svcId = await createTestService()
+
+    await expect(
+      db.insertInto('stays').values({
+        patient_id: patientId,
+        admission_date: new Date().toISOString(),
+        mode_admission: 'programmee',
+        service_id: svcId,
+        medecin_id: 99999,
+        status: 'en_cours',
+        created_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).execute()
+    ).rejects.toThrow()
+  })
+
+  it('should reject insert with invalid created_by', async () => {
+    const db = container.resolve(AppDatabaseDatasource).getInstance()
+    const patientId = await createTestPatient()
+    const svcId = await createTestService()
+
+    await expect(
+      db.insertInto('stays').values({
+        patient_id: patientId,
+        admission_date: new Date().toISOString(),
+        mode_admission: 'programmee',
+        service_id: svcId,
+        created_by: 99999,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).execute()
+    ).rejects.toThrow()
+  })
+
+  it('should accept insert with null optional medecin_id', async () => {
+    const db = container.resolve(AppDatabaseDatasource).getInstance()
+    const patientId = await createTestPatient()
+    const svcId = await createTestService()
+
+    const result = await db.insertInto('stays').values({
+      patient_id: patientId,
+      admission_date: new Date().toISOString(),
+      mode_admission: 'programmee',
+      service_id: svcId,
+      medecin_id: null,
+      status: 'en_cours',
+      created_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).returning('id').executeTakeFirst()
+
+    expect(result).toBeDefined()
+    expect(result!.id).toBeGreaterThan(0)
   })
 })

@@ -448,11 +448,17 @@ p, span, div, label, li, .el-message, .el-notification {
 
 /* Tab form layout */
 .tab-form {
-  max-width: 1000px;
+  max-width: none;
+}
+
+/* Empty rich-text editors take all the available horizontal space */
+.el-col:has(.rich-editor.is-empty) {
+  flex: 0 0 100% !important;
+  max-width: 100% !important;
 }
 
 .tab-form .el-divider {
-  margin-top: 0;
+  margin-top: 8px;
   margin-bottom: 20px;
 }
 
@@ -467,7 +473,7 @@ p, span, div, label, li, .el-message, .el-notification {
 }
 
 .tab-form .el-row {
-  margin-bottom: 0;
+  margin-bottom: 4px;
 }
 
 .tab-form .el-form-item {
@@ -481,6 +487,12 @@ p, span, div, label, li, .el-message, .el-notification {
   color: var(--cd-gray-500);
   padding-bottom: 2px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.tab-form .el-form-item__content {
+  border-top: 1px solid #e4e7ed;
+  padding-top: 6px;
 }
 
 .tab-form .el-radio-group {
@@ -501,6 +513,22 @@ p, span, div, label, li, .el-message, .el-notification {
 .tab-form .el-radio:hover {
   border-color: var(--cd-primary-light-5);
   background: var(--el-color-primary-light-9);
+}
+
+.tab-form .el-form-item.form-item-inline {
+  display: flex;
+  align-items: center;
+}
+.tab-form .el-form-item.form-item-inline .el-form-item__label {
+  white-space: nowrap;
+  margin-right: 8px;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+.tab-form .el-form-item.form-item-inline .el-form-item__content {
+  border-top: none;
+  padding-top: 0;
+  flex: 0 0 auto;
 }
 
 .tab-form .el-radio.is-checked {

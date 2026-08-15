@@ -131,6 +131,7 @@
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 3.5C1 2.94772 1.44772 2.5 2 2.5H4.5L5.5 3.5H10.5C11.0523 3.5 11.5 3.94772 11.5 4.5V9C11.5 9.55228 11.0523 10 10.5 10H2C1.44772 10 1 9.55228 1 9V3.5Z" fill="white" fill-opacity="0.15" stroke="white" stroke-width="0.8"/></svg>
       <span>Patients ouverts</span>
       <span class="sidebar__section-badge">{{ openPatients.length }}</span>
+      <button class="sidebar__section-clear" @click="clearAll" title="Tout effacer">Tout effacer</button>
     </div>
 
     <div v-if="openPatients.length > 0" class="sidebar__open-patients" v-show="!isCollapsed">
@@ -146,6 +147,8 @@
         </button>
       </div>
     </div>
+
+    <SyncStatusIndicator />
 
     <div class="sidebar__profile">
       <div class="sidebar__user" :title="user ? getUserDisplayName(user) : ''">
@@ -167,18 +170,22 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
 import { getUserDisplayName } from '@/composables/useUsers'
 import { useSidebar } from '@/composables/useSidebar'
 import { useLogo } from '@/composables/useLogo'
 import { usePatientContext } from '@/composables/usePatientContext'
 import { useOpenPatients } from '@/composables/useOpenPatients'
+import { usePatients } from '@/composables/usePatients'
 import { getCiviliteSymbol } from '@/utils/civilite'
+import SyncStatusIndicator from '@/components/layout/SyncStatusIndicator.vue'
 import type { Patient } from '@/composables/usePatientContext'
 
 const router = useRouter()
 const route = useRoute()
 const { user, logout } = useAuth()
+const { getPatient } = usePatients()
 const { isCollapsed, sidebarWidth, toggle } = useSidebar()
 const { logoUrl } = useLogo()
 const logoError = ref(false)
@@ -195,7 +202,7 @@ function onLogoError() { logoError.value = true }
 watch(logoUrl, () => { logoError.value = false })
 
 const { activePatient, clearPatient, setActivePatient } = usePatientContext()
-const { openPatients, removePatient } = useOpenPatients()
+const { openPatients, removePatient, clearAll } = useOpenPatients()
 
 interface SubmenuItem {
   index: string
@@ -209,7 +216,9 @@ const patientSubmenuItems: SubmenuItem[] = [
   { index: 'patient-dossier-clinic', label: 'Dossier Clinic', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1.5" y="1.5" width="12" height="12" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4.5 4.5H10.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 7H9" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 9.5H7.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>' },
 
   { index: 'patient-prescription', label: 'Prescriptions, Soins & Médicaments', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 2H13V13H2V2Z" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4 4.5H11" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4 7H8.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4 9.5H7" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M10.5 7.5L11.5 8.5" stroke="#27AE60" stroke-width="0.9" stroke-linecap="round"/><path d="M11.5 7.5L10.5 8.5" stroke="#27AE60" stroke-width="0.9" stroke-linecap="round"/></svg>' },
+  { index: 'patient-ordonnances', label: 'Ordonnances', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 2H13V13H2V2Z" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4.5 4.5H10.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 7H9" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 9.5H7.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>' },
   { index: 'patient-examens', label: 'Demande Examens', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7" cy="7" r="4" stroke="currentColor" stroke-width="0.9"/><path d="M10 10L13.5 13.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>' },
+  { index: 'patient-labo', label: 'Résultats Bio', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="1.5" width="11" height="12" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4.5 4.5H10.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 7.5H9" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 10.5H6" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M9 10.5L10 11.5L12 8.5" stroke="#27AE60" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
   { index: 'patient-actes', label: 'Actes, Soins & Médicaments', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="2" width="11" height="11" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M5.5 5V10" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M7.5 5V10" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M9.5 5V10" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>' },
   { index: 'patient-soins', label: 'Administration Soins & Médicaments', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1.5C5.5 1.5 3.5 3.5 3.5 5.5C3.5 8.5 7.5 12.5 7.5 12.5C7.5 12.5 11.5 8.5 11.5 5.5C11.5 3.5 9.5 1.5 7.5 1.5Z" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><circle cx="7.5" cy="5.5" r="1.5" stroke="currentColor" stroke-width="0.9"/></svg>' },
   { index: 'patient-contact', label: 'Contacts', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1.5" y="2.5" width="12" height="11" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M7.5 1V3" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M5 6.5H10V11H5V6.5Z" stroke="currentColor" stroke-width="0.9" stroke-linejoin="round"/></svg>' },
@@ -232,7 +241,7 @@ const noResults = computed(() => {
 })
 
 const PATIENT_ROUTES = new Set([
-  'patient-dossier', 'patient-dossier-clinic', 'patient-prescription', 'patient-examens',
+  'patient-dossier', 'patient-dossier-clinic', 'patient-prescription', 'patient-ordonnances', 'patient-examens', 'patient-labo',
   'patient-actes', 'patient-soins', 'patient-contact', 'patient-sejour', 'patient-rdv', 'patient-factures',
 ])
 
@@ -277,9 +286,19 @@ function onSubItemClick(item: { index: string; label?: string }) {
   }
 }
 
-function onOpenPatientClick(patient: Patient) {
-  setActivePatient(patient)
-  router.push(`/app/patients/${patient.id}`)
+async function onOpenPatientClick(patient: Patient) {
+  try {
+    const p = await getPatient(patient.id)  // verify from DB
+    if (p) {
+      setActivePatient(p)
+      router.push(`/app/patients/${patient.id}`)
+    } else {
+      ElMessage.error(`Le patient "${patient.prenom} ${patient.nom}" n'existe plus`)
+      removePatient(patient.id)  // remove from open patients
+    }
+  } catch {
+    ElMessage.error('Erreur lors de la vérification du patient')
+  }
 }
 
 function onRemovePatient(patientId: number) {
@@ -387,6 +406,25 @@ function onRemovePatient(patientId: number) {
   font-weight: 700;
   line-height: 1;
   margin-left: auto;
+}
+
+.sidebar__section-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 4px;
+  margin-left: 4px;
+  border-radius: 2px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.sidebar__section-clear:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .sidebar__nav {

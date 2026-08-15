@@ -132,7 +132,7 @@ import { ElMessage } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { ipcInvoke } from '@/utils/ipc'
 import { createAppointment, updateAppointment, type AppointmentDto } from '@/composables/useAppointments'
-import { searchMedicalStaff, formatMedecinName } from '@/composables/useMedicalStaff'
+import { useMedicalStaff, formatMedecinName } from '@/composables/useMedicalStaff'
 import type { UserDto } from '@/composables/useUsers'
 
 interface ServiceSuggestion {
@@ -151,6 +151,7 @@ const props = defineProps<{
   appointment?: AppointmentDto | null
 }>()
 
+const { searchMedicalStaff, fetchMedicalStaff } = useMedicalStaff()
 const visible = defineModel<boolean>('visible')
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
@@ -176,6 +177,27 @@ const form = reactive({
 const rules: Record<string, any[]> = {
   date: [{ required: true, message: 'La date est requise', trigger: 'change' }],
   time: [{ required: true, message: 'L\'heure est requise', trigger: 'change' }],
+  service_id: [{ required: true, message: 'Le service est requis', trigger: 'change' }],
+  medecin_id: [
+    {
+      required: false,
+      validator: (_r: any, v: number | null) => {
+        if (v != null && v <= 0) return new Error('Médecin invalide')
+        return true
+      },
+      trigger: 'change',
+    },
+  ],
+  care_unit_id: [
+    {
+      required: false,
+      validator: (_r: any, v: number | null) => {
+        if (v != null && v <= 0) return new Error('Unité de soins invalide')
+        return true
+      },
+      trigger: 'change',
+    },
+  ],
 }
 
 watch(() => props.appointment, (appt) => {
@@ -270,6 +292,11 @@ async function handleSubmit() {
     return
   }
 
+  if (!props.patientId || props.patientId <= 0) {
+    ElMessage.error('Patient non valide. Veuillez réessayer.')
+    return
+  }
+
   submitting.value = true
   try {
     const payload = {
@@ -277,9 +304,9 @@ async function handleSubmit() {
       date: form.date,
       time: form.time,
       motif: form.motif || undefined,
-      medecin_id: form.medecin_id,
+      medecin_id: form.medecin_id && form.medecin_id > 0 ? form.medecin_id : null,
       service_id: form.service_id,
-      care_unit_id: form.care_unit_id,
+      care_unit_id: form.care_unit_id && form.care_unit_id > 0 ? form.care_unit_id : null,
       status: form.status as AppointmentDto['status'],
       notes: form.notes || null,
     }
@@ -294,7 +321,12 @@ async function handleSubmit() {
     visible.value = false
     emit('saved')
   } catch (e) {
-    ElMessage.error(`Erreur: ${(e as Error).message}`)
+    const msg = (e as Error).message
+    if (msg.includes('introuvable dans patient')) {
+      ElMessage.error('Le dossier patient semble inaccessible. Veuillez rafraîchir la page.')
+    } else {
+      ElMessage.error(`Erreur: ${msg}`)
+    }
   } finally {
     submitting.value = false
   }
@@ -306,7 +338,6 @@ function handleClosed() {
 
 onMounted(async () => {
   if (!staffLoaded.value) {
-    const { fetchMedicalStaff } = await import('@/composables/useMedicalStaff')
     await fetchMedicalStaff()
     staffLoaded.value = true
   }

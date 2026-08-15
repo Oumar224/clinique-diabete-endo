@@ -116,8 +116,9 @@
                         </el-tag>
                       </template>
                     </el-table-column>
-                    <el-table-column label="Actions" width="100" align="center">
+                    <el-table-column label="Actions" width="130" align="center">
                       <template #default="{ row: child }">
+                        <el-button text type="info" :icon="Setting" size="small" @click.stop="openParamsForExam(child)" title="Paramètres" />
                         <el-button text type="primary" :icon="Edit" size="small" @click="startEditChild(child)" />
                         <el-button text type="danger" :icon="Delete" size="small" @click="handleDelete(child)" />
                       </template>
@@ -156,13 +157,22 @@
               </template>
             </el-table-column>
 
-            <el-table-column label="Actions" width="120" align="center">
+            <el-table-column label="Actions" width="150" align="center">
               <template #default="{ row }">
+                <el-button text type="info" :icon="Setting" size="small" @click.stop="openParams(row)" title="Paramètres" />
                 <el-button text type="primary" :icon="Edit" size="small" @click="startEditType(row)" />
                 <el-button text type="danger" :icon="Delete" size="small" @click="handleDelete(row)" />
               </template>
             </el-table-column>
           </el-table>
+
+          <ExamParameterPanel
+            v-if="selectedParamOwner"
+            :owner-id="selectedParamOwner.id"
+            :owner-type="selectedParamOwner.type"
+            :owner-label="selectedParamOwner.label"
+            @close="selectedParamOwner = null"
+          />
 
           <el-empty v-if="!typesLoading && types.length === 0" description="Aucun type d'examen" />
         </template>
@@ -173,7 +183,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Plus, Edit, Delete, FolderOpened } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, FolderOpened, Setting } from '@element-plus/icons-vue'
+import ExamParameterPanel from './ExamParameterPanel.vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useExamTypes, type ExamCategoryDto, type ExamTypeDto } from '@/composables/useExamTypes'
 import { ipcInvoke } from '@/utils/ipc'
@@ -207,6 +218,8 @@ const createExamForm = reactive({ label: '' })
 const childrenMap = ref<Record<number, ExamTypeDto[]>>({})
 const childrenLoading = ref<Record<number, boolean>>({})
 const childrenErrors = ref<Record<number, string | null>>({})
+
+const selectedParamOwner = ref<{ id: number; type: 'type' | 'exam'; label: string } | null>(null)
 
 onMounted(async () => {
   await fetchCategories()
@@ -336,6 +349,15 @@ async function loadChildren(typeId: number) {
   } finally {
     childrenLoading.value[typeId] = false
   }
+}
+
+/* ─── Parameter panel ─── */
+function openParams(type: ExamTypeDto) {
+  selectedParamOwner.value = { id: type.id!, type: 'type', label: type.label }
+}
+
+function openParamsForExam(exam: ExamTypeDto) {
+  selectedParamOwner.value = { id: exam.id!, type: 'exam', label: exam.label }
 }
 
 /* ─── Delete ─── */

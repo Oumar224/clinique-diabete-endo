@@ -45,12 +45,12 @@ export class SettingsService {
 
   async saveHospitalInfo(dto: HospitalInfoDto): Promise<void> {
     const entries: Array<{ key: string; value: string }> = [
-      { key: 'hospital_name', value: dto.name },
-      { key: 'hospital_address', value: dto.address },
-      { key: 'hospital_phone', value: dto.phone },
-      { key: 'hospital_email', value: dto.email },
-      { key: 'hospital_city', value: dto.city },
-      { key: 'hospital_reg_number', value: dto.regNumber },
+      { key: 'hospital_name', value: dto.name ?? '' },
+      { key: 'hospital_address', value: dto.address ?? '' },
+      { key: 'hospital_phone', value: dto.phone ?? '' },
+      { key: 'hospital_email', value: dto.email ?? '' },
+      { key: 'hospital_city', value: dto.city ?? '' },
+      { key: 'hospital_reg_number', value: dto.regNumber ?? '' },
     ]
     for (const entry of entries) {
       await sql`

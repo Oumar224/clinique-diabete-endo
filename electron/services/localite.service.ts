@@ -135,7 +135,7 @@ export class LocaliteService {
 
       // Helper: recurse into children, inferring type from tree depth
       const insertTree = async (
-        parentId: number | null,
+        parentId: number | undefined,
         items: LocaliteRaw[],
         depth: number,
         regionName: string,
@@ -165,7 +165,7 @@ export class LocaliteService {
         }
       }
 
-      await insertTree(null, regions, 0, '')
+      await insertTree(undefined, regions, 0, '')
     })
 
     // Backfill region for rows imported before the field existed
@@ -211,7 +211,7 @@ export class LocaliteService {
             code: item.code,
             name: item.name,
             type: itemType,
-            parent_id: null,
+            parent_id: undefined,
             country,
             is_active: 1,
           })
@@ -390,7 +390,7 @@ export class LocaliteService {
           code: (entity.code ?? '').trim().toUpperCase(),
           name: (entity.name ?? '').trim(),
           type: entity.type as string,
-          parent_id: entity.parent_id ?? null,
+          parent_id: entity.parent_id ?? undefined,
           country: entity.country?.trim().toUpperCase() || 'GN',
           is_active: entity.is_active ?? 1,
           region: entity.region ?? undefined,

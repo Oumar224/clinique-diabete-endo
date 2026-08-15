@@ -7,7 +7,65 @@
       :image-size="100"
     />
 
-    <!-- Document selected -->
+    <!-- Imported document: viewer + metadata -->
+    <template v-else-if="document.source === 'imported'">
+      <div class="doc-form__header">
+        <div class="doc-form__header-left">
+          <h3 class="doc-form__title">{{ document.title || 'Document importé' }}</h3>
+          <el-tag type="info" size="small" effect="light">
+            Importé
+          </el-tag>
+        </div>
+      </div>
+
+      <div class="doc-form__meta">
+        <span v-if="document.createdBy" class="doc-form__meta-item">
+          Créé par: <strong>{{ document.createdBy }}</strong>
+        </span>
+        <span class="doc-form__meta-item">
+          Créé le: <strong>{{ formatDateTime(document.createdAt) }}</strong>
+        </span>
+        <span class="doc-form__meta-item">
+          Importé le: <strong>{{ formatDateTime(document.updatedAt) }}</strong>
+        </span>
+      </div>
+
+      <div class="doc-form__body doc-form__body--imported">
+        <!-- PDF preview -->
+        <iframe
+          v-if="importedFileType === 'pdf' && document.pdfPath"
+          :src="'file://' + document.pdfPath"
+          class="doc-form__pdf-viewer"
+        />
+        <!-- Image preview -->
+        <img
+          v-else-if="importedFileType === 'image' && document.pdfPath"
+          :src="'file://' + document.pdfPath"
+          :alt="document.title"
+          class="doc-form__image-viewer"
+        />
+        <!-- Doc / other: no inline preview -->
+        <el-empty v-else description="Document importé" :image-size="80">
+          <template #default>
+            <p class="doc-form__imported-filename">
+              {{ document.title || document.pdfPath?.split('/').pop() || 'Fichier inconnu' }}
+            </p>
+          </template>
+        </el-empty>
+      </div>
+
+      <div class="doc-form__footer">
+        <el-button
+          v-if="document.pdfPath"
+          type="primary"
+          @click="openPdf(document.pdfPath!)"
+        >
+          Ouvrir dans le visionneuse système
+        </el-button>
+      </div>
+    </template>
+
+    <!-- Document with known type -->
     <template v-else-if="documentType">
       <!-- CRH Diabète: dedicated form -->
       <CrhDiabeteForm
@@ -17,6 +75,33 @@
         :contact-id="document.contactId"
         :contact-display="contactDisplay"
         :document-id="document.id"
+        :document-created-at="document.createdAt"
+        @save="handleSave"
+        @sign="handleSign"
+        @close="$emit('close')"
+      />
+
+      <!-- CRC Diabète: dedicated form -->
+      <CrcDiabeteForm
+        v-else-if="documentType.code === 'CRC_DIABETE'"
+        v-model="localFormData"
+        :readonly="readonly"
+        :contact-id="document.contactId"
+        :contact-display="contactDisplay"
+        :document-id="document.id"
+        :document-created-at="document.createdAt"
+        @save="handleSave"
+        @sign="handleSign"
+        @close="$emit('close')"
+      />
+
+      <!-- Ordonnance Libre: dedicated form -->
+      <OrdonnanceLibreForm
+        v-else-if="documentType.code === 'ORDONNANCE_LIBRE'"
+        :document="document"
+        :document-type="documentType"
+        :readonly="readonly"
+        :contact-display="contactDisplay"
         @save="handleSave"
         @sign="handleSign"
         @close="$emit('close')"
@@ -46,15 +131,7 @@
               {{ document.status === 'signed' ? 'Signé' : 'Brouillon' }}
             </el-tag>
           </div>
-          <el-button text size="small" @click="$emit('close')">
-            <template #icon>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M3 3L11 11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
-                <path d="M11 3L3 11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
-              </svg>
-            </template>
-            Fermer
-          </el-button>
+
         </div>
 
         <!-- Meta info -->
@@ -118,8 +195,11 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { ClinicalDocumentDTO, ClinicalDocumentTypeDTO } from '@/composables/useClinicalDocuments'
+import { useClinicalDocuments } from '@/composables/useClinicalDocuments'
 import DynamicFormRenderer from './DynamicFormRenderer.vue'
 import CrhDiabeteForm from './CrhDiabeteForm.vue'
+import CrcDiabeteForm from './CrcDiabeteForm.vue'
+import OrdonnanceLibreForm from './OrdonnanceLibreForm.vue'
 
 const props = defineProps<{
   document: ClinicalDocumentDTO | null
@@ -138,6 +218,18 @@ const formRendererRef = ref<InstanceType<typeof DynamicFormRenderer> | null>(nul
 const localFormData = ref<Record<string, any>>({})
 const saving = ref(false)
 const signing = ref(false)
+
+const { openPdf } = useClinicalDocuments()
+
+const importedFileType = computed(() => {
+  const path = props.document?.pdfPath
+  if (!path) return 'unknown'
+  const ext = path.split('.').pop()?.toLowerCase()
+  if (ext === 'pdf') return 'pdf'
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext ?? '')) return 'image'
+  if (['doc', 'docx'].includes(ext ?? '')) return 'doc'
+  return 'unknown'
+})
 
 const contactDisplay = computed(() => {
   return props.contactDisplay || `Contact #${props.document?.contactId || '?'}`
@@ -181,8 +273,8 @@ async function handleSaveDraft() {
 async function handleSign() {
   if (!props.document) return
 
-  // For CRH Diabète, signing is handled by CrhDiabeteForm
-  if (props.documentType?.code === 'CRH_DIABETE') {
+  // For CRH/CRC Diabète, signing is handled by the dedicated form
+  if (props.documentType?.code === 'CRH_DIABETE' || props.documentType?.code === 'CRC_DIABETE') {
     emit('sign')
     return
   }
@@ -277,6 +369,35 @@ function formatDateTime(dateStr: string): string {
 .doc-form__body {
   flex: 1;
   overflow-y: auto;
+}
+
+.doc-form__body--imported {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-form__pdf-viewer {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  border: none;
+  border-radius: 4px;
+}
+
+.doc-form__image-viewer {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+  border-radius: 4px;
+}
+
+.doc-form__imported-filename {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin-top: 8px;
 }
 
 .doc-form__footer {

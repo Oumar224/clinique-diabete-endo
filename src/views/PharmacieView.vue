@@ -20,6 +20,16 @@
       style="width: 100%"
       border
     >
+      <el-table-column label="Péremption" width="110">
+        <template #default="{ row }">
+          <el-tag
+            :type="isPerime(row.peremption) ? 'danger' : 'info'"
+            size="small"
+          >
+            {{ row.peremption }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="dci" label="DCI" />
       <el-table-column prop="commercial" label="Nom commercial" />
       <el-table-column prop="dosage" label="Dosage" width="100" />
@@ -32,16 +42,6 @@
         </template>
       </el-table-column>
       <el-table-column prop="seuil" label="Seuil" width="70" align="center" />
-      <el-table-column label="Péremption" width="110">
-        <template #default="{ row }">
-          <el-tag
-            :type="isPerime(row.peremption) ? 'danger' : 'info'"
-            size="small"
-          >
-            {{ row.peremption }}
-          </el-tag>
-        </template>
-      </el-table-column>
     </el-table>
 
     <el-row justify="center" style="margin-top: 20px">

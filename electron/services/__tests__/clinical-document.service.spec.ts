@@ -7,6 +7,7 @@ import { container } from 'tsyringe'
 import { sql } from 'kysely'
 import { AppDatabaseDatasource } from '../../sqlite-data-source'
 import { ClinicalDocumentService } from '../clinical-document.service'
+import { ServiceService } from '../service.service'
 
 // Fixed UUIDs from migration 053 seed data
 const CONSULTATION_TYPE_ID = '11111111-1111-4111-1111-111111111111'
@@ -36,6 +37,12 @@ describe('ClinicalDocumentService', () => {
     // Migration 052 is broken, causing 053 (clinical-documents) to be skipped
     // on fresh databases. We need to manually create the clinical document
     // tables so that the service can operate.
+    // Use DROP IF EXISTS first so that any columns added by later migrations
+    // (e.g. acte_id_declenche) don't cause INSERT failures.
+    await sql`DROP TABLE IF EXISTS clinical_document_signatures`.execute(db)
+    await sql`DROP TABLE IF EXISTS patient_clinical_documents`.execute(db)
+    await sql`DROP TABLE IF EXISTS clinical_document_types`.execute(db)
+
     await sql`
       CREATE TABLE IF NOT EXISTS clinical_document_types (
         id          TEXT PRIMARY KEY,
@@ -88,11 +95,13 @@ describe('ClinicalDocumentService', () => {
       { key: 'delivery_date', type: 'date', label: 'Date de remise', required: true },
     ])
 
-    await sql`INSERT OR IGNORE INTO clinical_document_types (id, code, label, description, form_schema, category, is_active)
+    // Seed with test labels. Migration-seeded rows (if any) are gone because
+    // we dropped the tables above.
+    await sql`INSERT INTO clinical_document_types (id, code, label, description, form_schema, category, is_active)
       VALUES ('11111111-1111-4111-1111-111111111111', 'CONSULTATION_NOTE', 'Compte rendu de consultation', 'Compte rendu détaillé', ${consultationSchema}, 'consultation', 1)`.execute(db)
-    await sql`INSERT OR IGNORE INTO clinical_document_types (id, code, label, description, form_schema, category, is_active)
+    await sql`INSERT INTO clinical_document_types (id, code, label, description, form_schema, category, is_active)
       VALUES ('22222222-2222-4222-2222-222222222222', 'LAB_REQUEST', 'Demande d''examen de laboratoire', 'Bon de demande d''analyses', ${labSchema}, 'lab', 1)`.execute(db)
-    await sql`INSERT OR IGNORE INTO clinical_document_types (id, code, label, description, form_schema, category, is_active)
+    await sql`INSERT INTO clinical_document_types (id, code, label, description, form_schema, category, is_active)
       VALUES ('33333333-3333-4333-3333-333333333333', 'DELIVERY_REPORT', 'Bordereau de remise de documents', 'Bordereau de remise', ${deliverySchema}, 'delivery', 1)`.execute(db)
 
     // Create a test user (needed for created_by / signed_by FK)
@@ -126,18 +135,11 @@ describe('ClinicalDocumentService', () => {
       .executeTakeFirstOrThrow()
     patientId = patient.id!
 
-    // Create a test service
-    const svc = await db
-      .insertInto('services')
-      .values({
-        name: 'Médecine Générale',
-        code: 'MED-GEN',
-        duration: 30,
-        is_active: 1,
-        sort_order: 0,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow()
+    // Create a test service via ServiceService to ensure proper defaults
+    const svc = await container.resolve(ServiceService).create({
+      name: `Service Test Clinique ${Date.now()}`,
+      code: `CLINICAL-DOC-TEST-${Date.now()}`,
+    })
     serviceId = svc.id!
 
     // Create a test encounter (contact)
@@ -288,6 +290,63 @@ describe('ClinicalDocumentService', () => {
     })
   })
 
+  describe('countDocumentsByContact', () => {
+    it('returns 0 when no documents are linked to the contact', async () => {
+      const count = await service.countDocumentsByContact('99999')
+      expect(count).toBe(0)
+    })
+
+    it('returns the number of documents linked to the contact', async () => {
+      await createDraftDoc(CONSULTATION_TYPE_ID)
+      await createDraftDoc(LAB_REQUEST_TYPE_ID)
+      await createDraftDoc(DELIVERY_REPORT_TYPE_ID)
+
+      const count = await service.countDocumentsByContact(String(encounterId))
+      expect(count).toBe(3)
+    })
+
+    it('counts draft and signed documents together', async () => {
+      await createDraftDoc(CONSULTATION_TYPE_ID)
+      await createDraftDoc(LAB_REQUEST_TYPE_ID)
+      await createSignedDoc(DELIVERY_REPORT_TYPE_ID)
+
+      const count = await service.countDocumentsByContact(String(encounterId))
+      expect(count).toBe(3)
+    })
+
+    it('only counts documents for the given contact', async () => {
+      const db = datasource.getInstance()
+      const enc2 = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'urgence',
+          start_date: new Date().toISOString(),
+          end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          service_id: serviceId,
+          origin: 'domicile',
+          zone_situation: 'hors_zone',
+          prise_en_charge: 'accident_circulation',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      await createDraftDoc(CONSULTATION_TYPE_ID)
+      await service.createDocument({
+        contactId: String(enc2.id!),
+        documentTypeId: LAB_REQUEST_TYPE_ID,
+        createdBy: userId,
+      })
+
+      const count1 = await service.countDocumentsByContact(String(encounterId))
+      const count2 = await service.countDocumentsByContact(String(enc2.id!))
+
+      expect(count1).toBe(1)
+      expect(count2).toBe(1)
+    })
+  })
+
   // ─── createDocument ──────────────────────────────────────────────
 
   describe('createDocument', () => {
@@ -311,18 +370,10 @@ describe('ClinicalDocumentService', () => {
     })
 
     it('uses explicitly provided service_id over encounter inheritance', async () => {
-      const db = datasource.getInstance()
-      const otherSvc = await db
-        .insertInto('services')
-        .values({
-          name: 'Cardiologie',
-          code: 'CARDIO',
-          duration: 30,
-          is_active: 1,
-          sort_order: 0,
-        })
-        .returningAll()
-        .executeTakeFirstOrThrow()
+      const otherSvc = await container.resolve(ServiceService).create({
+        name: `Cardio Test ${Date.now()}`,
+        code: `CARDIO-TEST-${Date.now()}`,
+      })
 
       const doc = await service.createDocument({
         contactId: String(encounterId),
@@ -358,20 +409,76 @@ describe('ClinicalDocumentService', () => {
     })
 
     it('rejects update on a document linked to an expired contact', async () => {
-      // Manually set the encounter created_at to > 24h ago
+      // Consultation without end_date: the 24h created_at rule applies, so a
+      // created_at older than 24h marks the contact expired.
       const db = datasource.getInstance()
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'consultation',
+          start_date: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+          // end_date intentionally omitted (null)
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
       const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
       await db
         .updateTable('encounters')
         .set({ created_at: oldDate })
-        .where('id', '=', encounterId)
+        .where('id', '=', enc.id!)
         .execute()
 
-      const doc = await createDraftDoc()
+      const doc = await service.createDocument({
+        contactId: String(enc.id!),
+        documentTypeId: CONSULTATION_TYPE_ID,
+        createdBy: userId,
+      })
 
       await expect(
         service.updateDocumentData(doc.id, { reason: 'changed' }),
       ).rejects.toThrow('Impossible de modifier un document signé')
+    })
+
+    it('allows update on a document linked to an active consultation with future end_date even when created_at is older than 24h', async () => {
+      const db = datasource.getInstance()
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'consultation',
+          start_date: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+          end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
+      await db
+        .updateTable('encounters')
+        .set({ created_at: oldDate })
+        .where('id', '=', enc.id!)
+        .execute()
+
+      const doc = await service.createDocument({
+        contactId: String(enc.id!),
+        documentTypeId: CONSULTATION_TYPE_ID,
+        createdBy: userId,
+      })
+
+      const updated = await service.updateDocumentData(doc.id, { reason: 'changed' })
+      expect(JSON.parse(updated.formData!).reason).toBe('changed')
     })
   })
 
@@ -457,22 +564,212 @@ describe('ClinicalDocumentService', () => {
       expect(expired).toBe(false)
     })
 
-    it('returns true for a contact created more than 24h ago', async () => {
+    it('returns true for a consultation contact without end_date created more than 24h ago', async () => {
       const db = datasource.getInstance()
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'consultation',
+          start_date: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+          // end_date intentionally omitted (null) so the 24h created_at rule applies
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
       const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
       await db
         .updateTable('encounters')
         .set({ created_at: oldDate })
-        .where('id', '=', encounterId)
+        .where('id', '=', enc.id!)
         .execute()
 
-      const expired = await service.isContactExpired(String(encounterId))
+      const expired = await service.isContactExpired(String(enc.id!))
       expect(expired).toBe(true)
     })
 
     it('returns true for a contact that does not exist', async () => {
       const expired = await service.isContactExpired('99999')
       expect(expired).toBe(true)
+    })
+
+    // ── Hospitalisation-specific expiration rules ────────────────
+
+    it('returns false for hospitalisation contact without end_date', async () => {
+      const db = datasource.getInstance()
+      // Create a hospitalisation encounter 5 days ago with NO end_date
+      const oldDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'hospitalisation',
+          start_date: oldDate,
+          // end_date intentionally omitted (null)
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      const expired = await service.isContactExpired(String(enc.id!))
+      expect(expired).toBe(false)
+    })
+
+    it('returns false for hospitalisation contact with future end_date', async () => {
+      const db = datasource.getInstance()
+      const futureDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString()
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'hospitalisation',
+          start_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          end_date: futureDate,
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      const expired = await service.isContactExpired(String(enc.id!))
+      expect(expired).toBe(false)
+    })
+
+    it('returns true for hospitalisation contact with past end_date', async () => {
+      const db = datasource.getInstance()
+      const pastDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'hospitalisation',
+          start_date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          end_date: pastDate,
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      const expired = await service.isContactExpired(String(enc.id!))
+      expect(expired).toBe(true)
+    })
+
+    // ── Non-hospitalisation types still use 24h rule ─────────────
+
+    it('returns false for consultation contact with future end_date even when created_at is older than 24h', async () => {
+      const db = datasource.getInstance()
+      // Insert a consultation whose end_date is still in the future but whose
+      // created_at is > 24h old: the end_date must win (active contact).
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'consultation',
+          start_date: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+          end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      // Age the created_at to > 24h ago (must NOT mark the contact expired)
+      const oldCreated = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
+      await db
+        .updateTable('encounters')
+        .set({ created_at: oldCreated })
+        .where('id', '=', enc.id!)
+        .execute()
+
+      const expired = await service.isContactExpired(String(enc.id!))
+      expect(expired).toBe(false)
+    })
+
+    it('returns true for consultation contact with past end_date', async () => {
+      const db = datasource.getInstance()
+      const pastDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'consultation',
+          start_date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          end_date: pastDate,
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      const expired = await service.isContactExpired(String(enc.id!))
+      expect(expired).toBe(true)
+    })
+
+    it('returns false for consultation contact less than 24h old', async () => {
+      const db = datasource.getInstance()
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'consultation',
+          start_date: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+          end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      // created_at defaults to datetime('now') — less than 24h, so not expired
+      const expired = await service.isContactExpired(String(enc.id!))
+      expect(expired).toBe(false)
+    })
+
+    it('returns false for consultation contact without end_date created less than 24h ago', async () => {
+      const db = datasource.getInstance()
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'consultation',
+          start_date: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+          // end_date intentionally omitted (null) so the 24h created_at rule applies
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      const expired = await service.isContactExpired(String(enc.id!))
+      expect(expired).toBe(false)
     })
   })
 
@@ -493,14 +790,36 @@ describe('ClinicalDocumentService', () => {
 
     it('returns false for a draft document with an expired contact', async () => {
       const db = datasource.getInstance()
+      // Consultation without end_date: the 24h created_at rule applies, so a
+      // created_at older than 24h marks the contact expired.
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'consultation',
+          start_date: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+          // end_date intentionally omitted (null)
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
       const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
       await db
         .updateTable('encounters')
         .set({ created_at: oldDate })
-        .where('id', '=', encounterId)
+        .where('id', '=', enc.id!)
         .execute()
 
-      const doc = await createDraftDoc()
+      const doc = await service.createDocument({
+        contactId: String(enc.id!),
+        documentTypeId: CONSULTATION_TYPE_ID,
+        createdBy: userId,
+      })
       const canModify = await service.canModifyDocument(doc.id)
       expect(canModify).toBe(false)
     })
@@ -508,6 +827,100 @@ describe('ClinicalDocumentService', () => {
     it('returns false for a non-existent document', async () => {
       const canModify = await service.canModifyDocument('nonexistent-id')
       expect(canModify).toBe(false)
+    })
+
+    it('allows modification of unsigned hospitalisation document without end_date', async () => {
+      const db = datasource.getInstance()
+      // Create a hospitalisation encounter with NO end_date (5 days ago — would be expired under 24h rule)
+      const oldDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'hospitalisation',
+          start_date: oldDate,
+          // end_date intentionally omitted (null)
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      // Create a draft document linked to this hospitalisation encounter
+      const doc = await service.createDocument({
+        contactId: String(enc.id!),
+        documentTypeId: CONSULTATION_TYPE_ID,
+        createdBy: userId,
+      })
+
+      const canModify = await service.canModifyDocument(doc.id)
+      expect(canModify).toBe(true)
+    })
+
+    it('blocks modification of unsigned hospitalisation document with past end_date', async () => {
+      const db = datasource.getInstance()
+      const pastDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+      const enc = await db
+        .insertInto('encounters')
+        .values({
+          patient_id: patientId,
+          contact_type: 'hospitalisation',
+          start_date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          end_date: pastDate,
+          service_id: serviceId,
+          origin: 'auto_refere',
+          zone_situation: 'zone_responsabilite',
+          prise_en_charge: 'maladie_naturelle',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      const doc = await service.createDocument({
+        contactId: String(enc.id!),
+        documentTypeId: CONSULTATION_TYPE_ID,
+        createdBy: userId,
+      })
+
+      const canModify = await service.canModifyDocument(doc.id)
+      expect(canModify).toBe(false)
+    })
+  })
+
+  // ─── FK Validation ────────────────────────────────────────────────
+
+  describe('FK Validation', () => {
+    it('should reject createDocument with invalid contact_id', async () => {
+      await expect(
+        service.createDocument({
+          contactId: '99999',
+          documentTypeId: CONSULTATION_TYPE_ID,
+          createdBy: userId,
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should reject createDocument with invalid document_type_id', async () => {
+      await expect(
+        service.createDocument({
+          contactId: String(encounterId),
+          documentTypeId: 'non-existent-type-id',
+          createdBy: userId,
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should reject createDocument with invalid created_by', async () => {
+      await expect(
+        service.createDocument({
+          contactId: String(encounterId),
+          documentTypeId: CONSULTATION_TYPE_ID,
+          createdBy: 'non-existent-user',
+        })
+      ).rejects.toThrow()
     })
   })
 })

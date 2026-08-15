@@ -67,6 +67,17 @@ import * as AddCareUnitToEncountersFix from '../migrations/070-add-care-unit-to-
 import * as CreateExamRequests from '../migrations/071-create-exam-requests'
 import * as SeedLabExamData from '../migrations/072-seed-lab-exam-data'
 import * as SeedDispositifVoieData from '../migrations/073-seed-dispositif-voie-data'
+import * as AddExamRequestSpecialite from '../migrations/074-add-exam-request-specialite'
+import * as AddExamRequestSpecialtyId from '../migrations/075-add-exam-request-specialty-id'
+import * as AddExamRequestPlannedHourDate from '../migrations/076-add-exam-request-planned-hour-date'
+import * as EncounterMovementsNewFields from '../migrations/077-encounter-movements-new-fields'
+import * as PatientClinicalDocumentsSource from '../migrations/078-patient-clinical-documents-source'
+import * as SeedOrdonnanceLibre from '../migrations/079-seed-ordonnance-libre'
+import * as CreateExamParameters from '../migrations/080-create-exam-parameters'
+import * as CreateExamResults from '../migrations/081-create-exam-results'
+import * as AddValidatedAtToExamRequests from '../migrations/082-add-validated-at-to-exam-requests'
+import * as RemoveContactCategory from '../migrations/085-contact-category-remove'
+import * as CloseExpiredActiveEncounters from '../migrations/086-close-expired-active-encounters'
 
 class StaticMigrationProvider implements MigrationProvider {
   async getMigrations(): Promise<Record<string, Migration>> {
@@ -139,6 +150,17 @@ class StaticMigrationProvider implements MigrationProvider {
       '071-create-exam-requests': CreateExamRequests,
       '072-seed-lab-exam-data': SeedLabExamData,
       '073-seed-dispositif-voie-data': SeedDispositifVoieData,
+      '074-add-exam-request-specialite': AddExamRequestSpecialite,
+      '075-add-exam-request-specialty-id': AddExamRequestSpecialtyId,
+      '076-add-exam-request-planned-hour-date': AddExamRequestPlannedHourDate,
+      '077-encounter-movements-new-fields': EncounterMovementsNewFields,
+      '078-patient-clinical-documents-source': PatientClinicalDocumentsSource,
+      '079-seed-ordonnance-libre': SeedOrdonnanceLibre,
+      '080-create-exam-parameters': CreateExamParameters,
+      '081-create-exam-results': CreateExamResults,
+      '082-add-validated-at-to-exam-requests': AddValidatedAtToExamRequests,
+      '085-contact-category-remove': RemoveContactCategory,
+      '086-close-expired-active-encounters': CloseExpiredActiveEncounters,
     }
   }
 }

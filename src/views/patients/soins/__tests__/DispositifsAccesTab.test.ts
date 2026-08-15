@@ -7,11 +7,7 @@ import DispositifsAccesTab from '../DispositifsAccesTab.vue'
 // ---------------------------------------------------------------------------
 // Hoisted mocks
 // ---------------------------------------------------------------------------
-const { mockGetDispositifs, mockAjouterDispositif, mockSupprimerDispositif } = vi.hoisted(() => ({
-  mockGetDispositifs: vi.fn(),
-  mockAjouterDispositif: vi.fn(),
-  mockSupprimerDispositif: vi.fn(),
-}))
+const mockIpcInvoke = vi.hoisted(() => vi.fn())
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -20,10 +16,8 @@ vi.mock('vue-router', () => ({
   useRoute: vi.fn(() => ({ params: { id: '42' } })),
 }))
 
-vi.mock('@/api/dispositifs', () => ({
-  getDispositifs: mockGetDispositifs,
-  ajouterDispositif: mockAjouterDispositif,
-  supprimerDispositif: mockSupprimerDispositif,
+vi.mock('@/utils/ipc', () => ({
+  ipcInvoke: mockIpcInvoke,
 }))
 
 vi.mock('element-plus', () => ({
@@ -70,16 +64,23 @@ const stubs = {
   },
 }
 
+const DEFAULT_DISPOSITIFS = [
+  { id: 1, patientId: 42, type: 'Cathéter périphérique', datePose: '26/06/2026', aspect: 'Sain', volumeMl: null },
+  { id: 2, patientId: 42, type: 'Sonde urinaire', datePose: '26/06/2026', aspect: 'Sain', volumeMl: 350 },
+]
+
 // ---------------------------------------------------------------------------
 // DispositifsAccesTab
 // ---------------------------------------------------------------------------
 describe('DispositifsAccesTab', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetDispositifs.mockResolvedValue([
-      { id: 1, patientId: 42, type: 'Cathéter périphérique', datePose: '26/06/2026', aspect: 'Sain', volumeMl: null },
-      { id: 2, patientId: 42, type: 'Sonde urinaire', datePose: '26/06/2026', aspect: 'Sain', volumeMl: 350 },
-    ])
+    mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+      if (channel === 'dispositifs:list') return DEFAULT_DISPOSITIFS
+      if (channel === 'dispositifs:create') return { id: 3, patientId: params?.patientId, ...params }
+      if (channel === 'dispositifs:delete') return null
+      return null
+    })
   })
 
   // -----------------------------------------------------------------------
@@ -89,7 +90,7 @@ describe('DispositifsAccesTab', () => {
     it('fetches dispositifs on mount', async () => {
       mount(DispositifsAccesTab, { global: { stubs } })
       await new Promise(r => setTimeout(r, 0))
-      expect(mockGetDispositifs).toHaveBeenCalledWith(42)
+      expect(mockIpcInvoke).toHaveBeenCalledWith('dispositifs:list', { patientId: 42 })
     })
   })
 
@@ -111,12 +112,15 @@ describe('DispositifsAccesTab', () => {
   // Empty state
   // -----------------------------------------------------------------------
   describe('empty state', () => {
-    it('shows el-empty when dispositifs list is empty after fetch', async () => {
-      mockGetDispositifs.mockResolvedValue([])
+    it('renders table with no data when dispositifs list is empty after fetch', async () => {
+      mockIpcInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'dispositifs:list') return []
+        return null
+      })
       const wrapper = mount(DispositifsAccesTab, { global: { stubs } })
       await new Promise(r => setTimeout(r, 0))
-      expect(wrapper.find('.el-empty').exists()).toBe(true)
-      expect(wrapper.text()).toContain('Aucun dispositif')
+      expect(wrapper.find('.el-table').exists()).toBe(true)
+      expect(wrapper.findAll('.el-table-column').length).toBe(5)
     })
 
     it('does not show el-empty when dispositifs exist', async () => {

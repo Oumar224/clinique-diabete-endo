@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import type { SpecialtyEntity } from '../entities/specialty.entity'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class SpecialtyService {
@@ -78,6 +79,7 @@ export class SpecialtyService {
         .executeTakeFirst()
 
       if (!result) throw new Error('Échec de la création de la spécialité')
+      entityEventBus.emitEntityChange({ entityType: 'specialty', action: 'created', id: result.id!, entity: result, source: 'local', timestamp: Date.now() })
       return result as unknown as SpecialtyEntity
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
@@ -151,6 +153,7 @@ export class SpecialtyService {
 
     const updated = await this.getById(entity.id)
     if (!updated) throw new Error('Spécialité introuvable après mise à jour')
+    entityEventBus.emitEntityChange({ entityType: 'specialty', action: 'updated', id: entity.id!, entity: updated, source: 'local', timestamp: Date.now() })
     return updated
   }
 
@@ -203,6 +206,7 @@ export class SpecialtyService {
       }
       throw err
     }
+    entityEventBus.emitEntityChange({ entityType: 'specialty', action: 'deleted', id, entity: existing, source: 'local', timestamp: Date.now() })
   }
 
   // ─── Validation ──────────────────────────────────────────────

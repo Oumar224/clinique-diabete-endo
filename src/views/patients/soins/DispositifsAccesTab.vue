@@ -5,9 +5,9 @@
       <el-button type="primary" size="small" :icon="Plus" @click="onAjouter">Ajouter</el-button>
     </div>
 
-    <el-table :data="dispositifs" size="small" style="width:100%" v-loading="loading">
-      <el-table-column prop="type" label="Type d'accès" />
+    <el-table :data="dispositifs" size="small" style="width:100%" v-loading="dispositifsLoading">
       <el-table-column prop="datePose" label="Date de pose" width="130" />
+      <el-table-column prop="type" label="Type d'accès" />
       <el-table-column prop="aspect" label="Aspect" width="130">
         <template #default="{ row }">
           <el-tag :type="aspectType(row.aspect)" size="small">{{ row.aspect }}</el-tag>
@@ -30,11 +30,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getDispositifs, ajouterDispositif, supprimerDispositif } from '@/api/dispositifs'
+import { useDispositifs } from '@/composables/useDispositifs'
 import type { Dispositif } from '@/types/soins'
 
 const route = useRoute()
@@ -44,20 +44,12 @@ const patientId = computed<number | null>(() => {
   return Number.isFinite(id) ? id : null
 })
 
-const dispositifs = ref<Dispositif[]>([])
-const loading = ref(false)
+const { dispositifs, loading: dispositifsLoading, fetchDispositifs, addDispositif, removeDispositif } = useDispositifs()
 
 async function loadDispositifs() {
   const pid = patientId.value
   if (!pid) return
-  loading.value = true
-  try {
-    dispositifs.value = await getDispositifs(pid)
-  } catch (e) {
-    ElMessage.error(`Erreur de chargement: ${(e as Error).message}`)
-  } finally {
-    loading.value = false
-  }
+  await fetchDispositifs(pid)
 }
 
 function aspectType(aspect: string): 'success' | 'warning' | 'danger' {
@@ -84,14 +76,16 @@ async function onAjouter() {
     )
     if (!formValues?.trim()) return
 
-    const newDispositif = await ajouterDispositif({
+    const newDispositif = await addDispositif({
       patientId: pid,
       type: formValues.trim(),
       datePose: new Date().toLocaleDateString('fr-FR'),
       aspect: 'Sain',
       volumeMl: null,
     })
-    dispositifs.value.push(newDispositif)
+    if (newDispositif) {
+      dispositifs.value.push(newDispositif)
+    }
     ElMessage.success('Dispositif ajouté')
   } catch (err: unknown) {
     if (err === 'cancel' || err === 'close') return
@@ -111,7 +105,7 @@ async function onSupprimer(row: Dispositif) {
       'Confirmation',
       { confirmButtonText: 'Oui, supprimer', cancelButtonText: 'Annuler', type: 'warning' },
     )
-    await supprimerDispositif(row.id)
+    await removeDispositif(row.id)
     dispositifs.value = dispositifs.value.filter(d => d.id !== row.id)
     ElMessage.success('Dispositif supprimé')
   } catch (err: unknown) {

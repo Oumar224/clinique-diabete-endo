@@ -5,7 +5,9 @@ import type { ClinicalDocumentDTO, ClinicalDocumentTypeDTO } from '@/composables
 
 // ─── Mock Element Plus ─────────────────────────────────────────────
 
-const mockConfirm = vi.fn()
+const { mockConfirm } = vi.hoisted(() => ({
+  mockConfirm: vi.fn(),
+}))
 vi.mock('element-plus', () => ({
   ElMessage: { success: vi.fn(), warning: vi.fn(), error: vi.fn() },
   ElMessageBox: { confirm: mockConfirm },
@@ -15,7 +17,7 @@ vi.mock('element-plus', () => ({
 
 const EL_STUBS: Record<string, any> = {
   'el-button': {
-    template: '<button class="el-button" :disabled="disabled" :type="type" @click="$emit(\'click\', $event)"><slot /></button>',
+    template: '<button class="el-button" :disabled="disabled" :type="type" :title="title" @click="$emit(\'click\', $event)"><slot /></button>',
     props: ['disabled', 'type', 'size', 'text', 'title'],
     emits: ['click'],
   },
@@ -33,7 +35,7 @@ const EL_STUBS: Record<string, any> = {
     emits: ['click'],
   },
   'el-skeleton': { template: '<div class="el-skeleton"><slot /></div>', props: ['rows', 'animated'] },
-  'el-empty': { template: '<div class="el-empty"><slot /></div>', props: ['description', 'imageSize'] },
+  'el-empty': { template: '<div class="el-empty">{{ description }}<slot /></div>', props: ['description', 'imageSize'] },
   'el-tag': { template: '<span class="el-tag" :type="type"><slot /></span>', props: ['type', 'size', 'effect'] },
 }
 
@@ -108,6 +110,50 @@ const documents: ClinicalDocumentDTO[] = [
       category: 'lab',
     },
   },
+  {
+    id: 'doc-003',
+    contactId: '1',
+    patientId: '42',
+    serviceId: '5',
+    documentTypeId: CONSULT_TYPE_ID,
+    title: 'Compte rendu importé',
+    status: 'draft',
+    formData: {},
+    source: 'imported',
+    createdBy: 'Dr. Diallo',
+    createdAt: '2024-06-15T12:00:00.000Z',
+    updatedAt: '2024-06-15T12:00:00.000Z',
+    documentType: {
+      id: CONSULT_TYPE_ID,
+      code: 'CONSULTATION_NOTE',
+      label: 'Compte rendu de consultation',
+      description: null,
+      formSchema: [],
+      category: 'consultation',
+    },
+  },
+  {
+    id: 'doc-004',
+    contactId: '1',
+    patientId: '42',
+    serviceId: '5',
+    documentTypeId: LAB_TYPE_ID,
+    title: 'Demande importée',
+    status: 'draft',
+    formData: {},
+    source: 'imported',
+    createdBy: 'Dr. Diallo',
+    createdAt: '2024-06-15T11:00:00.000Z',
+    updatedAt: '2024-06-15T13:00:00.000Z',
+    documentType: {
+      id: LAB_TYPE_ID,
+      code: 'LAB_REQUEST',
+      label: 'Demande d\'examen de laboratoire',
+      description: null,
+      formSchema: [],
+      category: 'lab',
+    },
+  },
 ]
 
 describe('ClinicalDocList', () => {
@@ -147,7 +193,7 @@ describe('ClinicalDocList', () => {
     it('renders document items in the list', () => {
       const wrapper = createWrapper()
       const items = wrapper.findAll('.doc-list__item')
-      expect(items).toHaveLength(2)
+      expect(items).toHaveLength(4)
       expect(items[0].text()).toContain('Compte rendu de consultation')
       expect(items[1].text()).toContain('Demande d\'examen de laboratoire')
     })
@@ -155,7 +201,7 @@ describe('ClinicalDocList', () => {
     it('shows status tags for each document', () => {
       const wrapper = createWrapper()
       const tags = wrapper.findAll('.el-tag')
-      expect(tags).toHaveLength(2)
+      expect(tags.length).toBeGreaterThanOrEqual(4)
       expect(tags[0].text()).toContain('Brouillon')
       expect(tags[1].text()).toContain('Signé')
     })
@@ -183,8 +229,10 @@ describe('ClinicalDocList', () => {
       const wrapper = createWrapper()
       // doc-001 is draft → has delete button
       // doc-002 is signed → no delete button
+      // doc-003 is draft imported → has delete button
+      // doc-004 is draft imported → has delete button
       const deleteButtons = wrapper.findAll('.doc-list__item-delete')
-      expect(deleteButtons).toHaveLength(1)
+      expect(deleteButtons).toHaveLength(3)
     })
   })
 
@@ -263,6 +311,61 @@ describe('ClinicalDocList', () => {
       const dropdownItems = wrapper.findAll('.el-dropdown-item')
       expect(dropdownItems).toHaveLength(1)
       expect(dropdownItems[0].text()).toContain('Aucun type disponible')
+    })
+  })
+
+  // ─── Imported tag ─────────────────────────────────────────────────
+
+  describe('imported tag', () => {
+    it('shows "Importé" tag when document source is "imported"', () => {
+      const wrapper = createWrapper()
+      const items = wrapper.findAll('.doc-list__item')
+      // doc-003 is imported → should show Importé tag
+      const importedItem = items[2]
+      expect(importedItem.text()).toContain('Importé')
+    })
+
+    it('does not show "Importé" tag when document source is "created"', () => {
+      const wrapper = createWrapper()
+      const items = wrapper.findAll('.doc-list__item')
+      // doc-001 has source "created" → should not show Importé
+      expect(items[0].text()).not.toContain('Importé')
+    })
+
+    it('does not show "Importé" tag when document source is undefined', () => {
+      const docNoSource: ClinicalDocumentDTO = {
+        id: 'doc-no-source',
+        contactId: '1',
+        patientId: '42',
+        serviceId: '5',
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'Document sans source',
+        status: 'draft',
+        formData: {},
+        createdBy: 'Dr. Diallo',
+        createdAt: '2024-06-15T10:00:00.000Z',
+        updatedAt: '2024-06-15T10:00:00.000Z',
+        documentType: {
+          id: CONSULT_TYPE_ID,
+          code: 'CONSULTATION_NOTE',
+          label: 'Compte rendu de consultation',
+          description: null,
+          formSchema: [],
+          category: 'consultation',
+        },
+      }
+      const wrapper = createWrapper({ docs: [docNoSource] })
+      const item = wrapper.find('.doc-list__item')
+      expect(item.text()).not.toContain('Importé')
+    })
+
+    it('shows "Brouillon" and "Importé" tags for a draft imported document', () => {
+      const wrapper = createWrapper()
+      const items = wrapper.findAll('.doc-list__item')
+      // doc-004 is draft + imported
+      const draftImportedItem = items[3]
+      expect(draftImportedItem.text()).toContain('Brouillon')
+      expect(draftImportedItem.text()).toContain('Importé')
     })
   })
 

@@ -31,7 +31,8 @@ export function useSpecialties() {
       const created = await ipcInvoke<SpecialtyDto>('specialties:create', dto)
       await fetchSpecialties()
       return created
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -41,7 +42,8 @@ export function useSpecialties() {
       const updated = await ipcInvoke<SpecialtyDto>('specialties:update', { id, ...dto })
       await fetchSpecialties()
       return updated
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -51,7 +53,8 @@ export function useSpecialties() {
       await ipcInvoke('specialties:delete', { id })
       await fetchSpecialties()
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }
@@ -62,7 +65,8 @@ export function useSpecialties() {
       const idx = specialties.value.findIndex(s => s.id === id)
       if (idx !== -1) specialties.value[idx] = toggled
       return toggled
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }

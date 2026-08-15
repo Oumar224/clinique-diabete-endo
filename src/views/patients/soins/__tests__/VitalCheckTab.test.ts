@@ -8,13 +8,7 @@ import VitalCheckTab from '../VitalCheckTab.vue'
 // ---------------------------------------------------------------------------
 // Hoisted mocks
 // ---------------------------------------------------------------------------
-const {
-  mockGetVitalSignsItemsList,
-  mockSaveVitalSignsItem,
-} = vi.hoisted(() => ({
-  mockGetVitalSignsItemsList: vi.fn(),
-  mockSaveVitalSignsItem: vi.fn(),
-}))
+const mockIpcInvoke = vi.hoisted(() => vi.fn())
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -33,9 +27,8 @@ vi.mock('@element-plus/icons-vue', () => ({
   Refresh: { render: () => {} },
 }))
 
-vi.mock('@/api/vitalSigns', () => ({
-  getVitalSignsItemsList: mockGetVitalSignsItemsList,
-  saveVitalSignsItem: mockSaveVitalSignsItem,
+vi.mock('@/utils/ipc', () => ({
+  ipcInvoke: mockIpcInvoke,
 }))
 
 // ---------------------------------------------------------------------------
@@ -187,10 +180,13 @@ function waitForData() {
 // ---------------------------------------------------------------------------
 describe('VitalCheckTab (hour-based grid)', () => {
   beforeEach(() => {
-    mockGetVitalSignsItemsList.mockReset()
-    mockSaveVitalSignsItem.mockReset()
+    vi.clearAllMocks()
     // Default: return empty list
-    mockGetVitalSignsItemsList.mockResolvedValue([])
+    mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+      if (channel === 'vital-signs-items:list') return []
+      if (channel === 'vital-signs-items:save') return makeRecord(params)
+      return null
+    })
   })
 
   // -----------------------------------------------------------------------
@@ -304,17 +300,18 @@ describe('VitalCheckTab (hour-based grid)', () => {
   // Data fetching
   // -----------------------------------------------------------------------
   describe('data fetching', () => {
-    it('calls getVitalSignsItemsList on mount with patient ID and week range', async () => {
+    it('calls vital-signs-items:list on mount with patient ID and week range', async () => {
       mount(VitalCheckTab, {
         global: { stubs, directives: { loading: vi.fn() } },
       })
       await waitForData()
 
-      expect(mockGetVitalSignsItemsList).toHaveBeenCalledTimes(1)
-      const [pid, start, end] = mockGetVitalSignsItemsList.mock.calls[0]
-      expect(pid).toBe(42)
-      expect(start).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-      expect(end).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      const listCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs-items:list')
+      expect(listCalls).toHaveLength(1)
+      const [, params] = listCalls[0]
+      expect(params.patientId).toBe(42)
+      expect(params.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(params.endDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     })
 
     it('re-fetches when week changes', async () => {
@@ -322,9 +319,8 @@ describe('VitalCheckTab (hour-based grid)', () => {
         global: { stubs, directives: { loading: vi.fn() } },
       })
       await flushPromises()
-      expect(mockGetVitalSignsItemsList).toHaveBeenCalledTimes(1)
-
-      mockGetVitalSignsItemsList.mockResolvedValue([])
+      const listCallsAfterMount = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs-items:list')
+      expect(listCallsAfterMount).toHaveLength(1)
 
       const vm = wrapper.vm as any
       vm.nextWeek()
@@ -332,7 +328,8 @@ describe('VitalCheckTab (hour-based grid)', () => {
       await nextTick()
       await flushPromises()
 
-      expect(mockGetVitalSignsItemsList).toHaveBeenCalledTimes(2)
+      const listCallsAfterNav = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs-items:list')
+      expect(listCallsAfterNav).toHaveLength(2)
     })
   })
 
@@ -341,10 +338,14 @@ describe('VitalCheckTab (hour-based grid)', () => {
   // -----------------------------------------------------------------------
   describe('value population', () => {
     it('populates items map from fetched records', async () => {
-      mockGetVitalSignsItemsList.mockResolvedValue([
-        makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 140, glycemie: 2.5 }),
-        makeRecord({ date: MONDAY_STR, hour: 12, taDiastolique: 90, frequency: 80 }),
-      ])
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'vital-signs-items:list') return [
+          makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 140, glycemie: 2.5 }),
+          makeRecord({ date: MONDAY_STR, hour: 12, taDiastolique: 90, frequency: 80 }),
+        ]
+        if (channel === 'vital-signs-items:save') return makeRecord(params)
+        return null
+      })
       const wrapper = mount(VitalCheckTab, {
         global: { stubs, directives: { loading: vi.fn() } },
       })
@@ -360,9 +361,13 @@ describe('VitalCheckTab (hour-based grid)', () => {
     })
 
     it('shows formatted cell values in the grid', async () => {
-      mockGetVitalSignsItemsList.mockResolvedValue([
-        makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 140, glycemie: 2.5 }),
-      ])
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'vital-signs-items:list') return [
+          makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 140, glycemie: 2.5 }),
+        ]
+        if (channel === 'vital-signs-items:save') return makeRecord(params)
+        return null
+      })
       const wrapper = mount(VitalCheckTab, {
         global: { stubs, directives: { loading: vi.fn() } },
       })
@@ -382,7 +387,6 @@ describe('VitalCheckTab (hour-based grid)', () => {
   // -----------------------------------------------------------------------
   describe('hour dialog', () => {
     it('opens the dialog when clicking a cell', async () => {
-      mockGetVitalSignsItemsList.mockResolvedValue([])
       const wrapper = mount(VitalCheckTab, {
         global: { stubs, directives: { loading: vi.fn() } },
       })
@@ -400,7 +404,6 @@ describe('VitalCheckTab (hour-based grid)', () => {
     })
 
     it('opens the dialog when clicking an hour label', async () => {
-      mockGetVitalSignsItemsList.mockResolvedValue([])
       const wrapper = mount(VitalCheckTab, {
         global: { stubs, directives: { loading: vi.fn() } },
       })
@@ -416,9 +419,13 @@ describe('VitalCheckTab (hour-based grid)', () => {
     })
 
     it('populates dialog fields from existing values', async () => {
-      mockGetVitalSignsItemsList.mockResolvedValue([
-        makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 145, glycemie: 1.8 }),
-      ])
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'vital-signs-items:list') return [
+          makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 145, glycemie: 1.8 }),
+        ]
+        if (channel === 'vital-signs-items:save') return makeRecord(params)
+        return null
+      })
       const wrapper = mount(VitalCheckTab, {
         global: { stubs, directives: { loading: vi.fn() } },
       })
@@ -436,10 +443,11 @@ describe('VitalCheckTab (hour-based grid)', () => {
     })
 
     it('saves all constants when clicking Enregistrer', async () => {
-      mockGetVitalSignsItemsList.mockResolvedValue([])
-      mockSaveVitalSignsItem.mockResolvedValue(
-        makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 135, glycemie: 1.0 }),
-      )
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'vital-signs-items:list') return []
+        if (channel === 'vital-signs-items:save') return makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 135, glycemie: 1.0 })
+        return null
+      })
 
       const wrapper = mount(VitalCheckTab, {
         global: { stubs, directives: { loading: vi.fn() } },
@@ -464,9 +472,10 @@ describe('VitalCheckTab (hour-based grid)', () => {
 
       await flushPromises()
 
-      expect(mockSaveVitalSignsItem).toHaveBeenCalledTimes(1)
-      const [pid, data] = mockSaveVitalSignsItem.mock.calls[0]
-      expect(pid).toBe(42)
+      const saveCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs-items:save')
+      expect(saveCalls).toHaveLength(1)
+      const [, data] = saveCalls[0]
+      expect(data.patientId).toBe(42)
       expect(data.date).toBe(MONDAY_STR)
       expect(data.hour).toBe(8)
       expect(data.taSystolique).toBe(135)
@@ -527,7 +536,10 @@ describe('VitalCheckTab (hour-based grid)', () => {
   // -----------------------------------------------------------------------
   describe('error state', () => {
     it('shows error alert when fetch fails', async () => {
-      mockGetVitalSignsItemsList.mockRejectedValue(new Error('Erreur réseau'))
+      mockIpcInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'vital-signs-items:list') throw new Error('Erreur réseau')
+        return null
+      })
       const wrapper = mount(VitalCheckTab, {
         global: { stubs, directives: { loading: vi.fn() } },
       })

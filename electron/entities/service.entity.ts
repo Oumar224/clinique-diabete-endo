@@ -1,17 +1,21 @@
 import type { ServiceDto } from '../dto/settings.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { ServiceConverter } from '../automerge/converters/service.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class ServiceEntity {
-  id?: number
-  name?: string
-  description?: string | null
-  duration?: number
-  color?: string | null
-  sort_order?: number
-  is_active?: number
-  category?: string
-  site_ids?: number[]
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() name?: string
+  @SchemaField() description?: string 
+  @SchemaField() duration?: number
+  @SchemaField() color?: string 
+  @SchemaField() sort_order?: number
+  @SchemaField() is_active?: number
+  @SchemaField() category?: string
+  @SchemaField() site_ids?: number[]
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: ServiceEntity): ServiceDto {
     return {
@@ -35,6 +39,13 @@ export class ServiceEntity {
     return e
   }
   static documentType(): string { return 'Service' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<ServiceEntity> { return buildDocumentSchema(ServiceEntity) as AutomergeDocument<ServiceEntity> }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'service',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: ServiceConverter.toDocument, toEntity: ServiceConverter.toEntity },
+    })
+  }
 }

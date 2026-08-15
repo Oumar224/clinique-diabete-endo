@@ -26,11 +26,13 @@ import {
   FolderOpened, DataAnalysis, Tickets, Search, List, Aim, HomeFilled, Calendar, Money,
 } from '@element-plus/icons-vue'
 import { usePatientContext } from '@/composables/usePatientContext'
-import { getPatient } from '@/composables/usePatients'
+import { useOpenPatients } from '@/composables/useOpenPatients'
+import { usePatients } from '@/composables/usePatients'
 import SectionHeader from '@/components/common/SectionHeader.vue'
 import PatientBanner from '@/components/patients/PatientBanner.vue'
 import PatientContextToolbar from '@/components/patients/PatientContextToolbar.vue'
 import type { Component } from 'vue'
+const { getPatient } = usePatients()
 
 interface SectionInfo {
   label: string
@@ -42,6 +44,7 @@ const SECTION_INFO: Record<string, SectionInfo> = {
   'patient-dossier-clinic': { label: 'Dossier Clinic', icon: FolderOpened },
   'patient-labo': { label: 'Résultats Bio', icon: DataAnalysis },
   'patient-prescription': { label: 'Prescriptions, Soins & Médicaments', icon: Tickets },
+  'patient-ordonnances': { label: 'Ordonnances', icon: Tickets },
   'patient-examens': { label: 'Demande Examens', icon: Search },
   'patient-actes': { label: 'Actes, Soins & Médicaments', icon: List },
   'patient-soins': { label: 'Administration Soins & Médicaments', icon: Aim },
@@ -52,7 +55,8 @@ const SECTION_INFO: Record<string, SectionInfo> = {
 }
 
 const route = useRoute()
-const { activePatient, age, setActivePatient } = usePatientContext()
+const { activePatient, age, setActivePatient, clearPatient } = usePatientContext()
+const { removePatient } = useOpenPatients()
 
 const loading = ref(false)
 const patientNotFound = ref(false)
@@ -73,7 +77,10 @@ onMounted(async () => {
     patientNotFound.value = true
     return
   }
-  if (activePatient.value?.id === id) return
+  // Always re-verify the patient exists in the DB.
+  // The activePatient context may be stale (e.g. set from sidebar open-patients
+  // stored in localStorage, or from a previous list fetch), and we must not
+  // carry a deleted patient into child form submissions.
   await loadPatient(id)
 })
 
@@ -94,6 +101,9 @@ async function loadPatient(id: number) {
       setActivePatient(p)
     } else {
       patientNotFound.value = true
+      clearPatient()
+      removePatient(id)
+      ElMessage.warning(`Le patient (ID ${id}) n'existe plus dans la base de données`)
     }
   } catch (e) {
     ElMessage.error(`Erreur lors du chargement du patient: ${(e as Error).message}`)
@@ -102,6 +112,8 @@ async function loadPatient(id: number) {
     loading.value = false
   }
 }
+
+defineExpose({ loadPatient, patientNotFound })
 </script>
 
 <style scoped>

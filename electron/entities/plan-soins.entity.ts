@@ -1,12 +1,17 @@
 import type { PlanSoinsDto } from '../dto/plan-soins.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { PlanSoinsConverter } from '../automerge/converters/plan-soins.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
+import { PlanSoinsItemConverter } from '../automerge/converters/plan-soins-item.converter'
 
 export class PlanSoinsEntity {
-  id?: number
-  patient_id?: number
-  date?: string
-  created_by?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() patient_id?: number
+  @SchemaField() date?: string
+  @SchemaField() created_by?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: PlanSoinsEntity): PlanSoinsDto {
     return {
@@ -36,22 +41,44 @@ export class PlanSoinsEntity {
   }
 
   static documentType(): string { return 'PlanSoins' }
-  static documentSchema(): any { return {} }
-  static register(): void { /* No Automerge sync needed */ }
+  static documentSchema(): AutomergeDocument<PlanSoinsEntity> {
+    return buildDocumentSchema(PlanSoinsEntity) as AutomergeDocument<PlanSoinsEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'plan_soins',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: PlanSoinsConverter.toDocument, toEntity: PlanSoinsConverter.toEntity },
+    })
+  }
 }
 
 export class PlanSoinsItemEntity {
-  id?: number
-  plan_soins_id?: number
-  bloc_heure?: string
-  medicament?: string
-  dosage?: string
-  voie?: string
-  statut?: string
-  valide_par?: string | null
-  valide_a?: string | null
-  motif_suspension?: string | null
-  prescription_id?: number | null
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() plan_soins_id?: number
+  @SchemaField() bloc_heure?: string
+  @SchemaField() medicament?: string
+  @SchemaField() dosage?: string
+  @SchemaField() voie?: string
+  @SchemaField() statut?: string
+  @SchemaField() valide_par?: string
+  @SchemaField() valide_a?: string
+  @SchemaField() motif_suspension?: string
+  @SchemaField() prescription_id?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
+
+  static documentType(): string { return 'PlanSoinsItem' }
+  static documentSchema(): AutomergeDocument<PlanSoinsItemEntity> {
+    return buildDocumentSchema(PlanSoinsItemEntity) as AutomergeDocument<PlanSoinsItemEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'plan_soins_item',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: PlanSoinsItemConverter.toDocument, toEntity: PlanSoinsItemConverter.toEntity },
+    })
+  }
 }

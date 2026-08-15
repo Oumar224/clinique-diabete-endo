@@ -36,7 +36,8 @@ export function useCareUnits() {
       const created = await ipcInvoke<CareUnitDto>('care-units:create', dto)
       await fetchUnits()
       return created
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -46,7 +47,8 @@ export function useCareUnits() {
       const updated = await ipcInvoke<CareUnitDto>('care-units:update', { id, ...dto })
       await fetchUnits()
       return updated
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -56,7 +58,8 @@ export function useCareUnits() {
       await ipcInvoke('care-units:delete', { id })
       await fetchUnits()
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }
@@ -67,7 +70,8 @@ export function useCareUnits() {
       const idx = units.value.findIndex(u => u.id === id)
       if (idx !== -1) units.value[idx] = toggled
       return toggled
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }

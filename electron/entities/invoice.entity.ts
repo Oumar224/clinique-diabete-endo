@@ -2,19 +2,20 @@ import type { InvoiceDto, InvoiceItemDto, InvoicePaymentDto } from '../dto/invoi
 import { EntityRegistry } from '../automerge/entity-registry'
 import type { AutomergeDocument } from '../automerge/utils/entity-types'
 import { InvoiceConverter } from '../automerge/converters/invoice.converter'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
-  export class InvoiceEntity {
-  id?: number
-  numero?: string
-  patient_id?: number
-  date?: string
-  montant_total?: number
-  montant_restant?: number
-  status?: 'payé' | 'en_attente' | 'annulé' | 'partiel'
-  notes?: string
-  created_by?: number
-  created_at?: string
-  updated_at?: string
+export class InvoiceEntity {
+  @SchemaField() id?: number
+  @SchemaField() numero?: string
+  @SchemaField() patient_id?: number
+  @SchemaField() date?: string
+  @SchemaField() montant_total?: number
+  @SchemaField() montant_restant?: number
+  @SchemaField() status?: 'payé' | 'en_attente' | 'annulé' | 'partiel'
+  @SchemaField() notes?: string
+  @SchemaField() created_by?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(
     entity: InvoiceEntity,
@@ -65,7 +66,7 @@ import { InvoiceConverter } from '../automerge/converters/invoice.converter'
   }
 
   static documentSchema(): AutomergeDocument<InvoiceEntity> {
-    return {} as AutomergeDocument<InvoiceEntity>
+    return buildDocumentSchema(InvoiceEntity) as AutomergeDocument<InvoiceEntity>
   }
 
   static register(): void {

@@ -1,23 +1,27 @@
 import type { PrescriptionDto, FrequenceType } from '../dto/prescription.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { PrescriptionConverter } from '../automerge/converters/prescription.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class PrescriptionEntity {
-  id?: number
-  patient_id?: number
-  medicament?: string
-  dosage?: string
-  voie?: string
-  duree?: number
-  frequence?: string
-  frequence_type?: string
-  prn?: number
-  instructions?: string | null
-  date_prescription?: string
-  prescripteur_id?: number
-  statut?: string
-  type?: 'medicament' | 'soins'
-  prescription_type?: string
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() patient_id?: number
+  @SchemaField() medicament?: string
+  @SchemaField() dosage?: string
+  @SchemaField() voie?: string
+  @SchemaField() duree?: number
+  @SchemaField() frequence?: string
+  @SchemaField() frequence_type?: string
+  @SchemaField() prn?: number
+  @SchemaField() instructions?: string 
+  @SchemaField() date_prescription?: string
+  @SchemaField() prescripteur_id?: number
+  @SchemaField() statut?: string
+  @SchemaField() type?: 'medicament' | 'soins'
+  @SchemaField() prescription_type?: string
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: PrescriptionEntity): PrescriptionDto {
     return {
@@ -54,7 +58,7 @@ export class PrescriptionEntity {
     e.dosage = dto.dosage
     e.voie = dto.voie
     e.duree = dto.duree
-    e.frequence = dto.frequence.join(',')
+    e.frequence = dto.frequence?.join(',')
     e.frequence_type = dto.frequenceType ?? 'moments'
     e.prn = dto.prn ? 1 : 0
     e.instructions = dto.instructions
@@ -68,6 +72,13 @@ export class PrescriptionEntity {
   }
 
   static documentType(): string { return 'Prescription' }
-  static documentSchema(): any { return {} }
-  static register(): void { /* No Automerge sync needed */ }
+  static documentSchema(): AutomergeDocument<PrescriptionEntity> { return buildDocumentSchema(PrescriptionEntity) as AutomergeDocument<PrescriptionEntity> }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'prescription',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: PrescriptionConverter.toDocument, toEntity: PrescriptionConverter.toEntity },
+    })
+  }
 }

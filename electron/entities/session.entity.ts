@@ -1,12 +1,16 @@
 import type { SessionDto } from '../dto/auth.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { SessionConverter } from '../automerge/converters/session.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class SessionEntity {
-  id?: string
-  user_id?: number
-  created_at?: string
-  expires_at?: string
-  last_activity?: string
-  remember_me?: number
+  @SchemaField() id?: string
+  @SchemaField() user_id?: number
+  @SchemaField() created_at?: string
+  @SchemaField() expires_at?: string
+  @SchemaField() last_activity?: string
+  @SchemaField() remember_me?: number
 
   static toDto(entity: SessionEntity): SessionDto {
     return {
@@ -35,6 +39,15 @@ export class SessionEntity {
   }
 
   static documentType(): string { return 'Session' }
-  static documentSchema(): any { return {} }
-  static register(): void { /* No Automerge sync needed */ }
+  static documentSchema(): AutomergeDocument<SessionEntity> {
+    return buildDocumentSchema(SessionEntity) as AutomergeDocument<SessionEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'session',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: SessionConverter.toDocument, toEntity: SessionConverter.toEntity },
+    })
+  }
 }

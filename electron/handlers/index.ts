@@ -20,10 +20,14 @@ import { registerPatientActeHandlers } from './patient-acte.handler'
 import { registerCareUnitHandlers } from './care-unit.handler'
 import { registerContactOriginHandlers } from './contact-origin.handler'
 import { registerInsuranceHandlers } from './insurance.handler'
-import { registerContactCategoryHandlers } from './contact-category.handler'
 import { registerClinicalDocumentHandlers } from './clinical-document.handler'
 import { registerExamTypeHandlers } from './exam-type.handler'
 import { registerExamRequestHandlers } from './exam-request.handler'
+import { registerExamParameterHandlers } from './exam-parameter.handler'
+import { registerExamResultHandlers } from './exam-result.handler'
+import { registerOrdonnanceLibreHandlers } from './ordonnance-libre.handler'
+import { registerSpecialtyHandlers } from './specialty.handler'
+import { registerSyncHandlers } from './sync.handler'
 
 export function registerAllHandlers(): void {
   registerAuthHandlers()
@@ -48,8 +52,12 @@ export function registerAllHandlers(): void {
   registerCareUnitHandlers()
   registerContactOriginHandlers()
   registerInsuranceHandlers()
-  registerContactCategoryHandlers()
   registerClinicalDocumentHandlers()
   registerExamTypeHandlers()
   registerExamRequestHandlers()
+  registerExamParameterHandlers()
+  registerExamResultHandlers()
+  registerSpecialtyHandlers()
+  registerOrdonnanceLibreHandlers()
+  registerSyncHandlers()
 }

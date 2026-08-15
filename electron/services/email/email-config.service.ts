@@ -65,7 +65,7 @@ export class EmailConfigService {
    * Le mot de passe est chiffré avec AES-256-GCM avant stockage.
    */
   async saveConfig(dto: EmailConfigSaveDto): Promise<void> {
-    const encryptedPass = encrypt(dto.smtp_pass)
+    const encryptedPass = encrypt(dto.smtp_pass ?? '')
 
     try {
       const existing = await this.db

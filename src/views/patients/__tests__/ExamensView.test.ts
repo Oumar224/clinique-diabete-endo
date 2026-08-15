@@ -49,11 +49,13 @@ vi.mock('@/composables/useAuth', () => ({
 }))
 
 vi.mock('@/composables/useUsers', () => ({
-  users: { value: [
-    { id: 1, prenom: 'Admin', nom: 'User', role: 'ADMIN' },
-    { id: 2, prenom: 'Jean', nom: 'Dupont', role: 'MEDECIN' },
-  ]},
-  loadUsers: vi.fn(() => Promise.resolve()),
+  useUsers: vi.fn(() => ({
+    users: { value: [] as any[] },
+    loadUsers: async () => {
+      const users = await mockIpcInvoke('users:list')
+      return users
+    },
+  })),
   getUserDisplayName: vi.fn((m: any) => `${m.prenom} ${m.nom}`),
 }))
 
@@ -69,13 +71,79 @@ vi.mock('@/composables/usePatientContext', () => ({
 
 vi.mock('@/composables/useSpecialties', () => ({
   useSpecialties: vi.fn(() => ({
-    specialties: { value: [
-      { id: 1, name: 'Cardiologie', code: 'CARDIO', title_prefix: 'Dr', is_active: true },
-      { id: 2, name: 'Endocrinologie', code: 'ENDO', title_prefix: 'Dr', is_active: true },
-    ]},
-    fetchSpecialties: vi.fn(),
+    specialties: { value: [] as any[] },
+    fetchSpecialties: async () => {
+      return await mockIpcInvoke('specialties:list')
+    },
   })),
 }))
+
+vi.mock('@/composables/useExamTypes', async () => {
+  const vue = await vi.importActual<typeof import('vue')>('vue')
+  const allTypes = vue.ref<any[]>([])
+  return {
+    useExamTypes: vi.fn(() => ({
+      allTypes,
+      fetchAllByCategory: async (category: string) => {
+        const result = await mockIpcInvoke('exam-types:list-all-by-category', { category })
+        allTypes.value = Array.isArray(result) ? result : []
+      },
+    })),
+  }
+})
+
+vi.mock('@/composables/useExamRequests', async () => {
+  const vue = await vi.importActual<typeof import('vue')>('vue')
+  const reqs = vue.ref<any[]>([])
+  const loading = vue.ref(false)
+  const error = vue.ref<string | null>(null)
+  return {
+    useExamRequests: vi.fn(() => ({
+      requests: reqs,
+      loading,
+      error,
+      fetchRequests: async (patientId: number) => {
+        loading.value = true
+        error.value = null
+        try {
+          const result = await mockIpcInvoke('exam-request:list', { patientId })
+          reqs.value = Array.isArray(result) ? result : []
+        } catch (e: any) {
+          error.value = e.message
+          reqs.value = []
+        } finally {
+          loading.value = false
+        }
+      },
+      createRequest: async (dto: any) => {
+        try {
+          const created = await mockIpcInvoke('exam-request:create', dto)
+          return created
+        } catch (e: any) {
+          error.value = e.message
+          return null
+        }
+      },
+      updateRequest: async (id: number, dto: any) => {
+        try {
+          const updated = await mockIpcInvoke('exam-request:update', { id, ...dto })
+          return updated
+        } catch (e: any) {
+          error.value = e.message
+          return null
+        }
+      },
+      deleteRequest: async (id: number) => {
+        try {
+          return await mockIpcInvoke('exam-request:delete', { id })
+        } catch (e: any) {
+          error.value = e.message
+          return false
+        }
+      },
+    })),
+  }
+})
 
 // ---------------------------------------------------------------------------
 // Stubs for Element Plus components used in ExamensView
@@ -181,7 +249,12 @@ function dateAt(daysOffset: number, hour: number): string {
   const d = new Date()
   d.setDate(d.getDate() + daysOffset)
   d.setHours(hour, 0, 0, 0)
-  return d.toISOString()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  // Return ISO-like string in local timezone so the component parses it correctly
+  return `${y}-${m}-${day}T${hh}:00:00.000`
 }
 
 function makeRequest(overrides: Record<string, unknown> = {}) {
@@ -206,7 +279,7 @@ function defaultMockRequests() {
   return [
     makeRequest({ id: 1, createdAt: dateAt(0, 10) }),
     makeRequest({ id: 2, type: 'laboratoire' as const, motif: 'Bilan annuel', statut: 'en_cours' as const, prescripteurNom: 'Dr. Camara', createdAt: dateAt(0, 10) }),
-    makeRequest({ id: 3, type: 'avis' as const, specialtyId: 5, specialtyName: 'Endocrinologie', motif: 'Avis endocrinologique', statut: 'realise' as const, prescripteurId: 2, prescripteurNom: 'Dr. Camara', createdAt: dateAt(2, 14) }),
+    makeRequest({ id: 3, type: 'avis' as const, specialtyId: 5, specialtyName: 'Endocrinologie', motif: 'Avis endocrinologique', statut: 'realise' as const, prescripteurId: 2, prescripteurNom: 'Dr. Camara', createdAt: dateAt(-1, 14) }),
   ]
 }
 
@@ -283,7 +356,7 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
-      const dayColumns = wrapper.findAll('.examens-calendar__day-column')
+      const dayColumns = wrapper.findAll('.examens-calendar__date-header')
       expect(dayColumns).toHaveLength(7)
     })
   })
@@ -308,7 +381,7 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
-      const hourLabels = wrapper.findAll('.examens-calendar__hour-label')
+      const hourLabels = wrapper.findAll('.examens-calendar__date-hour')
       expect(hourLabels).toHaveLength(63)
     })
 
@@ -317,7 +390,7 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
-      const hourLabels = wrapper.findAll('.examens-calendar__hour-label')
+      const hourLabels = wrapper.findAll('.examens-calendar__date-hour')
       const texts = hourLabels.map(l => l.text())
       expect(texts).toContain('06:00')
       expect(texts).toContain('08:00')
@@ -335,7 +408,7 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
-      const hourCells = wrapper.findAll('.examens-calendar__hour-cell')
+      const hourCells = wrapper.findAll('.examens-calendar__cell')
       expect(hourCells).toHaveLength(63)
     })
 
@@ -344,7 +417,7 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
-      const todayColumns = wrapper.findAll('.examens-calendar__day-column--today')
+      const todayColumns = wrapper.findAll('.examens-calendar__date-header--today')
       expect(todayColumns.length).toBe(1)
     })
 
@@ -353,7 +426,7 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
-      const todayHeaders = wrapper.findAll('.examens-calendar__day-header--today')
+      const todayHeaders = wrapper.findAll('.examens-calendar__date-header--today')
       expect(todayHeaders.length).toBe(1)
     })
 
@@ -362,7 +435,7 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
-      const nowCells = wrapper.findAll('.examens-calendar__hour-cell--now')
+      const nowCells = wrapper.findAll('.examens-calendar__cell--now')
       expect(nowCells.length).toBe(1)
     })
 
@@ -371,7 +444,7 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
-      const nowLabels = wrapper.findAll('.examens-calendar__hour-label--now')
+      const nowLabels = wrapper.findAll('.examens-calendar__date-hour--now')
       expect(nowLabels.length).toBe(1)
     })
   })
@@ -481,14 +554,19 @@ describe('ExamensView', () => {
       const badges = wrapper.findAll('.examens-calendar__statut-badge')
       expect(badges).toHaveLength(3)
 
-      expect(badges[0].classes()).toContain('el-tag--warning')
-      expect(badges[0].text()).toContain('En attente')
+      // Yesterday's request (realise/success) comes first in the grid
+      const texts = badges.map(b => b.text())
+      expect(texts).toContain('Réalisé')
+      expect(texts).toContain('En attente')
+      expect(texts).toContain('En cours')
 
-      expect(badges[1].classes()).toContain('el-tag--primary')
-      expect(badges[1].text()).toContain('En cours')
-
-      expect(badges[2].classes()).toContain('el-tag--success')
-      expect(badges[2].text()).toContain('Réalisé')
+      // Check each badge has the right color class
+      const successBadges = badges.filter(b => b.text().includes('Réalisé'))
+      expect(successBadges[0].classes()).toContain('el-tag--success')
+      const warningBadges = badges.filter(b => b.text().includes('En attente'))
+      expect(warningBadges[0].classes()).toContain('el-tag--warning')
+      const primaryBadges = badges.filter(b => b.text().includes('En cours'))
+      expect(primaryBadges[0].classes()).toContain('el-tag--primary')
     })
 
     it('la carte imagerie porte la classe --imagerie', async () => {
@@ -641,7 +719,8 @@ describe('ExamensView', () => {
       expect(updateCalls.length).toBeGreaterThanOrEqual(1)
       const updateArgs = updateCalls[0][1]
       expect(updateArgs).toHaveProperty('statut', 'realise')
-      expect(updateArgs).toHaveProperty('id', 1)
+      // First card in DOM is yesterday's request (id=3) since it comes first in the grid
+      expect(updateArgs).toHaveProperty('id', 3)
 
       expect(wrapper.find('.el-dialog').exists()).toBe(false)
     })
@@ -650,7 +729,7 @@ describe('ExamensView', () => {
       const requests = defaultMockRequests()
       mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
         if (channel === 'exam-request:list') return requests
-        if (channel === 'exam-request:update') return { id: 1, ...requests[0], ...args }
+        if (channel === 'exam-request:update') return { id: 3, ...args }
         if (channel === 'specialties:list') return []
         if (channel === 'users:list') return []
         if (channel === 'exam-types:list-all-by-category') return []
@@ -742,7 +821,8 @@ describe('ExamensView', () => {
         (c: any[]) => c[0] === 'exam-request:delete'
       )
       expect(deleteCalls.length).toBeGreaterThanOrEqual(1)
-      expect(deleteCalls[0][1]).toHaveProperty('id', 1)
+      // First card in DOM is yesterday's request (id=3)
+      expect(deleteCalls[0][1]).toHaveProperty('id', 3)
 
       expect(wrapper.find('.el-dialog').exists()).toBe(false)
     })

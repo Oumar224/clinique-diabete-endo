@@ -4,6 +4,7 @@ import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import type { PatientActeEntity } from '../entities/patient-acte.entity'
 import type { PatientActeCreateDto } from '../dto/patient-acte.dto'
+import { validateForeignKeys } from './utils/fk-validator'
 
 @singleton()
 export class PatientActeService {
@@ -67,23 +68,15 @@ export class PatientActeService {
   async create(dto: PatientActeCreateDto): Promise<PatientActeEntity> {
     this.validateQuantite(dto.quantite ?? 1)
 
+    // Validate foreign keys before insert
+    await validateForeignKeys(this.db as any, [
+      { table: 'patient', column: 'patient_id', value: dto.patient_id },
+      { table: 'medical_acts', column: 'acte_id', value: dto.acte_id },
+      { table: 'encounters', column: 'encounter_id', value: dto.encounter_id },
+      { table: 'config_tarifs', column: 'tarif_id', value: dto.tarif_id },
+    ])
+
     try {
-      const acte = await this.db
-        .selectFrom('medical_acts')
-        .select('id')
-        .where('id', '=', dto.acte_id)
-        .executeTakeFirst()
-
-      if (!acte) throw new Error('Acte médical introuvable')
-
-      const patient = await this.db
-        .selectFrom('patient')
-        .select('id')
-        .where('id', '=', dto.patient_id)
-        .executeTakeFirst()
-
-      if (!patient) throw new Error('Patient introuvable')
-
       // If no tarif_id provided, look up active TARIF.STANDARD
       let tarifId = dto.tarif_id
       if (tarifId == null) {

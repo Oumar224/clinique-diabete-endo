@@ -6,6 +6,9 @@ import { autoUpdater } from 'electron-updater'
 import { AppDatabaseDatasource } from './sqlite-data-source'
 import { registerAllHandlers } from './handlers'
 import { LogoService } from './services/logo.service'
+import { AutomergeSyncService } from './automerge/automerge-sync.service'
+import { RemoteSyncService } from './automerge/remote-sync.service'
+import { setupIpcDispatcher } from './automerge/ipc-dispatcher'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -38,12 +41,17 @@ async function createWindow() {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      spellcheck: true,
     },
     show: false,
   })
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
+  })
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow?.webContents.session.setSpellCheckerLanguages(['fr'])
   })
 
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -145,6 +153,26 @@ app.whenReady().then(async () => {
     await datasource.initialize()
   } catch (error) {
     console.error('[CDE] Database initialization error:', error)
+  }
+
+  try {
+    const automergeSync = container.resolve(AutomergeSyncService)
+    await automergeSync.initialize()
+  } catch (error) {
+    console.error('[CDE] AutomergeSync initialization error:', error)
+  }
+
+  try {
+    const remoteSync = container.resolve(RemoteSyncService)
+    await remoteSync.start()
+  } catch (error) {
+    console.error('[CDE] RemoteSync start error:', error)
+  }
+
+  try {
+    setupIpcDispatcher()
+  } catch (error) {
+    console.error('[CDE] IpcDispatcher setup error:', error)
   }
 
   createWindow()

@@ -1,11 +1,17 @@
+import { EntityRegistry } from '../automerge/entity-registry'
+import { ContactOriginConverter } from '../automerge/converters/contact-origin.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
+import type { ContactOriginDto } from '../dto/contact-origin.dto'
+
 export class ContactOriginEntity {
-  id?: number
-  value?: string
-  label?: string
-  sort_order?: number
-  is_active?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() value?: string
+  @SchemaField() label?: string
+  @SchemaField() sort_order?: number
+  @SchemaField() is_active?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: ContactOriginEntity): ContactOriginDto {
     return {
@@ -36,30 +42,13 @@ export class ContactOriginEntity {
   }
 
   static documentType(): string { return 'ContactOrigin' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
-}
-
-export interface ContactOriginDto {
-  id: number
-  value: string
-  label: string
-  sort_order: number
-  is_active: boolean
-  created_at?: string
-  updated_at?: string
-}
-
-export interface ContactOriginCreateDto {
-  value: string
-  label: string
-  sort_order?: number
-}
-
-export interface ContactOriginUpdateDto {
-  id: number
-  value?: string
-  label?: string
-  sort_order?: number
-  is_active?: boolean
+  static documentSchema(): AutomergeDocument<ContactOriginEntity> { return buildDocumentSchema(ContactOriginEntity) as AutomergeDocument<ContactOriginEntity> }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'contact_origin',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: ContactOriginConverter.toDocument, toEntity: ContactOriginConverter.toEntity },
+    })
+  }
 }

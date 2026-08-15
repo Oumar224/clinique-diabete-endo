@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { ContactOriginEntity } from '../entities/contact-origin.entity'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class ContactOriginService {
@@ -94,6 +95,7 @@ export class ContactOriginService {
     }
 
     if (!result) throw new Error("Échec de la création du mécanisme de contact")
+    entityEventBus.emitEntityChange({ entityType: 'contact_origin', action: 'created', id: result.id!, entity: result, source: 'local', timestamp: Date.now() })
     return result as unknown as ContactOriginEntity
   }
 
@@ -149,6 +151,7 @@ export class ContactOriginService {
 
     const updated = await this.getById(id)
     if (!updated) throw new Error('Mécanisme de contact introuvable après mise à jour')
+    entityEventBus.emitEntityChange({ entityType: 'contact_origin', action: 'updated', id, entity: updated, source: 'local', timestamp: Date.now() })
     return updated
   }
 
@@ -173,6 +176,7 @@ export class ContactOriginService {
       }
       throw err
     }
+    entityEventBus.emitEntityChange({ entityType: 'contact_origin', action: 'deleted', id, entity: existing, source: 'local', timestamp: Date.now() })
   }
 
   private async getById(id: number): Promise<ContactOriginEntity | null> {

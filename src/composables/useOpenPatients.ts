@@ -1,5 +1,6 @@
 import { ref, computed, watch } from 'vue'
 import type { Patient } from './usePatientContext'
+import { ipcInvoke } from '@/utils/ipc'
 
 const MAX_OPEN_PATIENTS = 8
 const STORAGE_KEY = 'cde:open-patients'
@@ -37,11 +38,28 @@ watch(_entries, (list) => {
 }, { deep: true })
 
 
+/**
+ * Validate stored open patient entries against the database.
+ * Removes entries whose patients no longer exist.
+ * Call this once during app initialization (e.g. from DashboardLayout).
+ */
+export async function validateEntries() {
+  const ids = _entries.value.map(e => e.patient.id).filter(id => id > 0)
+  if (ids.length === 0) return
+  try {
+    const exists = await ipcInvoke<Record<number, boolean>>('patients:exists', { ids })
+    _entries.value = _entries.value.filter(e => exists[e.patient.id] !== false)
+  } catch {
+    // silently fail — keep existing entries
+  }
+}
+
 // ── Composable ──
 export function useOpenPatients() {
   const openPatients = computed(() => _entries.value)
 
   function addPatient(patient: Patient) {
+    if (!patient || !patient.id || patient.id <= 0) return
     const idx = _entries.value.findIndex(e => e.patient.id === patient.id)
     const entry: OpenPatientEntry = {
       patient: { ...patient },

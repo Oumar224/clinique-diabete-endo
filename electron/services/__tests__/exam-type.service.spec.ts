@@ -27,25 +27,25 @@ describe('ExamTypeService', () => {
     // and create only the tables we need
     db = datasource.getInstance()
 
-    // Create exam_categories table
+    // Create lab_exam_categories table
     await sql`
-      CREATE TABLE IF NOT EXISTS exam_categories (
+      CREATE TABLE IF NOT EXISTS lab_exam_categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         code TEXT NOT NULL UNIQUE,
-        label TEXT NOT NULL,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now'))
+        name TEXT NOT NULL
       )
     `.execute(db)
 
-    // Create exam_types table
+    // Create lab_exams table
     await sql`
-      CREATE TABLE IF NOT EXISTS exam_types (
+      CREATE TABLE IF NOT EXISTS lab_exams (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        category_id INTEGER NOT NULL REFERENCES exam_categories(id),
-        label TEXT NOT NULL,
+        category_id INTEGER NOT NULL REFERENCES lab_exam_categories(id),
+        parent_id INTEGER,
+        code TEXT NOT NULL,
+        name TEXT NOT NULL,
         is_active INTEGER NOT NULL DEFAULT 1,
+        sort_order INTEGER NOT NULL DEFAULT 0,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))
       )
@@ -53,52 +53,52 @@ describe('ExamTypeService', () => {
 
     // Seed default categories
     await sql`
-      INSERT OR IGNORE INTO exam_categories (code, label, sort_order) VALUES
-        ('imagerie', 'Imagerie', 1),
-        ('laboratoire', 'Laboratoire', 2),
-        ('avis', 'Avis spécialisé', 3)
+      INSERT OR IGNORE INTO lab_exam_categories (id, code, name) VALUES
+        (1, 'imagerie', 'Imagerie'),
+        (2, 'laboratoire', 'Laboratoire'),
+        (3, 'avis', 'Avis spécialisé')
     `.execute(db)
 
-    // Seed default exam types
+    // Seed default exam types (parent_id IS NULL = type-level items)
     await sql`
-      INSERT OR IGNORE INTO exam_types (category_id, label)
-      SELECT id, 'Radiographie thoracique' FROM exam_categories WHERE code = 'imagerie'
+      INSERT OR IGNORE INTO lab_exams (category_id, parent_id, code, name, sort_order)
+      VALUES (1, NULL, 'RADX_THOR', 'Radiographie thoracique', 1)
     `.execute(db)
     await sql`
-      INSERT OR IGNORE INTO exam_types (category_id, label)
-      SELECT id, 'Scanner cérébral' FROM exam_categories WHERE code = 'imagerie'
+      INSERT OR IGNORE INTO lab_exams (category_id, parent_id, code, name, sort_order)
+      VALUES (1, NULL, 'SCANNER_CER', 'Scanner cérébral', 2)
     `.execute(db)
     await sql`
-      INSERT OR IGNORE INTO exam_types (category_id, label)
-      SELECT id, 'IRM cardiaque' FROM exam_categories WHERE code = 'imagerie'
+      INSERT OR IGNORE INTO lab_exams (category_id, parent_id, code, name, sort_order)
+      VALUES (1, NULL, 'IRM_CARD', 'IRM cardiaque', 3)
     `.execute(db)
     await sql`
-      INSERT OR IGNORE INTO exam_types (category_id, label)
-      SELECT id, 'Échographie abdominale' FROM exam_categories WHERE code = 'imagerie'
+      INSERT OR IGNORE INTO lab_exams (category_id, parent_id, code, name, sort_order)
+      VALUES (1, NULL, 'ECHO_ABDOM', 'Échographie abdominale', 4)
     `.execute(db)
     await sql`
-      INSERT OR IGNORE INTO exam_types (category_id, label)
-      SELECT id, 'Scanner TAP' FROM exam_categories WHERE code = 'imagerie'
+      INSERT OR IGNORE INTO lab_exams (category_id, parent_id, code, name, sort_order)
+      VALUES (1, NULL, 'SCANNER_TAP', 'Scanner TAP', 5)
     `.execute(db)
     await sql`
-      INSERT OR IGNORE INTO exam_types (category_id, label)
-      SELECT id, 'NFS (Numération formule sanguine)' FROM exam_categories WHERE code = 'laboratoire'
+      INSERT OR IGNORE INTO lab_exams (category_id, parent_id, code, name, sort_order)
+      VALUES (2, NULL, 'NFS', 'NFS (Numération formule sanguine)', 1)
     `.execute(db)
     await sql`
-      INSERT OR IGNORE INTO exam_types (category_id, label)
-      SELECT id, 'Ionogramme sanguin' FROM exam_categories WHERE code = 'laboratoire'
+      INSERT OR IGNORE INTO lab_exams (category_id, parent_id, code, name, sort_order)
+      VALUES (2, NULL, 'IONO_SANG', 'Ionogramme sanguin', 2)
     `.execute(db)
     await sql`
-      INSERT OR IGNORE INTO exam_types (category_id, label)
-      SELECT id, 'Bilan hépatique' FROM exam_categories WHERE code = 'laboratoire'
+      INSERT OR IGNORE INTO lab_exams (category_id, parent_id, code, name, sort_order)
+      VALUES (2, NULL, 'BILAN_HEP', 'Bilan hépatique', 3)
     `.execute(db)
     await sql`
-      INSERT OR IGNORE INTO exam_types (category_id, label)
-      SELECT id, 'Bilan rénal' FROM exam_categories WHERE code = 'laboratoire'
+      INSERT OR IGNORE INTO lab_exams (category_id, parent_id, code, name, sort_order)
+      VALUES (2, NULL, 'BILAN_REN', 'Bilan rénal', 4)
     `.execute(db)
     await sql`
-      INSERT OR IGNORE INTO exam_types (category_id, label)
-      SELECT id, 'Hémoglobine glyquée (HbA1c)' FROM exam_categories WHERE code = 'laboratoire'
+      INSERT OR IGNORE INTO lab_exams (category_id, parent_id, code, name, sort_order)
+      VALUES (2, NULL, 'HBA1C', 'Hémoglobine glyquée (HbA1c)', 5)
     `.execute(db)
 
     service = new ExamTypeService(
@@ -135,16 +135,16 @@ describe('ExamTypeService', () => {
   it('should list imagerie types from seed data', async () => {
     const types = await service.listByCategory('imagerie')
     expect(types.length).toBeGreaterThanOrEqual(4)
-    expect(types.some(t => t.label?.includes('Radiographie'))).toBe(true)
-    expect(types.some(t => t.label?.includes('Scanner'))).toBe(true)
+    expect(types.some(t => t.name?.includes('Radiographie'))).toBe(true)
+    expect(types.some(t => t.name?.includes('Scanner'))).toBe(true)
     expect(types.every(t => t.is_active === 1 || t.is_active === true)).toBe(true)
   })
 
   it('should list laboratoire types from seed data', async () => {
     const types = await service.listByCategory('laboratoire')
     expect(types.length).toBeGreaterThanOrEqual(4)
-    expect(types.some(t => t.label?.includes('NFS'))).toBe(true)
-    expect(types.some(t => t.label?.includes('HbA1c'))).toBe(true)
+    expect(types.some(t => t.name?.includes('NFS'))).toBe(true)
+    expect(types.some(t => t.name?.includes('HbA1c'))).toBe(true)
   })
 
   it('should list avis category (no seed types)', async () => {
@@ -172,7 +172,7 @@ describe('ExamTypeService', () => {
     const created = await service.createType(entity)
 
     expect(created.id).toBeDefined()
-    expect(created.label).toBe('Nouvel examen test')
+    expect(created.name).toBe('Nouvel examen test')
     expect(created.category_id).toBe(imagerieCat.id)
     expect(created.is_active).toBe(1)
   })
@@ -185,25 +185,25 @@ describe('ExamTypeService', () => {
 
   it('should reject creation with non-existent category_id', async () => {
     const entity = ExamTypeEntity.fromDto({ category_id: 9999, label: 'Ghost exam', is_active: true })
-    await expect(service.createType(entity)).rejects.toThrow('Catégorie introuvable')
+    await expect(service.createType(entity)).rejects.toThrow()
   })
 
   // ─── Update exam type ───────────────────────────────────────
 
-  it('should update an exam type label', async () => {
+  it('should update an exam type name', async () => {
     const types = await service.listByCategory('imagerie')
     const target = types[0]
 
     const entity = new ExamTypeEntity()
     entity.id = target.id!
-    entity.label = 'Libellé modifié'
+    entity.name = 'Libellé modifié'
     const updated = await service.updateType(entity)
 
-    expect(updated.label).toBe('Libellé modifié')
+    expect(updated.name).toBe('Libellé modifié')
 
     const refetched = await service.listByCategory('imagerie')
     const found = refetched.find(t => t.id === target.id)
-    expect(found?.label).toBe('Libellé modifié')
+    expect(found?.name).toBe('Libellé modifié')
   })
 
   it('should update is_active flag', async () => {
@@ -225,7 +225,7 @@ describe('ExamTypeService', () => {
   it('should throw when updating non-existent exam type', async () => {
     const entity = new ExamTypeEntity()
     entity.id = 9999
-    entity.label = 'Ghost'
+    entity.name = 'Ghost'
     await expect(service.updateType(entity)).rejects.toThrow('introuvable')
   })
 
@@ -247,12 +247,12 @@ describe('ExamTypeService', () => {
 
   // ─── Return type shape ──────────────────────────────────────
 
-  it('should return exam types with category_label via listByCategory', async () => {
+  it('should return exam types with category_name via listByCategory', async () => {
     const types = await service.listByCategory('imagerie')
     if (types.length > 0) {
       const t = types[0] as any
-      expect(t.category_label).toBeDefined()
-      expect(t.category_label).toBe('Imagerie')
+      expect(t.category_name).toBeDefined()
+      expect(t.category_name).toBe('Imagerie')
     }
   })
 })

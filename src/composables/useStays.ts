@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import { ipcInvoke } from '@/utils/ipc'
 
 export interface StayDto {
@@ -30,18 +31,59 @@ export interface StayMovementDto {
   chambre?: string | null
   lit?: string | null
   moved_at: string
+  exited_at?: string | null
   notes?: string | null
   created_at?: string
 }
 
-export async function getActiveStay(patientId: number): Promise<StayDto | null> {
-  return ipcInvoke<StayDto | null>('stays:get-active', { patient_id: patientId })
-}
+const loading = ref(false)
+const error = ref<string | null>(null)
 
-export async function listStaysByPatient(patientId: number): Promise<StayDto[]> {
-  return ipcInvoke<StayDto[]>('stays:list-by-patient', { patient_id: patientId })
-}
+export function useStays() {
+  async function getActiveStay(patientId: number): Promise<StayDto | null> {
+    loading.value = true
+    error.value = null
+    try {
+      return await ipcInvoke<StayDto | null>('stays:get-active', { patient_id: patientId })
+    } catch (e) {
+      error.value = (e as Error).message
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
 
-export async function getStayMovements(stayId: number): Promise<StayMovementDto[]> {
-  return ipcInvoke<StayMovementDto[]>('stays:get-movements', { stay_id: stayId })
+  async function listStaysByPatient(patientId: number): Promise<StayDto[]> {
+    loading.value = true
+    error.value = null
+    try {
+      return await ipcInvoke<StayDto[]>('stays:list-by-patient', { patient_id: patientId })
+    } catch (e) {
+      error.value = (e as Error).message
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function getStayMovements(stayId: number): Promise<StayMovementDto[]> {
+    loading.value = true
+    error.value = null
+    try {
+      return await ipcInvoke<StayMovementDto[]>('stays:get-movements', { stay_id: stayId })
+    } catch (e) {
+      error.value = (e as Error).message
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    loading,
+    error,
+    getActiveStay,
+    listStaysByPatient,
+    getStayMovements,
+  }
 }

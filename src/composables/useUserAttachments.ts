@@ -18,6 +18,7 @@ export interface AttachmentDto {
 const attachments = ref<AttachmentDto[]>([])
 const loading = ref(false)
 const loadedForUserId = ref<number | null>(null)
+const error = ref<string | null>(null)
 
 export function useUserAttachments() {
   async function loadAttachments(userId: number) {
@@ -46,7 +47,8 @@ export function useUserAttachments() {
       const created = await ipcInvoke<AttachmentDto>('user-attachments:create', dto)
       attachments.value.unshift(created)
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }
@@ -56,7 +58,8 @@ export function useUserAttachments() {
       await ipcInvoke('user-attachments:delete', id)
       attachments.value = attachments.value.filter(a => a.id !== id)
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }
@@ -65,7 +68,8 @@ export function useUserAttachments() {
     try {
       const data = await ipcInvoke<AttachmentDto>('user-attachments:get', id)
       return data.file_data ?? null
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -78,6 +82,7 @@ export function useUserAttachments() {
   return {
     attachments,
     loading,
+    error,
     loadAttachments,
     addAttachment,
     removeAttachment,

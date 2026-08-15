@@ -1,45 +1,23 @@
-export interface FormFieldSchema {
-  key: string
-  label: string
-  type: 'text' | 'textarea' | 'select' | 'date' | 'number' | 'checkbox' | 'radio' | 'file'
-  required?: boolean
-  options?: { label: string; value: string }[]
-  placeholder?: string
-  defaultValue?: unknown
-  helpText?: string
-  validators?: { type: string; params?: any }[]
-  conditional?: { field: string; value: any }
-  layout?: { width: number }
-}
-
-export interface ClinicalDocumentTypeDTO {
-  id: string
-  code: string
-  label: string
-  description: string | null
-  formSchema: FormFieldSchema[]
-  category: string
-  isActive: boolean
-  createdAt: string
-  acteIdDeclenche: number | null
-  acteLabel: string | null
-  acteCode: string | null
-  prixUnitaire: number | null
-}
+import type { ClinicalDocumentTypeDTO, FormFieldSchema } from '../dto/clinical-document-type.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { ClinicalDocumentTypeConverter } from '../automerge/converters/clinical-document-type.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class ClinicalDocumentTypeEntity {
-  id?: string
-  code?: string
-  label?: string
-  description?: string | null
-  form_schema?: string
-  category?: string
-  is_active?: number
-  created_at?: string
-  acte_id_declenche?: number | null
-  acte_label?: string | null
-  acte_code?: string | null
-  prix_unitaire?: number | null
+  @SchemaField() id?: number
+  @SchemaField() code?: string
+  @SchemaField() label?: string
+  @SchemaField() description?: string
+  @SchemaField() form_schema?: string
+  @SchemaField() category?: string
+  @SchemaField() is_active?: number
+  @SchemaField() created_at?: string
+  @SchemaField() acte_id_declenche?: number
+  @SchemaField() acte_label?: string
+  @SchemaField() acte_code?: string
+  @SchemaField() prix_unitaire?: number
+  @SchemaField() contact_types?: string
 
   static toDto(entity: ClinicalDocumentTypeEntity): ClinicalDocumentTypeDTO {
     const rawSchema: any[] = entity.form_schema ? JSON.parse(entity.form_schema) : []
@@ -61,15 +39,16 @@ export class ClinicalDocumentTypeEntity {
       id: entity.id!,
       code: entity.code!,
       label: entity.label!,
-      description: entity.description ?? null,
+      description: entity.description,
       formSchema,
       category: entity.category ?? 'other',
       isActive: entity.is_active === 1,
       createdAt: entity.created_at!,
-      acteIdDeclenche: entity.acte_id_declenche ?? null,
-      acteLabel: entity.acte_label ?? null,
-      acteCode: entity.acte_code ?? null,
-      prixUnitaire: entity.prix_unitaire ?? null,
+      acteIdDeclenche: entity.acte_id_declenche,
+      acteLabel: entity.acte_label,
+      acteCode: entity.acte_code,
+      prixUnitaire: entity.prix_unitaire,
+      contactTypes: entity.contact_types ? JSON.parse(entity.contact_types) : [] as string[],
     }
   }
 
@@ -82,11 +61,12 @@ export class ClinicalDocumentTypeEntity {
     e.id = dto.id
     e.code = dto.code
     e.label = dto.label
-    e.description = dto.description ?? null
+    e.description = dto.description
     e.form_schema = JSON.stringify(dto.formSchema)
     e.category = dto.category
     e.is_active = dto.isActive ? 1 : 0
     e.acte_id_declenche = dto.acteIdDeclenche
+    e.contact_types = JSON.stringify(dto.contactTypes ?? [])
     return e
   }
 
@@ -94,11 +74,16 @@ export class ClinicalDocumentTypeEntity {
     return 'ClinicalDocumentType'
   }
 
-  static documentSchema(): unknown {
-    return {}
+  static documentSchema(): AutomergeDocument<ClinicalDocumentTypeEntity> {
+    return buildDocumentSchema(ClinicalDocumentTypeEntity) as AutomergeDocument<ClinicalDocumentTypeEntity>
   }
 
   static register(): void {
-    /* No Automerge sync needed */
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'clinical_document_type',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: ClinicalDocumentTypeConverter.toDocument, toEntity: ClinicalDocumentTypeConverter.toEntity },
+    })
   }
 }

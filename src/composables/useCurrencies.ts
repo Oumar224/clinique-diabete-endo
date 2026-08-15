@@ -19,6 +19,7 @@ const currencies = ref<CurrencyDto[]>([])
 const defaultCurrency = ref('GNF')
 const loading = ref(false)
 const loaded = ref(false)
+const error = ref<string | null>(null)
 
 const currencyMap = ref<Record<string, CurrencyDto>>({})
 
@@ -37,8 +38,8 @@ export function useCurrencies() {
       currencies.value = await ipcInvoke<CurrencyDto[]>('currency:list')
       buildCurrencyMap()
       await loadDefault()
-    } catch {
-      // fallback to hardcoded defaults
+    } catch (e) {
+      error.value = (e as Error).message
       currencies.value = [
         { code: 'GNF', symbol: 'GNF', name: 'Franc Guinéen', decimals: 0 },
         { code: 'EUR', symbol: '€', name: 'Euro', decimals: 2 },
@@ -58,7 +59,8 @@ export function useCurrencies() {
       if (result?.value) {
         defaultCurrency.value = result.value
       }
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       defaultCurrency.value = 'GNF'
     }
   }
@@ -69,7 +71,8 @@ export function useCurrencies() {
       currencies.value.push(created)
       buildCurrencyMap()
       return created
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -81,7 +84,8 @@ export function useCurrencies() {
       if (idx !== -1) currencies.value[idx] = updated
       buildCurrencyMap()
       return updated
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -92,7 +96,8 @@ export function useCurrencies() {
       currencies.value = currencies.value.filter(c => c.code !== code)
       buildCurrencyMap()
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }
@@ -102,7 +107,8 @@ export function useCurrencies() {
       await ipcInvoke('currencies:set-default', { code })
       defaultCurrency.value = code
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }
@@ -128,6 +134,7 @@ export function useCurrencies() {
     defaultCurrency,
     loading,
     loaded,
+    error,
     fetchCurrencies,
     createCurrency,
     updateCurrency,

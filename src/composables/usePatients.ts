@@ -24,24 +24,85 @@ export interface PatientDto {
   consentementEtude?: string
 }
 
-export const patients = ref<PatientDto[]>([])
+const patients = ref<PatientDto[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
 
-export async function fetchPatients(search?: string) {
-  patients.value = await ipcInvoke<PatientDto[]>('patients:list', { search })
-}
+export function usePatients() {
+  async function fetchPatients(search?: string): Promise<void> {
+    loading.value = true
+    error.value = null
+    try {
+      patients.value = await ipcInvoke<PatientDto[]>('patients:list', { search })
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      loading.value = false
+    }
+  }
 
-export async function getPatient(id: number): Promise<PatientDto | null> {
-  return await ipcInvoke<PatientDto | null>('patients:get', { id })
-}
+  async function getPatient(id: number): Promise<PatientDto | null> {
+    try {
+      return await ipcInvoke<PatientDto | null>('patients:get', { id })
+    } catch (e) {
+      error.value = (e as Error).message
+      return null
+    }
+  }
 
-export async function createPatient(data: Omit<PatientDto, 'id'>): Promise<PatientDto | null> {
-  return await ipcInvoke<PatientDto | null>('patients:create', data)
-}
+  async function createPatient(data: Omit<PatientDto, 'id'>): Promise<PatientDto | null> {
+    try {
+      const created = await ipcInvoke<PatientDto | null>('patients:create', data)
+      await fetchPatients()
+      return created
+    } catch (e) {
+      error.value = (e as Error).message
+      return null
+    }
+  }
 
-export async function updatePatient(data: PatientDto): Promise<PatientDto | null> {
-  return await ipcInvoke<PatientDto | null>('patients:update', data)
-}
+  async function updatePatient(data: PatientDto): Promise<PatientDto | null> {
+    try {
+      const updated = await ipcInvoke<PatientDto | null>('patients:update', data)
+      await fetchPatients()
+      return updated
+    } catch (e) {
+      error.value = (e as Error).message
+      return null
+    }
+  }
 
-export async function deletePatient(id: number) {
-  await ipcInvoke<void>('patients:delete', { id })
+  async function deletePatient(id: number): Promise<void> {
+    loading.value = true
+    error.value = null
+    try {
+      await ipcInvoke<void>('patients:delete', { id })
+      await fetchPatients()
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function checkPatientsExist(ids: number[]): Promise<Record<number, boolean>> {
+    try {
+      return await ipcInvoke<Record<number, boolean>>('patients:exists', { ids })
+    } catch (e) {
+      error.value = (e as Error).message
+      return {}
+    }
+  }
+
+  return {
+    patients,
+    loading,
+    error,
+    fetchPatients,
+    getPatient,
+    createPatient,
+    updatePatient,
+    deletePatient,
+    checkPatientsExist,
+  }
 }

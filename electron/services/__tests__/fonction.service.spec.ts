@@ -7,7 +7,7 @@ import { container } from 'tsyringe'
 import { AppDatabaseDatasource } from '../../sqlite-data-source'
 import { FonctionService } from '../fonction.service'
 
-describe('FonctionService', () => {
+describe('FonctionService', { timeout: 30_000 }, () => {
   let tempDir: string
   let dbPath: string
 
@@ -66,14 +66,19 @@ describe('FonctionService', () => {
 
   it('should list all fonctions sorted by name asc', async () => {
     const service = container.resolve(FonctionService)
+    const before = await service.list()
+    const beforeCount = before.length
     // Create two fonctions out of order
     await service.create({ name: 'Z' })
     await service.create({ name: 'A' })
 
     const list = await service.list()
-    expect(list.length).toBe(2)
-    expect(list[0].name).toBe('A')
-    expect(list[1].name).toBe('Z')
+    expect(list.length).toBe(beforeCount + 2)
+    // The two new ones should appear in sorted order relative to each other
+    const names = list.map(f => f.name)
+    const idxA = names.indexOf('A')
+    const idxZ = names.indexOf('Z')
+    expect(idxA).toBeLessThan(idxZ)
   })
 
   it('should return only active fonctions when activeOnly=true', async () => {

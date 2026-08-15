@@ -2,11 +2,7 @@ import { ref, watch, type Ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useVitalSigns } from '@/composables/useVitalSigns'
 import { useAuth } from '@/composables/useAuth'
-import {
-  getPlanSoins as apiGetPlanSoins,
-  validerSoin as apiValiderSoin,
-  suspendreSoin as apiSuspendreSoin,
-} from '@/api/planSoins'
+import { ipcInvoke } from '@/utils/ipc'
 import type { SoinItem, BlocHoraire } from '@/types/soins'
 import { isInsulin, voieColor } from '@/types/soins'
 
@@ -67,7 +63,7 @@ export function usePlanSoins(patientId: Ref<number | null>): PlanSoinsContext {
     loading.value = true
     error.value = null
     try {
-      const record = await apiGetPlanSoins(id, date)
+      const record = await ipcInvoke<any>('plan-soins:list', { patientId: id, date })
       blocs.value = record?.blocs ?? []
     } catch (e) {
       const msg = (e as Error).message
@@ -110,7 +106,7 @@ export function usePlanSoins(patientId: Ref<number | null>): PlanSoinsContext {
       const validePar = user.value
         ? `${user.value.prenom} ${user.value.nom}`
         : 'Utilisateur inconnu'
-      const updated = await apiValiderSoin(soin.id, validePar)
+      const updated = await ipcInvoke<any>('plan-soins:valider', { soinId: soin.id, validePar })
       replaceSoinInBlocs(soin.id, updated)
       ElMessage.success(`Administration de ${soin.medicament} validée`)
     } catch (e) {
@@ -131,7 +127,7 @@ export function usePlanSoins(patientId: Ref<number | null>): PlanSoinsContext {
         },
       )
 
-      const updated = await apiSuspendreSoin(soin.id, motif)
+      const updated = await ipcInvoke<any>('plan-soins:suspendre', { soinId: soin.id, motif })
       replaceSoinInBlocs(soin.id, updated)
       ElMessage.info(`${soin.medicament} suspendu: ${motif}`)
     } catch (err: unknown) {
@@ -160,4 +156,44 @@ export function usePlanSoins(patientId: Ref<number | null>): PlanSoinsContext {
     valider,
     suspendre,
   }
+}
+
+export function getPlanSoins(patientId: number, date: string): Promise<PlanSoinsRecord | null> {
+  return ipcInvoke<PlanSoinsRecord | null>('plan-soins:list', { patientId, date })
+}
+
+export interface ValideRecord {
+  date: string
+  heure: string
+  medicament: string
+  dosage: string
+  voie: string
+  validePar: string | null
+  valideA: string | null
+}
+
+export interface PlanSoinsRecord {
+  id: number
+  patientId: number
+  date: string
+  blocs: import('@/types/soins').BlocHoraire[]
+  createdBy: number
+  createdAt: string
+  updatedAt: string
+}
+
+export function getValidesPlanSoins(patientId: number, startDate: string, endDate: string): Promise<ValideRecord[]> {
+  return ipcInvoke<ValideRecord[]>('plan-soins:valides', { patientId, startDate, endDate })
+}
+
+export function reprendreSoin(soinId: number): Promise<any> {
+  return ipcInvoke('plan-soins:reprise', { soinId })
+}
+
+export function suspendrePrescription(prescriptionId: number, motif: string): Promise<any[]> {
+  return ipcInvoke('plan-soins:suspendre-prescription', { prescriptionId, motif })
+}
+
+export function reprendrePrescription(prescriptionId: number): Promise<any[]> {
+  return ipcInvoke('plan-soins:reprendre-prescription', { prescriptionId })
 }

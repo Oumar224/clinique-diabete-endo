@@ -4,6 +4,7 @@ import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { ConservateurStockageEntity } from '../entities/conservateur-stockage.entity'
 import { ConservateurChampLocalisationEntity } from '../entities/conservateur-champ-localisation.entity'
+import { validateForeignKeys } from './utils/fk-validator'
 
 @singleton()
 export class ConservateurService {
@@ -105,7 +106,7 @@ export class ConservateurService {
         .values({
           code: (entity.code ?? '').trim(),
           name: (entity.name ?? '').trim(),
-          description: entity.description ?? null,
+          description: entity.description ?? undefined,
           sort_order: nextOrder,
           is_active: entity.is_active ?? 1,
         })
@@ -288,9 +289,10 @@ export class ConservateurService {
     this.validateCle(entity.cle ?? '')
     this.validateLabel(entity.label ?? '')
 
-    // Vérifier que le stockage parent existe
-    const stockage = await this.getStockageById(entity.stockage_id ?? 0)
-    if (!stockage) throw new Error('Stockage parent introuvable')
+    // Validate foreign key before insert
+    await validateForeignKeys(this.db as any, [
+      { table: 'conservateurs_stockage', column: 'stockage_id', value: entity.stockage_id },
+    ])
 
     let maxOrder
     try {

@@ -19,7 +19,7 @@
             <span class="topbar__meta-pipe" aria-hidden="true">|</span>
             <span class="topbar__meta-item">&Acirc;ge&nbsp;: {{ age }} ans</span>
             <span class="topbar__meta-pipe" aria-hidden="true">|</span>
-            <span class="topbar__meta-item">N\u00b0 SS&nbsp;: {{ maskNir(activePatient.nir) }}</span>
+            <span class="topbar__meta-item">N° SS&nbsp;: {{ maskNir(activePatient.nir) }}</span>
             <template v-if="activePatient.assuranceMutuelle">
               <span class="topbar__meta-pipe" aria-hidden="true">|</span>
               <span class="topbar__meta-item">Assurance&nbsp;: {{ activePatient.assuranceMutuelle }}</span>
@@ -31,7 +31,7 @@
 
         <div v-if="activePatient.allergies?.length" class="topbar__allergies">
           <el-tooltip
-            :content="activePatient.allergies.join(', ')"
+            :content="normalizeAllergies(activePatient.allergies || []).map(a => a.libelle).join(', ')"
             placement="bottom"
             :show-after="300"
           >
@@ -50,6 +50,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePatientContext } from '@/composables/usePatientContext'
 import { getCiviliteSymbol } from '@/utils/civilite'
+import { normalizeAllergies } from '@/utils/allergy-helpers'
 
 const route = useRoute()
 const { activePatient, age, hasActivePatient } = usePatientContext()

@@ -16,6 +16,21 @@ interface DownloadProgress {
 interface ElectronAPI {
   getVersion: () => Promise<string>
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
+  onEntityChanged?(callback: (event: {
+    entityType: string
+    action: 'created' | 'updated' | 'deleted'
+    id: number | string
+    source: 'local' | 'remote'
+    timestamp: number
+  }) => void): () => void
+  onSyncProgress?(callback: (event: {
+    phase: 'started' | 'progress' | 'completed' | 'error'
+    entityType: string
+    processed: number
+    total: number
+    timestamp: number
+    error?: string
+  }) => void): () => void
   autoUpdater: {
     checkForUpdates(): Promise<{ updateInfo: UpdateInfo }>
     downloadUpdate(): Promise<void>

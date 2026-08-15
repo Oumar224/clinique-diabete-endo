@@ -151,17 +151,11 @@ import { computed, reactive, onMounted, watch } from 'vue'
 import { User, Calendar, Money, Tools, Download, Upload } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import { useSystemInfo } from '@/composables/useSystemInfo'
-import {
-  emailConfig,
-  testing,
-  saving,
-  loadConfig,
-  saveConfig,
-  testEmail,
-} from '@/composables/useEmailConfig'
+import { useEmailConfig } from '@/composables/useEmailConfig'
 import { formatDate } from '@/utils/date'
 
 const { systemInfo, backingUp, restoring, fetchInfo, triggerBackup, triggerRestore } = useSystemInfo()
+const { emailConfig, testing, saving, loadConfig, saveConfig, testEmail } = useEmailConfig()
 
 const dbPath = computed(() => {
   if (!systemInfo.value.app?.platform) return '—'

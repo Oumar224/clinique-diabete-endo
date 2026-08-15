@@ -40,6 +40,17 @@ import { ElMessage } from 'element-plus'
 const props = defineProps<{
   patientId: number
   prescriptionIds?: number[]
+  inlinePrescriptions?: Array<{
+    medicament: string
+    dosage: string
+    unite: string
+    voie: string
+    duree: number
+    frequenceType: string
+    frequence: string[]
+    prn: boolean
+    instructions: string
+  }>
 }>()
 
 const emit = defineEmits<{
@@ -64,9 +75,12 @@ async function loadPreview() {
 
   loading.value = true
   try {
+    const safeInline = props.inlinePrescriptions ? JSON.parse(JSON.stringify(props.inlinePrescriptions)) : undefined
+    const safeIds = props.prescriptionIds ? [...props.prescriptionIds] : undefined
     const result: any = await window.electronAPI.invoke('export:prescription-preview', {
       patientId: props.patientId,
-      prescriptionIds: props.prescriptionIds,
+      prescriptionIds: safeIds,
+      inlinePrescriptions: safeInline,
     })
     if (result?.success) {
       htmlContent.value = result.data as string
@@ -85,9 +99,12 @@ async function downloadPdf() {
 
   downloading.value = true
   try {
+    const safeInline = props.inlinePrescriptions ? JSON.parse(JSON.stringify(props.inlinePrescriptions)) : undefined
+    const safeIds = props.prescriptionIds ? [...props.prescriptionIds] : undefined
     const result: any = await window.electronAPI.invoke('export:prescription-pdf', {
       patientId: props.patientId,
-      prescriptionIds: props.prescriptionIds,
+      prescriptionIds: safeIds,
+      inlinePrescriptions: safeInline,
     })
     if (result?.success) {
       ElMessage.success(`Fichier enregistré : ${result.data}`)
@@ -143,12 +160,16 @@ defineExpose({ open })
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  background: var(--el-fill-color-light);
+  background: #c0c4cc;
+  padding: 24px 0;
 }
 
 .preview-iframe {
-  width: 100%;
-  height: 100%;
+  width: 794px;
+  min-height: 1123px;
   background: #ffffff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  border: none;
+  flex-shrink: 0;
 }
 </style>

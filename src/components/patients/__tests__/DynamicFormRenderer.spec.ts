@@ -7,12 +7,12 @@ import type { FormFieldSchema } from '@/composables/useClinicalDocuments'
 
 const EL_STUBS: Record<string, any> = {
   'el-form': {
-    template: '<form class="el-form"><slot /></form>',
+    template: '<form class="el-form" :disabled="disabled"><slot /></form>',
     props: ['model', 'disabled', 'labelPosition'],
     methods: { validate: vi.fn(), clearValidate: vi.fn() },
   },
   'el-form-item': {
-    template: '<div class="el-form-item"><slot /></div>',
+    template: '<div class="el-form-item" :required="required"><label>{{ label }}</label><slot /></div>',
     props: ['label', 'required', 'prop', 'rules'],
   },
   'el-row': { template: '<div class="el-row"><slot /></div>', props: ['gutter'] },
@@ -38,7 +38,7 @@ const EL_STUBS: Record<string, any> = {
     emits: ['update:modelValue'],
   },
   'el-option': {
-    template: '<div class="el-option" :data-value="value"><slot /></div>',
+    template: '<div class="el-option" :data-value="value">{{ label }}</div>',
     props: ['label', 'value'],
   },
   'el-radio-group': {
@@ -47,7 +47,7 @@ const EL_STUBS: Record<string, any> = {
     emits: ['update:modelValue'],
   },
   'el-radio': {
-    template: '<label class="el-radio"><input type="radio" :value="value" /><slot /></label>',
+    template: '<label class="el-radio"><input type="radio" :value="value" />{{ label }}</label>',
     props: ['value', 'label'],
   },
   'el-checkbox-group': {
@@ -66,9 +66,15 @@ const EL_STUBS: Record<string, any> = {
   },
 }
 
-// Disable the transition wrapper
 vi.mock('element-plus', () => ({
-  ElForm: { props: ['model', 'disabled', 'labelPosition'] },
+  ElForm: {
+    template: '<form class="el-form" :disabled="disabled"><slot /></form>',
+    props: ['model', 'disabled', 'labelPosition'],
+    methods: {
+      validate(cb: any) { if (cb) cb(true); return Promise.resolve(true) },
+      clearValidate() {},
+    },
+  },
 }))
 
 import DynamicFormRenderer from '../DynamicFormRenderer.vue'

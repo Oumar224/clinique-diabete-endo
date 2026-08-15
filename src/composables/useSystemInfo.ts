@@ -37,6 +37,7 @@ export interface SystemInfoState {
 const systemInfo = ref<SystemInfoState>({})
 const backingUp = ref(false)
 const restoring = ref(false)
+const error = ref<string | null>(null)
 
 export function useSystemInfo() {
   async function fetchInfo(): Promise<void> {
@@ -58,7 +59,8 @@ export function useSystemInfo() {
       ElMessage({ type: 'success', message: `Sauvegarde effectuée : ${result.file_path}` })
       systemInfo.value.lastBackup = result.date
       return result
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     } finally {
       backingUp.value = false
@@ -74,7 +76,8 @@ export function useSystemInfo() {
         await window.electronAPI?.invoke('app:restart')
       }
       return result
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     } finally {
       restoring.value = false
@@ -85,6 +88,7 @@ export function useSystemInfo() {
     systemInfo,
     backingUp,
     restoring,
+    error,
     fetchInfo,
     triggerBackup,
     triggerRestore,

@@ -2,32 +2,33 @@ import type { PatientDto } from '../dto/patient.dto'
 import { EntityRegistry } from '../automerge/entity-registry'
 import { PatientConverter } from '../automerge/converters/patient.converter'
 import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class PatientEntity {
-  id?: number
-  civilite?: '' | 'M' | 'Mme' | 'Mlle'
-  nom?: string
-  prenom?: string
-  date_naissance?: string
-  nir?: string
-  telephone?: string
-  email?: string
-  medecin_traitant?: string
-  allergies?: string
-  automerge_id?: string
-  photo?: string
-  nip?: string
-  lieu_naissance?: string
-  residence_code?: string
-  adresse?: string
-  complement_adresse?: string
-  region?: string
-  profession?: string
-  site_id?: number
-  assurance_mutuelle?: string
-  consentement_etude?: string
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() civilite?: '' | 'M' | 'Mme' | 'Mlle'
+  @SchemaField() nom?: string
+  @SchemaField() prenom?: string
+  @SchemaField() date_naissance?: string
+  @SchemaField() nir?: string
+  @SchemaField() telephone?: string
+  @SchemaField() email?: string
+  @SchemaField() medecin_traitant?: string
+  @SchemaField() allergies?: string
+  @SchemaField() automerge_id?: string
+  @SchemaField() photo?: string
+  @SchemaField() nip?: string
+  @SchemaField() lieu_naissance?: string
+  @SchemaField() residence_code?: string
+  @SchemaField() adresse?: string
+  @SchemaField() complement_adresse?: string
+  @SchemaField() region?: string
+  @SchemaField() profession?: string
+  @SchemaField() site_id?: number
+  @SchemaField() assurance_mutuelle?: string
+  @SchemaField() consentement_etude?: string
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: PatientEntity): PatientDto {
     return {
@@ -91,7 +92,7 @@ export class PatientEntity {
   }
 
   static documentSchema(): AutomergeDocument<PatientEntity> {
-    return {} as AutomergeDocument<PatientEntity>
+    return buildDocumentSchema(PatientEntity) as AutomergeDocument<PatientEntity>
   }
 
   static register(): void {

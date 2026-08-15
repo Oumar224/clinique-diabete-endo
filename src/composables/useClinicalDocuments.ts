@@ -35,6 +35,7 @@ export interface ClinicalDocumentTypeDTO {
   acteLabel?: string | null
   acteCode?: string | null
   prixUnitaire?: number | null
+  contactTypes?: string[]
 }
 
 // ─── Internal raw DTO matching the backend shape ────────────────────────────
@@ -48,6 +49,8 @@ interface RawClinicalDocumentDTO {
   title: string | null
   status: 'draft' | 'signed'
   formData: string | null
+  source?: string
+  pdfPath?: string | null
   signedAt: string | null
   signedBy: string | null
   createdBy: string
@@ -63,6 +66,8 @@ export interface ClinicalDocumentDTO {
   title?: string
   status: 'draft' | 'signed'
   formData: Record<string, any>
+  source?: string
+  pdfPath?: string | null
   signedAt?: string
   signedBy?: string
   createdBy: string
@@ -94,6 +99,8 @@ function normalizeDocument(
     title: raw.title ?? undefined,
     status: raw.status,
     formData: parseFormData(raw.formData),
+    source: raw.source ?? 'created',
+    pdfPath: raw.pdfPath ?? null,
     signedAt: raw.signedAt ?? undefined,
     signedBy: raw.signedBy ?? undefined,
     createdBy: raw.createdBy,
@@ -282,6 +289,78 @@ export function useClinicalDocuments() {
     }
   }
 
+  async function importPdf(contactId: string, createdBy: string): Promise<ClinicalDocumentDTO | null> {
+    try {
+      const raw = await ipcInvoke<RawClinicalDocumentDTO | null>('clinical-documents:import-pdf', { contactId, createdBy })
+      if (!raw) return null
+      const normalized = normalizeDocument(raw, documentTypes.value)
+      documents.value.unshift(normalized)
+      ElMessage.success('PDF importé')
+      return normalized
+    } catch (e) {
+      const msg = (e as Error).message
+      ElMessage.error(`Erreur lors de l'import PDF: ${msg}`)
+      return null
+    }
+  }
+
+  /**
+   * Convert a File object to a base64 data string (without the data-URL prefix).
+   * This is necessary because Electron's IPC cannot transfer raw File objects;
+   * base64 encoding lets us send the binary payload as a JSON-safe string.
+   */
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const dataUrl = reader.result as string
+        // Strip "data:<mime>;base64," prefix to get raw base64
+        const base64 = dataUrl.split(',')[1] ?? ''
+        resolve(base64)
+      }
+      reader.onerror = () => reject(new Error('Impossible de lire le fichier'))
+      reader.readAsDataURL(file)
+    })
+  }
+
+  async function importFile(params: {
+    contactId: string
+    createdBy: string
+    file: File
+    documentTypeId?: string
+    title?: string
+  }): Promise<ClinicalDocumentDTO | null> {
+    try {
+      // Convert the File to base64 so it can be sent over IPC as JSON
+      const fileData = await fileToBase64(params.file)
+      const raw = await ipcInvoke<RawClinicalDocumentDTO | null>('clinical-documents:import-file', {
+        contactId: params.contactId,
+        createdBy: params.createdBy,
+        fileData,
+        fileName: params.file.name,
+        documentTypeId: params.documentTypeId,
+        title: params.title,
+      })
+      if (!raw) return null
+      const normalized = normalizeDocument(raw, documentTypes.value)
+      documents.value.unshift(normalized)
+      ElMessage.success('Document importé')
+      return normalized
+    } catch (e) {
+      const msg = (e as Error).message
+      ElMessage.error(`Erreur lors de l'import du document: ${msg}`)
+      return null
+    }
+  }
+
+  async function openPdf(pdfPath: string): Promise<void> {
+    try {
+      await ipcInvoke('clinical-documents:open-pdf', { pdfPath })
+    } catch (e) {
+      ElMessage.error(`Erreur lors de l'ouverture du PDF: ${(e as Error).message}`)
+    }
+  }
+
   async function checkContactExpired(contactId: string): Promise<boolean> {
     try {
       isContactExpired.value = await ipcInvoke<boolean>('clinical-documents:check-contact-expired', { contactId })
@@ -323,6 +402,9 @@ export function useClinicalDocuments() {
     fetchDocumentsByPatient,
     createDocument,
     createDocumentWithActe,
+    importPdf,
+    importFile,
+    openPdf,
     updateDocumentData,
     signDocument,
     deleteDocument,

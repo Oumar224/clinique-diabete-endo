@@ -9,3 +9,4 @@ Thumbs.db
 .env.local
 # CocoIndex Code (ccc)
 /.cocoindex_code/
+graphify-out

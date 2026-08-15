@@ -85,4 +85,8 @@ export class VitalSignsItemService {
 
     return saved as unknown as VitalSignsItemEntity
   }
+
+  async delete(id: number): Promise<void> {
+    await this.db.deleteFrom('vital_signs_items').where('id', '=', id).execute()
+  }
 }

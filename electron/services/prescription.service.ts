@@ -3,6 +3,9 @@ import { type Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { PrescriptionEntity } from '../entities/prescription.entity'
+import { validateForeignKeys } from './utils/fk-validator'
+import { entityEventBus } from '../automerge/event-bus'
+
 
 /**
  * Mapping from frequency labels to time blocks in the distribution calendar.
@@ -97,10 +100,13 @@ export class PrescriptionService {
    * in the distribution calendar for the entire duration.
    */
   async create(entity: PrescriptionEntity): Promise<{ prescription: PrescriptionEntity; itemsGenerated: number }> {
-    const now = new Date().toISOString()
-    const today = this.formatLocalDate(new Date()) // local 'YYYY-MM-DD'
+    // Validate foreign keys before insert
+    await validateForeignKeys(this.db as any, [
+      { table: 'patient', column: 'patient_id', value: entity.patient_id },
+      { table: 'user', column: 'prescripteur_id', value: entity.prescripteur_id },
+    ])
 
-    // ── 1. Insert the prescription ────────────────────────────────
+    const now = new Date().toISOString()
     const insertResult = await this.db
       .insertInto('prescriptions')
       .values({
@@ -113,7 +119,7 @@ export class PrescriptionService {
         frequence_type: entity.frequence_type ?? 'moments',
         prn: entity.prn ?? 0,
         instructions: entity.instructions,
-        date_prescription: entity.date_prescription ?? today,
+        date_prescription: entity.date_prescription ?? this.formatLocalDate(new Date()),
         prescripteur_id: entity.prescripteur_id,
         statut: entity.statut ?? 'active',
         prescription_type: entity.type ?? 'medicament',
@@ -129,7 +135,7 @@ export class PrescriptionService {
     const itemsGenerated = await this.generatePlanItems({
       prescriptionId,
       patientId: entity.patient_id!,
-      startDate: entity.date_prescription ?? today,
+      startDate: entity.date_prescription ?? this.formatLocalDate(new Date()),
       duree: entity.duree ?? 0,
       frequence: frequenceArr,
       frequenceType: (entity.frequence_type ?? 'moments') as 'moments' | 'fixed-times' | 'interval',
@@ -169,10 +175,9 @@ export class PrescriptionService {
       .where('prescriptions.id', '=', prescriptionId)
       .executeTakeFirst()
 
-    return {
-      prescription: saved as unknown as PrescriptionEntity,
-      itemsGenerated,
-    }
+    const prescriptionResult = { prescription: saved as unknown as PrescriptionEntity, itemsGenerated }
+    entityEventBus.emitEntityChange({ entityType: 'prescription', action: 'created', id: prescriptionId, entity: prescriptionResult.prescription, source: 'local', timestamp: Date.now() })
+    return prescriptionResult
   }
 
   /**
@@ -274,10 +279,12 @@ export class PrescriptionService {
       .where('prescriptions.id', '=', id)
       .executeTakeFirst()
 
-    return {
+    const updatedResult = {
       prescription: updated as unknown as PrescriptionEntity,
       itemsGenerated,
     }
+    entityEventBus.emitEntityChange({ entityType: 'prescription', action: 'updated', id: id!, entity: updatedResult.prescription, source: 'local', timestamp: Date.now() })
+    return updatedResult
   }
 
   /**
@@ -325,7 +332,7 @@ export class PrescriptionService {
     // Keep valide/suspendu items but disassociate them from the prescription
     await this.db
       .updateTable('plan_soins_items')
-      .set({ prescription_id: null })
+      .set({ prescription_id: undefined })
       .where('prescription_id', '=', id)
       .execute()
 
@@ -334,6 +341,7 @@ export class PrescriptionService {
       .deleteFrom('prescriptions')
       .where('id', '=', id)
       .execute()
+    entityEventBus.emitEntityChange({ entityType: 'prescription', action: 'deleted', id, entity: null, source: 'local', timestamp: Date.now() })
   }
 
   // ── private helpers ──────────────────────────────────────────────

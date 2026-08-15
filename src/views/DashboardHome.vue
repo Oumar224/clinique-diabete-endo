@@ -84,9 +84,9 @@
           size="small"
           border
         >
+          <el-table-column prop="date" label="Dernière visite" width="110" />
           <el-table-column prop="nom" label="Nom" />
           <el-table-column prop="prenom" label="Prénom" />
-          <el-table-column prop="date" label="Dernière visite" width="110" />
         </el-table>
       </SectionHeader>
     </div>

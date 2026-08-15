@@ -3,6 +3,8 @@ import { type Kysely, sql } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import type { PatientEntity } from '../entities/patient.entity'
+import { validateForeignKeys } from './utils/fk-validator'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class PatientService {
@@ -33,6 +35,11 @@ export class PatientService {
   }
 
   async create(entity: PatientEntity): Promise<PatientEntity> {
+    // Validate foreign keys before insert
+    await validateForeignKeys(this.db as any, [
+      { table: 'sites', column: 'site_id', value: entity.site_id },
+    ])
+
     if (entity.nip) {
       const existing = await this.db
         .selectFrom('patient')
@@ -87,6 +94,7 @@ export class PatientService {
       .executeTakeFirst()
 
     if (!result) throw new Error('Échec de la récupération du patient inséré')
+    entityEventBus.emitEntityChange({ entityType: 'patient', action: 'created', id: result.id!, entity: result, source: 'local', timestamp: Date.now() })
     return result
   }
 
@@ -153,6 +161,7 @@ export class PatientService {
       .executeTakeFirst()
 
     if (!result) throw new Error('Patient introuvable après mise à jour')
+    entityEventBus.emitEntityChange({ entityType: 'patient', action: 'updated', id: result.id!, entity: result, source: 'local', timestamp: Date.now() })
     return result
   }
 
@@ -168,7 +177,23 @@ export class PatientService {
       .deleteFrom('patient')
       .where('id', '=', id)
       .execute()
+    entityEventBus.emitEntityChange({ entityType: 'patient', action: 'deleted', id: existing.id!, entity: existing, source: 'local', timestamp: Date.now() })
     return existing
+  }
+
+  async existByIds(ids: number[]): Promise<Record<number, boolean>> {
+    if (ids.length === 0) return {}
+    const rows = await this.db
+      .selectFrom('patient')
+      .select('id')
+      .where('id', 'in', ids)
+      .execute()
+    const found = new Set(rows.map((r) => r.id))
+    const result: Record<number, boolean> = {}
+    for (const id of ids) {
+      result[id] = found.has(id)
+    }
+    return result
   }
 
   async backfillPatientRegions(): Promise<number> {

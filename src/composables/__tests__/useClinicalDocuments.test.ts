@@ -324,7 +324,7 @@ describe('useClinicalDocuments', () => {
 
   describe('checkContactExpired', () => {
     it('updates isContactExpired ref when contact is expired', async () => {
-      mockIpcInvoke.mockResolvedValue({ expired: true })
+      mockIpcInvoke.mockResolvedValue(true)
 
       const result = await ctx.checkContactExpired('1')
 
@@ -334,7 +334,7 @@ describe('useClinicalDocuments', () => {
     })
 
     it('sets isContactExpired to false when contact is not expired', async () => {
-      mockIpcInvoke.mockResolvedValue({ expired: false })
+      mockIpcInvoke.mockResolvedValue(false)
 
       const result = await ctx.checkContactExpired('1')
 
@@ -349,6 +349,211 @@ describe('useClinicalDocuments', () => {
 
       expect(result).toBe(false)
       expect(ctx.isContactExpired.value).toBe(false)
+    })
+  })
+
+  // ─── importFile ───────────────────────────────────────────────────
+
+  describe('importFile', () => {
+    // Helper to create a mock File that works with FileReader
+    function createMockFile(name: string, type: string, content = 'test content'): File {
+      return new File([content], name, { type })
+    }
+
+    it('calls IPC with correct params (contactId, createdBy, fileData, fileName, documentTypeId, title)', async () => {
+      const file = createMockFile('test.pdf', 'application/pdf')
+      const importedDoc: ClinicalDocumentDTO = {
+        id: 'doc-imported',
+        contactId: '1',
+        serviceId: '5',
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+        status: 'draft',
+        formData: {},
+        source: 'imported',
+        createdBy: 'user-1',
+        createdAt: '2024-07-01T08:00:00.000Z',
+        updatedAt: '2024-07-01T08:00:00.000Z',
+      }
+      // Mock IPC to resolve with a raw DTO that normalizeDocument can handle
+      mockIpcInvoke.mockResolvedValue({
+        id: 'doc-imported',
+        contactId: '1',
+        serviceId: '5',
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+        status: 'draft',
+        formData: null,
+        source: 'imported',
+        createdBy: 'user-1',
+        createdAt: '2024-07-01T08:00:00.000Z',
+        updatedAt: '2024-07-01T08:00:00.000Z',
+      })
+
+      await ctx.importFile({
+        contactId: '1',
+        createdBy: 'user-1',
+        file,
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+      })
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('clinical-documents:import-file', {
+        contactId: '1',
+        createdBy: 'user-1',
+        fileData: expect.any(String),
+        fileName: 'test.pdf',
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+      })
+    })
+
+    it('converts File to base64 before sending', async () => {
+      const file = createMockFile('test.pdf', 'application/pdf', 'hello')
+      mockIpcInvoke.mockResolvedValue({
+        id: 'doc-imported',
+        contactId: '1',
+        serviceId: '5',
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+        status: 'draft',
+        formData: null,
+        source: 'imported',
+        createdBy: 'user-1',
+        createdAt: '2024-07-01T08:00:00.000Z',
+        updatedAt: '2024-07-01T08:00:00.000Z',
+      })
+
+      await ctx.importFile({
+        contactId: '1',
+        createdBy: 'user-1',
+        file,
+        documentTypeId: CONSULT_TYPE_ID,
+      })
+
+      // Verify fileData is a string (base64) and not a File object
+      const ipcCall = mockIpcInvoke.mock.calls[0]
+      const fileData = ipcCall[1].fileData
+      expect(typeof fileData).toBe('string')
+      // base64 of "hello" should be a non-empty string
+      expect(fileData.length).toBeGreaterThan(0)
+    })
+
+    it('adds the returned document to the documents array', async () => {
+      const file = createMockFile('test.pdf', 'application/pdf')
+      mockIpcInvoke.mockResolvedValue({
+        id: 'doc-imported',
+        contactId: '1',
+        serviceId: '5',
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+        status: 'draft',
+        formData: null,
+        source: 'imported',
+        createdBy: 'user-1',
+        createdAt: '2024-07-01T08:00:00.000Z',
+        updatedAt: '2024-07-01T08:00:00.000Z',
+      })
+
+      const result = await ctx.importFile({
+        contactId: '1',
+        createdBy: 'user-1',
+        file,
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+      })
+
+      expect(ctx.documents.value).toHaveLength(1)
+      expect(ctx.documents.value[0].id).toBe('doc-imported')
+      expect(ctx.documents.value[0].source).toBe('imported')
+    })
+
+    it('shows success message on success', async () => {
+      const file = createMockFile('test.pdf', 'application/pdf')
+      mockIpcInvoke.mockResolvedValue({
+        id: 'doc-imported',
+        contactId: '1',
+        serviceId: '5',
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+        status: 'draft',
+        formData: null,
+        source: 'imported',
+        createdBy: 'user-1',
+        createdAt: '2024-07-01T08:00:00.000Z',
+        updatedAt: '2024-07-01T08:00:00.000Z',
+      })
+
+      await ctx.importFile({
+        contactId: '1',
+        createdBy: 'user-1',
+        file,
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+      })
+
+      const ElMessage = (await import('element-plus')).ElMessage
+      expect(ElMessage.success).toHaveBeenCalledWith('Document importé')
+    })
+
+    it('returns null on failure and shows error message', async () => {
+      const file = createMockFile('test.pdf', 'application/pdf')
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur import'))
+
+      const result = await ctx.importFile({
+        contactId: '1',
+        createdBy: 'user-1',
+        file,
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+      })
+
+      expect(result).toBeNull()
+    })
+
+    it('returns the document on success', async () => {
+      const file = createMockFile('test.pdf', 'application/pdf')
+      mockIpcInvoke.mockResolvedValue({
+        id: 'doc-imported',
+        contactId: '1',
+        serviceId: '5',
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+        status: 'draft',
+        formData: null,
+        source: 'imported',
+        createdBy: 'user-1',
+        createdAt: '2024-07-01T08:00:00.000Z',
+        updatedAt: '2024-07-01T08:00:00.000Z',
+      })
+
+      const result = await ctx.importFile({
+        contactId: '1',
+        createdBy: 'user-1',
+        file,
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+      })
+
+      expect(result).not.toBeNull()
+      expect(result!.id).toBe('doc-imported')
+      expect(result!.source).toBe('imported')
+    })
+
+    it('returns null when IPC returns null', async () => {
+      const file = createMockFile('test.pdf', 'application/pdf')
+      mockIpcInvoke.mockResolvedValue(null)
+
+      const result = await ctx.importFile({
+        contactId: '1',
+        createdBy: 'user-1',
+        file,
+        documentTypeId: CONSULT_TYPE_ID,
+        title: 'test',
+      })
+
+      expect(result).toBeNull()
+      expect(ctx.documents.value).toHaveLength(0)
     })
   })
 

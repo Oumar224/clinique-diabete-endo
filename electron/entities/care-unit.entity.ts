@@ -1,23 +1,27 @@
 import type { CareUnitDto } from '../dto/care-unit.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { CareUnitConverter } from '../automerge/converters/care-unit.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class CareUnitEntity {
-  id?: number
-  service_id?: number
-  name?: string
-  code?: string | null
-  description?: string | null
-  is_active?: number
-  sort_order?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() service_id?: number
+  @SchemaField() name?: string
+  @SchemaField() code?: string
+  @SchemaField() description?: string
+  @SchemaField() is_active?: number
+  @SchemaField() sort_order?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: CareUnitEntity): CareUnitDto {
     return {
       id: entity.id,
       service_id: entity.service_id as number,
       name: entity.name as string,
-      code: entity.code as string | null,
-      description: entity.description as string | null,
+      code: entity.code,
+      description: entity.description,
       is_active: entity.is_active as unknown as boolean,
       sort_order: entity.sort_order as number,
       created_at: entity.created_at,
@@ -31,6 +35,15 @@ export class CareUnitEntity {
     return e
   }
   static documentType(): string { return 'CareUnit' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<CareUnitEntity> {
+    return buildDocumentSchema(CareUnitEntity) as AutomergeDocument<CareUnitEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'care_unit',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: CareUnitConverter.toDocument, toEntity: CareUnitConverter.toEntity },
+    })
+  }
 }

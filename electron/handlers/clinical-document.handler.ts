@@ -1,3 +1,7 @@
+import path from 'path'
+import fs from 'fs'
+import crypto from 'crypto'
+import { app, dialog, shell } from 'electron'
 import { container } from 'tsyringe'
 import { ClinicalDocumentService } from '../services/clinical-document.service'
 import type { CreateDocumentParams } from '../services/clinical-document.service'
@@ -17,6 +21,10 @@ export function registerClinicalDocumentHandlers() {
   // ─── List documents for a contact ───────────────────────────────
   createHandler('clinical-documents:list', async ({ contactId }: { contactId: string }) => {
     return await container.resolve(ClinicalDocumentService).getDocumentsByContact(contactId)
+  })
+
+  createHandler('clinical-documents:count', async ({ contactId }: { contactId: string }) => {
+    return await container.resolve(ClinicalDocumentService).countDocumentsByContact(contactId)
   })
 
   // ─── List documents for a patient ───────────────────────────────
@@ -73,6 +81,7 @@ export function registerClinicalDocumentHandlers() {
     formSchema: any[]
     category: string
     acteIdDeclenche?: number | null
+    contactTypes?: string[]
   }) => {
     return await container.resolve(ClinicalDocumentService).createDocumentType(dto)
   })
@@ -87,6 +96,7 @@ export function registerClinicalDocumentHandlers() {
     category?: string
     acteIdDeclenche?: number | null
     isActive?: boolean
+    contactTypes?: string[]
   }) => {
     return await container.resolve(ClinicalDocumentService).updateDocumentType(dto.id, dto)
   })
@@ -94,6 +104,111 @@ export function registerClinicalDocumentHandlers() {
   // ─── Admin: delete (soft) document type ───────────────────────────
   createHandler('clinical-documents:delete-type', async ({ id }: { id: string }) => {
     await container.resolve(ClinicalDocumentService).deleteDocumentType(id)
+    return { success: true }
+  })
+
+  // ─── Import a PDF as a clinical document ─────────────────────────
+  createHandler('clinical-documents:import-pdf', async (params: {
+    contactId: string
+    createdBy: string
+  }) => {
+    const result = await dialog.showOpenDialog({
+      title: 'Importer un PDF',
+      filters: [{ name: 'Documents PDF', extensions: ['pdf'] }],
+      properties: ['openFile'],
+    })
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return null
+    }
+
+    const filePath = result.filePaths[0]
+    const importDir = path.join(app.getPath('userData'), 'pdf-imports')
+    if (!fs.existsSync(importDir)) {
+      fs.mkdirSync(importDir, { recursive: true })
+    }
+
+    const ext = path.extname(filePath)
+    const destName = crypto.randomUUID() + ext
+    const destPath = path.join(importDir, destName)
+    fs.copyFileSync(filePath, destPath)
+
+    const fileName = path.basename(filePath)
+
+    const service = container.resolve(ClinicalDocumentService)
+
+    // Get encounter to determine service_id
+    const encounter = await service.db
+      .selectFrom('encounters')
+      .select(['service_id'])
+      .where('encounters.id', '=', Number(params.contactId))
+      .executeTakeFirst()
+
+    const doc = await service.importPdf({
+      contactId: params.contactId,
+      serviceId: encounter ? String(encounter.service_id) : null,
+      createdBy: params.createdBy,
+      pdfPath: destPath,
+      title: `PDF: ${fileName}`,
+    })
+
+    return doc
+  })
+
+  // ─── Import a file (PDF, images, documents) via base64 upload ───
+  createHandler('clinical-documents:import-file', async (params: {
+    contactId: string
+    createdBy: string
+    /** Base64-encoded file content (without data-URL prefix) */
+    fileData: string
+    /** Original file name including extension (e.g. "scan.pdf") */
+    fileName: string
+    documentTypeId?: string
+    title?: string
+  }) => {
+    if (!params.fileData || !params.fileName) {
+      throw new Error('Données de fichier manquantes')
+    }
+
+    const importDir = path.join(app.getPath('userData'), 'pdf-imports')
+    if (!fs.existsSync(importDir)) {
+      fs.mkdirSync(importDir, { recursive: true })
+    }
+
+    // Decode base64 to binary and write to import directory
+    const ext = path.extname(params.fileName)
+    const destName = crypto.randomUUID() + ext
+    const destPath = path.join(importDir, destName)
+    const buffer = Buffer.from(params.fileData, 'base64')
+    fs.writeFileSync(destPath, buffer)
+
+    const service = container.resolve(ClinicalDocumentService)
+
+    // Get encounter to determine service_id
+    const encounter = await service.db
+      .selectFrom('encounters')
+      .select(['service_id'])
+      .where('encounters.id', '=', Number(params.contactId))
+      .executeTakeFirst()
+
+    const doc = await service.importPdf({
+      contactId: params.contactId,
+      serviceId: encounter ? String(encounter.service_id) : null,
+      createdBy: params.createdBy,
+      pdfPath: destPath,
+      title: params.title,
+      documentTypeId: params.documentTypeId,
+    })
+
+    return doc
+  })
+
+  // ─── Open a PDF file via system default application ──────────────
+  createHandler('clinical-documents:open-pdf', async ({ pdfPath }: { pdfPath: string }) => {
+    if (!pdfPath || !fs.existsSync(pdfPath)) {
+      throw new Error('Fichier PDF introuvable')
+    }
+    await shell.openPath(pdfPath)
     return { success: true }
   })
 }

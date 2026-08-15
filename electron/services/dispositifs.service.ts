@@ -3,6 +3,7 @@ import { type Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { DispositifEntity } from '../entities/dispositif.entity'
+import { validateForeignKeys } from './utils/fk-validator'
 
 @singleton()
 export class DispositifsService {
@@ -24,6 +25,12 @@ export class DispositifsService {
   }
 
   async create(entity: DispositifEntity): Promise<DispositifEntity> {
+    // Validate foreign keys before insert
+    await validateForeignKeys(this.db as any, [
+      { table: 'patient', column: 'patient_id', value: entity.patient_id },
+      { table: 'user', column: 'created_by', value: entity.created_by },
+    ])
+
     const now = new Date().toISOString()
     const result = await this.db
       .insertInto('dispositifs')

@@ -15,9 +15,6 @@
         <el-tab-pane label="Assurances" name="insurances">
           <InsuranceTab />
         </el-tab-pane>
-        <el-tab-pane label="Catégories de contact" name="contact-categories">
-          <ContactCategoryTab />
-        </el-tab-pane>
         <el-tab-pane label="Dispositifs médicaux &amp; Voies d'abord" name="dispositif-voies">
           <DispositifVoieTab />
         </el-tab-pane>
@@ -35,7 +32,6 @@ import StockageTab from '@/components/settings/StockageTab.vue'
 import CatalogueActesTab from '@/components/settings/CatalogueActesTab.vue'
 import ContactOriginTab from '@/components/settings/ContactOriginTab.vue'
 import InsuranceTab from '@/components/settings/InsuranceTab.vue'
-import ContactCategoryTab from '@/components/settings/ContactCategoryTab.vue'
 import DispositifVoieTab from '@/components/settings/DispositifVoieTab.vue'
 import ExamTypeTab from '@/components/settings/ExamTypeTab.vue'
 

@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { usePatientActes } from '@/composables/usePatientActes'
@@ -57,7 +57,10 @@ const route = useRoute()
 const { patientActes, loading, fetchPatientActes, updateStatut } = usePatientActes()
 const { formatCurrency, fetchCurrencies } = useCurrencies()
 
-const patientId = ref(0)
+const patientId = computed<number>(() => {
+  const id = Number(route.params.id)
+  return Number.isFinite(id) && id > 0 ? id : 0
+})
 
 onMounted(() => {
   fetchCurrencies()
@@ -67,9 +70,9 @@ onMounted(() => {
 watch(() => route.params.id, () => loadData())
 
 async function loadData() {
-  patientId.value = Number(route.params.id)
-  if (!patientId.value) return
-  await fetchPatientActes(patientId.value)
+  const pid = patientId.value
+  if (!pid || pid <= 0) return
+  await fetchPatientActes(pid)
 }
 
 async function handleMarquerPaye(row: any) {

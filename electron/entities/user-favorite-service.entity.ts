@@ -1,9 +1,13 @@
 import type { ServiceFavoriteDto } from '../dto/settings.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { UserFavoriteServiceConverter } from '../automerge/converters/user-favorite-service.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class UserFavoriteServiceEntity {
-  user_id?: number
-  service_id?: number
-  created_at?: string
+  @SchemaField() user_id?: number
+  @SchemaField() service_id?: number
+  @SchemaField() created_at?: string
 
   static toDto(entity: UserFavoriteServiceEntity): ServiceFavoriteDto {
     return {
@@ -26,6 +30,15 @@ export class UserFavoriteServiceEntity {
   }
 
   static documentType(): string { return 'UserFavoriteService' }
-  static documentSchema(): any { return {} }
-  static register(): void { /* No Automerge sync needed */ }
+  static documentSchema(): AutomergeDocument<UserFavoriteServiceEntity> {
+    return buildDocumentSchema(UserFavoriteServiceEntity) as AutomergeDocument<UserFavoriteServiceEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'user_favorite_service',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: UserFavoriteServiceConverter.toDocument, toEntity: UserFavoriteServiceConverter.toEntity },
+    })
+  }
 }

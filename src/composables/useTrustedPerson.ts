@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import { ipcInvoke } from '@/utils/ipc'
 
 export interface TrustedPersonDto {
@@ -18,14 +19,53 @@ export interface TrustedPersonDto {
   updated_at?: string
 }
 
-export async function getTrustedPerson(patientId: number): Promise<TrustedPersonDto | null> {
-  return ipcInvoke<TrustedPersonDto | null>('trusted-person:get', { patientId })
-}
+const loading = ref(false)
+const error = ref<string | null>(null)
 
-export async function upsertTrustedPerson(data: TrustedPersonDto): Promise<TrustedPersonDto | null> {
-  return ipcInvoke<TrustedPersonDto | null>('trusted-person:upsert', data)
-}
+export function useTrustedPerson() {
+  async function getTrustedPerson(patientId: number): Promise<TrustedPersonDto | null> {
+    loading.value = true
+    error.value = null
+    try {
+      return await ipcInvoke<TrustedPersonDto | null>('trusted-person:get', { patientId })
+    } catch (e) {
+      error.value = (e as Error).message
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
 
-export async function deleteTrustedPerson(patientId: number): Promise<void> {
-  await ipcInvoke<void>('trusted-person:delete', { patientId })
+  async function upsertTrustedPerson(data: TrustedPersonDto): Promise<TrustedPersonDto | null> {
+    loading.value = true
+    error.value = null
+    try {
+      return await ipcInvoke<TrustedPersonDto | null>('trusted-person:upsert', data)
+    } catch (e) {
+      error.value = (e as Error).message
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function deleteTrustedPerson(patientId: number): Promise<void> {
+    loading.value = true
+    error.value = null
+    try {
+      await ipcInvoke<void>('trusted-person:delete', { patientId })
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    loading,
+    error,
+    getTrustedPerson,
+    upsertTrustedPerson,
+    deleteTrustedPerson,
+  }
 }

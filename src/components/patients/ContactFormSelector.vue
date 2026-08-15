@@ -107,7 +107,7 @@ import { useClinicalDocuments, type ClinicalDocumentTypeDTO } from '@/composable
 import { useMedicalServices } from '@/composables/useMedicalServices'
 import { useAuth } from '@/composables/useAuth'
 import { useCurrencies } from '@/composables/useCurrencies'
-import { getEncounter } from '@/composables/useEncounters'
+import { useEncounters } from '@/composables/useEncounters'
 
 const props = defineProps<{
   contactId: string
@@ -127,6 +127,7 @@ const {
 const { services, fetchServices } = useMedicalServices()
 const { user } = useAuth()
 const { formatCurrency } = useCurrencies()
+const { getEncounter } = useEncounters()
 
 function formatPrice(amount: number): string {
   return formatCurrency(amount)
@@ -137,12 +138,25 @@ const openCategories = ref<string[]>([])
 const allDocumentTypes = ref<ClinicalDocumentTypeDTO[]>([])
 const loadingTypes = ref(false)
 const creatingId = ref<string | null>(null)
+const contactType = ref<string>('')
+
+// Filter document types based on contact_type using DB-driven contactTypes array
+const filteredDocumentTypes = computed(() => {
+  const ct = contactType.value
+  if (!ct) return allDocumentTypes.value
+
+  return allDocumentTypes.value.filter(dt => {
+    const supported = dt.contactTypes
+    if (!supported || supported.length === 0) return true
+    return supported.includes(ct)
+  })
+})
 
 // Group document types by category, optionally filtered by service
 const groupedTypes = computed(() => {
   const filtered = selectedServiceId.value
-    ? allDocumentTypes.value
-    : allDocumentTypes.value
+    ? filteredDocumentTypes.value
+    : filteredDocumentTypes.value
 
   const groups = new Map<string, ClinicalDocumentTypeDTO[]>()
   for (const dt of filtered) {
@@ -181,6 +195,9 @@ async function autoDetectService() {
     const encounter = await getEncounter(Number(props.contactId))
     if (encounter?.service_id) {
       selectedServiceId.value = encounter.service_id
+    }
+    if (encounter?.contact_type) {
+      contactType.value = encounter.contact_type
     }
   } catch {
     // Silent fallback — user will pick manually

@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import type { CareUnitEntity } from '../entities/care-unit.entity'
+import { entityEventBus } from '../automerge/event-bus'
 
 export interface CareUnitWithService extends CareUnitEntity {
   service_name?: string
@@ -79,8 +80,8 @@ export class CareUnitService {
         .values({
           service_id: entity.service_id!,
           name: (entity.name ?? '').trim(),
-          code: entity.code?.trim().toUpperCase() || null,
-          description: entity.description?.trim() || null,
+          code: entity.code?.trim().toUpperCase() || undefined,
+          description: entity.description?.trim() || undefined,
           is_active: entity.is_active ?? 1,
           sort_order: entity.sort_order ?? 0,
         })
@@ -88,6 +89,7 @@ export class CareUnitService {
         .executeTakeFirst()
 
       if (!result) throw new Error("Échec de la création de l'unité de soins")
+      entityEventBus.emitEntityChange({ entityType: 'care_unit', action: 'created', id: result.id!, entity: result, source: 'local', timestamp: Date.now() })
       return result as unknown as CareUnitEntity
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
@@ -139,6 +141,7 @@ export class CareUnitService {
 
     const updated = await this.getById(entity.id)
     if (!updated) throw new Error('Unité de soins introuvable après mise à jour')
+    entityEventBus.emitEntityChange({ entityType: 'care_unit', action: 'updated', id: entity.id!, entity: updated, source: 'local', timestamp: Date.now() })
     return updated
   }
 
@@ -176,6 +179,7 @@ export class CareUnitService {
       }
       throw err
     }
+    entityEventBus.emitEntityChange({ entityType: 'care_unit', action: 'deleted', id, entity: existing, source: 'local', timestamp: Date.now() })
   }
 
   // ─── Validation ────────────────────────────────────────────────

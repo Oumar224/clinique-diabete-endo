@@ -20,7 +20,7 @@ export function registerAuthHandlers() {
   )
 
   createHandler('auth:validate-password', async (dto: ValidatePasswordDto) => {
-    return await authService.validatePassword(dto.userId, dto.oldPassword, dto.newPassword)
+    return await authService.validatePassword(dto.userId!, dto.oldPassword!, dto.newPassword!)
   })
 
   createHandler('users:list', () => authService.listUsers())
@@ -48,14 +48,14 @@ export function registerAuthHandlers() {
 
   createHandler('users:sync-relations', async (dto: SyncUserRelationsDto) => {
     const { id, ...relations } = dto
-    await authService.syncUserRelations(id, relations)
+    await authService.syncUserRelations(id!, relations)
     return { success: true }
   })
 
   createHandler('users:terminate-contract', async (dto: TerminateContractDto) => {
-    const user = await authService.getUserById(dto.id)
+    const user = await authService.getUserById(dto.id!)
     if (!user) throw new Error('Utilisateur introuvable')
-    await authService.terminateContract(dto.id, dto.motif, dto.resilie_par ?? 1)
+    await authService.terminateContract(dto.id!, dto.motif!, dto.resilie_par ?? 1)
     return { success: true }
   })
 

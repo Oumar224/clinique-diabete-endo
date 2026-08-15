@@ -209,7 +209,7 @@ import { computed, ref } from 'vue'
 import { User, Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { UserDto } from '@/composables/useUsers'
-import { roleColor, getUserDisplayName, terminateContract, reactivateContract } from '@/composables/useUsers'
+import { useUsers, roleColor, getUserDisplayName } from '@/composables/useUsers'
 import { useFonctions } from '@/composables/useFonctions'
 import { useExport } from '@/composables/useExport'
 
@@ -220,6 +220,7 @@ const emit = defineEmits<{
 const currUser = ref<UserDto>()
 const dialogVisible = ref(false)
 
+const { terminateContract, reactivateContract } = useUsers()
 const { fonctions, fetchFonctions: fetchFonctionsList } = useFonctions()
 const { exportingPdf, exportingExcel, exportUserProfilePdf, exportUserProfileExcel } = useExport()
 

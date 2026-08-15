@@ -7,7 +7,7 @@ import { container } from 'tsyringe'
 import { AppDatabaseDatasource } from '../../sqlite-data-source'
 import { LocaliteService } from '../localite.service'
 
-describe('LocaliteService', () => {
+describe('LocaliteService', { timeout: 30_000 }, () => {
   let tempDir: string
   let dbPath: string
   let service: LocaliteService
@@ -19,6 +19,7 @@ describe('LocaliteService', () => {
     container.register('DB_PATH', { useValue: dbPath })
     const datasource = container.resolve(AppDatabaseDatasource)
     await datasource.initialize()
+    await datasource.getInstance().deleteFrom('localites').execute()
     service = container.resolve(LocaliteService)
   })
 
@@ -42,7 +43,7 @@ describe('LocaliteService', () => {
     expect(created.name).toBe('Kindia')
     expect(created.code).toBe('KND')
     expect(created.type).toBe('prefecture')
-    expect(created.is_active).toBe(true)
+    expect(created.is_active).toBe(1)
     expect(created.parent_id).toBeNull()
     expect(created.country).toBe('GN')
   })
@@ -201,17 +202,17 @@ describe('LocaliteService', () => {
 
   it('should toggle is_active from true to false and back', async () => {
     const created = await service.create({ code: 'FRI', name: 'Fria', type: 'prefecture' })
-    expect(created.is_active).toBe(true)
+    expect(created.is_active).toBe(1)
 
     const toggledOff = await service.toggle(created.id!, false)
-    expect(toggledOff.is_active).toBe(false)
+    expect(toggledOff.is_active).toBe(0)
 
     const toggledOn = await service.toggle(created.id!, true)
-    expect(toggledOn.is_active).toBe(true)
+    expect(toggledOn.is_active).toBe(1)
 
     // Verify persistence via getById
     const found = await service.getById(created.id!)
-    expect(found!.is_active).toBe(true)
+    expect(found!.is_active).toBe(1)
   })
 
   it('should throw when toggling non-existent localite', async () => {

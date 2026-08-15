@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { InsuranceEntity } from '../entities/insurance.entity'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class InsuranceService {
@@ -76,6 +77,7 @@ export class InsuranceService {
     }
 
     if (!result) throw new Error("Échec de la création de l'assurance")
+    entityEventBus.emitEntityChange({ entityType: 'insurance', action: 'created', id: result.id!, entity: result, source: 'local', timestamp: Date.now() })
     return result as unknown as InsuranceEntity
   }
 
@@ -130,6 +132,7 @@ export class InsuranceService {
 
     const updated = await this.getById(id)
     if (!updated) throw new Error('Assurance introuvable après mise à jour')
+    entityEventBus.emitEntityChange({ entityType: 'insurance', action: 'updated', id, entity: updated, source: 'local', timestamp: Date.now() })
     return updated
   }
 
@@ -154,6 +157,7 @@ export class InsuranceService {
       }
       throw err
     }
+    entityEventBus.emitEntityChange({ entityType: 'insurance', action: 'deleted', id, entity: existing, source: 'local', timestamp: Date.now() })
   }
 
   private async getById(id: number): Promise<InsuranceEntity | null> {

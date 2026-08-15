@@ -1,4 +1,29 @@
+import { calcIMC } from '@/utils/medical-calculations'
 import type { AutonomieSL } from '@/types/crh-diabete'
+
+/**
+ * New continence scale used by the Grille SL radio group (ModeVieAtcdTab).
+ * These values mean the patient is continent/independent: no downgrade.
+ */
+const CONTINENCE_CONTINENT_VALUES: readonly string[] = [
+  'Continence urinaire',
+  'Continence fécale',
+  'Tonus pelvien',
+]
+
+/**
+ * Maps the continence dimension onto the 3-tier autonomy scale shared by the
+ * other Grille SL fields. Legacy values ('Incontinence totale'/'partielle')
+ * and any other non-continence value (blank/unknown persisted data) are
+ * treated as incontinent/dependent so old records still downgrade the class.
+ */
+function normaliseContinence(value: string): string {
+  if (CONTINENCE_CONTINENT_VALUES.includes(value)) return 'Autonome'
+  if (value === 'Incontinence totale') return 'Dépendance totale'
+  if (value === 'Incontinence partielle') return 'Aide partielle'
+  // Unknown/blank persisted value: conservative partial downgrade.
+  return 'Aide partielle'
+}
 
 export function useCrhDiabeteCalculations() {
   function calcAge(dateNaissance: string, dateEntree: string): number | null {
@@ -76,8 +101,12 @@ export function useCrhDiabeteCalculations() {
     reponseVerbale: number,
     reponseMotrice: number,
   ): number | null {
-    if (!ouvertureYeux || !reponseVerbale || !reponseMotrice) return null
-    return ouvertureYeux + reponseVerbale + reponseMotrice
+    // Par défaut, chaque composante non renseignée (0 / non évalué legacy)
+    // est ramenée à son maximum -> score par défaut 15/15 (neurologie normale).
+    const oy = ouvertureYeux || 4
+    const rv = reponseVerbale || 5
+    const rm = reponseMotrice || 6
+    return oy + rv + rm
   }
 
   function glasgowInterpretation(score: number | null): { label: string; type: 'danger' | 'warning' | 'success' } {
@@ -89,7 +118,13 @@ export function useCrhDiabeteCalculations() {
   }
 
   function calcAutonomieClass(sl: AutonomieSL): { classe: string; description: string } {
-    const values = [sl.alimentation, sl.hygiene, sl.habillage, sl.deplacement, sl.continence]
+    const values = [
+      sl.alimentation,
+      sl.hygiene,
+      sl.habillage,
+      sl.deplacement,
+      normaliseContinence(sl.continence),
+    ]
 
     const hasDependanceTotale = values.some(v => v === 'Dépendance totale' || v === 'Incontinence totale')
     const hasAidePartielle = values.some(v => v === 'Aide partielle' || v === 'Incontinence partielle')
@@ -110,6 +145,7 @@ export function useCrhDiabeteCalculations() {
     calcAge,
     calcDureeDiabete,
     calcDFG,
+    calcIMC,
     calcStadeIR,
     calcGlasgowScore,
     glasgowInterpretation,

@@ -1,14 +1,18 @@
 import type { InvoicePaymentDto } from '../dto/invoice.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { InvoicePaymentConverter } from '../automerge/converters/invoice-payment.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class InvoicePaymentEntity {
-  id?: number
-  invoice_id?: number
-  montant?: number
-  mode_paiement?: string
-  date_paiement?: string
-  reference?: string
-  created_by?: number
-  created_at?: string
+  @SchemaField() id?: number
+  @SchemaField() invoice_id?: number
+  @SchemaField() montant?: number
+  @SchemaField() mode_paiement?: string
+  @SchemaField() date_paiement?: string
+  @SchemaField() reference?: string
+  @SchemaField() created_by?: number
+  @SchemaField() created_at?: string
 
   static toDto(entity: InvoicePaymentEntity): InvoicePaymentDto {
     return {
@@ -41,6 +45,15 @@ export class InvoicePaymentEntity {
   }
 
   static documentType(): string { return 'InvoicePayment' }
-  static documentSchema(): any { return {} }
-  static register(): void { /* No Automerge sync needed */ }
+  static documentSchema(): AutomergeDocument<InvoicePaymentEntity> {
+    return buildDocumentSchema(InvoicePaymentEntity) as AutomergeDocument<InvoicePaymentEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'invoice_payment',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: InvoicePaymentConverter.toDocument, toEntity: InvoicePaymentConverter.toEntity },
+    })
+  }
 }

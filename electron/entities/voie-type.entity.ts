@@ -1,11 +1,15 @@
 import type { VoieTypeDto } from '../dto/settings.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { VoieTypeConverter } from '../automerge/converters/voie-type.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class VoieTypeEntity {
-  id?: number
-  label?: string
-  is_active?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() label?: string
+  @SchemaField() is_active?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: VoieTypeEntity): VoieTypeDto {
     return { id: entity.id, label: entity.label as string, is_active: entity.is_active as unknown as boolean, created_at: entity.created_at, updated_at: entity.updated_at }
@@ -17,6 +21,15 @@ export class VoieTypeEntity {
     return e
   }
   static documentType(): string { return 'VoieType' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<VoieTypeEntity> {
+    return buildDocumentSchema(VoieTypeEntity) as AutomergeDocument<VoieTypeEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'voie_type',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: VoieTypeConverter.toDocument, toEntity: VoieTypeConverter.toEntity },
+    })
+  }
 }

@@ -118,8 +118,7 @@ import { ref, computed, watch, reactive, nextTick, inject, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowLeft, ArrowRight, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getVitalSignsItemsList, saveVitalSignsItem } from '@/api/vitalSigns'
-import type { VitalSignsItemRecord } from '@/api/vitalSigns'
+import { getVitalSignsItemsList, saveVitalSignsItem, type VitalSignsItemRecord } from '@/composables/useVitalSigns'
 
 const route = useRoute()
 

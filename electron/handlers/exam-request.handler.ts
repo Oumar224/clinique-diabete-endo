@@ -29,6 +29,13 @@ export function registerExamRequestHandlers() {
     return ExamRequestEntity.toDto(updated)
   })
 
+  createHandler('exam-request:list-by-date', async ({ patientId, date }: { patientId: number; date: string }) => {
+    if (!patientId) throw new Error('patientId requis')
+    if (!date) throw new Error('date requise')
+    const entities = await container.resolve(ExamRequestService).listByDate(patientId, date)
+    return ExamRequestEntity.toDtos(entities)
+  })
+
   createHandler('exam-request:delete', async ({ id }: { id: number }) => {
     if (!id) throw new Error('id requis')
     await container.resolve(ExamRequestService).delete(id)

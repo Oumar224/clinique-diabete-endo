@@ -16,6 +16,8 @@ function vitalSign(
     createdAt: string
     updatedAt: string
     date: string
+    dateLabel: string
+    sortKey: string
     temperature: number | null
     taSystolique: number | null
     taDiastolique: number | null
@@ -23,13 +25,20 @@ function vitalSign(
     glycemie: number | null
   }> = {},
 ) {
+  const createdAt = overrides.createdAt ?? '2026-07-04T10:30:00'
+  const date = overrides.date ?? '2026-07-04'
+  const dateLabel = createdAt
+    ? (() => { const d = new Date(createdAt); return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) })()
+    : date
   return {
     id: 1,
     patientId: 42,
     createdBy: 1,
-    createdAt: '2026-07-04T10:30:00',
+    createdAt,
     updatedAt: '2026-07-04T10:30:00',
-    date: '2026-07-04',
+    date,
+    dateLabel,
+    sortKey: createdAt || date + 'T00:00',
     temperature: null,
     taSystolique: null,
     taDiastolique: null,
@@ -62,13 +71,9 @@ vi.mock('vue-chartjs', () => ({
   },
 }))
 
-// Mock API modules — return resolved empty arrays so fetchData completes
-vi.mock('@/api/vitalSigns', () => ({
-  getVitalSignsList: vi.fn().mockResolvedValue([]),
-}))
-
-vi.mock('@/api/planSoins', () => ({
-  getValidesPlanSoins: vi.fn().mockResolvedValue([]),
+// Mock IPC layer — return resolved empty arrays so fetchData completes
+vi.mock('@/utils/ipc', () => ({
+  ipcInvoke: vi.fn().mockResolvedValue([]),
 }))
 
 // Mock vue-router
@@ -226,7 +231,7 @@ describe('DiagrammeSyntheseTab', () => {
       const vm = wrapper.vm as any
       await nextTick()
 
-      vm.vitalSignsData = [
+      vm.points = [
         vitalSign({ id: 1, createdAt: '2026-07-04T08:15:00', temperature: 37.0 }),
         vitalSign({ id: 2, createdAt: '2026-07-04T14:45:00', temperature: 38.5 }),
       ]
@@ -245,7 +250,7 @@ describe('DiagrammeSyntheseTab', () => {
       await nextTick()
 
       vm.dateRange = ['2026-07-01', '2026-07-07']
-      vm.vitalSignsData = [
+      vm.points = [
         vitalSign({ id: 1, createdAt: '2026-07-01T08:15:00', date: '2026-07-01', temperature: 36.8 }),
         vitalSign({ id: 2, createdAt: '2026-07-03T16:30:00', date: '2026-07-03', temperature: 37.2 }),
       ]
@@ -263,7 +268,7 @@ describe('DiagrammeSyntheseTab', () => {
       const vm = wrapper.vm as any
       await nextTick()
 
-      vm.vitalSignsData = [
+      vm.points = [
         vitalSign({ id: 1, createdAt: '', temperature: 37.5 }),
       ]
       await nextTick()
@@ -285,14 +290,16 @@ describe('DiagrammeSyntheseTab', () => {
       await nextTick()
 
       vm.selectedIndicator = 'glycemie'
-      vm.vitalSignsData = [
+      vm.points = [
         vitalSign({ id: 1, createdAt: '2026-07-04T08:00:00', glycemie: 1.5 }),
         vitalSign({ id: 2, createdAt: '2026-07-04T12:00:00', glycemie: 2.8 }),
       ]
       await nextTick()
 
-      // dataMax = 2.8 → 2.8 × 1.2 = 3.36 → ceil(3.36 / 0.3) × 0.3 = 12 × 0.3 = 3.6
-      expect(vm.chartOptions.scales.y.max).toBeCloseTo(3.6, 5)
+      // dataMin=1.5, dataMax=2.8, range=1.3, padding=max(0.13,0.3)=0.3
+      // computedMax = ceil((2.8+0.3)/0.3)*0.3 = ceil(10.33)*0.3 = 3.3
+      // max(3.3, cfg.max=3.0) = 3.3
+      expect(vm.chartOptions.scales.y.max).toBeCloseTo(3.3, 5)
     })
 
     it('falls back to default max (3.0) when no vital signs data', async () => {
@@ -313,7 +320,7 @@ describe('DiagrammeSyntheseTab', () => {
       await nextTick()
 
       vm.selectedIndicator = 'glycemie'
-      vm.vitalSignsData = [
+      vm.points = [
         vitalSign({ id: 1, createdAt: '2026-07-04T08:00:00', temperature: 37.0, glycemie: null }),
         vitalSign({ id: 2, createdAt: '2026-07-04T12:00:00', temperature: 38.0, glycemie: null }),
       ]
@@ -328,7 +335,7 @@ describe('DiagrammeSyntheseTab', () => {
       await nextTick()
 
       vm.selectedIndicator = 'taSystolique'
-      vm.vitalSignsData = [
+      vm.points = [
         vitalSign({ id: 1, createdAt: '2026-07-04T08:00:00', taSystolique: 130 }),
       ]
       await nextTick()
@@ -348,7 +355,7 @@ describe('DiagrammeSyntheseTab', () => {
       await nextTick()
 
       // All values null for the selected indicator (temperature by default)
-      vm.vitalSignsData = [
+      vm.points = [
         vitalSign({ id: 1, createdAt: '2026-07-04T08:00:00', temperature: null }),
         vitalSign({ id: 2, createdAt: '2026-07-04T12:00:00', temperature: null }),
       ]
@@ -363,13 +370,15 @@ describe('DiagrammeSyntheseTab', () => {
       await nextTick()
 
       vm.selectedIndicator = 'glycemie'
-      vm.vitalSignsData = [
+      vm.points = [
         vitalSign({ id: 1, createdAt: '2026-07-04T10:30:00', glycemie: 10.0 }),
       ]
       await nextTick()
 
-      // dataMax = 10.0 → 10.0 × 1.2 = 12.0 → ceil(12.0 / 0.3) × 0.3 = 40 × 0.3 = 12.0
-      expect(vm.chartOptions.scales.y.max).toBeCloseTo(12.0, 5)
+      // dataMin=10.0, dataMax=10.0, range=0, padding=max(0,0.3)=0.3
+      // computedMax = ceil((10.0+0.3)/0.3)*0.3 = ceil(34.33)*0.3 = 10.5
+      // max(10.5, cfg.max=3.0) = 10.5
+      expect(vm.chartOptions.scales.y.max).toBeCloseTo(10.5, 5)
       // A single label present
       expect(vm.chartData).not.toBeNull()
       expect(vm.chartData.labels).toHaveLength(1)
@@ -382,7 +391,7 @@ describe('DiagrammeSyntheseTab', () => {
       await nextTick()
 
       vm.selectedIndicator = 'glycemie'
-      vm.vitalSignsData = [
+      vm.points = [
         vitalSign({ id: 1, createdAt: '2026-07-04T18:00:00', glycemie: 1.2 }),
       ]
       await nextTick()
@@ -424,10 +433,11 @@ describe('DiagrammeSyntheseTab', () => {
       expect(wrapper.find('.diagramme__legend-dot--ta').exists()).toBe(true)
     })
 
-    it('renders three legend items (temp, TA, medication)', () => {
+    it('renders legend items for all indicators', () => {
       const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
       const items = wrapper.findAll('.diagramme__legend-item')
-      expect(items.length).toBe(3)
+      // 9 vitals + 1 medication = 10
+      expect(items.length).toBe(10)
     })
   })
 
@@ -507,7 +517,8 @@ describe('DiagrammeSyntheseTab', () => {
       const select = wrapper.find('.el-select')
       expect(select.exists()).toBe(true)
       const options = wrapper.findAll('.el-option')
-      expect(options.length).toBe(5)
+      // temperature, taSystolique, taDiastolique, frequenceCardiaque, glycemie, cetonemie, saO2, diurese, poids
+      expect(options.length).toBe(9)
       expect(wrapper.text()).toContain('Température (°C)')
       expect(wrapper.text()).toContain('TA systolique (mmHg)')
       expect(wrapper.text()).toContain('TA diastolique (mmHg)')

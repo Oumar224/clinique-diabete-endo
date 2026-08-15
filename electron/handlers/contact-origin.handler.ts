@@ -1,7 +1,7 @@
 import { container } from 'tsyringe'
 import { ContactOriginService } from '../services/contact-origin.service'
 import { ContactOriginEntity } from '../entities/contact-origin.entity'
-import type { ContactOriginCreateDto, ContactOriginUpdateDto } from '../entities/contact-origin.entity'
+import type { ContactOriginCreateDto, ContactOriginUpdateDto } from '../dto/contact-origin.dto'
 import { createHandler } from '../utils/create-handler'
 
 export function registerContactOriginHandlers(): void {
@@ -16,13 +16,13 @@ export function registerContactOriginHandlers(): void {
   })
 
   createHandler('contact-origins:create', async (dto: ContactOriginCreateDto) => {
-    const created = await container.resolve(ContactOriginService).create(dto)
+    const created = await container.resolve(ContactOriginService).create({ value: dto.value!, label: dto.label!, sort_order: dto.sort_order })
     return ContactOriginEntity.toDto(created)
   })
 
   createHandler('contact-origins:update', async (dto: ContactOriginUpdateDto) => {
     const { id, ...data } = dto
-    const updated = await container.resolve(ContactOriginService).update(id, data)
+    const updated = await container.resolve(ContactOriginService).update(id!, data)
     return ContactOriginEntity.toDto(updated)
   })
 

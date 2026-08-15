@@ -14,30 +14,25 @@
       label-width="160px"
       label-position="top"
     >
-      <!-- Row 1: Type de contact & Catégorie -->
+      <!-- Row 1: Type de contact -->
       <el-row :gutter="24">
-        <el-col :span="12">
+        <el-col :span="24">
           <el-form-item label="Type de contact *" prop="contact_type">
-            <el-select v-model="form.contact_type" filterable placeholder="Sélectionner...">
-              <el-option
-                v-for="opt in CONTACT_TYPE_OPTIONS"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="Catégorie" prop="contact_category_id">
-            <el-select v-model="form.contact_category_id" filterable clearable placeholder="Sélectionner une catégorie...">
-              <el-option
-                v-for="cat in contactCategoryOptions"
-                :key="cat.value"
-                :label="cat.label"
-                :value="cat.value"
-              />
-            </el-select>
+            <el-tooltip
+              :disabled="!contactTypeLocked"
+              content="Type verrouillé : un dossier clinique est associé à ce contact"
+              placement="top"
+              class="contact-type-tooltip"
+            >
+              <el-select v-model="form.contact_type" filterable :disabled="contactTypeLocked" placeholder="Sélectionner...">
+                <el-option
+                  v-for="opt in CONTACT_TYPE_OPTIONS"
+                  :key="opt.value"
+                  :label="opt.label"
+                  :value="opt.value"
+                />
+              </el-select>
+            </el-tooltip>
           </el-form-item>
         </el-col>
       </el-row>
@@ -249,7 +244,7 @@ import { ElMessage } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { ipcInvoke } from '@/utils/ipc'
-import { createEncounter, updateEncounter } from '@/composables/useEncounters'
+import { useEncounters } from '@/composables/useEncounters'
 import type { EncounterDto } from '@/composables/useEncounters'
 import {
   CONTACT_TYPE_OPTIONS,
@@ -257,12 +252,10 @@ import {
   fetchOriginOptions,
   insuranceOptions,
   fetchInsuranceOptions,
-  contactCategoryOptions,
-  fetchContactCategoryOptions,
   PRISE_EN_CHARGE_OPTIONS,
   useContactFormLogic,
 } from '@/composables/useContactFormLogic'
-import { fetchMedicalStaff, searchMedicalStaff, formatMedecinName } from '@/composables/useMedicalStaff'
+import { useMedicalStaff, formatMedecinName } from '@/composables/useMedicalStaff'
 import { roleLabel } from '@/composables/useUsers'
 import type { UserDto } from '@/composables/useUsers'
 
@@ -285,7 +278,9 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('visible')
+const { createEncounter, updateEncounter } = useEncounters()
 
+const { fetchMedicalStaff, searchMedicalStaff } = useMedicalStaff()
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
 const services = ref<ServiceSuggestion[]>([])
@@ -293,6 +288,7 @@ const staffLoaded = ref(false)
 const careUnits = ref<{ id: number; name: string }[]>([])
 
 const encounterId = ref<number | null>(null)
+const contactTypeLocked = ref(false)
 
 const {
   form,
@@ -318,6 +314,16 @@ const rules: Record<string, any[]> = {
         if (form.value.prise_en_charge === 'assurance' && !v) return false
         return true
       },
+    },
+  ],
+  care_unit_id: [
+    {
+      required: false,
+      validator: (_r: any, v: number | null) => {
+        if (v != null && v <= 0) return new Error('Unité de soins invalide')
+        return true
+      },
+      trigger: 'change',
     },
   ],
 }
@@ -394,6 +400,12 @@ async function handleSubmit() {
     return
   }
 
+  if (!props.patientId || props.patientId <= 0) {
+    ElMessage.error('Patient non valide. Veuillez réessayer.')
+    submitting.value = false
+    return
+  }
+
   submitting.value = true
   try {
     const startDate = form.value.start_date
@@ -407,7 +419,6 @@ async function handleSubmit() {
       sinistreInfo = selected ? selected.name : null
     }
 
-    const catId = form.value.contact_category_id ? Number(form.value.contact_category_id) : null
     const payload = {
       patient_id: props.patientId,
       contact_type: form.value.contact_type,
@@ -425,7 +436,6 @@ async function handleSubmit() {
       prise_en_charge_precision: null,
       sinistre_info: sinistreInfo,
       notes: form.value.notes || null,
-      contact_category_id: catId,
       care_unit_id: form.value.care_unit_id,
       created_by: props.userId ?? null,
     }
@@ -440,7 +450,12 @@ async function handleSubmit() {
     visible.value = false
     emit('saved')
   } catch (e) {
-    ElMessage.error(`Erreur: ${(e as Error).message}`)
+    const msg = (e as Error).message
+    if (msg.includes('introuvable dans patient')) {
+      ElMessage.error('Le dossier patient semble inaccessible. Veuillez rafraîchir la page.')
+    } else {
+      ElMessage.error(`Erreur: ${msg}`)
+    }
   } finally {
     submitting.value = false
   }
@@ -452,15 +467,29 @@ function handleCancel() {
 
 function handleClosed() {
   encounterId.value = null
+  contactTypeLocked.value = false
   resetForm()
   formRef.value?.resetFields()
 }
 
+async function checkContactTypeLocked(contactId: number) {
+  try {
+    const count = await ipcInvoke<number>('clinical-documents:count', { contactId: String(contactId) })
+    if (encounterId.value !== contactId) return
+    contactTypeLocked.value = (count ?? 0) > 0
+  } catch {
+    contactTypeLocked.value = false
+  }
+}
+
 watch(() => props.encounter, (enc) => {
-  if (!enc) return
+  if (!enc) {
+    contactTypeLocked.value = false
+    return
+  }
   encounterId.value = enc.id ?? null
   if (enc.id) {
-    const categoryId = enc.contact_category_id != null ? String(enc.contact_category_id) : null
+    checkContactTypeLocked(enc.id)
     patchForm({
       contact_type: enc.contact_type,
       start_date: enc.start_date ? enc.start_date.replace('T', ' ').slice(0, 16) : '',
@@ -477,7 +506,6 @@ watch(() => props.encounter, (enc) => {
       prise_en_charge_precision: enc.prise_en_charge_precision || '',
       sinistre_info: enc.sinistre_info || '',
       notes: enc.notes || '',
-      contact_category_id: categoryId,
       care_unit_id: enc.care_unit_id ?? null,
     })
   }
@@ -490,9 +518,6 @@ onMounted(async () => {
   }
   if (originOptions.value.length === 0) {
     await fetchOriginOptions()
-  }
-  if (contactCategoryOptions.value.length === 0) {
-    await fetchContactCategoryOptions()
   }
   if (insuranceOptions.value.length === 0) {
     await fetchInsuranceOptions()
@@ -507,6 +532,10 @@ onMounted(async () => {
 
 .el-form-item {
   margin-bottom: 16px;
+}
+
+.contact-type-tooltip {
+  display: block;
 }
 
 .service-suggestion {

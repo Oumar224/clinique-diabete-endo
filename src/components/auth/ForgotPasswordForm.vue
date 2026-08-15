@@ -2,7 +2,7 @@
   <div class="forgot-password-form">
     <el-card v-if="!submitted" shadow="never" class="forgot-password-form__card">
       <div class="forgot-password-form__header">
-        <h1 class="forgot-password-form__title">Mot de passe oubli\u00e9&nbsp;?</h1>
+        <h1 class="forgot-password-form__title">Mot de passe oublié&nbsp;?</h1>
         <p class="forgot-password-form__subtitle">
           Saisissez votre email pour recevoir un nouveau mot de passe temporaire
         </p>

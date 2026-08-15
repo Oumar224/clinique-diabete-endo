@@ -4,6 +4,7 @@ import { NoResultError } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { UserAttachmentEntity } from '../entities/user-attachment.entity'
+import { validateForeignKeys } from './utils/fk-validator'
 
 @singleton()
 export class UserAttachmentService {
@@ -32,6 +33,12 @@ export class UserAttachmentService {
   }
 
   async create(entity: UserAttachmentEntity): Promise<UserAttachmentEntity> {
+    // Validate foreign keys before insert
+    await validateForeignKeys(this.db as any, [
+      { table: 'user', column: 'user_id', value: entity.user_id },
+      { table: 'attachment_types', column: 'attachment_type_id', value: entity.attachment_type_id },
+    ])
+
     const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 Mo
 
     if (entity.file_size != null && entity.file_size > MAX_FILE_SIZE) {
@@ -67,10 +74,10 @@ export class UserAttachmentService {
         user_id: entity.user_id!,
         display_name: displayName ?? entity.display_name,
         file_name: entity.file_name!,
-        mime_type: entity.mime_type ?? null,
-        file_size: entity.file_size ?? null,
+        mime_type: entity.mime_type ?? undefined,
+        file_size: entity.file_size ?? undefined,
         file_data: entity.file_data!,
-        attachment_type_id: entity.attachment_type_id ?? null,
+        attachment_type_id: entity.attachment_type_id ?? undefined,
       })
       .returningAll()
       .executeTakeFirstOrThrow()

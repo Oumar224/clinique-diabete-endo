@@ -6,7 +6,6 @@
  * instantiating services with a mock datasource.
  */
 
-import { DatabaseSync } from 'node:sqlite'
 import { Kysely, sql } from 'kysely'
 import { NodeSqliteDialect } from '../../driver/node-sqlite-dialect'
 import { MigrationService } from '../migration.service'
@@ -110,9 +109,7 @@ export function createMockDataSource(db: Kysely<any>): IAppDataSource<Kysely<any
   return {
     getInstance: () => db,
     initialize: async () => db,
-    destroy: async () => { /* no-op */ },
-    dropAllSchemas: async () => { /* no-op */ },
-    recreateAllSchemas: async () => { /* no-op */ },
+    destroy: async () => {},
   }
 }
 

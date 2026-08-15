@@ -1,11 +1,9 @@
 export interface AdmissionData {
-  nom: string
-  prenom: string
-  sexe: string
-  dateNaissance: string
-  ipp: string
   dateEntree: string
   serviceAccueil: string
+  motifHospitalisation: string
+  medecinTraitantNom: string
+  interneIPANom: string
 }
 
 export interface AutonomieSL {
@@ -16,6 +14,18 @@ export interface AutonomieSL {
   continence: string
 }
 
+export interface AllergieEntry {
+  libelle: string
+  type: 'Médicamenteuse' | 'Alimentaire' | 'Latex' | 'Piqûre' | 'Autre'
+}
+
+export interface AntecedentEntry {
+  libelle: string
+  annee: string
+  type: 'Familiale' | 'Personnelle'
+  categorie?: string
+}
+
 export interface ModeVieAtcdData {
   situationFamiliale: string
   isolement: boolean
@@ -23,14 +33,14 @@ export interface ModeVieAtcdData {
   commentaireVie: string
   autonomieSL: AutonomieSL
   comprehensionFrancais: boolean
-  priseEnCharge: string
   tabagisme: string
+  tabagismeDetail: string
   alcool: boolean
   alcoolDetail: string
   cannabis: boolean
   cannabisDetail: string
-  allergies: string
-  antecedentsMedicaux: string
+  allergies: AllergieEntry[]
+  antecedents: AntecedentEntry[]
 }
 
 export interface FicheDiabeteData {
@@ -67,37 +77,95 @@ export interface ExamenPhysique {
   frequenceCardiaque: number | null
   temperature: number | null
   glycemie: number | null
-  descriptionPlaie: string
+  cetonurie: string | null
+  glucosurie: string | null
+  cetonemie: number | null
+  poids: number | null
+  taille: number | null
+  saO2?: number | null
+  diurese?: number | null
+}
+
+export interface GlasgowHistoryEntry {
+  _key: string
+  date: string
+  ouvertureYeux: number
+  reponseVerbale: number
+  reponseMotrice: number
+}
+
+export interface VitalSignsHistoryEntry {
+  _key: string
+  date: string
+  taSystolique: number | null
+  taDiastolique: number | null
+  frequenceCardiaque: number | null
+  temperature: number | null
+  glycemie: number | null
+  cetonurie: string | null
+  glucosurie: string | null
+  cetonemie: number | null
+  poids: number | null
+  taille: number | null
+  hour?: number | null
+  saO2?: number | null
+  diurese?: number | null
+}
+
+export interface DouleurHistoryEntry {
+  _key: string
+  date: string
+  score: number
 }
 
 export interface BilanInitialData {
-  motifHospitalisation: string
   histoireRecent: string
+  traitementEntree: string
   glasgow: GlasgowData
   examenPhysique: ExamenPhysique
+  scoreDouleur: number | null
+  examenPhysiqueTexte: string
   conclusionEntree: string
+  projetSoin: string
+  glasgowHistory: GlasgowHistoryEntry[]
+  vitalSignsHistory: VitalSignsHistoryEntry[]
+  douleurHistory: DouleurHistoryEntry[]
 }
 
-export interface ActeInterventionnel {
+export interface ExamenImagerie {
   _key: string
   date: string
   type: string
-  operateur: string
-  compteRendu: string
-  conclusion: string
+  typeLibre: string
+  resultat: string
 }
 
-export interface EchographieCardiaque {
-  fevg: number | null
-  hypokinesie: string
-  autre: string
+export interface BilanBioResult {
+  id?: number
+  examRequestId?: number
+  parameterId?: number
+  examName?: string
+  parameterName?: string
+  parameterUnit?: string
+  parameterInputType?: string
+  parameterReferenceValues?: Record<string, unknown> | null
+  value?: string
+  isNormal?: boolean
+  filledAt?: string
+  createdAt?: string
+  requestDate?: string
+  requestStatus?: string
+}
+
+export interface BilanBio {
+  dateFrom: string
+  dateTo: string
+  results: BilanBioResult[]
 }
 
 export interface ExamensComplementairesData {
-  radioPied: string
-  ecgRepos: string
-  echographieCardiaque: EchographieCardiaque
-  actesInterventionnels: ActeInterventionnel[]
+  imagerieTests: ExamenImagerie[]
+  bilanBio: BilanBio
 }
 
 export interface EvolutionMedicaleData {
@@ -115,11 +183,35 @@ export interface RdvSuivi {
   lieuPraticien: string
 }
 
+export interface PrescriptionSortie {
+  _key: string
+  medicament: string
+  dosage: string
+  unite: string
+  voie: string
+  duree: number
+  frequence: string[]
+  frequenceType: string
+  instructions: string
+  formeGalenique: string
+  momentPrises: string[]
+  renouvellement: boolean
+  nbRenouvellements: number
+}
+
 export interface SortieData {
   dateSortie: string
   destinationSortie: string
   conclusionSortie: string
   rdvSuivi: RdvSuivi[]
+}
+
+export interface CrhChampMeta {
+  updatedAt: string
+}
+
+export interface CrhFormMeta {
+  champs: Record<string, CrhChampMeta>
 }
 
 export interface CrhDiabeteFormData {
@@ -129,19 +221,19 @@ export interface CrhDiabeteFormData {
   bilanInitial: BilanInitialData
   examensComplementaires: ExamensComplementairesData
   evolutionMedicale: EvolutionMedicaleData
+  ordonnanceSortie: PrescriptionSortie[]
   sortie: SortieData
+  meta: CrhFormMeta
 }
 
 export function createDefaultFormData(): CrhDiabeteFormData {
   return {
     admission: {
-      nom: '',
-      prenom: '',
-      sexe: '',
-      dateNaissance: '',
-      ipp: '',
       dateEntree: '',
       serviceAccueil: '',
+      motifHospitalisation: '',
+      medecinTraitantNom: '',
+      interneIPANom: '',
     },
     modeVieAtcd: {
       situationFamiliale: '',
@@ -153,17 +245,17 @@ export function createDefaultFormData(): CrhDiabeteFormData {
         hygiene: 'Autonome',
         habillage: 'Autonome',
         deplacement: 'Autonome',
-        continence: 'Continue',
+        continence: 'Continence urinaire',
       },
       comprehensionFrancais: false,
-      priseEnCharge: '',
       tabagisme: 'Non-fumeur',
+      tabagismeDetail: '',
       alcool: false,
       alcoolDetail: '',
       cannabis: false,
       cannabisDetail: '',
-      allergies: '',
-      antecedentsMedicaux: '',
+      allergies: [],
+      antecedents: [],
     },
     ficheDiabete: {
       dateDiagnostic: '',
@@ -187,12 +279,12 @@ export function createDefaultFormData(): CrhDiabeteFormData {
       ischemicCritique: '',
     },
     bilanInitial: {
-      motifHospitalisation: '',
       histoireRecent: '',
+      traitementEntree: '',
       glasgow: {
-        ouvertureYeux: 0,
-        reponseVerbale: 0,
-        reponseMotrice: 0,
+        ouvertureYeux: 4,
+        reponseVerbale: 5,
+        reponseMotrice: 6,
       },
       examenPhysique: {
         taSystolique: null,
@@ -200,19 +292,25 @@ export function createDefaultFormData(): CrhDiabeteFormData {
         frequenceCardiaque: null,
         temperature: null,
         glycemie: null,
-        descriptionPlaie: '',
+        cetonurie: null,
+        glucosurie: null,
+        cetonemie: null,
+        poids: null,
+        taille: null,
+        saO2: null,
+        diurese: null,
       },
+      scoreDouleur: null,
+      examenPhysiqueTexte: '',
       conclusionEntree: '',
+      projetSoin: '',
+      glasgowHistory: [],
+      vitalSignsHistory: [],
+      douleurHistory: [],
     },
     examensComplementaires: {
-      radioPied: '',
-      ecgRepos: '',
-      echographieCardiaque: {
-        fevg: null,
-        hypokinesie: '',
-        autre: '',
-      },
-      actesInterventionnels: [],
+      imagerieTests: [],
+      bilanBio: { dateFrom: '', dateTo: '', results: [] },
     },
     evolutionMedicale: {
       infoPatientFamille: false,
@@ -220,11 +318,13 @@ export function createDefaultFormData(): CrhDiabeteFormData {
       bmrBhre: false,
       journalEvolution: '',
     },
+    ordonnanceSortie: [],
     sortie: {
       dateSortie: '',
       destinationSortie: '',
       conclusionSortie: '',
       rdvSuivi: [],
     },
+    meta: { champs: {} },
   }
 }

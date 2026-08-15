@@ -61,7 +61,8 @@ export function useLocalites() {
       // Update in tree recursively
       updateTreeItem(treeData.value, id, updated)
       return updated
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -82,7 +83,8 @@ export function useLocalites() {
   async function getLocaliteByCode(code: string): Promise<LocaliteDto | null> {
     try {
       return await ipcInvoke<LocaliteDto | null>('localites:get-by-code', { code })
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -90,7 +92,8 @@ export function useLocalites() {
   async function searchLocalites(query: string): Promise<LocaliteDto[]> {
     try {
       return await ipcInvoke<LocaliteDto[]>('localites:search', { query })
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return []
     }
   }

@@ -53,6 +53,15 @@ const EL_STUBS: Record<string, any> = {
   'StockageTab': {
     template: '<div class="stockage-tab"><p>Stockages / Conservateurs content</p></div>',
   },
+  'CatalogueActesTab': {
+    template: '<div class="catalogue-actes-tab"><p>Catalogue Actes content</p></div>',
+  },
+  'ContactOriginTab': {
+    template: '<div class="contact-origin-tab"><p>Contact Origins content</p></div>',
+  },
+  'InsuranceTab': {
+    template: '<div class="insurance-tab"><p>Assurances content</p></div>',
+  },
 }
 
 // ---------------------------------------------------------------------------

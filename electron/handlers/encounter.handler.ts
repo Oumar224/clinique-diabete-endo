@@ -1,6 +1,6 @@
 import { container } from 'tsyringe'
 import { EncounterService } from '../services/encounter.service'
-import type { EncounterCreateDto, EncounterUpdateDto } from '../dto/encounter.dto'
+import type { EncounterCreateDto, EncounterMovementCreateDto, EncounterUpdateDto } from '../dto/encounter.dto'
 import { createHandler } from '../utils/create-handler'
 
 export function registerEncounterHandlers() {
@@ -21,7 +21,7 @@ export function registerEncounterHandlers() {
   })
 
   createHandler('encounters:update', async ({ id, ...dto }: EncounterUpdateDto) => {
-    return await container.resolve(EncounterService).update(id, dto)
+    return await container.resolve(EncounterService).update(id!, dto)
   })
 
   createHandler('encounters:delete', async ({ id }: { id: number }) => {
@@ -31,6 +31,15 @@ export function registerEncounterHandlers() {
 
   createHandler('encounters:close', async ({ id }: { id: number }) => {
     await container.resolve(EncounterService).closeEncounter(id)
+    return { success: true }
+  })
+
+  createHandler('encounters:add-movement', async (dto: EncounterMovementCreateDto) => {
+    return await container.resolve(EncounterService).addMovement(dto)
+  })
+
+  createHandler('encounters:close-current-movement', async ({ encounter_id }: { encounter_id: number }) => {
+    await container.resolve(EncounterService).closeCurrentMovement(encounter_id)
     return { success: true }
   })
 }

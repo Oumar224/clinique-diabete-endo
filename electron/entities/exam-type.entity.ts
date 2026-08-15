@@ -1,15 +1,19 @@
 import type { ExamTypeDto } from '../dto/settings.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { ExamTypeConverter } from '../automerge/converters/exam-type.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class ExamTypeEntity {
-  id?: number
-  category_id?: number
-  parent_id?: number | null
-  code?: string
-  name?: string
-  is_active?: number
-  sort_order?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() category_id?: number
+  @SchemaField() parent_id?: number 
+  @SchemaField() code?: string
+  @SchemaField() name?: string
+  @SchemaField() is_active?: number
+  @SchemaField() sort_order?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
   category_name?: string
   parent_name?: string
 
@@ -17,7 +21,7 @@ export class ExamTypeEntity {
     return {
       id: entity.id,
       category_id: entity.category_id as number,
-      parent_id: entity.parent_id ?? null,
+      parent_id: entity.parent_id ?? undefined,
       label: entity.name as string,
       is_active: entity.is_active as unknown as boolean,
       category_label: entity.category_name,
@@ -40,6 +44,15 @@ export class ExamTypeEntity {
     return e
   }
   static documentType(): string { return 'ExamType' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<ExamTypeEntity> {
+    return buildDocumentSchema(ExamTypeEntity) as AutomergeDocument<ExamTypeEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'exam_type',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: ExamTypeConverter.toDocument, toEntity: ExamTypeConverter.toEntity },
+    })
+  }
 }

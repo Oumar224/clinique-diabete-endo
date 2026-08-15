@@ -1,5 +1,5 @@
 <template>
-  <div class="crh-form">
+  <div class="crh-form" @click="onFormCellClick">
     <div class="crh-form__header">
       <div class="crh-form__header-left">
         <div class="crh-form__title-icon">
@@ -43,14 +43,6 @@
         <el-tag v-if="patientAge != null" size="small" effect="plain" type="info">
           {{ patientAge }} ans
         </el-tag>
-        <el-tag
-          v-if="formData.admission.sexe"
-          size="small"
-          effect="plain"
-          :type="formData.admission.sexe === 'M' ? 'primary' : formData.admission.sexe === 'F' ? 'danger' : 'info'"
-        >
-          {{ formData.admission.sexe }}
-        </el-tag>
       </div>
     </div>
 
@@ -90,7 +82,12 @@
             <span>Admission</span>
           </span>
         </template>
-        <AdmissionTab :data="formData.admission" :readonly="true" />
+        <AdmissionTab
+          :data="formData.admission"
+          :readonly="readonly"
+          :field-meta="fieldMeta"
+          @change="onFieldChange"
+        />
       </el-tab-pane>
       <el-tab-pane name="modeVie">
         <template #label>
@@ -102,7 +99,11 @@
             <span>Mode de Vie / ATCD</span>
           </span>
         </template>
-        <ModeVieAtcdTab :data="formData.modeVieAtcd" @change="onFieldChange" />
+        <ModeVieAtcdTab
+          :data="formData.modeVieAtcd"
+          :field-meta="fieldMeta"
+          @change="onFieldChange"
+        />
       </el-tab-pane>
       <el-tab-pane name="ficheDiabete">
         <template #label>
@@ -113,7 +114,14 @@
             <span>Fiche Diabète</span>
           </span>
         </template>
-        <FicheDiabeteTab :data="formData.ficheDiabete" :sexe="formData.admission.sexe" :age="patientAge" :date-entree="formData.admission.dateEntree" @change="onFieldChange" />
+        <FicheDiabeteTab
+          :data="formData.ficheDiabete"
+          :sexe="activePatient?.civilite === 'M' ? 'M' : 'F'"
+          :age="patientAge"
+          :date-entree="formData.admission.dateEntree"
+          :field-meta="fieldMeta"
+          @change="onFieldChange"
+        />
       </el-tab-pane>
       <el-tab-pane name="bilanInitial">
         <template #label>
@@ -127,7 +135,16 @@
             <span>Bilan Initial</span>
           </span>
         </template>
-        <BilanInitialTab :data="formData.bilanInitial" @change="onFieldChange" />
+        <BilanInitialTab
+          :data="formData.bilanInitial"
+          :field-meta="fieldMeta"
+          :patient-id="activePatient?.id ?? null"
+          :date-debut="formData.admission.dateEntree"
+          :date-fin="formData.sortie.dateSortie"
+          :link-vital-check="true"
+          :readonly="readonly"
+          @change="onFieldChange"
+        />
       </el-tab-pane>
       <el-tab-pane name="examens">
         <template #label>
@@ -139,7 +156,12 @@
             <span>Examens Compl.</span>
           </span>
         </template>
-        <ExamensComplementairesTab :data="formData.examensComplementaires" @change="onFieldChange" />
+        <ExamensComplementairesTab
+          :data="formData.examensComplementaires"
+          :patient-id="activePatient?.id"
+          :field-meta="fieldMeta"
+          @change="onFieldChange"
+        />
       </el-tab-pane>
       <el-tab-pane name="evolution">
         <template #label>
@@ -151,7 +173,33 @@
             <span>Évolution</span>
           </span>
         </template>
-        <EvolutionMedicaleTab :data="formData.evolutionMedicale" @change="onFieldChange" />
+        <EvolutionMedicaleTab
+          :data="formData.evolutionMedicale"
+          :field-meta="fieldMeta"
+          @change="onFieldChange"
+        />
+      </el-tab-pane>
+      <el-tab-pane name="ordonnance">
+        <template #label>
+          <span class="tab-label">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <rect x="2" y="1" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="0.8" fill="currentColor" fill-opacity="0.06"/>
+              <path d="M5 4.5H9" stroke="currentColor" stroke-width="0.8" stroke-linecap="round"/>
+              <path d="M5 6.5H8" stroke="currentColor" stroke-width="0.8" stroke-linecap="round"/>
+              <path d="M5 8.5H7" stroke="currentColor" stroke-width="0.8" stroke-linecap="round"/>
+              <circle cx="9.5" cy="10.5" r="2.5" stroke="currentColor" stroke-width="0.8" fill="var(--el-bg-color)"/>
+              <path d="M9.5 9.2V11.8" stroke="currentColor" stroke-width="0.7" stroke-linecap="round"/>
+              <path d="M8.2 10.5H10.8" stroke="currentColor" stroke-width="0.7" stroke-linecap="round"/>
+            </svg>
+            <span>Ordonnance</span>
+          </span>
+        </template>
+        <OrdonnanceSortieTab
+          :data="formData.ordonnanceSortie"
+          :readonly="readonly"
+          :field-meta="fieldMeta"
+          @change="onFieldChange"
+        />
       </el-tab-pane>
       <el-tab-pane name="sortie">
         <template #label>
@@ -164,7 +212,11 @@
             <span>Sortie</span>
           </span>
         </template>
-        <SortieTab :data="formData.sortie" @change="onFieldChange" />
+        <SortieTab
+          :data="formData.sortie"
+          :field-meta="fieldMeta"
+          @change="onFieldChange"
+        />
       </el-tab-pane>
     </el-tabs>
 
@@ -173,6 +225,18 @@
         <span class="crh-form__draft-status" v-if="draftStatus">{{ draftStatus }}</span>
       </div>
       <div class="crh-form__footer-right">
+        <el-button
+          size="default"
+          @click="handlePreview"
+        >
+          <template #icon>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M1.5 7C1.5 7 3.5 3.5 7 3.5C10.5 3.5 12.5 7 12.5 7C12.5 7 10.5 10.5 7 10.5C3.5 10.5 1.5 7 1.5 7Z" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>
+              <circle cx="7" cy="7" r="1.8" stroke="currentColor" stroke-width="1"/>
+            </svg>
+          </template>
+          Prévisualisation
+        </el-button>
         <el-button
           :loading="pdfLoading"
           size="default"
@@ -206,25 +270,50 @@
         </el-button>
       </div>
     </div>
+
+    <HtmlPreviewDialog
+      ref="previewDialogRef"
+      title="Aperçu du compte-rendu d'hospitalisation"
+      channel="export:crh-diabete-preview"
+      download-channel="export:crh-diabete-pdf"
+      :params="previewParams"
+    />
+
+    <ParameterHistoryDialog
+      v-model="historyDialogOpen"
+      :title="historyDialogTitle"
+      :path="historyDialogPath"
+      :loading="historyLoading"
+      :entries="historyEntries"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, provide } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { CrhDiabeteFormData } from '@/types/crh-diabete'
 import { createDefaultFormData } from '@/types/crh-diabete'
 import { useCrhDiabeteCalculations } from '@/composables/useCrhDiabeteCalculations'
 import { usePatientContext } from '@/composables/usePatientContext'
-import { getEncounter } from '@/composables/useEncounters'
+import { useEncounters } from '@/composables/useEncounters'
 import { useExport } from '@/composables/useExport'
+import { useAuth } from '@/composables/useAuth'
+import { usePatients } from '@/composables/usePatients'
+import { formatMedecinName } from '@/composables/useMedicalStaff'
+import { changedLeafPaths } from '@/utils/field-meta'
 import AdmissionTab from './AdmissionTab.vue'
 import ModeVieAtcdTab from './ModeVieAtcdTab.vue'
 import FicheDiabeteTab from './FicheDiabeteTab.vue'
 import BilanInitialTab from './BilanInitialTab.vue'
 import ExamensComplementairesTab from './ExamensComplementairesTab.vue'
 import EvolutionMedicaleTab from './EvolutionMedicaleTab.vue'
+import OrdonnanceSortieTab from './OrdonnanceSortieTab.vue'
 import SortieTab from './SortieTab.vue'
+import ParameterHistoryDialog from './ParameterHistoryDialog.vue'
+import HtmlPreviewDialog from '@/components/common/HtmlPreviewDialog.vue'
+import { fetchParameterHistory, type ParameterHistoryEntry } from '@/composables/useParameterHistory'
+import { getParameterMeta } from '@/utils/parameter-history'
 
 const props = defineProps<{
   modelValue: Record<string, any>
@@ -232,6 +321,7 @@ const props = defineProps<{
   contactId: string | null
   contactDisplay: string
   documentId?: string | null
+  documentCreatedAt?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -240,37 +330,120 @@ const emit = defineEmits<{
   sign: []
   close: []
 }>()
+const { getEncounter } = useEncounters()
 
 const { calcAge, calcGlasgowScore } = useCrhDiabeteCalculations()
 const { activePatient } = usePatientContext()
 const { exportCrhDiabetePdf } = useExport()
+const { user } = useAuth()
+const { updatePatient } = usePatients()
 
-function civiliteToSexe(civilite: string): string {
-  if (civilite === 'M') return 'M'
-  if (civilite === 'Mme' || civilite === 'Mlle') return 'F'
-  return civilite || ''
+const formData = ref<CrhDiabeteFormData>(createDefaultFormData())
+
+// Consumed by BilanInitialTab's vital-history sync: while set, sync-driven
+// writes (history replacement / examen physique prefill) are NOT recorded as
+// user-modified fields in meta.champs.
+const vitalSyncInProgress = ref(false)
+provide('vitalSyncInProgress', vitalSyncInProgress)
+
+let lastDataSnapshot = ''
+let trackingArmed = false
+
+function takeDataSnapshot(): string {
+  const copy = JSON.parse(JSON.stringify(formData.value)) as Record<string, unknown>
+  delete copy.meta
+  return JSON.stringify(copy)
 }
 
-onMounted(async () => {
-  if (!props.contactId) return
-  const patient = activePatient.value
-  if (patient) {
-    formData.value.admission.nom = patient.nom || ''
-    formData.value.admission.prenom = patient.prenom || ''
-    formData.value.admission.sexe = civiliteToSexe(patient.civilite)
-    formData.value.admission.dateNaissance = patient.date_naissance || ''
-    formData.value.admission.ipp = patient.nip || ''
+const fieldMeta = computed<Record<string, string>>(() => {
+  const out: Record<string, string> = {}
+  const champs = formData.value.meta?.champs
+  if (champs) {
+    for (const [path, entry] of Object.entries(champs)) {
+      if (entry?.updatedAt) out[path] = entry.updatedAt
+    }
   }
+  return out
+})
+
+watch(formData, () => {
+  const current = takeDataSnapshot()
+  if (!trackingArmed) {
+    lastDataSnapshot = current
+    return
+  }
+  if (current === lastDataSnapshot) return
+  if (vitalSyncInProgress.value) {
+    // Sync-driven mutation (BilanInitialTab vital history / prefill):
+    // update the baseline without recording meta.champs.
+    vitalSyncInProgress.value = false
+    lastDataSnapshot = current
+    return
+  }
+  const prev = lastDataSnapshot ? (JSON.parse(lastDataSnapshot) as Record<string, unknown>) : {}
+  const curr = JSON.parse(current) as Record<string, unknown>
+  const now = new Date().toISOString()
+  for (const path of changedLeafPaths(prev, curr)) {
+    const entry = formData.value.meta.champs[path] ?? (formData.value.meta.champs[path] = { updatedAt: now })
+    entry.updatedAt = now
+  }
+  lastDataSnapshot = current
+}, { deep: true })
+
+onMounted(async () => {
+  if (user.value) {
+    formData.value.admission.interneIPANom = formatMedecinName(user.value as any)
+  }
+
+  if (props.documentCreatedAt) {
+    formData.value.admission.dateEntree = props.documentCreatedAt.split('T')[0]
+  }
+
+  if (activePatient.value?.medecin_traitant) {
+    formData.value.admission.medecinTraitantNom = activePatient.value.medecin_traitant
+  }
+
+  if (!props.contactId) return
   try {
     const encounter = await getEncounter(Number(props.contactId))
     if (encounter) {
-      formData.value.admission.dateEntree = encounter.start_date?.split('T')[0] || ''
+      if (!formData.value.admission.dateEntree) {
+        formData.value.admission.dateEntree = encounter.start_date?.split('T')[0] || ''
+      }
       formData.value.admission.serviceAccueil = encounter.service_name || ''
     }
-  } catch {
-    // silent
+  } catch { /* silent */ }
+
+  // Sync allergies from patient file
+  if (activePatient.value?.allergies?.length && formData.value.modeVieAtcd.allergies.length === 0) {
+    formData.value.modeVieAtcd.allergies = activePatient.value.allergies.map((a: any) => {
+      if (typeof a === 'string') {
+        return { libelle: a, type: 'Autre' as const }
+      }
+      return { libelle: a.libelle || '', type: a.type || 'Autre' as const }
+    })
   }
+
+  lastDataSnapshot = takeDataSnapshot()
+  trackingArmed = true
 })
+
+// Sync allergies back to patient file
+watch(() => formData.value.modeVieAtcd.allergies, async (newAllergies) => {
+  if (!activePatient.value || props.readonly) return
+  if (!Array.isArray(newAllergies)) return
+  const patientAllergies = newAllergies.map((a: any) => ({
+    libelle: a.libelle || String(a),
+    type: a.type || 'Autre',
+  }))
+  const current = activePatient.value.allergies || []
+  if (JSON.stringify(patientAllergies) !== JSON.stringify(current)) {
+    activePatient.value.allergies = patientAllergies as any
+    try {
+      await updatePatient({ ...activePatient.value, allergies: patientAllergies } as any)
+    } catch { /* silent */ }
+  }
+}, { deep: true })
 
 const activeTab = ref('admission')
 const saving = ref(false)
@@ -278,8 +451,6 @@ const signing = ref(false)
 const pdfLoading = ref(false)
 const draftStatus = ref('')
 let saveTimer: ReturnType<typeof setTimeout> | null = null
-
-const formData = ref<CrhDiabeteFormData>(createDefaultFormData())
 
 watch(() => props.modelValue, (val) => {
   if (val && Object.keys(val).length > 0) {
@@ -295,11 +466,47 @@ function mergeFormData(val: Record<string, any>) {
   const defaults = createDefaultFormData()
   const keys = Object.keys(defaults) as (keyof CrhDiabeteFormData)[]
   for (const key of keys) {
-    if (key === 'admission') continue
     if (val[key] && typeof val[key] === 'object') {
-      formData.value[key] = { ...defaults[key], ...val[key] }
+      // Préserver les tableaux tels quels (les spread en objet brisent .push())
+      if (Array.isArray(defaults[key])) {
+        (formData.value as any)[key] = Array.isArray(val[key]) ? val[key] : defaults[key]
+      } else {
+        (formData.value as any)[key] = { ...defaults[key], ...val[key] }
+      }
     }
   }
+  // Normalize legacy: allergies/antecedents may be strings from old saved data
+  const mv = formData.value.modeVieAtcd
+  if (!Array.isArray(mv.allergies)) {
+    const legacy = mv.allergies as unknown
+    mv.allergies = typeof legacy === 'string' && legacy.trim() !== ''
+      ? [{ libelle: legacy, type: 'Autre' }]
+      : []
+  }
+  if (!Array.isArray(mv.antecedents)) {
+    const legacy = mv.antecedents as unknown
+    mv.antecedents = typeof legacy === 'string' && legacy.trim() !== ''
+      ? [{ libelle: legacy, annee: '', type: 'Familiale' }]
+      : []
+  }
+  // Even older drafts stored modeVieAtcd.antecedentsMedicaux as a plain string
+  // (pre-`antecedents` rename). Seed `antecedents` when no array content exists
+  // (covers drafts that have no `antecedents` key at all).
+  if (mv.antecedents.length === 0) {
+    const legacyMedicaux = (mv as unknown as Record<string, unknown>).antecedentsMedicaux
+    if (typeof legacyMedicaux === 'string' && legacyMedicaux.trim() !== '') {
+      mv.antecedents = [{ libelle: legacyMedicaux, annee: '', type: 'Familiale' }]
+    }
+  }
+  // One-shot migration: drop the legacy key so a deliberately emptied
+  // `antecedents` array is not re-seeded on every subsequent load.
+  delete (mv as Record<string, unknown>).antecedentsMedicaux
+  const exams = formData.value.examensComplementaires as Record<string, unknown>
+  delete exams.radioPied
+  delete exams.ecgRepos
+  delete exams.echographieCardiaque
+  delete exams.actesInterventionnels
+  lastDataSnapshot = takeDataSnapshot()
 }
 
 function flattenFormData(data: CrhDiabeteFormData): Record<string, any> {
@@ -307,7 +514,8 @@ function flattenFormData(data: CrhDiabeteFormData): Record<string, any> {
 }
 
 const patientAge = computed(() => {
-  return calcAge(formData.value.admission.dateNaissance, formData.value.admission.dateEntree)
+  const dateNaissance = activePatient.value?.date_naissance
+  return calcAge(dateNaissance || '', formData.value.admission.dateEntree)
 })
 
 const statusType = computed(() => {
@@ -319,8 +527,7 @@ const statusLabel = computed(() => {
 })
 
 const showAllergyAlert = computed(() => {
-  const v = formData.value.modeVieAtcd.allergies?.trim().toLowerCase() || ''
-  return v !== '' && v !== "pas d'allergie connue"
+  return formData.value.modeVieAtcd.allergies.length > 0
 })
 
 const glasgowScore = computed(() => {
@@ -338,6 +545,42 @@ const glasgowIsSevere = computed(() => {
 const hasActiveBadges = computed(() => {
   return showAllergyAlert.value || glasgowIsSevere.value
 })
+
+const CRH_DOCUMENT_TYPE_CODES = ['CRH_DIABETE']
+
+const historyDialogOpen = ref(false)
+const historyDialogTitle = ref('')
+const historyDialogPath = ref('')
+const historyLoading = ref(false)
+const historyEntries = ref<ParameterHistoryEntry[]>([])
+
+async function onFormCellClick(event: MouseEvent) {
+  const target = event.target as HTMLElement
+  // Ignore clicks inside interactive controls (input, buttons, pickers…)
+  if (target.closest('input, textarea, button, select, .el-input, .el-input-number, .el-select, .el-date-editor, .el-radio, .el-checkbox, .el-switch')) return
+  const formItem = target.closest('[data-history-path]') as HTMLElement | null
+  if (!formItem) return
+  const path = formItem.getAttribute('data-history-path')
+  if (!path || !getParameterMeta(path)) return
+  event.preventDefault()
+  historyDialogTitle.value = `Historique — ${getParameterMeta(path)?.label ?? path}`
+  historyDialogPath.value = path
+  historyDialogOpen.value = true
+  historyLoading.value = true
+  historyEntries.value = []
+  try {
+    const entries = await fetchParameterHistory(activePatient.value?.id, CRH_DOCUMENT_TYPE_CODES, path)
+    // Discard stale responses if the user clicked another field meanwhile.
+    if (historyDialogPath.value !== path) return
+    historyEntries.value = entries
+  } catch {
+    // ipcInvoke already surfaces the toast; don't leave a misleading
+    // "Aucun historique pour ce paramètre" state on failure.
+    historyDialogOpen.value = false
+  } finally {
+    if (historyDialogPath.value === path) historyLoading.value = false
+  }
+}
 
 function onFieldChange() {
   if (saveTimer) clearTimeout(saveTimer)
@@ -381,11 +624,33 @@ async function handleSign() {
 }
 
 async function handleExportPdf() {
-  if (!props.documentId) {
-    ElMessage.warning('Enregistrez d\'abord le document avant de générer le PDF')
+  if (!activePatient.value) {
+    ElMessage.warning('Aucun patient actif. Enregistrez d\'abord le document pour générer le PDF')
     return
   }
-  await exportCrhDiabetePdf(props.documentId)
+  await exportCrhDiabetePdf({
+    documentId: props.documentId,
+    patientId: activePatient.value?.id ?? null,
+    contactId: props.contactId,
+    formData: flattenFormData(formData.value),
+  })
+}
+
+const previewDialogRef = ref<InstanceType<typeof HtmlPreviewDialog> | null>(null)
+
+const previewParams = computed(() => ({
+  documentId: props.documentId,
+  patientId: activePatient.value?.id ?? null,
+  contactId: props.contactId,
+  formData: flattenFormData(formData.value),
+}))
+
+function handlePreview() {
+  if (!activePatient.value) {
+    ElMessage.warning('Aucun patient actif. Enregistrez d\'abord le document pour prévisualiser le PDF')
+    return
+  }
+  previewDialogRef.value?.open()
 }
 </script>
 

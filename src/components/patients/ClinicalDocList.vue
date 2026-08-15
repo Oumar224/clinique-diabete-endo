@@ -86,6 +86,14 @@
               >
                 {{ doc.status === 'signed' ? 'Signé' : 'Brouillon' }}
               </el-tag>
+              <el-tag
+                v-if="doc.source === 'imported'"
+                type="info"
+                size="small"
+                effect="plain"
+              >
+                Importé
+              </el-tag>
               <span class="doc-list__item-date">{{ formatDateTime(doc.createdAt) }}</span>
             </div>
           </div>
@@ -129,6 +137,7 @@ const emit = defineEmits<{
   select: [id: string]
   create: [typeId: string]
   'delete-document': [id: string]
+  import: []
 }>()
 
 function handleSelect(id: string) {

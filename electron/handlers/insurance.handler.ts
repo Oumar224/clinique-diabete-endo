@@ -1,7 +1,7 @@
 import { container } from 'tsyringe'
 import { InsuranceService } from '../services/insurance.service'
 import { InsuranceEntity } from '../entities/insurance.entity'
-import type { InsuranceCreateDto, InsuranceUpdateDto } from '../entities/insurance.entity'
+import type { InsuranceCreateDto, InsuranceUpdateDto } from '../dto/insurance.dto'
 import { createHandler } from '../utils/create-handler'
 
 export function registerInsuranceHandlers(): void {
@@ -16,13 +16,13 @@ export function registerInsuranceHandlers(): void {
   })
 
   createHandler('insurances:create', async (dto: InsuranceCreateDto) => {
-    const created = await container.resolve(InsuranceService).create(dto)
+    const created = await container.resolve(InsuranceService).create({ name: dto.name!, code: dto.code! })
     return InsuranceEntity.toDto(created)
   })
 
   createHandler('insurances:update', async (dto: InsuranceUpdateDto) => {
     const { id, ...data } = dto
-    const updated = await container.resolve(InsuranceService).update(id, data)
+    const updated = await container.resolve(InsuranceService).update(id!, data)
     return InsuranceEntity.toDto(updated)
   })
 

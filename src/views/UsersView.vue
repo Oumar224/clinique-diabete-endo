@@ -152,17 +152,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Plus, Edit, Delete, Search, ArrowDown, Document, Printer } from '@element-plus/icons-vue'
-import {
-  users,
-  userFormRef,
-  editUserFormRef,
-  loadUsers,
-  createUser,
-  updateUser,
-  deleteUser,
-  roleLabel,
-  getUserDisplayName,
-} from '@/composables/useUsers'
+import { useUsers, roleLabel, getUserDisplayName } from '@/composables/useUsers'
 import type { UserDto } from '@/composables/useUsers'
 import { useSpecialties } from '@/composables/useSpecialties'
 import { useFonctions } from '@/composables/useFonctions'
@@ -171,6 +161,7 @@ import UserDetailDialog from '@/components/users/UserDetailDialog.vue'
 import UserPrintDialog from '@/components/users/UserPrintDialog.vue'
 import { useExport } from '@/composables/useExport'
 
+const { users, userFormRef, editUserFormRef, loadUsers, createUser, updateUser, deleteUser } = useUsers()
 const { exportingPdf, exportingExcel, exportUsersListPdf, exportUsersListExcel } = useExport()
 const printDialogVisible = ref(false)
 

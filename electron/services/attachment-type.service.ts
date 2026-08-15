@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { AttachmentTypeEntity } from '../entities/attachment-type.entity'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class AttachmentTypeService {
@@ -27,11 +28,13 @@ export class AttachmentTypeService {
       throw new Error('Le nom du type de pièce jointe est requis')
     }
 
-    return await this.db
+    const result = await this.db
       .insertInto('attachment_types')
       .values({ name: entity.name.trim() })
       .returningAll()
       .executeTakeFirstOrThrow()
+    entityEventBus.emitEntityChange({ entityType: 'attachment_type', action: 'created', id: result.id!, entity: result, source: 'local', timestamp: Date.now() })
+    return result
   }
 
   // ─── Update an attachment type ─────────────────────────────────
@@ -70,6 +73,7 @@ export class AttachmentTypeService {
       .executeTakeFirst()
 
     if (!updated) throw new Error('Type de pièce jointe introuvable après mise à jour')
+    entityEventBus.emitEntityChange({ entityType: 'attachment_type', action: 'updated', id: entity.id!, entity: updated, source: 'local', timestamp: Date.now() })
     return updated
   }
 
@@ -89,5 +93,6 @@ export class AttachmentTypeService {
       .deleteFrom('attachment_types')
       .where('id', '=', id)
       .execute()
+    entityEventBus.emitEntityChange({ entityType: 'attachment_type', action: 'deleted', id, entity: existing, source: 'local', timestamp: Date.now() })
   }
 }

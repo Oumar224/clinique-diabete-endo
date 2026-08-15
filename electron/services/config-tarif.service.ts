@@ -73,7 +73,7 @@ export class ConfigTarifService {
 
   // ─── Create a new tariff entry ────────────────────────────────
   async create(dto: TarifCreateDto): Promise<ConfigTarifEntity> {
-    this.validatePrixUnitaire(dto.prix_unitaire)
+    this.validatePrixUnitaire(dto.prix_unitaire!)
 
     try {
       const acte = await this.db
@@ -172,8 +172,8 @@ export class ConfigTarifService {
 
     try {
       await this.db.transaction().execute(async (trx) => {
-        for (const item of dto.items) {
-          this.validatePrixUnitaire(item.prix_unitaire)
+        for (const item of dto.items!) {
+          this.validatePrixUnitaire(item.prix_unitaire!)
 
           const acte = await trx
             .selectFrom('medical_acts')

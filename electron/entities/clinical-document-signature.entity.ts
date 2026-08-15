@@ -1,17 +1,15 @@
-export interface ClinicalDocumentSignatureDTO {
-  id: string
-  documentId: string
-  userId: string
-  signatureHash: string
-  signedAt: string
-}
+import type { ClinicalDocumentSignatureDTO } from '../dto/clinical-document-signature.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { ClinicalDocumentSignatureConverter } from '../automerge/converters/clinical-document-signature.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class ClinicalDocumentSignatureEntity {
-  id?: string
-  document_id?: string
-  user_id?: string
-  signature_hash?: string
-  signed_at?: string
+  @SchemaField() id?: number
+  @SchemaField() document_id?: string
+  @SchemaField() user_id?: string
+  @SchemaField() signature_hash?: string
+  @SchemaField() signed_at?: string
 
   static toDto(entity: ClinicalDocumentSignatureEntity): ClinicalDocumentSignatureDTO {
     return {
@@ -41,11 +39,16 @@ export class ClinicalDocumentSignatureEntity {
     return 'ClinicalDocumentSignature'
   }
 
-  static documentSchema(): unknown {
-    return {}
+  static documentSchema(): AutomergeDocument<ClinicalDocumentSignatureEntity> {
+    return buildDocumentSchema(ClinicalDocumentSignatureEntity) as AutomergeDocument<ClinicalDocumentSignatureEntity>
   }
 
   static register(): void {
-    /* No Automerge sync needed */
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'clinical_document_signature',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: ClinicalDocumentSignatureConverter.toDocument, toEntity: ClinicalDocumentSignatureConverter.toEntity },
+    })
   }
 }

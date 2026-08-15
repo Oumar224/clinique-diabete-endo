@@ -33,7 +33,8 @@ export function useSites() {
       const created = await ipcInvoke<SiteDto>('sites:create', dto)
       await fetchSites()
       return created
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -43,7 +44,8 @@ export function useSites() {
       const updated = await ipcInvoke<SiteDto>('sites:update', { id, ...dto })
       await fetchSites()
       return updated
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -53,7 +55,8 @@ export function useSites() {
       await ipcInvoke('sites:delete', { id })
       await fetchSites()
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }
@@ -64,7 +67,8 @@ export function useSites() {
       const idx = sites.value.findIndex(s => s.id === id)
       if (idx !== -1) sites.value[idx] = toggled
       return toggled
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -74,7 +78,8 @@ export function useSites() {
       const updated = await ipcInvoke<SiteDto>('sites:set-default', { id })
       await fetchSites()
       return updated
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }

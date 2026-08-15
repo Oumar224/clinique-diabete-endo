@@ -4,6 +4,7 @@ import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import type { ExamCategoryEntity } from '../entities/exam-category.entity'
 import type { ExamTypeEntity } from '../entities/exam-type.entity'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class ExamTypeService {
@@ -18,6 +19,7 @@ export class ExamTypeService {
     const categories: ExamCategoryEntity[] = [
       { id: 1, code: 'imagerie', name: 'Imagerie', sort_order: 1 },
       { id: 2, code: 'laboratoire', name: 'Laboratoire', sort_order: 2 },
+      { id: 3, code: 'avis', name: 'Avis spécialisé', sort_order: 3 },
     ]
     return categories
   }
@@ -121,7 +123,7 @@ export class ExamTypeService {
       .insertInto('lab_exams')
       .values({
         category_id: entity.category_id,
-        parent_id: entity.parent_id ?? null,
+        parent_id: entity.parent_id ?? undefined,
         code,
         name: (entity.name ?? '').trim(),
         is_active: 1,
@@ -130,6 +132,7 @@ export class ExamTypeService {
       .executeTakeFirst()
 
     if (!result) throw new Error("Échec de la création du type d'examen")
+    entityEventBus.emitEntityChange({ entityType: 'exam_type', action: 'created', id: result.id!, entity: result, source: 'local', timestamp: Date.now() })
     return result as unknown as ExamTypeEntity
   }
 
@@ -169,6 +172,7 @@ export class ExamTypeService {
       .executeTakeFirst()
 
     if (!updated) throw new Error("Type d'examen introuvable après mise à jour")
+    entityEventBus.emitEntityChange({ entityType: 'exam_type', action: 'updated', id: entity.id!, entity: updated, source: 'local', timestamp: Date.now() })
     return updated as unknown as ExamTypeEntity
   }
 
@@ -194,6 +198,7 @@ export class ExamTypeService {
       .deleteFrom('lab_exams')
       .where('id', '=', id)
       .execute()
+    entityEventBus.emitEntityChange({ entityType: 'exam_type', action: 'deleted', id, entity: existing, source: 'local', timestamp: Date.now() })
   }
 
   // ─── Validation ──────────────────────────────────────────────

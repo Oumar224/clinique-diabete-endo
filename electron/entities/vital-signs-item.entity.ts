@@ -1,24 +1,28 @@
 import type { VitalSignsItemDto } from '../dto/vital-signs-item.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { VitalSignsItemConverter } from '../automerge/converters/vital-signs-item.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class VitalSignsItemEntity {
-  id?: number
-  patient_id?: number
-  date?: string
-  hour?: number
-  ta_systolique?: number | null
-  ta_diastolique?: number | null
-  frequence_cardiaque?: number | null
-  temperature?: number | null
-  glycemie?: number | null
-  cetonemie?: number | null
-  glucosurie?: string | null
-  cetonurie?: string | null
-  sa_o2?: number | null
-  diurese?: number | null
-  poids?: number | null
-  created_by?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() patient_id?: number
+  @SchemaField() date?: string
+  @SchemaField() hour?: number
+  @SchemaField() ta_systolique?: number 
+  @SchemaField() ta_diastolique?: number 
+  @SchemaField() frequence_cardiaque?: number 
+  @SchemaField() temperature?: number 
+  @SchemaField() glycemie?: number 
+  @SchemaField() cetonemie?: number 
+  @SchemaField() glucosurie?: string 
+  @SchemaField() cetonurie?: string 
+  @SchemaField() sa_o2?: number 
+  @SchemaField() diurese?: number 
+  @SchemaField() poids?: number 
+  @SchemaField() created_by?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: VitalSignsItemEntity): VitalSignsItemDto {
     return {
@@ -26,17 +30,17 @@ export class VitalSignsItemEntity {
       patientId: entity.patient_id!,
       date: entity.date!,
       hour: entity.hour!,
-      taSystolique: entity.ta_systolique ?? null,
-      taDiastolique: entity.ta_diastolique ?? null,
-      frequenceCardiaque: entity.frequence_cardiaque ?? null,
-      temperature: entity.temperature ?? null,
-      glycemie: entity.glycemie ?? null,
-      cetonemie: entity.cetonemie ?? null,
-      glucosurie: entity.glucosurie ?? null,
-      cetonurie: entity.cetonurie ?? null,
-      saO2: entity.sa_o2 ?? null,
-      diurese: entity.diurese ?? null,
-      poids: entity.poids ?? null,
+      taSystolique: entity.ta_systolique ?? undefined,
+      taDiastolique: entity.ta_diastolique ?? undefined,
+      frequenceCardiaque: entity.frequence_cardiaque ?? undefined,
+      temperature: entity.temperature ?? undefined,
+      glycemie: entity.glycemie ?? undefined,
+      cetonemie: entity.cetonemie ?? undefined,
+      glucosurie: entity.glucosurie ?? undefined,
+      cetonurie: entity.cetonurie ?? undefined,
+      saO2: entity.sa_o2 ?? undefined,
+      diurese: entity.diurese ?? undefined,
+      poids: entity.poids ?? undefined,
       createdBy: entity.created_by!,
       createdAt: entity.created_at!,
       updatedAt: entity.updated_at!,
@@ -71,6 +75,13 @@ export class VitalSignsItemEntity {
   }
 
   static documentType(): string { return 'VitalSignsItem' }
-  static documentSchema(): any { return {} }
-  static register(): void { /* No Automerge sync needed */ }
+  static documentSchema(): AutomergeDocument<VitalSignsItemEntity> { return buildDocumentSchema(VitalSignsItemEntity) as AutomergeDocument<VitalSignsItemEntity> }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'vital_signs_item',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: VitalSignsItemConverter.toDocument, toEntity: VitalSignsItemConverter.toEntity },
+    })
+  }
 }

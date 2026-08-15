@@ -57,7 +57,9 @@ vi.mock('@/composables/useOpenPatients', () => ({
 }))
 
 vi.mock('@/composables/usePatients', () => ({
-  getPatient: mockGetPatient,
+  usePatients: vi.fn(() => ({
+    getPatient: mockGetPatient,
+  })),
 }))
 
 // ===========================================================================

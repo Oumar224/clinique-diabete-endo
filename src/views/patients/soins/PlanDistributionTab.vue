@@ -1,5 +1,5 @@
 <template>
-    <div class="plan-distribution" v-loading="(loading && !loadingTimeout) || weekLoading">
+    <div class="plan-distribution" v-loading="(planLoading && !loadingTimeout) || weekLoading">
     <div v-if="error" class="plan-distribution__error">
       <el-alert :title="error" type="error" show-icon :closable="true" @close="error = null" />
     </div>
@@ -288,13 +288,11 @@ import { useRoute } from 'vue-router'
 import { ArrowLeft, ArrowRight, Refresh, InfoFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { getPlanSoins, reprendreSoin as apiReprendreSoin, suspendrePrescription, reprendrePrescription } from '@/api/planSoins'
-import { usePlanSoins, isInsulin } from '@/composables/usePlanSoins'
+import { usePlanSoins, isInsulin, getPlanSoins, reprendreSoin, suspendrePrescription, reprendrePrescription } from '@/composables/usePlanSoins'
+import { usePrescriptions, type PrescriptionRecord } from '@/composables/usePrescriptions'
 import { useAuth } from '@/composables/useAuth'
 import { FREQUENCE_OPTIONS } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
-import { createPrescription, updatePrescription, getPrescription } from '@/api/prescription'
-import type { PrescriptionRecord } from '@/api/prescription'
 import type { SoinItem, StatutSoin, BlocHoraire, VoieAdministration } from '@/types/soins'
 
 const route = useRoute()
@@ -304,12 +302,13 @@ const patientId = computed<number | null>(() => {
   return Number.isFinite(id) ? id : null
 })
 
-const { loading, error, insulinBlocked, valider, suspendre } = usePlanSoins(patientId)
+const { loading: planLoading, error, insulinBlocked, valider, suspendre } = usePlanSoins(patientId)
+const { createPrescription, updatePrescription, getPrescription } = usePrescriptions()
 
 // Force loading to false after 10s to prevent permanent loading overlay
 const loadingTimeout = ref(false)
 watchEffect(() => {
-  if (loading.value) {
+  if (planLoading.value) {
     const timer = setTimeout(() => { loadingTimeout.value = true }, 10000)
     return () => clearTimeout(timer)
   } else {
@@ -668,7 +667,7 @@ async function onSuspendre(soin: SoinItem, dateIndex: number) {
 
 async function onReprendre(soin: SoinItem, dateIndex: number) {
   try {
-    await apiReprendreSoin(soin.id)
+    await reprendreSoin(soin.id)
     const day = weekDays.value[dateIndex]
     if (day && patientId.value) {
       const dateStr = formatLocalDate(day.fullDate)
@@ -789,7 +788,10 @@ async function onEditPrescription(prescriptionId: number) {
 }
 
 async function onPrescrire() {
-  if (!patientId.value) return
+  if (!patientId.value || patientId.value <= 0) {
+    ElMessage.error('Patient non valide')
+    return
+  }
   const valid = await prescriptionFormRef.value?.validate().catch(() => false)
   if (!valid) return
 
@@ -808,6 +810,7 @@ async function onPrescrire() {
         prn: prescriptionForm.prn,
         instructions: prescriptionForm.instructions || null,
       })
+      if (!result) { ElMessage.error('Erreur de mise à jour'); return }
       console.log(`[onPrescrire] 📝 UPDATE result itemsGenerated=${result.itemsGenerated} prescriptionId=${result.prescription.id}`, JSON.parse(JSON.stringify(result)))
       ElMessage.success(`Prescription modifiée — ${result.itemsGenerated} administration(s) générée(s)`)
     } else {
@@ -822,6 +825,7 @@ async function onPrescrire() {
         instructions: prescriptionForm.instructions || null,
         prescripteurId,
       })
+      if (!result) { ElMessage.error('Erreur de création'); return }
       console.log(`[onPrescrire] 🆕 CREATE result itemsGenerated=${result.itemsGenerated} prescriptionId=${result.prescription.id}`, JSON.parse(JSON.stringify(result)))
       ElMessage.success(`Prescription créée — ${result.itemsGenerated} administration(s) générée(s)`)
     }

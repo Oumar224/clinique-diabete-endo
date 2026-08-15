@@ -17,9 +17,9 @@
               {{ getCiviliteSymbol(patient.civilite) }} {{ patient.prenom }} {{ patient.nom }}
             </h2>
             <div class="patient-record__meta">
-              <span><strong>N\u00b0 SS/Assurance&nbsp;:</strong> {{ patient.nir }}</span>
+              <span><strong>N° SS/Assurance&nbsp;:</strong> {{ patient.nir }}</span>
               <span><strong>&Acirc;ge&nbsp;:</strong> {{ calculateAge(patient.date_naissance) }} ans</span>
-              <span><strong>N\u00e9(e) le&nbsp;:</strong> {{ formatDate(patient.date_naissance) }}</span>
+              <span><strong>Né(e) le&nbsp;:</strong> {{ formatDate(patient.date_naissance) }}</span>
               <span><strong>NIP&nbsp;:</strong> {{ patient.nip }}</span>
             </div>
           </div>
@@ -62,14 +62,12 @@
                   Aucune
                 </template>
                 <span v-else class="patient-record__allergies-tags">
-                  <el-tag
-                    v-for="a in patient.allergies"
-                    :key="a"
-                    type="danger"
-                    size="small"
-                  >
-                    {{ a }}
-                  </el-tag>
+                  <span
+                    v-for="(a, i) in normalizeAllergies(patient.allergies)"
+                    :key="i"
+                    class="patient-record__allergy-chip"
+                    :style="{ background: allergyTypeColors(a.type).bg, color: allergyTypeColors(a.type).text, borderColor: allergyTypeColors(a.type).border }"
+                  ><span class="patient-record__allergy-type">{{ a.type }}</span> {{ a.libelle }}</span>
                 </span>
               </span>
             </div>
@@ -195,8 +193,8 @@ import { ref, computed, onMounted, onErrorCaptured } from 'vue'
 import { useRoute } from 'vue-router'
 import { Edit, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getPatient, deletePatient, fetchPatients, type PatientDto } from '@/composables/usePatients'
-import { getTrustedPerson, type TrustedPersonDto } from '@/composables/useTrustedPerson'
+import { usePatients, type PatientDto } from '@/composables/usePatients'
+import { useTrustedPerson, type TrustedPersonDto } from '@/composables/useTrustedPerson'
 import { calculateAge } from '@/utils/age'
 import { formatDate } from '@/utils/date'
 import { getCiviliteSymbol } from '@/utils/civilite'
@@ -204,13 +202,16 @@ import { usePatientContext } from '@/composables/usePatientContext'
 import { useLocalites } from '@/composables/useLocalites'
 import { ipcInvoke } from '@/utils/ipc'
 import PatientFormDialog from '@/components/patients/PatientFormDialog.vue'
+import { normalizeAllergies, allergyTypeColors } from '@/utils/allergy-helpers'
 
 const route = useRoute()
 const { setActivePatient } = usePatientContext()
+const { getPatient, deletePatient, fetchPatients } = usePatients()
 const patient = ref<PatientDto | null>(null)
 const loading = ref(true)
 const formDialogRef = ref<InstanceType<typeof PatientFormDialog> | null>(null)
 const { localites, fetchLocalites } = useLocalites()
+const { getTrustedPerson } = useTrustedPerson()
 const trustedPerson = ref<TrustedPersonDto | null>(null)
 const sites = ref<Array<{ id: number; name: string }>>([])
 
@@ -457,6 +458,25 @@ function onSaved() {
   display: inline-flex;
   gap: 6px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.patient-record__allergy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid;
+}
+.patient-record__allergy-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  opacity: 0.7;
 }
 
 .patient-record__section {

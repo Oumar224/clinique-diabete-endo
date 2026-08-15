@@ -1,7 +1,7 @@
 export interface TrustedPersonDto {
   id?: number
-  patient_id: number
-  has_trusted: boolean
+  patient_id?: number
+  has_trusted?: boolean
   nom?: string
   prenom?: string
   profession?: string

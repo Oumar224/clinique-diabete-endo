@@ -305,9 +305,11 @@ export function generatePatientProfileHtml(
     </div>
   </div>` : ''
 
-  const allergiesHtml = (patient.allergies || []).length
-    ? patient.allergies.map((a: string) => `<span class="tag tag--danger">${escapeHtml(a)}</span>`).join(' ')
-    : 'Aucune'
+  const allergiesHtml = Array.isArray(patient.allergies) && patient.allergies.length
+    ? patient.allergies.map((a: any) => `<span class="tag tag--danger">${typeof a === 'string' ? escapeHtml(a) : escapeHtml(a.libelle || '')}</span>`).join(' ')
+    : typeof patient.allergies === 'string' && patient.allergies.trim()
+      ? `<span class="tag tag--danger">${escapeHtml(patient.allergies)}</span>`
+      : 'Aucune'
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
@@ -382,7 +384,7 @@ export function generatePatientProfileHtml(
       <div class="field-row"><span class="field-label">N\u00b0 SS</span><span class="field-value">${escapeHtml(patient.nir || '—')}</span></div>
       <div class="field-row"><span class="field-label">NIP</span><span class="field-value">${escapeHtml(patient.nip || '—')}</span></div>
       <div class="field-row"><span class="field-label">Mutuelles</span><span class="field-value">${escapeHtml(patient.assuranceMutuelle || patient.mutuelle || '—')}</span></div>
-      <div class="field-row"><span class="field-label">M\u00e9decin traitant</span><span class="field-value">${escapeHtml(patient.medecin_traitant || '—')}</span></div>
+      <div class="field-row"><span class="field-label">M\u00e9decin r\u00e9f\u00e9rent</span><span class="field-value">${escapeHtml(patient.medecin_traitant || '—')}</span></div>
       <div class="field-row"><span class="field-label">Allergies</span><span class="field-value">${allergiesHtml}</span></div>
     </div>
   </div>
@@ -393,6 +395,15 @@ export function generatePatientProfileHtml(
 </body></html>`
 }
 
+export interface CrhDiabeteOptions {
+  /** Override the document title displayed in the title block (default: "COMPTE-RENDU D'HOSPITALISATION — DIABÈTE") */
+  docTitle?: string
+  /** Override the document reference prefix (default: "CDE-CRH") */
+  docRefPrefix?: string
+  /** Override the short type label used in "XXX éditée le" (default: "CRH") */
+  typeLabel?: string
+}
+
 export function generateCrhDiabeteHtml(
   data: any,
   patient: any,
@@ -401,19 +412,32 @@ export function generateCrhDiabeteHtml(
   _logoBase64: string | null,
   signedAt?: string,
   signedBy?: string,
+  options?: CrhDiabeteOptions,
 ): string {
   const admission = data.admission || {}
   const modeVieAtcd = data.modeVieAtcd || {}
   const ficheDiabete = data.ficheDiabete || {}
   const bilanInitial = data.bilanInitial || {}
+  const traitementEntree = (bilanInitial as any).traitementEntree
+  const scoreDouleur = (bilanInitial as any).scoreDouleur
+  const examenPhysiqueTexte = (bilanInitial as any).examenPhysiqueTexte
+  const projetSoin = (bilanInitial as any).projetSoin
   const examenPhysique = bilanInitial.examenPhysique || {}
+  // IMC must stay in sync with calcIMC (src/utils/medical-calculations.ts) —
+  // this bundle cannot import the renderer module.
+  const tailleM = examenPhysique.taille != null ? examenPhysique.taille / 100 : 0
+  const imcVital = examenPhysique.poids != null && tailleM > 0
+    ? Math.round((examenPhysique.poids / (tailleM * tailleM)) * 10) / 10
+    : null
   const glasgow = bilanInitial.glasgow || {}
   const examensComplementaires = data.examensComplementaires || {}
-  const echoCardiaque = examensComplementaires.echographieCardiaque || {}
   const evolutionMedicale = data.evolutionMedicale || {}
   const sortie = data.sortie || {}
 
-  const dateFmt = (d: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '—'
+  const dateFmt = (d: string) => d ? new Date(d.includes('T') ? d : `${d}T00:00:00`).toLocaleDateString('fr-FR') : '—'
+  const dateTimeFmt = (d: string) => d.includes('T')
+    ? `${dateFmt(d)} ${new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+    : dateFmt(d)
   const now = new Date()
   const printDate = now.toLocaleDateString('fr-FR')
   const printTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -424,8 +448,11 @@ export function generateCrhDiabeteHtml(
   const patientAddress = [patient.adresse, patient.complement_adresse].filter(Boolean).join(' – ')
   const patientCPVille = [patient.region].filter(Boolean).join('')
 
-  const age = admission.dateNaissance && admission.dateEntree
-    ? calculateAgeFromDates(admission.dateNaissance, admission.dateEntree)
+  const dateNaissance = admission.dateNaissance || patient.date_naissance || ''
+  const ipp = admission.ipp || patient.nip || ''
+  const sexeRaw = admission.sexe || (patient.civilite === 'M' ? 'M' : patient.civilite ? 'F' : '')
+  const age = dateNaissance && admission.dateEntree
+    ? calculateAgeFromDates(dateNaissance, admission.dateEntree)
     : '—'
 
   const nda = contact?.id || '—'
@@ -434,8 +461,11 @@ export function generateCrhDiabeteHtml(
     ? calculateDuration(ficheDiabete.dateDiagnostic)
     : '—'
 
-  const glasgowTotal = (glasgow.ouvertureYeux || 0) + (glasgow.reponseVerbale || 0) + (glasgow.reponseMotrice || 0)
-  const glasgowText = glasgowTotal > 0 ? `${glasgowTotal}/15` : '—'
+  const glaYeux = glasgow.ouvertureYeux || 4
+  const glaVerbale = glasgow.reponseVerbale || 5
+  const glaMotrice = glasgow.reponseMotrice || 6
+  const glasgowTotal = glaYeux + glaVerbale + glaMotrice
+  const glasgowText = `${glasgowTotal}/15`
 
   const autonomieSL = modeVieAtcd.autonomieSL || {}
   const autoItems = [
@@ -446,9 +476,10 @@ export function generateCrhDiabeteHtml(
     ['Continence', autonomieSL.continence],
   ]
 
-  const sexeLabel = admission.sexe === 'M' ? 'Masculin' : admission.sexe === 'F' ? 'Féminin' : '—'
+  const sexeLabel = sexeRaw === 'M' ? 'Masculin' : sexeRaw === 'F' ? 'Féminin' : '—'
 
-  const docRef = `CDE-CRH-${String(patient.id || '0').padStart(6, '0')}-${now.toISOString().slice(0, 10).replace(/-/g, '')}`
+  const docRefPrefix = options?.docRefPrefix ?? 'CDE-CRH'
+  const docRef = `${docRefPrefix}-${String(patient.id || '0').padStart(6, '0')}-${now.toISOString().slice(0, 10).replace(/-/g, '')}`
 
   const signataireMedecin = signedBy || '—'
 
@@ -460,14 +491,75 @@ export function generateCrhDiabeteHtml(
     return v != null && v !== '' ? s(v) : 'Non renseigné'
   }
 
-  const interventionsHtml = (examensComplementaires.actesInterventionnels || []).map((a: any, i: number) => `
-    <div class="acte-box">
-      <p class="acte-title">Acte #${i + 1} — ${s(a.date)} — ${s(a.type)}</p>
-      <p class="acte-detail">Opérateur : ${s(a.operateur)}</p>
-      ${a.compteRendu ? `<p class="acte-detail">${s(a.compteRendu)}</p>` : ''}
-      <p class="acte-detail"><span class="acte-concl">Conclusion :</span> ${s(a.conclusion)}</p>
-    </div>
+  const hasText = (v: any): boolean => {
+    if (v == null) return false
+    const html = String(v)
+    if (/<\s*img\b/i.test(html)) return true
+    return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() !== ''
+  }
+
+  const richHtml = (v: string | null | undefined): string => (hasText(v) ? String(v) : '')
+
+  const imagerieTestsHtml = (examensComplementaires.imagerieTests || [])
+    .map((e: any) => {
+      const type = e.type === '__autre__' ? e.typeLibre : e.type
+      const hasContent = e.date || type || e.resultat
+      if (!hasContent) return ''
+      const label = ['Imagerie / Test', e.date, type].filter(Boolean).join(' — ')
+      return `<div class="crh-field"><span class="crh-label">${s(label)}</span><span class="crh-value">${e.resultat ? e.resultat : '—'}</span></div>`
+    })
+    .join('')
+
+  const bilanBioData = examensComplementaires.bilanBio || {}
+  const bioResultsList = bilanBioData.results || []
+  const formatRefs = (ref: any): string => {
+    if (!ref || typeof ref !== 'object') return ''
+    if (Array.isArray(ref.options)) return ref.options.join(' / ')
+    if (ref.min != null && ref.max != null) return `${ref.min} – ${ref.max}`
+    if (ref.min_h != null && ref.max_h != null) return `H : ${ref.min_h} – ${ref.max_h}`
+    if (ref.min_f != null && ref.max_f != null) return `F : ${ref.min_f} – ${ref.max_f}`
+    if (ref.normal_value != null) return String(ref.normal_value)
+    return ''
+  }
+  const bioGrouped = bioResultsList.reduce((groups: Map<string, any[]>, r: any) => {
+    const exam = r.examName?.trim() || 'Examen non précisé'
+    const group = groups.get(exam) || []
+    group.push(r)
+    groups.set(exam, group)
+    return groups
+  }, new Map<string, any[]>())
+  const bioRowsHtml = [...bioGrouped.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0], 'fr', { sensitivity: 'base' }))
+    .map(([exam, rows]) => `
+    <tr><th colspan="5" style="text-align:left">${s(exam)}</th></tr>
+    ${rows
+      .sort((a: any, b: any) => (a.parameterName || '').localeCompare(b.parameterName || '', 'fr', { sensitivity: 'base' }))
+      .map((r: any) => `
+    <tr>
+      <td>${s(r.requestDate || (r.filledAt ? r.filledAt.slice(0, 10) : '') || '')}</td>
+      <td>${s(r.parameterName || '')}</td>
+      <td style="text-align:right${r.isNormal === false ? ';font-weight:bold;color:#c00' : ''}">${s(r.value || '')}</td>
+      <td>${s(r.parameterUnit || '')}</td>
+      <td>${s(formatRefs(r.parameterReferenceValues))}</td>
+    </tr>`).join('')}
   `).join('')
+  const bilanBioHtml = bioResultsList.length
+    ? `<p class="crh-para" style="margin-top:8px;"><strong>Résultat Bio${bilanBioData.dateFrom ? ` (${s(bilanBioData.dateFrom)} → ${s(bilanBioData.dateTo || '')})` : ''} :</strong></p>
+<table class="crh-table">
+  <thead>
+    <tr>
+      <th style="text-align:left">Date</th>
+      <th style="text-align:left">Paramètre</th>
+      <th style="text-align:right">Valeur</th>
+      <th style="text-align:left">Unité</th>
+      <th style="text-align:left">Références</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${bioRowsHtml}
+  </tbody>
+</table>`
+    : ''
 
   const rdvHtml = (sortie.rdvSuivi || []).sort((a: any, b: any) => a.date?.localeCompare(b.date) || 0).map((r: any) => `
     <tr>
@@ -482,6 +574,56 @@ export function generateCrhDiabeteHtml(
     ficheDiabete.poidsJuillet2024 != null ? `${ficheDiabete.poidsJuillet2024} kg (juil. 2024)` : null,
     ficheDiabete.poidsDecembre2025 != null ? `${ficheDiabete.poidsDecembre2025} kg (déc. 2025)` : null,
   ].filter(Boolean).join(' | ') || '—'
+
+  // `allergies` / `antecedents` are arrays in current documents, but pre-feature
+  // CRH/CRC documents stored them as plain strings. Guard both shapes so legacy
+  // data renders as-is instead of crashing the export (`.map` on a string).
+  const allergiesRaw = modeVieAtcd.allergies
+  const allergiesHtml = Array.isArray(allergiesRaw)
+    ? allergiesRaw.length
+      ? allergiesRaw.map((a: any) => `${s(a.libelle)} <span class="tag tag--danger">${s(a.type)}</span>`).join('<br>')
+      : 'Aucune allergie connue'
+    : typeof allergiesRaw === 'string' && allergiesRaw.trim()
+      ? s(allergiesRaw)
+      : 'Aucune allergie connue'
+
+const antecedentsRaw = modeVieAtcd.antecedents
+  const normalizeAntecedentType = (t: any): string => {
+    const norm = String(t ?? '').trim().toLowerCase()
+    if (norm === 'familiale' || norm === 'familial') return 'Familiale'
+    if (norm === 'personnelle' || norm === 'personnel') return 'Personnelle'
+    return ''
+  }
+  const antecedentsHtml = Array.isArray(antecedentsRaw)
+    ? antecedentsRaw.length
+      ? ['Familiale', 'Personnelle', 'Autre']
+          .map((g) => {
+            const items = antecedentsRaw.filter((a: any) => {
+              const type = normalizeAntecedentType(a.type)
+              return g === 'Autre' ? type === '' : type === g
+            })
+            if (!items.length) return ''
+            const header = g === 'Familiale' ? 'Antécédents familiaux :' : g === 'Personnelle' ? 'Antécédents personnels :' : 'Autres antécédents :'
+            const lines = items
+              .map((a: any) => {
+                const annee = a.annee ? s(a.annee) : ''
+                const libelle = s(a.libelle)
+                // Personnelle entries may carry an optional `categorie` (e.g. 'Allergies
+                // alimentaires') → render `année · categorie : libellé`; legacy entries
+                // without `categorie` (and all Familiale/fallback entries) keep `année libellé`.
+                const cat = g === 'Personnelle' && a.categorie ? String(a.categorie).trim() : ''
+                return cat
+                  ? `${annee ? `${annee} · ` : ''}${s(cat)} : ${libelle}`.trim()
+                  : `${annee ? `${annee} ` : ''}${libelle}`.trim()
+              })
+              .join('<br>')
+            return `<p class="crh-para"><strong>${header}</strong><br>${lines}</p>`
+          })
+          .join('')
+      : '<p class="crh-para">Non renseigné</p>'
+    : typeof antecedentsRaw === 'string' && antecedentsRaw.trim()
+      ? `<p class="crh-para">${s(antecedentsRaw)}</p>`
+      : '<p class="crh-para">Non renseigné</p>'
 
   // Duration of stay
   let dureeSejour = '—'
@@ -501,7 +643,7 @@ export function generateCrhDiabeteHtml(
     size: A4 portrait;
     margin: 18mm 15mm 22mm 15mm;
     @bottom-left {
-      content: "Patient : ${escapeHtml(patientIdentity)} — Né(e) le ${dateFmt(admission.dateNaissance)} (${age} ans) — IPP : ${s(admission.ipp)} — NDA : ${nda}";
+      content: "Patient : ${escapeHtml(patientIdentity)} — Né(e) le ${dateFmt(dateNaissance)} (${age} ans) — IPP : ${s(ipp)} — NDA : ${nda}";
       font-family: Arial, Helvetica, sans-serif;
       font-size: 7.5pt;
       color: #555;
@@ -529,6 +671,8 @@ export function generateCrhDiabeteHtml(
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  .crh-page { width: 210mm; min-height: 297mm; padding: 18mm 15mm 22mm; box-sizing: border-box; margin: 0 auto; }
+  @media print { .crh-page { width: auto; min-height: auto; padding: 0; margin: 0; } }
   .crh-hdr {
     display: flex;
     justify-content: space-between;
@@ -653,6 +797,26 @@ export function generateCrhDiabeteHtml(
     font-size: 9.5pt;
     line-height: 1.5;
   }
+  .crh-rich {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .crh-rich p { margin: 0 0 6px; }
+  .crh-rich h1, .crh-rich h2, .crh-rich h3 { margin: 10px 0 6px; font-weight: 700; color: #1f2937; }
+  .crh-rich h1 { font-size: 16px; }
+  .crh-rich h2 { font-size: 14px; }
+  .crh-rich h3 { font-size: 13px; }
+  .crh-rich ul, .crh-rich ol { margin: 0 0 6px; padding-left: 18px; }
+  .crh-rich li { margin-bottom: 2px; }
+  .crh-rich blockquote { border-left: 3px solid #d1d5db; margin: 6px 0; padding: 2px 8px; color: #4b5563; font-style: italic; }
+  .crh-rich pre { background: #f3f4f6; border: 1px solid #e5e7eb; padding: 8px; font-family: monospace; font-size: 11px; white-space: pre-wrap; margin: 6px 0; }
+  .crh-rich code { background: #f3f4f6; font-family: monospace; font-size: 11px; padding: 1px 3px; }
+  .crh-rich hr { border: none; border-top: 1px solid #d1d5db; margin: 10px 0; }
+  .crh-para img, .crh-value img, .crh-rich img { max-width: 100%; height: auto; }
+  .crh-para img.is-left, .crh-value img.is-left, .crh-rich img.is-left { float: left; margin: 0 12px 6px 0; max-width: 45%; }
+  .crh-para img.is-right, .crh-value img.is-right, .crh-rich img.is-right { float: right; margin: 0 0 6px 12px; max-width: 45%; }
+  .crh-para img.is-center, .crh-value img.is-center, .crh-rich img.is-center { display: block; margin: 6px auto; }
+  .crh-rich a { color: #2563eb; text-decoration: underline; }
   .crh-table {
     width: 100%;
     border-collapse: collapse;
@@ -674,25 +838,6 @@ export function generateCrhDiabeteHtml(
   }
   .crh-table tr:nth-child(even) td {
     background: #f7f9fc;
-  }
-  .acte-box {
-    margin: 6px 0;
-    padding: 6px 8px;
-    background: #f4f6f9;
-    border-left: 3px solid #1a3c6e;
-    font-size: 9pt;
-  }
-  .acte-title {
-    font-weight: 700;
-    margin: 0 0 3px;
-  }
-  .acte-detail {
-    margin: 1px 0;
-    font-size: 9pt;
-    font-weight: 400;
-  }
-  .acte-concl {
-    font-weight: 600;
   }
   .signature-block {
     margin-top: 24px;
@@ -721,6 +866,7 @@ export function generateCrhDiabeteHtml(
   }
 </style></head><body>
 
+<div class="crh-page">
 <div class="crh-hdr">
   <div class="crh-hdr-left">
     <div class="rep">RÉPUBLIQUE DE GUINÉE</div>
@@ -737,19 +883,21 @@ export function generateCrhDiabeteHtml(
     ${patientAddress ? `<div class="pat-addr">${escapeHtml(patientAddress)}</div>` : ''}
     ${patientCPVille ? `<div class="pat-addr">${escapeHtml(patientCPVille)}</div>` : ''}
     <div class="pat-meta">
-      ‣ Né(e) le : ${dateFmt(admission.dateNaissance)} (${age} ans) — ${sexeLabel}<br>
-      ‣ IPP : ${s(admission.ipp)} | NDA : ${nda}<br>
+      ‣ Né(e) le : ${dateFmt(dateNaissance)} (${age} ans) — ${sexeLabel}<br>
+      ‣ IPP : ${s(ipp)} | NDA : ${nda}<br>
       ‣ Admission : ${dateFmt(admission.dateEntree)}
       ${admission.serviceAccueil ? `<br>&emsp;— Service : ${s(admission.serviceAccueil)}` : ''}
+      ${admission.medecinTraitantNom ? `<br>&emsp;— Médecin référent : ${s(admission.medecinTraitantNom)}` : ''}
+      ${admission.interneIPANom ? `<br>&emsp;— Responsable : ${s(admission.interneIPANom)}` : ''}
       <br>
-      ‣ CRH éditée le : ${printDate}<br>
+      ‣ ${(options?.typeLabel ?? 'CRH')} éditée le : ${printDate}<br>
       &emsp;— Réf : ${docRef}
     </div>
   </div>
 </div>
 
 <div class="crh-title-block">
-  <div class="crh-title">COMPTE-RENDU D'HOSPITALISATION — DIABÈTE</div>
+  <div class="crh-title">${escapeHtml(options?.docTitle ?? "COMPTE-RENDU D'HOSPITALISATION — DIABÈTE")}</div>
   <div class="crh-subtitle">Du ${dateFmt(admission.dateEntree)} au ${dateFmt(sortie.dateSortie || admission.dateEntree)} (${dureeSejour})</div>
 </div>
 
@@ -757,15 +905,21 @@ export function generateCrhDiabeteHtml(
 <div class="crh-section">
   <div class="crh-section-title">1. ADMISSION</div>
   <div class="crh-section-content">
-    <p class="crh-para"><strong>Motif d'hospitalisation :</strong><br>${na(bilanInitial.motifHospitalisation)}</p>
-    ${bilanInitial.histoireRecent ? `<p class="crh-para"><strong>Histoire de la maladie :</strong><br>${s(bilanInitial.histoireRecent)}</p>` : ''}
-    ${bilanInitial.conclusionEntree ? `<p class="crh-para"><strong>Conclusion à l'entrée :</strong><br>${s(bilanInitial.conclusionEntree)}</p>` : ''}
+    <div class="crh-para"><strong>Motif d'hospitalisation :</strong><br>${hasText(admission.motifHospitalisation) ? admission.motifHospitalisation : 'Non renseigné'}</div>
   </div>
 </div>
 
-<!-- 2. MODE DE VIE / CONTEXTE SOCIAL -->
+<!-- 2. HISTOIRE RÉCENTE DE LA MALADIE -->
 <div class="crh-section">
-  <div class="crh-section-title">2. MODE DE VIE / CONTEXTE SOCIAL</div>
+  <div class="crh-section-title">2. HISTOIRE RÉCENTE DE LA MALADIE</div>
+  <div class="crh-section-content">
+    <div class="crh-para"><strong>Histoire récente de la maladie :</strong><br>${hasText(bilanInitial.histoireRecent) ? bilanInitial.histoireRecent : 'Non renseigné'}</div>
+  </div>
+</div>
+
+<!-- 3. MODE DE VIE / CONTEXTE SOCIAL -->
+<div class="crh-section">
+  <div class="crh-section-title">3. MODE DE VIE / CONTEXTE SOCIAL</div>
   <div class="crh-section-content">
     <div class="crh-field"><span class="crh-label">Situation familiale</span><span class="crh-value">${na(modeVieAtcd.situationFamiliale)}</span></div>
     <div class="crh-field"><span class="crh-label">Isolement</span><span class="crh-value">${modeVieAtcd.isolement ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>'}</span></div>
@@ -778,42 +932,40 @@ export function generateCrhDiabeteHtml(
     </span></div>
     <div class="crh-field"><span class="crh-label">Compréhension français</span><span class="crh-value">${modeVieAtcd.comprehensionFrancais ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>'}</span></div>
     <div class="crh-field"><span class="crh-label">Statut juridique</span><span class="crh-value">Non renseigné</span></div>
-    <div class="crh-field"><span class="crh-label">Prise en charge</span><span class="crh-value">${na(modeVieAtcd.priseEnCharge)}</span></div>
-    ${modeVieAtcd.commentaireVie ? `<div class="crh-field"><span class="crh-label">Commentaire</span><span class="crh-value">${s(modeVieAtcd.commentaireVie)}</span></div>` : ''}
+    ${hasText(modeVieAtcd.commentaireVie) ? `<div class="crh-field"><span class="crh-label">Commentaire</span><div class="crh-value"><div class="crh-rich">${richHtml(modeVieAtcd.commentaireVie)}</div></div></div>` : ''}
   </div>
 </div>
 
-<!-- 3. TOXIQUES / ADDICTIONS -->
+<!-- 4. TOXIQUES / ADDICTIONS -->
 <div class="crh-section">
-  <div class="crh-section-title">3. TOXIQUES / ADDICTIONS</div>
+  <div class="crh-section-title">4. TOXIQUES / ADDICTIONS</div>
   <div class="crh-section-content">
-    <div class="crh-field"><span class="crh-label">Tabac</span><span class="crh-value">${na(modeVieAtcd.tabagisme)}</span></div>
-    <div class="crh-field"><span class="crh-label">Alcool</span><span class="crh-value">${modeVieAtcd.alcool ? `<span class="badge-yes">Oui</span>${modeVieAtcd.alcoolDetail ? ` — ${s(modeVieAtcd.alcoolDetail)}` : ''}` : '<span class="badge-no">Non</span>'}</span></div>
-    <div class="crh-field"><span class="crh-label">Cannabis</span><span class="crh-value">${modeVieAtcd.cannabis ? `<span class="badge-yes">Oui</span>${modeVieAtcd.cannabisDetail ? ` — ${s(modeVieAtcd.cannabisDetail)}` : ''}` : '<span class="badge-no">Non</span>'}</span></div>
+    <div class="crh-field"><span class="crh-label">Tabac</span><div class="crh-value">${na(modeVieAtcd.tabagisme)}${hasText((modeVieAtcd as any).tabagismeDetail) ? `<br><div class="crh-rich" style="font-size:11px;color:#555">${richHtml((modeVieAtcd as any).tabagismeDetail)}</div>` : ''}</div></div>
+    <div class="crh-field"><span class="crh-label">Alcool</span><div class="crh-value">${modeVieAtcd.alcool ? `<span class="badge-yes">Oui</span>${hasText(modeVieAtcd.alcoolDetail) ? ` — <div class="crh-rich" style="display:inline-block;max-width:85%;vertical-align:top">${richHtml(modeVieAtcd.alcoolDetail)}</div>` : ''}` : '<span class="badge-no">Non</span>'}</div></div>
+    <div class="crh-field"><span class="crh-label">Cannabis</span><div class="crh-value">${modeVieAtcd.cannabis ? `<span class="badge-yes">Oui</span>${hasText(modeVieAtcd.cannabisDetail) ? ` — <div class="crh-rich" style="display:inline-block;max-width:85%;vertical-align:top">${richHtml(modeVieAtcd.cannabisDetail)}</div>` : ''}` : '<span class="badge-no">Non</span>'}</div></div>
     <div class="crh-field"><span class="crh-label">Date évaluation</span><span class="crh-value">Non renseigné</span></div>
   </div>
 </div>
 
-<!-- 4. ALLERGIES -->
+<!-- 5. ALLERGIES -->
 <div class="crh-section">
-  <div class="crh-section-title">4. ALLERGIES</div>
+  <div class="crh-section-title">5. ALLERGIES</div>
   <div class="crh-section-content">
-    <p class="crh-para">${modeVieAtcd.allergies && modeVieAtcd.allergies.trim().toLowerCase() !== "pas d'allergie connue" && modeVieAtcd.allergies.trim() !== '' ? `<span class="crh-alert">⚠ ${s(modeVieAtcd.allergies)}</span>` : s(modeVieAtcd.allergies || 'Pas d\'allergie connue')}</p>
+    <p class="crh-para">${allergiesHtml}</p>
   </div>
 </div>
 
-<!-- 5. ANTÉCÉDENTS MÉDICAUX / CHIRURGICAUX -->
+<!-- 6. ANTÉCÉDENTS -->
 <div class="crh-section">
-  <div class="crh-section-title">5. ANTÉCÉDENTS MÉDICAUX / CHIRURGICAUX</div>
+  <div class="crh-section-title">6. ANTÉCÉDENTS</div>
   <div class="crh-section-content">
-    <div class="crh-field"><span class="crh-label">Médicaux</span><span class="crh-value">${na(modeVieAtcd.antecedentsMedicaux)}</span></div>
-    <div class="crh-field"><span class="crh-label">Chirurgicaux</span><span class="crh-value">Non renseigné</span></div>
+    ${antecedentsHtml}
   </div>
 </div>
 
-<!-- 6. DIABÈTE -->
+<!-- 7. DIABÈTE -->
 <div class="crh-section">
-  <div class="crh-section-title">6. DIABÈTE</div>
+  <div class="crh-section-title">7. DIABÈTE</div>
   <div class="crh-section-content">
     <div class="crh-field"><span class="crh-label">Date diagnostic</span><span class="crh-value">${s(ficheDiabete.dateDiagnostic || '—')}${ficheDiabete.dateDiagnostic ? ` (évolution : ${dureeDiabete})` : ''}</span></div>
     <div class="crh-field"><span class="crh-label">Poids historique</span><span class="crh-value">${poidsHtml}</span></div>
@@ -822,78 +974,113 @@ export function generateCrhDiabeteHtml(
     <div class="crh-field"><span class="crh-label">Fonction rénale</span><span class="crh-value">Créatininémie : ${ficheDiabete.creatininemie != null ? `${ficheDiabete.creatininemie} µmol/L` : '—'}</span></div>
     <div class="crh-field"><span class="crh-label">Rétinopathie</span><span class="crh-value">${s(ficheDiabete.retinopathie || '—')}</span></div>
     <div class="crh-field"><span class="crh-label">Neuropathie</span><span class="crh-value">${ficheDiabete.neuropathie ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>'}</span></div>
-    <div class="crh-field"><span class="crh-label">Grade podologique</span><span class="crh-value">${ficheDiabete.podologiqueGrade != null ? s(ficheDiabete.podologiqueGrade) : '—'}${ficheDiabete.amputation ? `${ficheDiabete.podologiqueGrade != null ? ' — ' : ''}<span class="crh-alert">Amputation${ficheDiabete.amputationDetail ? ` : ${s(ficheDiabete.amputationDetail)}` : ''}</span>` : ''}</span></div>
+    <div class="crh-field"><span class="crh-label">Grade podologique</span><div class="crh-value">${ficheDiabete.podologiqueGrade != null ? s(ficheDiabete.podologiqueGrade) : '—'}${ficheDiabete.amputation ? `${ficheDiabete.podologiqueGrade != null ? ' — ' : ''}<span class="crh-alert">Amputation${hasText(ficheDiabete.amputationDetail) ? ` : <div class="crh-rich" style="display:inline-block;max-width:85%;vertical-align:top">${richHtml(ficheDiabete.amputationDetail)}</div>` : ''}</span>` : ''}</div></div>
     <div class="crh-field"><span class="crh-label">Insuffisance cardiaque</span><span class="crh-value">${ficheDiabete.insuffisanceCardiaque ? `<span class="badge-yes">Oui</span>${ficheDiabete.ntProBNP != null ? ` (NT-proBNP : ${ficheDiabete.ntProBNP} pg/mL)` : ''}` : '<span class="badge-no">Non</span>'}</span></div>
-    <div class="crh-field"><span class="crh-label">AOMI</span><span class="crh-value">${ficheDiabete.aomi ? `<span class="badge-yes">Oui</span>${ficheDiabete.ischemicCritique ? ` — ${s(ficheDiabete.ischemicCritique)}` : ''}` : '<span class="badge-no">Non</span>'}</span></div>
+    <div class="crh-field"><span class="crh-label">AOMI</span><div class="crh-value">${ficheDiabete.aomi ? `<span class="badge-yes">Oui</span>${hasText(ficheDiabete.ischemicCritique) ? ` — <div class="crh-rich" style="display:inline-block;max-width:85%;vertical-align:top">${richHtml(ficheDiabete.ischemicCritique)}</div>` : ''}` : '<span class="badge-no">Non</span>'}</div></div>
   </div>
 </div>
 
-<!-- 7. TRAITEMENT À L'ENTRÉE / MÉDICAMENTS -->
+<!-- 8. TRAITEMENT À L'ENTRÉE -->
 <div class="crh-section">
-  <div class="crh-section-title">7. TRAITEMENT À L'ENTRÉE / MÉDICAMENTS</div>
+  <div class="crh-section-title">8. TRAITEMENT À L'ENTRÉE</div>
   <div class="crh-section-content">
-    <p class="crh-para">Non renseigné</p>
+    <div class="crh-para">${hasText(traitementEntree) ? traitementEntree : 'Non renseigné'}</div>
   </div>
 </div>
 
-<!-- 8. EXAMEN CLINIQUE À L'ENTRÉE -->
+<!-- 9. EXAMEN CLINIQUE À L'ENTRÉE -->
 <div class="crh-section">
-  <div class="crh-section-title">8. EXAMEN CLINIQUE À L'ENTRÉE</div>
+  <div class="crh-section-title">9. EXAMEN CLINIQUE À L'ENTRÉE</div>
   <div class="crh-section-content">
+    <div class="crh-field"><span class="crh-label">Score de Glasgow</span><span class="crh-value">${glasgowText} (Y:${glaYeux} V:${glaVerbale} M:${glaMotrice})</span></div>
+${(bilanInitial as any).glasgowHistory?.length ? `
+<p class="crh-para" style="margin-top:8px;"><strong>Historique des évaluations :</strong></p>
+<table class="crh-table">
+  <thead><tr><th>Date</th><th>Ouverture yeux</th><th>Réponse verbale</th><th>Réponse motrice</th><th>Score</th></tr></thead>
+  <tbody>${(bilanInitial as any).glasgowHistory.map((e: any) => {
+    const score = (e.ouvertureYeux || 0) + (e.reponseVerbale || 0) + (e.reponseMotrice || 0)
+    return `<tr><td>${dateFmt(e.date)}</td><td>${e.ouvertureYeux}</td><td>${e.reponseVerbale}</td><td>${e.reponseMotrice}</td><td>${score}/15</td></tr>`
+  }).join('')}</tbody>
+</table>` : ''}
+    <div class="crh-field"><span class="crh-label">Score de douleur à l'entrée</span><span class="crh-value">${scoreDouleur != null && scoreDouleur !== '' ? `${scoreDouleur} / 10` : 'Non renseigné'}</span></div>
+${(bilanInitial as any).douleurHistory?.length ? `
+<p class="crh-para" style="margin-top:8px;"><strong>Historique des mesures :</strong></p>
+<table class="crh-table">
+  <thead><tr><th>Date</th><th>Score</th></tr></thead>
+  <tbody>${(bilanInitial as any).douleurHistory
+    .slice()
+    .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || ''))
+    .map((e: any) => `<tr><td>${dateFmt(e.date)}</td><td>${e.score} / 10</td></tr>`)
+    .join('')}</tbody>
+</table>` : ''}
     <div class="crh-field"><span class="crh-label">Constantes</span><span class="crh-value">
       TA : ${examenPhysique.taSystolique != null ? `${examenPhysique.taSystolique}/${examenPhysique.taDiastolique || '?'}` : '—'} mmHg
       &ensp;|&ensp; FC : ${examenPhysique.frequenceCardiaque != null ? `${examenPhysique.frequenceCardiaque} /min` : '—'}
       &ensp;|&ensp; T° : ${examenPhysique.temperature != null ? `${examenPhysique.temperature} °C` : '—'}
-      &ensp;|&ensp; Glycémie : ${examenPhysique.glycemie != null ? `${examenPhysique.glycemie} mmol/L` : '—'}
+      &ensp;|&ensp; Glycémie : ${examenPhysique.glycemie != null ? `${examenPhysique.glycemie} g/L` : '—'}
+      &ensp;|&ensp; Cétominurie : ${examenPhysique.cetonurie ?? '—'}
+      &ensp;|&ensp; Glucosurie : ${examenPhysique.glucosurie ?? '—'}
+      &ensp;|&ensp; Cétonémie : ${examenPhysique.cetonemie != null ? `${examenPhysique.cetonemie} mmol/L` : '—'}
+      &ensp;|&ensp; Poids : ${examenPhysique.poids != null ? `${examenPhysique.poids} kg` : '—'}
+      &ensp;|&ensp; Taille : ${examenPhysique.taille != null ? `${examenPhysique.taille} cm` : '—'}
+      &ensp;|&ensp; IMC : ${imcVital != null ? `${imcVital} kg/m²` : '—'}
     </span></div>
-    <div class="crh-field"><span class="crh-label">Score de Glasgow</span><span class="crh-value">${glasgowText}${glasgowTotal > 0 ? ` (Y:${glasgow.ouvertureYeux} V:${glasgow.reponseVerbale} M:${glasgow.reponseMotrice})` : ''}</span></div>
-    <div class="crh-field"><span class="crh-label">Examen podologique</span><span class="crh-value">${na(examenPhysique.descriptionPlaie || (ficheDiabete.podologiqueGrade != null ? `Grade ${ficheDiabete.podologiqueGrade}` : null))}</span></div>
-    <div class="crh-field"><span class="crh-label">Évaluation douleur (EN)</span><span class="crh-value">Non renseigné</span></div>
+    <div class="crh-field"><span class="crh-label">Examen podologique</span><span class="crh-value">${na(ficheDiabete.podologiqueGrade != null ? `Grade ${ficheDiabete.podologiqueGrade}` : null)}</span></div>
+${(bilanInitial as any).vitalSignsHistory?.length ? `
+<p class="crh-para" style="margin-top:8px;"><strong>Historique des mesures :</strong></p>
+<table class="crh-table">
+  <thead><tr><th>Date</th><th>TA (mmHg)</th><th>FC (bpm)</th><th>T° (°C)</th><th>Glycémie (g/L)</th><th>Cétominurie</th><th>Glucosurie</th><th>Cétonémie (mmol/L)</th><th>SaO₂ (%)</th><th>Diurèse (ml)</th></tr></thead>
+  <tbody>${(bilanInitial as any).vitalSignsHistory.map((e: any) => 
+    `<tr><td>${dateTimeFmt(e.date)}</td><td>${e.taSystolique != null ? `${e.taSystolique}/${e.taDiastolique ?? '?'}` : '—'}</td><td>${e.frequenceCardiaque ?? '—'}</td><td>${e.temperature ?? '—'}</td><td>${e.glycemie ?? '—'}</td><td>${e.cetonurie ?? '—'}</td><td>${e.glucosurie ?? '—'}</td><td>${e.cetonemie ?? '—'}</td><td>${e.saO2 ?? '—'}</td><td>${e.diurese ?? '—'}</td></tr>`
+  ).join('')}</tbody>
+</table>` : ''}
+    <div class="crh-para"><strong>Examen physique :</strong><br>${hasText(examenPhysiqueTexte) ? examenPhysiqueTexte : 'Non renseigné'}</div>
   </div>
 </div>
 
-<!-- 9. EXAMENS COMPLÉMENTAIRES -->
+<!-- 10. EXAMENS COMPLÉMENTAIRES -->
 <div class="crh-section">
-  <div class="crh-section-title">9. EXAMENS COMPLÉMENTAIRES</div>
+  <div class="crh-section-title">10. EXAMENS COMPLÉMENTAIRES</div>
   <div class="crh-section-content">
-    ${examensComplementaires.ecgRepos ? `<div class="crh-field"><span class="crh-label">ECG de repos</span><span class="crh-value">${s(examensComplementaires.ecgRepos)}</span></div>` : ''}
-    ${examensComplementaires.radioPied ? `<div class="crh-field"><span class="crh-label">Radio du pied</span><span class="crh-value">${s(examensComplementaires.radioPied)}</span></div>` : ''}
-    ${echoCardiaque.fevg != null || echoCardiaque.hypokinesie || echoCardiaque.autre ? `
-    <div class="crh-field"><span class="crh-label">Échographie cardiaque</span><span class="crh-value">
-      ${echoCardiaque.fevg != null ? `FEVG : ${echoCardiaque.fevg}%` : ''}
-      ${echoCardiaque.hypokinesie ? ` | Hypokinésie : ${s(echoCardiaque.hypokinesie)}` : ''}
-      ${echoCardiaque.autre ? ` | ${s(echoCardiaque.autre)}` : ''}
-    </span></div>` : ''}
-    ${interventionsHtml ? `<p class="crh-para" style="margin-top:8px;"><strong>Actes interventionnels :</strong></p>${interventionsHtml}` : ''}
+    ${imagerieTestsHtml ? `<p class="crh-para" style="margin-top:8px;"><strong>Imagerie / Test :</strong></p>${imagerieTestsHtml}` : ''}
+    ${bilanBioHtml}
   </div>
 </div>
 
-<!-- 10. ÉVOLUTION MÉDICALE -->
+<!-- 11. ÉVOLUTION MÉDICALE -->
 <div class="crh-section">
-  <div class="crh-section-title">10. ÉVOLUTION MÉDICALE</div>
+  <div class="crh-section-title">11. ÉVOLUTION MÉDICALE</div>
   <div class="crh-section-content">
     ${evolutionMedicale.infoPatientFamille ? `<p class="crh-para"><span class="badge-yes">✓</span> Information du patient / famille</p>` : ''}
     ${evolutionMedicale.produitsSanguins ? `<p class="crh-para"><span class="badge-yes">✓</span> Administration de produits sanguins</p>` : ''}
     ${evolutionMedicale.bmrBhre ? `<p class="crh-para"><span class="crh-alert">⚠</span> Porteur / Contact BMR ou BHRe</p>` : ''}
-    ${evolutionMedicale.journalEvolution ? `<p class="crh-para"><strong>Journal d'évolution :</strong></p><div style="background:#f7f9fc;padding:8px 10px;border-left:3px solid #1a3c6e;font-size:9.5pt;white-space:pre-wrap;margin:4px 0;">${s(evolutionMedicale.journalEvolution)}</div>` : ''}
+    ${evolutionMedicale.journalEvolution ? `<p class="crh-para"><strong>Journal d'évolution :</strong></p><div class="crh-rich" style="background:#f7f9fc;padding:8px 10px;border-left:3px solid #1a3c6e;font-size:9.5pt;white-space:pre-wrap;margin:4px 0;">${evolutionMedicale.journalEvolution}</div>` : ''}
   </div>
 </div>
 
-<!-- 11. PROJET THÉRAPEUTIQUE / CONCLUSION -->
+<!-- 12. CONCLUSION À L'ENTRÉE -->
 <div class="crh-section">
-  <div class="crh-section-title">11. PROJET THÉRAPEUTIQUE / CONCLUSION À L'ENTRÉE</div>
+  <div class="crh-section-title">12. CONCLUSION À L'ENTRÉE</div>
   <div class="crh-section-content">
-    <p class="crh-para">${na(bilanInitial.conclusionEntree)}</p>
+    <div class="crh-para">${hasText(bilanInitial.conclusionEntree) ? bilanInitial.conclusionEntree : 'Non renseigné'}</div>
   </div>
 </div>
 
-<!-- 12. SORTIE -->
+<!-- 13. PROJET DE SOIN PENDANT L'HOSPITALISATION -->
 <div class="crh-section">
-  <div class="crh-section-title">12. SORTIE</div>
+  <div class="crh-section-title">13. PROJET DE SOIN PENDANT L'HOSPITALISATION</div>
+  <div class="crh-section-content">
+    <div class="crh-para">${hasText(projetSoin) ? projetSoin : 'Non renseigné'}</div>
+  </div>
+</div>
+
+<!-- 14. SORTIE -->
+<div class="crh-section">
+  <div class="crh-section-title">14. SORTIE</div>
   <div class="crh-section-content">
     <div class="crh-field"><span class="crh-label">Date de sortie</span><span class="crh-value">${dateFmt(sortie.dateSortie)}</span></div>
     <div class="crh-field"><span class="crh-label">Destination</span><span class="crh-value">${na(sortie.destinationSortie)}</span></div>
-    ${sortie.conclusionSortie ? `<p class="crh-para"><strong>Conclusion / Synthèse de sortie :</strong><br>${s(sortie.conclusionSortie)}</p>` : ''}
+    ${hasText(sortie.conclusionSortie) ? `<div class="crh-para"><strong>Conclusion / Synthèse de sortie :</strong><br><div class="crh-rich">${richHtml(sortie.conclusionSortie)}</div></div>` : ''}
     ${rdvHtml ? `
     <p class="crh-para" style="margin-top:6px;"><strong>Rendez-vous de suivi :</strong></p>
     <table class="crh-table">
@@ -913,11 +1100,242 @@ export function generateCrhDiabeteHtml(
     ${signedAt ? `<strong>Date de signature</strong><br>${dateFmt(signedAt)}` : ''}
   </div>
   <div class="signature-col">
-    <strong>Interne</strong><br>
-    —
+    <strong>Responsable</strong><br>${s(admission.interneIPANom) || '—'}
   </div>
 </div>
 
+</div>
+</body></html>`
+}
+
+export function generateOrdonnanceHtml(params: {
+  clinique: { logoUrl: string | null }
+  medecin: { nom: string; prenom?: string; specialite: string; numeroOrdre: string }
+  structure: { nom: string; ville: string; adresse: string; telephone: string; numeroAgrement: string }
+  patient: { civilite: string; nom: string; prenom: string; numeroDossier: string; pieceIdentite?: string; dateNaissance: string; age: number; poids?: number; taille?: number; traitementChronique?: boolean }
+  prescriptions: Array<{ nomMedicament: string; posologie: string; reglesConditionnelles?: string[] }>
+  dispositifsMedicaux: Array<{ nom: string; quantiteFrequence: string }>
+  dateEmission: string
+  heureEmission: string
+  numeroOrdonnance: string
+  legalNotice: string
+  barcodes: { ordreSvg: string; agrementSvg: string }
+  qrCodes: { dossierSvg: string; notices?: Array<{ medicament: string; svg: string; sousTitre: string; url?: string }> }
+}): string {
+  const {
+    clinique, medecin, structure, patient,
+    prescriptions, dispositifsMedicaux,
+    dateEmission, heureEmission, numeroOrdonnance, legalNotice,
+    barcodes, qrCodes,
+  } = params
+
+  // ── Logo ──
+  const logoHtml = clinique.logoUrl
+    ? `<img src="${clinique.logoUrl}" style="max-height:60px;max-width:120px;width:auto;height:auto;display:block;" alt="Logo clinique" />`
+    : ''
+
+  // ── Patient display name ──
+  const patientFullName = `${escapeHtml(patient.civilite)} ${escapeHtml(patient.prenom)} ${escapeHtml(patient.nom.toUpperCase())}`
+
+  // ── Check for QR notices sidebar ──
+  const hasQrNotices = qrCodes.notices && qrCodes.notices.length > 0
+
+  // ── Check insulin mention ──
+  const hasInsulin = prescriptions.some(p =>
+    p.nomMedicament.toLowerCase().includes('insuline')
+  )
+
+  // ── Prescriptions HTML ──
+  const prescriptionsHtml = prescriptions.length > 0
+    ? prescriptions.map(p => {
+        const nameHtml = escapeHtml(p.nomMedicament.toUpperCase())
+        const posologieHtml = escapeHtml(p.posologie)
+        const reglesHtml = p.reglesConditionnelles && p.reglesConditionnelles.length > 0
+          ? `<div style="font-weight:bold;margin-top:2px;">**** ${p.reglesConditionnelles.map(r => escapeHtml(r)).join(' \u2014 ')}</div>`
+          : ''
+        return `
+      <div style="margin-bottom:10px;">
+        <div><span style="font-weight:bold;">${nameHtml}</span> : ${posologieHtml}</div>
+        ${reglesHtml}
+      </div>`
+      }).join('')
+    : '<div style="font-style:italic;color:#999;">Aucun m\u00e9dicament prescrit</div>'
+
+  // ── Dispositifs médicaux HTML ──
+  const dispositifsHtml = dispositifsMedicaux.length > 0
+    ? `<div style="margin-top:12px;margin-bottom:4px;font-weight:bold;">DISPOSITIFS MEDICAUX</div>
+       ${dispositifsMedicaux.map(d => `
+      <div style="margin-bottom:4px;">
+        <span style="font-weight:bold;">${escapeHtml(d.nom)}</span> : ${escapeHtml(d.quantiteFrequence)}
+      </div>`).join('')}`
+    : ''
+
+  // ── QR notices sidebar ──
+  const noticesHtml = hasQrNotices
+    ? qrCodes.notices!.map(n => `
+      <div style="margin-bottom:8px;text-align:center;">
+        <div>${n.svg}</div>
+        <div style="font-weight:bold;margin-top:2px;">${escapeHtml(n.medicament)}</div>
+        <div style="font-style:italic;">${escapeHtml(n.sousTitre)}</div>
+      </div>`).join('')
+    : ''
+
+  const sidebarHtml = hasQrNotices ? `
+    <div class="prescription-sidebar">
+      ${noticesHtml}
+      <div style="font-style:italic;margin-top:4px;">Vid\u00e9os de d\u00e9monstration</div>
+    </div>` : ''
+
+  // ── Doctor barcode block ──
+  const ordreBarcodeHtml = barcodes.ordreSvg
+    ? `<div style="margin-top:4px;">${barcodes.ordreSvg}</div>`
+    : ''
+
+  // ── Structure barcode block ──
+  const agrementBarcodeHtml = barcodes.agrementSvg
+    ? `<div style="margin-top:4px;">${barcodes.agrementSvg}</div>`
+    : ''
+
+  // ── Patient QR code block ──
+  const dossierQrHtml = qrCodes.dossierSvg
+    ? `<div style="margin:4px 0;">${qrCodes.dossierSvg}</div>`
+    : ''
+
+  return `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<style>
+  @page { size: A4 portrait; margin: 15mm; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .orange-band { position: fixed; top: 0; right: 0; width: 6px; height: 100vh; background-color: #D9531E; }
+
+  .cols-box { display: flex; border: 1px solid #000; }
+  .cols-box .col { flex: 1; padding: 8px; }
+  .cols-box .col:first-child { border-right: 1px solid #000; }
+
+  .patient-box { display: flex; border: 1px solid #000; }
+  .patient-left { flex: 0 0 20%; padding: 8px; border-right: 1px solid #000; text-align: center; }
+  .patient-center { flex: 0 0 55%; padding: 8px; border-right: 1px solid #000; }
+  .patient-right { flex: 1; padding: 8px; font-size: 0.85em; }
+
+  .med-box { border: 1px solid #000; border-radius: 8px; text-align: center; padding: 6px 12px; margin: 4px auto; width: 330px; background: #F0F0F0; }
+  .pill-icon { display: inline-block; width: 32px; height: 16px; border-radius: 8px; background: linear-gradient(to right, #D9531E 50%, #FFF 50%); border: 1px solid #000; }
+
+  .prescription-area { display: flex; position: relative; }
+  .prescription-main { flex: 1; }
+  .prescription-sidebar { width: 120px; border-left: 1px solid #000; padding: 6px; font-size: 0.75em; }
+
+  .hr { border: none; border-top: 1px solid #000; margin: 0; padding: 0; }
+
+  .disclaimer { font-size: 0.75em; color: #333; padding: 4px 0; }
+  .page-info { text-align: right; font-size: 0.8em; margin-top: 4px; }
+</style></head><body>
+
+<div class="orange-band"></div>
+
+<div class="page" style="width:210mm;margin:0 auto;padding:15mm;box-sizing:border-box;">
+
+  <!-- ===== HEADER ===== -->
+  <div style="display:flex;align-items:flex-start;margin-bottom:4px;">
+    <div style="flex:0 0 auto;margin-right:12px;">
+      ${logoHtml}
+    </div>
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:28px;font-weight:bold;margin:0;line-height:1.2;">Ordonnance m\u00e9dicale</div>
+      <div style="font-size:12px;margin-top:2px;">${escapeHtml(structure.nom)} \u2014 ${escapeHtml(structure.ville)}, Guin\u00e9e</div>
+    </div>
+    <div style="flex:0 0 auto;text-align:right;font-size:0.75em;min-width:140px;">
+      <div style="font-weight:bold;">R\u00e9f. :</div>
+      <div>${escapeHtml(numeroOrdonnance)}</div>
+    </div>
+  </div>
+  <hr class="hr">
+
+  <!-- ===== DOCTOR & STRUCTURE ===== -->
+  <div class="cols-box">
+    <div class="col" style="text-align:center;">
+      <div style="font-weight:bold;font-size:0.95em;">Identification du prescripteur</div>
+      <div style="font-weight:bold;margin:8px 0;">Docteur ${escapeHtml(medecin.nom)}</div>
+      <div>${escapeHtml(medecin.specialite)}</div>
+      <div style="margin-top:4px;font-size:0.85em;">N\u00b0 Ordre ONMG : ${escapeHtml(medecin.numeroOrdre)}</div>
+      ${ordreBarcodeHtml}
+    </div>
+    <div class="col" style="text-align:center;">
+      <div style="font-weight:bold;font-size:0.95em;">Identification de l'\u00e9tablissement</div>
+      <div style="margin:8px 0;">${escapeHtml(structure.nom)}</div>
+      <div>${escapeHtml(structure.adresse)}</div>
+      <div>${escapeHtml(structure.telephone)}</div>
+      <div style="margin-top:4px;font-size:0.85em;">N\u00b0 agr\u00e9ment MSHP : ${escapeHtml(structure.numeroAgrement)}</div>
+      ${agrementBarcodeHtml}
+    </div>
+  </div>
+  <hr class="hr">
+
+  <!-- ===== PATIENT ===== -->
+  <div class="patient-box">
+    <div class="patient-left">
+      <div style="font-weight:bold;font-size:0.85em;">N\u00b0 dossier patient</div>
+      <div style="font-size:0.95em;">${escapeHtml(patient.numeroDossier)}</div>
+      ${dossierQrHtml}
+    </div>
+    <div class="patient-center">
+      <div style="text-align:center;font-weight:bold;">Identification du patient</div>
+      <div style="font-weight:bold;font-size:1.15em;margin:8px 0;">${patientFullName}</div>
+      ${patient.pieceIdentite
+        ? `<div style="font-size:0.85em;">N\u00b0 pi\u00e8ce d\u2019identit\u00e9 / carnet de sant\u00e9 : ${escapeHtml(patient.pieceIdentite)}</div>`
+        : ''}
+    </div>
+    <div class="patient-right">
+      <div><strong>Ordonnance du</strong> ${escapeHtml(dateEmission)} &agrave; ${escapeHtml(heureEmission)}</div>
+      <div style="margin-top:4px;"><strong>N\u00e9(e) le</strong> ${escapeHtml(patient.dateNaissance)}</div>
+      <div><strong>\u00c2g\u00e9(e) de</strong> ${patient.age} ans</div>
+      <div><strong>Poids :</strong> ${patient.poids != null ? `${patient.poids} kg` : '\u2014'} &nbsp; <strong>Taille :</strong> ${patient.taille != null ? `${patient.taille} cm` : '\u2014'}</div>
+    </div>
+  </div>
+  <hr class="hr">
+
+  <!-- ===== MEDICAMENTS ET DISPOSITIFS MEDICAUX BOX ===== -->
+  <div class="med-box" style="margin:6px auto;">
+    <div style="font-weight:bold;">M\u00c9DICAMENTS ET</div>
+    <div style="font-weight:bold;">DISPOSITIFS M\u00c9DICAUX</div>
+    <div style="margin-top:4px;"><span class="pill-icon"></span></div>
+  </div>
+  <hr class="hr">
+
+  <!-- ===== PRESCRIPTION SECTION ===== -->
+  <div style="text-align:center;padding:4px 0;">
+    <div style="font-weight:bold;">Prescription m\u00e9dicale</div>
+    ${patient.traitementChronique
+      ? '<div style="font-style:italic;font-size:0.9em;">Traitement au long cours</div>'
+      : ''}
+  </div>
+  <hr class="hr">
+
+  <!-- ===== PRESCRIPTION ZONE ===== -->
+  <div class="prescription-area">
+    <div class="prescription-main">
+      ${prescriptionsHtml}
+      ${dispositifsHtml}
+      ${hasInsulin
+        ? '<div style="font-weight:bold;font-style:italic;margin-top:12px;">Les prescriptions d\u2019insuline (type et mat\u00e9riel) ne sont pas substituables.</div>'
+        : ''}
+    </div>
+    ${sidebarHtml}
+  </div>
+
+  <hr class="hr">
+
+  <!-- ===== FOOTER ===== -->
+  <div class="disclaimer">
+    ${escapeHtml(legalNotice)}
+  </div>
+
+  <div class="page-info">
+    Page 1 / 1<br>
+    S 3321 b
+  </div>
+
+</div>
 </body></html>`
 }
 

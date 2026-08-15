@@ -26,7 +26,6 @@ export interface ContactFormData {
   sinistre_info: string
   notes: string
   assurance_id: number | null
-  contact_category_id: string | null
   care_unit_id: number | null
 }
 
@@ -36,35 +35,35 @@ export const PRISE_EN_CHARGE_OPTIONS = [
 ]
 
 export const originOptions = ref<{ value: string; label: string }[]>([])
+export const insuranceOptions = ref<{ id: number; name: string; code: string }[]>([])
+export const loading = ref(false)
+export const error = ref<string | null>(null)
 
 export async function fetchOriginOptions() {
+  loading.value = true
+  error.value = null
   try {
     const result = await ipcInvoke<{ value: string; label: string }[]>('contact-origins:list-active')
     originOptions.value = result ?? []
-  } catch {
+  } catch (e) {
+    error.value = (e as Error).message
     originOptions.value = []
+  } finally {
+    loading.value = false
   }
 }
 
-export const insuranceOptions = ref<{ id: number; name: string; code: string }[]>([])
-
 export async function fetchInsuranceOptions() {
+  loading.value = true
+  error.value = null
   try {
     const result = await ipcInvoke<{ id: number; name: string; code: string }[]>('insurances:list-active')
     insuranceOptions.value = result ?? []
-  } catch {
+  } catch (e) {
+    error.value = (e as Error).message
     insuranceOptions.value = []
-  }
-}
-
-export const contactCategoryOptions = ref<{ value: string; label: string }[]>([])
-
-export async function fetchContactCategoryOptions() {
-  try {
-    const result = await ipcInvoke<{ value: string; label: string }[]>('contact-categories:list-active')
-    contactCategoryOptions.value = result ?? []
-  } catch {
-    contactCategoryOptions.value = []
+  } finally {
+    loading.value = false
   }
 }
 
@@ -89,7 +88,6 @@ export function useContactFormLogic() {
     sinistre_info: '',
     notes: '',
     assurance_id: null,
-    contact_category_id: null,
     care_unit_id: null,
   })
 
@@ -145,7 +143,6 @@ export function useContactFormLogic() {
       sinistre_info: '',
       notes: '',
       assurance_id: null,
-      contact_category_id: null,
       care_unit_id: null,
     }
   }
@@ -158,5 +155,7 @@ export function useContactFormLogic() {
     showPrecisionField,
     patchForm,
     resetForm,
+    loading,
+    error,
   }
 }

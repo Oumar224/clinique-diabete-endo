@@ -2,6 +2,7 @@ import { container } from 'tsyringe'
 import { ExamTypeService } from '../services/exam-type.service'
 import { ExamCategoryEntity } from '../entities/exam-category.entity'
 import { ExamTypeEntity } from '../entities/exam-type.entity'
+import type { ExamTypeDto } from '../dto/settings.dto'
 import { createHandler } from '../utils/create-handler'
 
 export function registerExamTypeHandlers() {
@@ -26,13 +27,13 @@ export function registerExamTypeHandlers() {
   })
 
   createHandler('exam-types:create', async (dto: { label: string; category_id: number; parent_id?: number | null; code?: string }) => {
-    const entity = ExamTypeEntity.fromDto(dto)
+    const entity = ExamTypeEntity.fromDto(dto as Partial<ExamTypeDto>)
     const created = await container.resolve(ExamTypeService).createType(entity)
     return ExamTypeEntity.toDto(created)
   })
 
   createHandler('exam-types:update', async (dto: { id: number; label?: string; is_active?: boolean; parent_id?: number | null }) => {
-    const entity = ExamTypeEntity.fromDto(dto)
+    const entity = ExamTypeEntity.fromDto(dto as Partial<ExamTypeDto>)
     const updated = await container.resolve(ExamTypeService).updateType(entity)
     return ExamTypeEntity.toDto(updated)
   })

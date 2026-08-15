@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import type { SiteEntity } from '../entities/site.entity'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class SiteService {
@@ -79,9 +80,9 @@ export class SiteService {
         .insertInto('sites')
         .values({
           name: (entity.name ?? '').trim(),
-          address: entity.address ?? null,
-          phone: entity.phone ?? null,
-          email: entity.email ?? null,
+          address: entity.address ?? undefined,
+          phone: entity.phone ?? undefined,
+          email: entity.email ?? undefined,
           is_default: isDefault,
           is_active: entity.is_active ?? 1,
         })
@@ -89,6 +90,7 @@ export class SiteService {
         .executeTakeFirst()
 
       if (!result) throw new Error('Échec de la création du site')
+      entityEventBus.emitEntityChange({ entityType: 'site', action: 'created', id: result.id!, entity: result, source: 'local', timestamp: Date.now() })
       return result as unknown as SiteEntity
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
@@ -154,6 +156,7 @@ export class SiteService {
 
     const updated = await this.getById(entity.id)
     if (!updated) throw new Error('Site introuvable après mise à jour')
+    entityEventBus.emitEntityChange({ entityType: 'site', action: 'updated', id: entity.id!, entity: updated, source: 'local', timestamp: Date.now() })
     return updated
   }
 
@@ -239,6 +242,7 @@ export class SiteService {
       }
       throw err
     }
+    entityEventBus.emitEntityChange({ entityType: 'site', action: 'deleted', id, entity: existing, source: 'local', timestamp: Date.now() })
   }
 
   // ─── Validation ──────────────────────────────────────────────

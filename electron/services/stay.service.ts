@@ -1,10 +1,11 @@
 import { inject, singleton } from 'tsyringe'
-import type { Kysely } from 'kysely'
+import type { Kysely, Transaction } from 'kysely'
 import { sql } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { StayEntity, StayMovementEntity } from '../entities/stay.entity'
-import type { StayDto, StayMovementDto } from '../dto/stay.dto'
+import type { StayCreateDto, StayDto, StayMovementDto } from '../dto/stay.dto'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class StayService {
@@ -74,6 +75,46 @@ export class StayService {
     return StayEntity.toDtos(rows as any)
   }
 
+  async create(dto: StayCreateDto): Promise<StayDto> {
+    const result = await this.db.transaction().execute(async (trx: Transaction<DB>) => {
+      const stay = await trx
+        .insertInto('stays')
+        .values({
+          patient_id: dto.patient_id,
+          admission_date: dto.admission_date,
+          mode_admission: dto.mode_admission,
+          service_id: dto.service_id,
+          medecin_id: dto.medecin_id ?? undefined,
+          chambre: dto.chambre ?? undefined,
+          lit: dto.lit ?? undefined,
+          notes: dto.notes ?? undefined,
+          status: 'en_cours',
+          created_by: dto.created_by ?? undefined,
+        })
+        .returningAll()
+        .executeTakeFirst()
+
+      if (!stay) throw new Error("Échec de la création du séjour")
+
+      await trx
+        .insertInto('stay_movements')
+        .values({
+          stay_id: (stay as any).id,
+          movement_type: 'admission',
+          to_service_id: dto.service_id,
+          moved_at: dto.admission_date,
+          notes: dto.notes ?? undefined,
+        })
+        .execute()
+
+      return stay
+    })
+
+    const stayDto = StayEntity.toDto(result as any)
+    entityEventBus.emitEntityChange({ entityType: 'stay', action: 'created', id: (result as any).id, entity: stayDto, source: 'local', timestamp: Date.now() })
+    return stayDto
+  }
+
   async getMovements(stayId: number): Promise<StayMovementDto[]> {
     const rows = await sql<any>`
       SELECT sm.*, from_svc.name as from_service_name, to_svc.name as to_service_name
@@ -83,6 +124,24 @@ export class StayService {
       WHERE sm.stay_id = ${stayId}
       ORDER BY sm.moved_at ASC
     `.execute(this.db)
+
+    if (rows.rows.length === 0) {
+      const stay = await this.db
+        .selectFrom('stays')
+        .select(['admission_date', 'service_id'])
+        .where('id', '=', stayId)
+        .executeTakeFirst()
+
+      if (stay) {
+        const synthetic: StayMovementEntity & { to_service_name?: string } = {
+          stay_id: stayId,
+          movement_type: 'admission',
+          to_service_id: stay.service_id,
+          moved_at: stay.admission_date,
+        }
+        return [StayMovementEntity.toDto(synthetic as any)]
+      }
+    }
 
     return StayMovementEntity.toDtos(rows.rows as any)
   }

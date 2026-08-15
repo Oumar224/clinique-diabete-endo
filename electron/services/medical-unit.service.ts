@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import type { MedicalUnitEntity } from '../entities/medical-unit.entity'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class MedicalUnitService {
@@ -66,6 +67,7 @@ export class MedicalUnitService {
         .executeTakeFirst()
 
       if (!result) throw new Error("Échec de la création de l'unité médicale")
+      entityEventBus.emitEntityChange({ entityType: 'medical_unit', action: 'created', id: result.id!, entity: result, source: 'local', timestamp: Date.now() })
       return result as unknown as MedicalUnitEntity
     } catch (err: any) {
       if (err?.message?.includes('no such table') || err?.message?.includes('no such column')) {
@@ -124,6 +126,7 @@ export class MedicalUnitService {
 
     const updated = await this.getById(entity.id)
     if (!updated) throw new Error('Unité médicale introuvable après mise à jour')
+    entityEventBus.emitEntityChange({ entityType: 'medical_unit', action: 'updated', id: entity.id!, entity: updated, source: 'local', timestamp: Date.now() })
     return updated
   }
 
@@ -161,6 +164,7 @@ export class MedicalUnitService {
       }
       throw err
     }
+    entityEventBus.emitEntityChange({ entityType: 'medical_unit', action: 'deleted', id, entity: existing, source: 'local', timestamp: Date.now() })
   }
 
   // ─── Validation ──────────────────────────────────────────────

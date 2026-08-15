@@ -1,15 +1,19 @@
 import type { SiteDto } from '../dto/site.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { SiteConverter } from '../automerge/converters/site.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class SiteEntity {
-  id?: number
-  name?: string
-  address?: string | null
-  phone?: string | null
-  email?: string | null
-  is_default?: number
-  is_active?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() name?: string
+  @SchemaField() address?: string
+  @SchemaField() phone?: string
+  @SchemaField() email?: string
+  @SchemaField() is_default?: number
+  @SchemaField() is_active?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: SiteEntity): SiteDto {
     return { id: entity.id, name: entity.name as string, address: entity.address, phone: entity.phone, email: entity.email, is_default: entity.is_default as unknown as boolean, is_active: entity.is_active as unknown as boolean, created_at: entity.created_at, updated_at: entity.updated_at }
@@ -21,6 +25,15 @@ export class SiteEntity {
     return e
   }
   static documentType(): string { return 'Site' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<SiteEntity> {
+    return buildDocumentSchema(SiteEntity) as AutomergeDocument<SiteEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'site',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: SiteConverter.toDocument, toEntity: SiteConverter.toEntity },
+    })
+  }
 }

@@ -1,90 +1,102 @@
 export interface EncounterDto {
   id?: number
-  patient_id: number
-  contact_type: 'consultation' | 'hospitalisation'
-  contact_type_precision?: string | null
-  start_date: string
+  patient_id?: number
+  contact_type?: 'consultation' | 'hospitalisation'
+  contact_type_precision?: string
+  start_date?: string
   end_date?: string
-  service_id: number
+  service_id?: number
   service_name?: string
-  medecin_id?: number | null
-  medecin_name?: string | null
-  responsable_id: number | null
-  responsable_name?: string | null
-  contact_category_id: number | null
-  contact_category_label?: string | null
-  care_unit_id: number | null
-  care_unit_name?: string | null
-  origin: string
-  origin_precision?: string | null
-  zone_situation: string
-  zone_precision?: string | null
-  prise_en_charge: string
-  prise_en_charge_precision?: string | null
-  sinistre_info?: string | null
-  notes?: string | null
-  status: 'active' | 'closed'
-  created_by?: number | null
+  medecin_id?: number
+  medecin_name?: string
+  responsable_id?: number 
+  responsable_name?: string
+  care_unit_id?: number 
+  care_unit_name?: string
+  origin?: string
+  origin_precision?: string
+  zone_situation?: string
+  zone_precision?: string
+  prise_en_charge?: string
+  prise_en_charge_precision?: string
+  sinistre_info?: string
+  notes?: string
+  status?: 'active' | 'closed'
+  created_by?: number
   created_at?: string
   updated_at?: string
 }
 
 export interface EncounterUpdateDto {
-  id: number
+  id?: number
   contact_type?: string
-  contact_type_precision?: string | null
+  contact_type_precision?: string
   start_date?: string
-  end_date?: string | null
+  end_date?: string
   service_id?: number
-  medecin_id?: number | null
-  responsable_id?: number | null
-  contact_category_id?: number | null
-  care_unit_id?: number | null
+  medecin_id?: number
+  responsable_id?: number
+  care_unit_id?: number
   origin?: string
-  origin_precision?: string | null
+  origin_precision?: string
   zone_situation?: string
-  zone_precision?: string | null
+  zone_precision?: string
   prise_en_charge?: string
-  prise_en_charge_precision?: string | null
-  sinistre_info?: string | null
-  notes?: string | null
+  prise_en_charge_precision?: string
+  sinistre_info?: string
+  notes?: string
 }
 
 export interface EncounterCreateDto {
-  patient_id: number
-  contact_type: string
-  contact_type_precision?: string | null
-  start_date: string
-  end_date?: string | null
-  service_id: number
-  medecin_id?: number | null
-  responsable_id?: number | null
-  contact_category_id?: number | null
-  care_unit_id?: number | null
-  origin: string
-  origin_precision?: string | null
-  zone_situation: string
-  zone_precision?: string | null
-  prise_en_charge: string
-  prise_en_charge_precision?: string | null
-  sinistre_info?: string | null
-  notes?: string | null
-  created_by?: number | null
+  patient_id?: number
+  contact_type?: string
+  contact_type_precision?: string
+  start_date?: string
+  end_date?: string
+  service_id?: number
+  medecin_id?: number
+  responsable_id?: number
+  care_unit_id?: number
+  origin?: string
+  origin_precision?: string
+  zone_situation?: string
+  zone_precision?: string
+  prise_en_charge?: string
+  prise_en_charge_precision?: string
+  sinistre_info?: string
+  notes?: string
+  created_by?: number
 }
 
 export interface EncounterMovementDto {
   id?: number
-  encounter_id: number
-  service_id?: number | null
+  encounter_id?: number
+  from_service_id?: number
+  from_service_name?: string
+  service_id?: number
   service_name?: string
-  step_label: string
-  entered_at: string
-  exited_at?: string | null
-  notes?: string | null
+  step_label?: string
+  entered_at?: string
+  exited_at?: string
+  motif?: string
+  notes?: string
+  created_by?: number
   created_at?: string
 }
 
+export interface EncounterMovementCreateDto {
+  encounter_id?: number
+  from_service_id?: number
+  service_id?: number
+  step_label?: string
+  entered_at?: string
+  exited_at?: string
+  motif?: string
+  notes?: string
+  created_by?: number
+}
+
 export interface EncounterListFilters {
-  patient_id: number
+  patient_id?: number
   status?: string
 }

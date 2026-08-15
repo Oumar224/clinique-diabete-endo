@@ -91,7 +91,7 @@ import { ref, reactive, computed, onMounted, onErrorCaptured } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Plus, Edit, Delete, User, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { patients, fetchPatients, deletePatient } from '@/composables/usePatients'
+import { usePatients } from '@/composables/usePatients'
 import { calculateAge } from '@/utils/age'
 import { getCiviliteSymbol, getCiviliteLabel } from '@/utils/civilite'
 import type { PatientDto } from '@/composables/usePatients'
@@ -102,6 +102,7 @@ import { useExport } from '@/composables/useExport'
 
 const router = useRouter()
 const { setActivePatient } = usePatientContext()
+const { patients, fetchPatients, deletePatient } = usePatients()
 const { exportingExcel, exportPatientsListExcel } = useExport()
 const loading = ref(true)
 const search = ref('')

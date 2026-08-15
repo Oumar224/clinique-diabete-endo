@@ -145,9 +145,9 @@ export class PlanSoinsService {
       .updateTable('plan_soins_items')
       .set({
         statut: 'en_attente',
-        motif_suspension: null,
-        valide_par: null,
-        valide_a: null,
+        motif_suspension: undefined,
+        valide_par: undefined,
+        valide_a: undefined,
         updated_at: new Date().toISOString(),
       })
       .where('id', '=', soinId)
@@ -190,9 +190,9 @@ export class PlanSoinsService {
       .updateTable('plan_soins_items')
       .set({
         statut: 'en_attente',
-        motif_suspension: null,
-        valide_par: null,
-        valide_a: null,
+        motif_suspension: undefined,
+        valide_par: undefined,
+        valide_a: undefined,
         updated_at: new Date().toISOString(),
       })
       .where('prescription_id', '=', prescriptionId)

@@ -1,12 +1,16 @@
 import type { ExamCategoryDto } from '../dto/settings.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { ExamCategoryConverter } from '../automerge/converters/exam-category.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class ExamCategoryEntity {
-  id?: number
-  code?: string
-  name?: string
-  sort_order?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() code?: string
+  @SchemaField() name?: string
+  @SchemaField() sort_order?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: ExamCategoryEntity): ExamCategoryDto {
     return { id: entity.id, code: entity.code as string, label: entity.name as string, sort_order: entity.sort_order as number }
@@ -21,6 +25,15 @@ export class ExamCategoryEntity {
     return e
   }
   static documentType(): string { return 'ExamCategory' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<ExamCategoryEntity> {
+    return buildDocumentSchema(ExamCategoryEntity) as AutomergeDocument<ExamCategoryEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'exam_category',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: ExamCategoryConverter.toDocument, toEntity: ExamCategoryConverter.toEntity },
+    })
+  }
 }

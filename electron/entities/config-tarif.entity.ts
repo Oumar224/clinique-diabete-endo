@@ -1,13 +1,17 @@
 import type { TarifDto } from '../dto/settings.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { ConfigTarifConverter } from '../automerge/converters/config-tarif.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class ConfigTarifEntity {
-  id?: number
-  acte_id?: number
-  code_tarif?: string
-  prix_unitaire?: number
-  date_application?: string
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() acte_id?: number
+  @SchemaField() code_tarif?: string
+  @SchemaField() prix_unitaire?: number
+  @SchemaField() date_application?: string
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: ConfigTarifEntity): TarifDto {
     return {
@@ -39,6 +43,15 @@ export class ConfigTarifEntity {
   }
 
   static documentType(): string { return 'ConfigTarif' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<ConfigTarifEntity> {
+    return buildDocumentSchema(ConfigTarifEntity) as AutomergeDocument<ConfigTarifEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'config_tarif',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: ConfigTarifConverter.toDocument, toEntity: ConfigTarifConverter.toEntity },
+    })
+  }
 }

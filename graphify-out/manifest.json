@@ -1,2682 +1,3412 @@
 {
   "auto-imports.d.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.394554,
     "ast_hash": "6b8d14708b6271bee11c056cc10bca38",
     "semantic_hash": "6b8d14708b6271bee11c056cc10bca38"
   },
   "components.d.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.394554,
     "ast_hash": "cd946055d6604e805304b3c6eec11c79",
     "semantic_hash": "cd946055d6604e805304b3c6eec11c79"
   },
   "electron/@types/service-controller-result.d.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.39576,
     "ast_hash": "a4facb63979d7473ed9607371221d847",
     "semantic_hash": "a4facb63979d7473ed9607371221d847"
   },
   "electron/automerge/__tests__/automerge-sync.service.spec.ts": {
-    "mtime": 1784460848.1575634,
-    "ast_hash": "ebe702a2373f7a92bb1c3eff801181d6",
-    "semantic_hash": "ebe702a2373f7a92bb1c3eff801181d6"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "0fe9283ee0f9f94b568111691d498669",
+    "semantic_hash": ""
   },
   "electron/automerge/__tests__/converters/entity-converter.spec.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.39576,
     "ast_hash": "dc92f2a9de50823bcb5061ec9069bf55",
     "semantic_hash": "dc92f2a9de50823bcb5061ec9069bf55"
   },
   "electron/automerge/__tests__/entity-registry.spec.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.39576,
     "ast_hash": "858973849513c1c2037ccbee9312cbf7",
     "semantic_hash": "858973849513c1c2037ccbee9312cbf7"
   },
   "electron/automerge/__tests__/storage/automerge-sqlite-storage.spec.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.3961976,
     "ast_hash": "a628f554e2059ba1bf34d1553e7e57dc",
     "semantic_hash": "a628f554e2059ba1bf34d1553e7e57dc"
   },
   "electron/automerge/automerge-sync.service.ts": {
-    "mtime": 1784460848.1575634,
-    "ast_hash": "25e422cef0a9829610c08180ae78aa1c",
-    "semantic_hash": "25e422cef0a9829610c08180ae78aa1c"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "2198feacf1ef02057418ecc4d51e0ad7",
+    "semantic_hash": ""
   },
   "electron/automerge/converters/appointment.converter.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.396368,
     "ast_hash": "1c0a6b5608a9f987bd62cb07e7584a2e",
     "semantic_hash": "1c0a6b5608a9f987bd62cb07e7584a2e"
   },
   "electron/automerge/converters/entity-converter.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.3969712,
     "ast_hash": "9b7c06085295ae7643a6df759f82e416",
     "semantic_hash": "9b7c06085295ae7643a6df759f82e416"
   },
   "electron/automerge/converters/invoice.converter.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.3972912,
     "ast_hash": "df67ea22b39f0e65e2348ce8ad21adc3",
     "semantic_hash": "df67ea22b39f0e65e2348ce8ad21adc3"
   },
   "electron/automerge/converters/patient.converter.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.397493,
     "ast_hash": "bcabd6b4ef7dbb9d01dab88956ca8a95",
     "semantic_hash": "bcabd6b4ef7dbb9d01dab88956ca8a95"
   },
   "electron/automerge/converters/user.converter.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.3979495,
     "ast_hash": "eac919d0eb92eb432bf8eb89c4487a8b",
     "semantic_hash": "eac919d0eb92eb432bf8eb89c4487a8b"
   },
   "electron/automerge/entity-registry.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.3979495,
     "ast_hash": "f5867611e73844a932a8989129095e78",
     "semantic_hash": "f5867611e73844a932a8989129095e78"
   },
   "electron/automerge/storage/automerge-sqlite-storage.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.3979495,
     "ast_hash": "a000caaf93e6fbd3a6c053aa32c81a49",
     "semantic_hash": "a000caaf93e6fbd3a6c053aa32c81a49"
   },
   "electron/automerge/utils/entity-types.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.3979495,
     "ast_hash": "8146cef5707ab0292d9a1a089d1ea554",
     "semantic_hash": "8146cef5707ab0292d9a1a089d1ea554"
   },
   "electron/data-source.ts": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.3982852,
     "ast_hash": "27e2595b2c489c9b324f06ecdfd7da23",
     "semantic_hash": "27e2595b2c489c9b324f06ecdfd7da23"
   },
   "electron/data/gn-localites.json": {
-    "mtime": 1784460848.1585636,
+    "mtime": 1786699141.3982852,
     "ast_hash": "41d5b89241678f5b10edb83e9b3075a1",
     "semantic_hash": "41d5b89241678f5b10edb83e9b3075a1"
   },
   "electron/driver/node-sqlite-connection.ts": {
-    "mtime": 1784460848.1585636,
+    "mtime": 1786699141.3982852,
     "ast_hash": "0c7bdf024a213d253f5dedbb8057b610",
     "semantic_hash": "0c7bdf024a213d253f5dedbb8057b610"
   },
   "electron/driver/node-sqlite-dialect.ts": {
-    "mtime": 1784460848.1585636,
+    "mtime": 1786699141.3982852,
     "ast_hash": "08273cfc77b25565e3539aa4f702d35c",
     "semantic_hash": "08273cfc77b25565e3539aa4f702d35c"
   },
   "electron/driver/node-sqlite-driver.ts": {
-    "mtime": 1784460848.1585636,
+    "mtime": 1786699141.3982852,
     "ast_hash": "671d8e232c115821aca52f56608975f0",
     "semantic_hash": "671d8e232c115821aca52f56608975f0"
   },
   "electron/dto/appointment.dto.ts": {
-    "mtime": 1784460848.1585636,
+    "mtime": 1786699141.3982852,
     "ast_hash": "d9c6314195ca4ca5b6ad83a9c2afbb98",
     "semantic_hash": "d9c6314195ca4ca5b6ad83a9c2afbb98"
   },
   "electron/dto/attachment-type.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "4c663ac7c2e158e2c01de97733f36b7b",
-    "semantic_hash": "4c663ac7c2e158e2c01de97733f36b7b"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "4b92cfe10f169c9e1fc3a639d0f900f0",
+    "semantic_hash": ""
   },
   "electron/dto/auth.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "c20129cc51364ddfcb9ea3ba19040098",
-    "semantic_hash": "c20129cc51364ddfcb9ea3ba19040098"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "b200c1e481ad57b39d0fd74e7b615085",
+    "semantic_hash": ""
   },
   "electron/dto/care-unit.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "ae83acc24f5a6f6b5f505b4ea6175967",
-    "semantic_hash": "ae83acc24f5a6f6b5f505b4ea6175967"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "c3a6a81a791584a62622853a20f42b97",
+    "semantic_hash": ""
   },
   "electron/dto/conservateur.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "1492b32d20c6f454f4bd068fbc537818",
-    "semantic_hash": "1492b32d20c6f454f4bd068fbc537818"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "fd3076b5decb33565fd8e4402e300480",
+    "semantic_hash": ""
   },
   "electron/dto/dispositif.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "8f4bead3a5c4649596f4aa43a9ad2ee4",
-    "semantic_hash": "8f4bead3a5c4649596f4aa43a9ad2ee4"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "937d6de83bb09a4f788b416efa20e4de",
+    "semantic_hash": ""
   },
   "electron/dto/email-config.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "d3decc821f5008911034a25135f1de6f",
-    "semantic_hash": "d3decc821f5008911034a25135f1de6f"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "02064aad4099264579c063705e104e2d",
+    "semantic_hash": ""
   },
   "electron/dto/encounter.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "a26bf57a35ef90936726359b85099407",
-    "semantic_hash": "a26bf57a35ef90936726359b85099407"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "38a51fd56022cbcd0548f71f11afcad1",
+    "semantic_hash": ""
   },
   "electron/dto/exam-request.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "2adb82fb2526d5ba03abd43f7c3b7bbb",
-    "semantic_hash": "2adb82fb2526d5ba03abd43f7c3b7bbb"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "e22c28ec5e02438c566fa7a103111016",
+    "semantic_hash": ""
   },
   "electron/dto/form-draft.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "108693d63b06e54fcd1d74aa750cd8f4",
-    "semantic_hash": "108693d63b06e54fcd1d74aa750cd8f4"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "ca161c3c12171fc62ae2fd6f8b22ee66",
+    "semantic_hash": ""
   },
   "electron/dto/invoice.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "c48dcca38c3e6c9a4731f66342a6dbe0",
-    "semantic_hash": "c48dcca38c3e6c9a4731f66342a6dbe0"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "2f9ccc54f42a3a5e83ccc32f69fbe279",
+    "semantic_hash": ""
   },
   "electron/dto/localite.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "d2fa30db78bde5a92d7c0104ca419462",
-    "semantic_hash": "d2fa30db78bde5a92d7c0104ca419462"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "f83575254945e9e7260849fa7b19f3ba",
+    "semantic_hash": ""
   },
   "electron/dto/medical-unit.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "44bd528f2c5437cd8668f1f1d1464305",
-    "semantic_hash": "44bd528f2c5437cd8668f1f1d1464305"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "8d61869a9ec65c830b0514837ff2e499",
+    "semantic_hash": ""
   },
   "electron/dto/patient-acte.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "a4117ff3617264bfe7e690b82c53e5e1",
-    "semantic_hash": "a4117ff3617264bfe7e690b82c53e5e1"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "0fda533dd6915f1386462a43ebf44bbd",
+    "semantic_hash": ""
   },
   "electron/dto/patient-attachment.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "92379739ab3477606c38420afcb55a44",
-    "semantic_hash": "92379739ab3477606c38420afcb55a44"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "65356c0b0158f05c19668ade3e918558",
+    "semantic_hash": ""
   },
   "electron/dto/patient.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "2ee1c0bcc128f3a0dda54903ccb5cbef",
-    "semantic_hash": "2ee1c0bcc128f3a0dda54903ccb5cbef"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "95442117dc674a0f0a66332a042cea4a",
+    "semantic_hash": ""
   },
   "electron/dto/plan-soins.dto.ts": {
-    "mtime": 1784460848.1585636,
-    "ast_hash": "ac033081c267f5781f7e719423ac9a09",
-    "semantic_hash": "ac033081c267f5781f7e719423ac9a09"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "048f9d271f9268f99edbe713478afb00",
+    "semantic_hash": ""
   },
   "electron/dto/prescription.dto.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "8a8a3a99f1d8f267e073a29726013968",
-    "semantic_hash": "8a8a3a99f1d8f267e073a29726013968"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "ab34b4fa2890b9c877cbadbdb770a714",
+    "semantic_hash": ""
   },
   "electron/dto/settings.dto.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "93de13f4c461d89863169122ba5d77fa",
-    "semantic_hash": "93de13f4c461d89863169122ba5d77fa"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "4577da19890d8c52e7d4b179b20c212d",
+    "semantic_hash": ""
   },
   "electron/dto/site.dto.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "812d0e4f313ef1e9e97a3becf2ac6b62",
-    "semantic_hash": "812d0e4f313ef1e9e97a3becf2ac6b62"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "491de07d737f5205cf2e196f57e97134",
+    "semantic_hash": ""
   },
   "electron/dto/specialty.dto.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "b4a6eda540386544b721565ab208140e",
-    "semantic_hash": "b4a6eda540386544b721565ab208140e"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "2704c7d1cd8d3d5dd725bea8bf19f209",
+    "semantic_hash": ""
   },
   "electron/dto/stay.dto.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "e47480e2fd39fb36ba309cf58673ce84",
-    "semantic_hash": "e47480e2fd39fb36ba309cf58673ce84"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "4cc162142c34e216742f09d38938c700",
+    "semantic_hash": ""
   },
   "electron/dto/trusted-person.dto.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "31c9784e7c5332a3553072075c2d737e",
-    "semantic_hash": "31c9784e7c5332a3553072075c2d737e"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "1a19a66707cfe485494b621f6a628d4a",
+    "semantic_hash": ""
   },
   "electron/dto/user-attachment.dto.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "1157f8fe98753cf04cdcc479fd0ed63a",
-    "semantic_hash": "1157f8fe98753cf04cdcc479fd0ed63a"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "4b2f144e1077825aa8949ce8c4dedd32",
+    "semantic_hash": ""
   },
   "electron/dto/vital-signs-item.dto.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "a29767f93a26ab196ac5e87a1937f899",
-    "semantic_hash": "a29767f93a26ab196ac5e87a1937f899"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "f13a32733736cd4f976b954341d3e2e9",
+    "semantic_hash": ""
   },
   "electron/dto/vital-signs.dto.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "a34eb25ab0f7f1a45c5326df01b1acae",
-    "semantic_hash": "a34eb25ab0f7f1a45c5326df01b1acae"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "4a94ea710665190f0be434c3dba62e33",
+    "semantic_hash": ""
   },
   "electron/entities/__tests__/patient.entity.spec.ts": {
-    "mtime": 1784460848.1595638,
+    "mtime": 1786699141.400285,
     "ast_hash": "52bacff68fde4b245a783f7083de4357",
     "semantic_hash": "52bacff68fde4b245a783f7083de4357"
   },
   "electron/entities/act-price-history.entity.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "0242b85d253ea3b443fc7ab68d64693d",
-    "semantic_hash": "0242b85d253ea3b443fc7ab68d64693d"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "deb90219dcab5d420b0aa099590ea2af",
+    "semantic_hash": ""
   },
   "electron/entities/app-settings.entity.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "7e497995acbf632b8f4533c83e5711dc",
-    "semantic_hash": "7e497995acbf632b8f4533c83e5711dc"
+    "mtime": 1786700781.7479324,
+    "ast_hash": "a761484b8cbb68c8c674809a93b0267c",
+    "semantic_hash": ""
   },
   "electron/entities/appointment.entity.ts": {
-    "mtime": 1784460848.1595638,
-    "ast_hash": "2c5447569b3bed3215a30a92788ade43",
-    "semantic_hash": "2c5447569b3bed3215a30a92788ade43"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "cc7a5610b87f49349cc94ea1628ad720",
+    "semantic_hash": ""
   },
   "electron/entities/attachment-type.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "b4938596dc2aa3fbded95220d204ae57",
-    "semantic_hash": "b4938596dc2aa3fbded95220d204ae57"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "a66a55e7373209f7c25406cbb9739717",
+    "semantic_hash": ""
   },
   "electron/entities/automerge-document.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "e7deb37074c2a2dbb7b0ddb23feeb61b",
-    "semantic_hash": "e7deb37074c2a2dbb7b0ddb23feeb61b"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "7baf3b5e208a017afd2317f81f1b4410",
+    "semantic_hash": ""
   },
   "electron/entities/care-unit.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "9521f67704f6dd23cbf91bd78120d053",
-    "semantic_hash": "9521f67704f6dd23cbf91bd78120d053"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "3f2b45df32148fe5f97da38f0bebe2a7",
+    "semantic_hash": ""
   },
   "electron/entities/clinical-document-signature.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "60fc1144e1827e9c0548d921b165f5f9",
-    "semantic_hash": "60fc1144e1827e9c0548d921b165f5f9"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "cc64176d23c96912ec04f0f732d5e3c5",
+    "semantic_hash": ""
   },
   "electron/entities/clinical-document-type.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "05ff7b33bfef8573140bf19673ec9914",
-    "semantic_hash": "05ff7b33bfef8573140bf19673ec9914"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "d3337b2a19bc5e1b1c83c8773738bf70",
+    "semantic_hash": ""
   },
   "electron/entities/clinical-document.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "bfc37e618d975bdeac591bf44e242f98",
-    "semantic_hash": "bfc37e618d975bdeac591bf44e242f98"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "5015b1a81e134d1e471a8e05a622e0c4",
+    "semantic_hash": ""
   },
   "electron/entities/config-tarif.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "509260a4bd7f7a4e68e1a8333c02921c",
-    "semantic_hash": "509260a4bd7f7a4e68e1a8333c02921c"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "3e6dcaf9d86d0ce2eada0bdd1a78ab7c",
+    "semantic_hash": ""
   },
   "electron/entities/conservateur-champ-localisation.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "ec8814fb0e243c36418d82e225e4c4f2",
-    "semantic_hash": "ec8814fb0e243c36418d82e225e4c4f2"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "d5cf560df5ad92b24b4061c08b6c73a2",
+    "semantic_hash": ""
   },
   "electron/entities/conservateur-stockage.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "b35155eda318fd6f14936b919a08b516",
-    "semantic_hash": "b35155eda318fd6f14936b919a08b516"
-  },
-  "electron/entities/contact-category.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "05293a86be9a928615a0846c882f0c21",
-    "semantic_hash": "05293a86be9a928615a0846c882f0c21"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "8d35b218a4492ae2d941608c164396d0",
+    "semantic_hash": ""
   },
   "electron/entities/contact-origin.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "c59ad184f3dfb560430c70e7f5ad422c",
-    "semantic_hash": "c59ad184f3dfb560430c70e7f5ad422c"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "487990e8b849857748136ea2b361cdec",
+    "semantic_hash": ""
   },
   "electron/entities/currency.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "5b5dc6dfdd08dd6fce7efcef77c3a879",
-    "semantic_hash": "5b5dc6dfdd08dd6fce7efcef77c3a879"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "38d2a1b186f759f522045cc3f28cdf8e",
+    "semantic_hash": ""
   },
   "electron/entities/database.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "ea0aebf47733ee6bc3f422d96970bdde",
-    "semantic_hash": "ea0aebf47733ee6bc3f422d96970bdde"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "925ccb5132eb9ec1bef1ae5636faf6d8",
+    "semantic_hash": ""
   },
   "electron/entities/dispositif-type.entity.ts": {
-    "mtime": 1784460848.1605637,
-    "ast_hash": "12ea5205fe25d8f41b81763419afa7f3",
-    "semantic_hash": "12ea5205fe25d8f41b81763419afa7f3"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "cd6625e1bd263793b964a33dc91e9f4b",
+    "semantic_hash": ""
   },
   "electron/entities/dispositif.entity.ts": {
-    "mtime": 1784460848.1615639,
-    "ast_hash": "34e452d2f9cf3169273dfa8def697c23",
-    "semantic_hash": "34e452d2f9cf3169273dfa8def697c23"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "bbd00006687031f15b350b6b21145ae6",
+    "semantic_hash": ""
   },
   "electron/entities/email-config.entity.ts": {
-    "mtime": 1784460848.1615639,
-    "ast_hash": "6851adbf131b3a83700658a96bf9da6c",
-    "semantic_hash": "6851adbf131b3a83700658a96bf9da6c"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "7d330b831678bd41f580765c1c36ec39",
+    "semantic_hash": ""
   },
   "electron/entities/encounter.entity.ts": {
-    "mtime": 1784460848.1615639,
-    "ast_hash": "2e6c2f85a686e184beaff358bbfdc4f7",
-    "semantic_hash": "2e6c2f85a686e184beaff358bbfdc4f7"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "d197edca857317172aabfd9da43149d8",
+    "semantic_hash": ""
   },
   "electron/entities/entity.ts": {
-    "mtime": 1784460848.1615639,
+    "mtime": 1786699141.401285,
     "ast_hash": "62496c8bd7b84b218fcb2cc275431312",
     "semantic_hash": "62496c8bd7b84b218fcb2cc275431312"
   },
   "electron/entities/exam-category.entity.ts": {
-    "mtime": 1784460848.1615639,
-    "ast_hash": "61ec2532ae4c4dc7eaf7ff2200a4903b",
-    "semantic_hash": "61ec2532ae4c4dc7eaf7ff2200a4903b"
+    "mtime": 1786700781.7485948,
+    "ast_hash": "3cb64557019edee98b6e31f97942e1e4",
+    "semantic_hash": ""
   },
   "electron/entities/exam-request.entity.ts": {
-    "mtime": 1784460848.1615639,
-    "ast_hash": "bb8b13e91e3c79f221ce62491c2889f7",
-    "semantic_hash": "bb8b13e91e3c79f221ce62491c2889f7"
+    "mtime": 1786700781.749595,
+    "ast_hash": "b5a912b5f4c6a941f5474d40e358d29c",
+    "semantic_hash": ""
   },
   "electron/entities/exam-type.entity.ts": {
-    "mtime": 1784460848.1615639,
-    "ast_hash": "b8b522260157cc6765605d18c5d88e27",
-    "semantic_hash": "b8b522260157cc6765605d18c5d88e27"
+    "mtime": 1786700781.749595,
+    "ast_hash": "a4c970936d042460b46aa9cf1e7bc253",
+    "semantic_hash": ""
   },
   "electron/entities/fonction.entity.ts": {
-    "mtime": 1784460848.1615639,
-    "ast_hash": "bd68c10e05cba6756df62bb4d1719c26",
-    "semantic_hash": "bd68c10e05cba6756df62bb4d1719c26"
+    "mtime": 1786700781.749595,
+    "ast_hash": "5924acada99273ae3ced54ea6334537a",
+    "semantic_hash": ""
   },
   "electron/entities/form-draft.entity.ts": {
-    "mtime": 1784460848.1615639,
-    "ast_hash": "55b7e3e82b733a9da68a6c074d2432f6",
-    "semantic_hash": "55b7e3e82b733a9da68a6c074d2432f6"
+    "mtime": 1786700781.749595,
+    "ast_hash": "5aa8082aaf0d4eda736f929b713cac70",
+    "semantic_hash": ""
   },
   "electron/entities/insurance.entity.ts": {
-    "mtime": 1784460848.1615639,
-    "ast_hash": "50e5f056052595d85fd469cd2c095241",
-    "semantic_hash": "50e5f056052595d85fd469cd2c095241"
+    "mtime": 1786700781.749595,
+    "ast_hash": "48b7d9d127b28951af36062a6058f88f",
+    "semantic_hash": ""
   },
   "electron/entities/invoice-item.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "a1c847bc481b8c02b2f7247fa37e0d72",
-    "semantic_hash": "a1c847bc481b8c02b2f7247fa37e0d72"
+    "mtime": 1786700781.749595,
+    "ast_hash": "0a94ee9a079fd632ee45c92d9d9cdd47",
+    "semantic_hash": ""
   },
   "electron/entities/invoice-payment.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "ab62fe87a1c3eff3bca17e65eb790a05",
-    "semantic_hash": "ab62fe87a1c3eff3bca17e65eb790a05"
+    "mtime": 1786700781.749595,
+    "ast_hash": "41671dedbc232851a2740362825738a2",
+    "semantic_hash": ""
   },
   "electron/entities/invoice.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "bdd85bd48348b7249e23678caf726cee",
-    "semantic_hash": "bdd85bd48348b7249e23678caf726cee"
+    "mtime": 1786700781.749595,
+    "ast_hash": "e5c109e10d06cfabefdbe805945e6da1",
+    "semantic_hash": ""
   },
   "electron/entities/localite.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "072aef4c1fe4f61b9581adf884534b9d",
-    "semantic_hash": "072aef4c1fe4f61b9581adf884534b9d"
+    "mtime": 1786700781.7505949,
+    "ast_hash": "b212e68c32671ac823f61e4fd8fcddd5",
+    "semantic_hash": ""
   },
   "electron/entities/medical-act.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "f0431f4d1342da69cc460da50c53a511",
-    "semantic_hash": "f0431f4d1342da69cc460da50c53a511"
+    "mtime": 1786700781.7505949,
+    "ast_hash": "061609687b7ea4f12d935b5b38951a17",
+    "semantic_hash": ""
   },
   "electron/entities/medical-unit.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "f0b41b6087230c4ec3b974d57cdb514b",
-    "semantic_hash": "f0b41b6087230c4ec3b974d57cdb514b"
+    "mtime": 1786700781.7505949,
+    "ast_hash": "fc27bc85995b49a6f2a166766f7b6017",
+    "semantic_hash": ""
   },
   "electron/entities/patient-acte.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "7c208be57478c92ee2e27fea0bf0b3af",
-    "semantic_hash": "7c208be57478c92ee2e27fea0bf0b3af"
+    "mtime": 1786700781.7505949,
+    "ast_hash": "c3d95d428d26a0494624c7c3159b8d1e",
+    "semantic_hash": ""
   },
   "electron/entities/patient-attachment.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "15d67deb81261497116ce18744311051",
-    "semantic_hash": "15d67deb81261497116ce18744311051"
+    "mtime": 1786700781.7505949,
+    "ast_hash": "cbad502effb3014f64329f1e88eec738",
+    "semantic_hash": ""
   },
   "electron/entities/patient.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "2cc7ae63fbbfecfc3baf69cd0378bf13",
-    "semantic_hash": "2cc7ae63fbbfecfc3baf69cd0378bf13"
+    "mtime": 1786700781.7505949,
+    "ast_hash": "66be668b48af30c210645d0d701a2043",
+    "semantic_hash": ""
   },
   "electron/entities/plan-soins.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "6e810a71ec4d89542fc78d45c5c09f76",
-    "semantic_hash": "6e810a71ec4d89542fc78d45c5c09f76"
+    "mtime": 1786700781.7505949,
+    "ast_hash": "5ee95c63ef524ebcf00ec6ef07a5dc8e",
+    "semantic_hash": ""
   },
   "electron/entities/prescription.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "e8b52de27e838f861ae73eb19500e6ea",
-    "semantic_hash": "e8b52de27e838f861ae73eb19500e6ea"
+    "mtime": 1786700781.7505949,
+    "ast_hash": "7983ca53994436084405b806dff52876",
+    "semantic_hash": ""
   },
   "electron/entities/service.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "efe671022548c64b9cb545ed65289dba",
-    "semantic_hash": "efe671022548c64b9cb545ed65289dba"
+    "mtime": 1786700781.7505949,
+    "ast_hash": "a9d339886eca94582629e57cc3b1ac71",
+    "semantic_hash": ""
   },
   "electron/entities/session.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "dfdaf532fa1962537f810bd5fdd48714",
-    "semantic_hash": "dfdaf532fa1962537f810bd5fdd48714"
+    "mtime": 1786700781.7505949,
+    "ast_hash": "640fb121c119ea35fb376c59a8b4e7ba",
+    "semantic_hash": ""
   },
   "electron/entities/site.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "d589b6e6b2e8a0c6417ea64502572eba",
-    "semantic_hash": "d589b6e6b2e8a0c6417ea64502572eba"
+    "mtime": 1786700781.7515948,
+    "ast_hash": "7a686cfa8c7dcff5004a657933da1068",
+    "semantic_hash": ""
   },
   "electron/entities/specialty.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "4f759207ddb7d4fe6a9719d34b33f9da",
-    "semantic_hash": "4f759207ddb7d4fe6a9719d34b33f9da"
+    "mtime": 1786700781.7515948,
+    "ast_hash": "6043f63c4800fbba69b70ba25573ff17",
+    "semantic_hash": ""
   },
   "electron/entities/stay.entity.ts": {
-    "mtime": 1784460848.1625638,
-    "ast_hash": "38d255b56f277da31419691e118385d5",
-    "semantic_hash": "38d255b56f277da31419691e118385d5"
+    "mtime": 1786700781.7515948,
+    "ast_hash": "441740d652274a283542745410a79ded",
+    "semantic_hash": ""
   },
   "electron/entities/trusted-person.entity.ts": {
-    "mtime": 1784460848.163564,
-    "ast_hash": "70867d1ab2b216e1ef4de7de8bc69635",
-    "semantic_hash": "70867d1ab2b216e1ef4de7de8bc69635"
+    "mtime": 1786700781.7515948,
+    "ast_hash": "745cdf14905f75fe1df2b28c7869aa14",
+    "semantic_hash": ""
   },
   "electron/entities/user-attachment.entity.ts": {
-    "mtime": 1784460848.163564,
-    "ast_hash": "9ebca41dbd4d56fec7f3d918b0b53c42",
-    "semantic_hash": "9ebca41dbd4d56fec7f3d918b0b53c42"
+    "mtime": 1786700781.7515948,
+    "ast_hash": "3c4e63eb81d44ea79a1342a591983fd2",
+    "semantic_hash": ""
   },
   "electron/entities/user-favorite-service.entity.ts": {
-    "mtime": 1784460848.163564,
-    "ast_hash": "427dd40598414dcbcc2f79b160f9c05f",
-    "semantic_hash": "427dd40598414dcbcc2f79b160f9c05f"
+    "mtime": 1786700781.7515948,
+    "ast_hash": "2b06d6324151fec0da5ccc8e38e503f3",
+    "semantic_hash": ""
   },
   "electron/entities/user-medical-unit.entity.ts": {
-    "mtime": 1784460848.163564,
-    "ast_hash": "3c6e52952b9bd21579bef707b25dc905",
-    "semantic_hash": "3c6e52952b9bd21579bef707b25dc905"
+    "mtime": 1786700781.7515948,
+    "ast_hash": "7529efae3aeb7da385ea88420720329f",
+    "semantic_hash": ""
   },
   "electron/entities/user-service.entity.ts": {
-    "mtime": 1784460848.163564,
-    "ast_hash": "9a73529a318fc075359fee7988ab85c3",
-    "semantic_hash": "9a73529a318fc075359fee7988ab85c3"
+    "mtime": 1786700781.7515948,
+    "ast_hash": "0edcdc88091aac429e4f8affd22333a7",
+    "semantic_hash": ""
   },
   "electron/entities/user-site.entity.ts": {
-    "mtime": 1784460848.163564,
-    "ast_hash": "687213f674ffb18fd4c2c7fdcfd2955b",
-    "semantic_hash": "687213f674ffb18fd4c2c7fdcfd2955b"
+    "mtime": 1786700781.7515948,
+    "ast_hash": "5eca5ed31042afe52681ad72bb5a24c1",
+    "semantic_hash": ""
   },
   "electron/entities/user-specialty.entity.ts": {
-    "mtime": 1784460848.163564,
-    "ast_hash": "32c11754184023179f26d95ad6216795",
-    "semantic_hash": "32c11754184023179f26d95ad6216795"
+    "mtime": 1786700781.7515948,
+    "ast_hash": "bdf61401032365d2ebbb7495850e8419",
+    "semantic_hash": ""
   },
   "electron/entities/user.entity.ts": {
-    "mtime": 1784460848.163564,
-    "ast_hash": "6598d8679f1eb73312921a4f8d08ed52",
-    "semantic_hash": "6598d8679f1eb73312921a4f8d08ed52"
+    "mtime": 1786700781.752595,
+    "ast_hash": "f2efedfe399771009996290b8bcae461",
+    "semantic_hash": ""
   },
   "electron/entities/vital-sign.entity.ts": {
-    "mtime": 1784460848.163564,
-    "ast_hash": "aa79773a154bc92b9e4c1b7038d306f2",
-    "semantic_hash": "aa79773a154bc92b9e4c1b7038d306f2"
+    "mtime": 1786700781.752595,
+    "ast_hash": "8bc46ae804c08a9ac6f0ea28572031c2",
+    "semantic_hash": ""
   },
   "electron/entities/vital-signs-item.entity.ts": {
-    "mtime": 1784460848.163564,
-    "ast_hash": "95610d288df6f9afc5de5a9af7707fb2",
-    "semantic_hash": "95610d288df6f9afc5de5a9af7707fb2"
+    "mtime": 1786700781.752595,
+    "ast_hash": "73aa1d5ba07ad1f07d436f4021aaff1c",
+    "semantic_hash": ""
   },
   "electron/entities/voie-type.entity.ts": {
-    "mtime": 1784460848.163564,
-    "ast_hash": "e5e0c0bf267980b556126c35ce95e23b",
-    "semantic_hash": "e5e0c0bf267980b556126c35ce95e23b"
+    "mtime": 1786700781.752595,
+    "ast_hash": "194abf1eb679c91ace0112ea0b230ef3",
+    "semantic_hash": ""
   },
   "electron/excel/header-builder.ts": {
-    "mtime": 1784460848.163564,
+    "mtime": 1786699141.403285,
     "ast_hash": "016d3e09c94b4629cf1c22d931e66a35",
     "semantic_hash": "016d3e09c94b4629cf1c22d931e66a35"
   },
   "electron/excel/styles.ts": {
-    "mtime": 1784460848.163564,
+    "mtime": 1786699141.403285,
     "ast_hash": "c336c31097defb957ad62d12b44e60e7",
     "semantic_hash": "c336c31097defb957ad62d12b44e60e7"
   },
   "electron/export-templates.ts": {
-    "mtime": 1784460848.225568,
-    "ast_hash": "6587d6287b2c733b55567fa6f15ef851",
-    "semantic_hash": "6587d6287b2c733b55567fa6f15ef851"
+    "mtime": 1786704747.3105702,
+    "ast_hash": "cc27f71700a5ffc46ac7ba8650f93097",
+    "semantic_hash": ""
   },
   "electron/handlers/appointment.handler.ts": {
-    "mtime": 1784460848.1645641,
+    "mtime": 1786699141.404285,
     "ast_hash": "338ab6880a1908a6a72ed69d3d512a02",
     "semantic_hash": "338ab6880a1908a6a72ed69d3d512a02"
   },
   "electron/handlers/attachment-type.handler.ts": {
-    "mtime": 1784460848.1645641,
+    "mtime": 1786699141.404285,
     "ast_hash": "436031aad5ea22d850b0eb84875a8a69",
     "semantic_hash": "436031aad5ea22d850b0eb84875a8a69"
   },
   "electron/handlers/auth.handler.ts": {
-    "mtime": 1784460848.1645641,
-    "ast_hash": "d7f2e36fe62ab27334fcf30f25b3c976",
-    "semantic_hash": "d7f2e36fe62ab27334fcf30f25b3c976"
+    "mtime": 1786700781.752595,
+    "ast_hash": "0e80c7e93fe2d361a7e2e75f91635866",
+    "semantic_hash": ""
   },
   "electron/handlers/care-unit.handler.ts": {
-    "mtime": 1784460848.1645641,
+    "mtime": 1786699141.404285,
     "ast_hash": "8847b412c616bb5663eda34b6fa004a8",
     "semantic_hash": "8847b412c616bb5663eda34b6fa004a8"
   },
   "electron/handlers/clinical-document.handler.ts": {
-    "mtime": 1784460848.1645641,
-    "ast_hash": "bd2eb6836d42b7a2db621c989f3bc64a",
-    "semantic_hash": "bd2eb6836d42b7a2db621c989f3bc64a"
+    "mtime": 1786700781.752595,
+    "ast_hash": "3197502f6ab73977de87898d84f31098",
+    "semantic_hash": ""
   },
   "electron/handlers/conservateur.handler.ts": {
-    "mtime": 1784460848.1645641,
+    "mtime": 1786699141.404285,
     "ast_hash": "5201e81e830fe9b1c9faa0e34982ad9a",
     "semantic_hash": "5201e81e830fe9b1c9faa0e34982ad9a"
   },
-  "electron/handlers/contact-category.handler.ts": {
-    "mtime": 1784460848.165564,
-    "ast_hash": "c62551e22144b667b1ca7b93fefffcf4",
-    "semantic_hash": "c62551e22144b667b1ca7b93fefffcf4"
-  },
   "electron/handlers/contact-origin.handler.ts": {
-    "mtime": 1784460848.165564,
-    "ast_hash": "b82fe18e07aa5c22a9602761d1d31b70",
-    "semantic_hash": "b82fe18e07aa5c22a9602761d1d31b70"
+    "mtime": 1786700781.7535949,
+    "ast_hash": "3cd7488f07f132c51b1eabd18ec06757",
+    "semantic_hash": ""
   },
   "electron/handlers/email.handler.ts": {
-    "mtime": 1784460848.165564,
+    "mtime": 1786699141.404285,
     "ast_hash": "e27cb7bd2374a7b5ca3ba140069bac60",
     "semantic_hash": "e27cb7bd2374a7b5ca3ba140069bac60"
   },
   "electron/handlers/encounter.handler.ts": {
-    "mtime": 1784460848.165564,
-    "ast_hash": "1192f9082395141f8d5cdabb025a83f4",
-    "semantic_hash": "1192f9082395141f8d5cdabb025a83f4"
+    "mtime": 1786700781.7535949,
+    "ast_hash": "f069c44996c299016785a28691850885",
+    "semantic_hash": ""
   },
   "electron/handlers/exam-request.handler.ts": {
-    "mtime": 1784460848.165564,
+    "mtime": 1786700781.7535949,
     "ast_hash": "75bfbc5766d27769c5aed0d8764b7bc2",
     "semantic_hash": "75bfbc5766d27769c5aed0d8764b7bc2"
   },
   "electron/handlers/exam-type.handler.ts": {
-    "mtime": 1784460848.165564,
-    "ast_hash": "bd228799ee723d7151fbc9c31c02e4a2",
-    "semantic_hash": "bd228799ee723d7151fbc9c31c02e4a2"
+    "mtime": 1786700781.7535949,
+    "ast_hash": "ef8ee247e65e51855f94c5785235bf1b",
+    "semantic_hash": ""
   },
   "electron/handlers/export.handler.ts": {
-    "mtime": 1784460848.2305684,
-    "ast_hash": "438114608e2943e268a5bb8a8479b66a",
-    "semantic_hash": "438114608e2943e268a5bb8a8479b66a"
+    "mtime": 1786700781.7535949,
+    "ast_hash": "32f3e58f6e22dc4dcb87a32b5d8a93e9",
+    "semantic_hash": ""
   },
   "electron/handlers/form-draft.handler.ts": {
-    "mtime": 1784460848.165564,
+    "mtime": 1786699141.4052851,
     "ast_hash": "9d28e1d716626d9ee9ac2976d0cb5878",
     "semantic_hash": "9d28e1d716626d9ee9ac2976d0cb5878"
   },
   "electron/handlers/identity.handler.ts": {
-    "mtime": 1784460848.1665642,
+    "mtime": 1786699141.4052851,
     "ast_hash": "f2c107f76f254061df815cc27cd080ab",
     "semantic_hash": "f2c107f76f254061df815cc27cd080ab"
   },
   "electron/handlers/index.ts": {
-    "mtime": 1784460848.1665642,
-    "ast_hash": "c3782a7e07503d503330996383286575",
-    "semantic_hash": "c3782a7e07503d503330996383286575"
+    "mtime": 1786700781.7535949,
+    "ast_hash": "9f699a2758d7dd406bff57dd1f3a36ab",
+    "semantic_hash": ""
   },
   "electron/handlers/insurance.handler.ts": {
-    "mtime": 1784460848.1665642,
-    "ast_hash": "5c4495e0cfcbf0c2d2054c97b8ebcf77",
-    "semantic_hash": "5c4495e0cfcbf0c2d2054c97b8ebcf77"
+    "mtime": 1786700781.7535949,
+    "ast_hash": "f64f24d982b94b55dfac7fb2c90a285c",
+    "semantic_hash": ""
   },
   "electron/handlers/invoice.handler.ts": {
-    "mtime": 1784460848.1665642,
-    "ast_hash": "f61e8ac1bbf6bfad04347d72b7bc4f67",
-    "semantic_hash": "f61e8ac1bbf6bfad04347d72b7bc4f67"
+    "mtime": 1786700781.7535949,
+    "ast_hash": "7a883167abeae9c2914ef0fe55a358cf",
+    "semantic_hash": ""
   },
   "electron/handlers/patient-acte.handler.ts": {
-    "mtime": 1784460848.1665642,
+    "mtime": 1786699141.4052851,
     "ast_hash": "abe84fd29b10e1f4034aa43239f5a7f9",
     "semantic_hash": "abe84fd29b10e1f4034aa43239f5a7f9"
   },
   "electron/handlers/patient-attachment.handler.ts": {
-    "mtime": 1784460848.1665642,
+    "mtime": 1786699141.4052851,
     "ast_hash": "46b866ee40d0dc000650995cacdd27f6",
     "semantic_hash": "46b866ee40d0dc000650995cacdd27f6"
   },
   "electron/handlers/patient-care.handler.ts": {
-    "mtime": 1784460848.1665642,
-    "ast_hash": "871970d9ec70bd0bb5caa3562bb07062",
-    "semantic_hash": "871970d9ec70bd0bb5caa3562bb07062"
+    "mtime": 1786700781.7535949,
+    "ast_hash": "37cf7ec4c8ff9f3bd155c468d8998cf0",
+    "semantic_hash": ""
   },
   "electron/handlers/patient.handler.ts": {
-    "mtime": 1784460848.1665642,
+    "mtime": 1786700781.7535949,
     "ast_hash": "fa69e9a22f6fff55c464f57dc1e06120",
     "semantic_hash": "fa69e9a22f6fff55c464f57dc1e06120"
   },
   "electron/handlers/prescription.handler.ts": {
-    "mtime": 1784460848.1665642,
+    "mtime": 1786699141.4052851,
     "ast_hash": "49c1228d381c9640d9ec419a997d42f2",
     "semantic_hash": "49c1228d381c9640d9ec419a997d42f2"
   },
   "electron/handlers/session.handler.ts": {
-    "mtime": 1784460848.1665642,
+    "mtime": 1786699141.4052851,
     "ast_hash": "51eefb1485204fb980a1b111d06356ea",
     "semantic_hash": "51eefb1485204fb980a1b111d06356ea"
   },
   "electron/handlers/settings.handler.ts": {
-    "mtime": 1784460848.1675642,
+    "mtime": 1786700781.7535949,
     "ast_hash": "9370df27e7ad0b6073e14ee26821175a",
     "semantic_hash": "9370df27e7ad0b6073e14ee26821175a"
   },
   "electron/handlers/specialty.handler.ts": {
-    "mtime": 1784460848.1675642,
+    "mtime": 1786699141.4052851,
     "ast_hash": "93cd2c3c88cdd4430050770505a38d54",
     "semantic_hash": "93cd2c3c88cdd4430050770505a38d54"
   },
   "electron/handlers/stay.handler.ts": {
-    "mtime": 1784460848.1675642,
-    "ast_hash": "a18b678cfedf2f08eb70d81070efc427",
-    "semantic_hash": "a18b678cfedf2f08eb70d81070efc427"
+    "mtime": 1786700781.7535949,
+    "ast_hash": "77bf1dfe20d4af5031c5df7ceba21bf9",
+    "semantic_hash": ""
   },
   "electron/handlers/user-attachment.handler.ts": {
-    "mtime": 1784460848.1675642,
+    "mtime": 1786699141.4052851,
     "ast_hash": "3e01bc7ff0d0f456a551a17c092eb41d",
     "semantic_hash": "3e01bc7ff0d0f456a551a17c092eb41d"
   },
   "electron/main.ts": {
-    "mtime": 1784460848.1675642,
-    "ast_hash": "848b909ce632125b9b59b0e4252c85c5",
-    "semantic_hash": "848b909ce632125b9b59b0e4252c85c5"
+    "mtime": 1786700781.7535949,
+    "ast_hash": "c66ffe056180c6ae8ca5756891ac61de",
+    "semantic_hash": ""
   },
   "electron/migrations/001-initial-schema.ts": {
-    "mtime": 1784460848.1675642,
+    "mtime": 1786699141.406285,
     "ast_hash": "8d352d3d6fcda90a9d20f9bfa1634c0d",
     "semantic_hash": "8d352d3d6fcda90a9d20f9bfa1634c0d"
   },
   "electron/migrations/002-fix-user-schema.ts": {
-    "mtime": 1784460848.1675642,
+    "mtime": 1786699141.406285,
     "ast_hash": "4bc3532ba2a8bfb91ff05f8c58a849fc",
     "semantic_hash": "4bc3532ba2a8bfb91ff05f8c58a849fc"
   },
   "electron/migrations/003-add-settings.ts": {
-    "mtime": 1784460848.1685643,
+    "mtime": 1786699141.406285,
     "ast_hash": "83a80323be7c5cb75464cfa53203451d",
     "semantic_hash": "83a80323be7c5cb75464cfa53203451d"
   },
   "electron/migrations/004-invoice.ts": {
-    "mtime": 1784460848.1685643,
+    "mtime": 1786699141.406285,
     "ast_hash": "d6d14806158c00dfc4a8e8cd7689a55c",
     "semantic_hash": "d6d14806158c00dfc4a8e8cd7689a55c"
   },
   "electron/migrations/005-settings-tables.ts": {
-    "mtime": 1784460848.1685643,
+    "mtime": 1786699141.406285,
     "ast_hash": "9ae935d82ac648154b7967b8ad48992d",
     "semantic_hash": "9ae935d82ac648154b7967b8ad48992d"
   },
   "electron/migrations/006-settings-extensions.ts": {
-    "mtime": 1784460848.1685643,
+    "mtime": 1786699141.406285,
     "ast_hash": "524e538c646a55d2e4c3841127698801",
     "semantic_hash": "524e538c646a55d2e4c3841127698801"
   },
   "electron/migrations/007-user-medical-units.ts": {
-    "mtime": 1784460848.1685643,
+    "mtime": 1786699141.406285,
     "ast_hash": "fda649e556ac7f11c2e315a3fd7c0e5a",
     "semantic_hash": "fda649e556ac7f11c2e315a3fd7c0e5a"
   },
   "electron/migrations/008-email-config.ts": {
-    "mtime": 1784460848.1685643,
+    "mtime": 1786699141.406285,
     "ast_hash": "c3e9a88feb76835b7e95acc3d419efb9",
     "semantic_hash": "c3e9a88feb76835b7e95acc3d419efb9"
   },
   "electron/migrations/009-fonctions.ts": {
-    "mtime": 1784460848.1685643,
+    "mtime": 1786699141.406285,
     "ast_hash": "ecd3cea20b0db097a0709a05b252cf3c",
     "semantic_hash": "ecd3cea20b0db097a0709a05b252cf3c"
   },
   "electron/migrations/010-localites.ts": {
-    "mtime": 1784460848.1685643,
+    "mtime": 1786699141.406285,
     "ast_hash": "0e080bb3dd4e19e87a2b39635c1a3611",
     "semantic_hash": "0e080bb3dd4e19e87a2b39635c1a3611"
   },
   "electron/migrations/011-remove-medical-unit-fields.ts": {
-    "mtime": 1784460848.1685643,
+    "mtime": 1786699141.406285,
     "ast_hash": "264ddfee6939bafbd452c90502ed32b5",
     "semantic_hash": "264ddfee6939bafbd452c90502ed32b5"
   },
   "electron/migrations/012-add-infirmier-role.ts": {
-    "mtime": 1784460848.1695642,
+    "mtime": 1786699141.406285,
     "ast_hash": "3c2af444d90c66a0df87e2df21113610",
     "semantic_hash": "3c2af444d90c66a0df87e2df21113610"
   },
   "electron/migrations/013-user-attachments.ts": {
-    "mtime": 1784460848.1695642,
+    "mtime": 1786699141.406285,
     "ast_hash": "1fa2bbd632c191e5a53cd3d6744b19af",
     "semantic_hash": "1fa2bbd632c191e5a53cd3d6744b19af"
   },
   "electron/migrations/014-patient-photo-nip.ts": {
-    "mtime": 1784460848.1695642,
+    "mtime": 1786699141.406285,
     "ast_hash": "dd809cd549f9af742fdeef3d557f10d5",
     "semantic_hash": "dd809cd549f9af742fdeef3d557f10d5"
   },
   "electron/migrations/015-patient-attachments.ts": {
-    "mtime": 1784460848.1695642,
+    "mtime": 1786699141.406285,
     "ast_hash": "93cfdf6fb43f94385934f84912877852",
     "semantic_hash": "93cfdf6fb43f94385934f84912877852"
   },
   "electron/migrations/016-patient-residence-birthplace.ts": {
-    "mtime": 1784460848.1695642,
+    "mtime": 1786699141.406285,
     "ast_hash": "776c92b6a1881f2c279d2832407c7869",
     "semantic_hash": "776c92b6a1881f2c279d2832407c7869"
   },
   "electron/migrations/017-add-region-type.ts": {
-    "mtime": 1784460848.1705644,
+    "mtime": 1786699141.406285,
     "ast_hash": "60932c9950d698570e81926713e6de9b",
     "semantic_hash": "60932c9950d698570e81926713e6de9b"
   },
   "electron/migrations/018-add-patient-region.ts": {
-    "mtime": 1784460848.1705644,
+    "mtime": 1786699141.406285,
     "ast_hash": "afa59eacaf1b6241bcc4ee1d31b38bc4",
     "semantic_hash": "afa59eacaf1b6241bcc4ee1d31b38bc4"
   },
   "electron/migrations/019-patient-trusted-person.ts": {
-    "mtime": 1784460848.1705644,
+    "mtime": 1786699141.406285,
     "ast_hash": "8987b1f9bd7360c1384db347037e6a9f",
     "semantic_hash": "8987b1f9bd7360c1384db347037e6a9f"
   },
   "electron/migrations/020-trusted-person-residence-code.ts": {
-    "mtime": 1784460848.1705644,
+    "mtime": 1786699141.406285,
     "ast_hash": "eda0b381c415dff9824aa32aaf00d2ad",
     "semantic_hash": "eda0b381c415dff9824aa32aaf00d2ad"
   },
   "electron/migrations/021-civilite-allow-empty.ts": {
-    "mtime": 1784460848.1705644,
+    "mtime": 1786699141.406285,
     "ast_hash": "8dbfa6243fd840b7778e18a04e7e514a",
     "semantic_hash": "8dbfa6243fd840b7778e18a04e7e514a"
   },
   "electron/migrations/022-patient-site.ts": {
-    "mtime": 1784460848.1705644,
+    "mtime": 1786699141.407285,
     "ast_hash": "e15b549a258bea628bf828e15c7b782c",
     "semantic_hash": "e15b549a258bea628bf828e15c7b782c"
   },
   "electron/migrations/023-patient-attachment-category.ts": {
-    "mtime": 1784460848.1705644,
+    "mtime": 1786699141.407285,
     "ast_hash": "94e33be4659b1f9acdc5e1178e90893c",
     "semantic_hash": "94e33be4659b1f9acdc5e1178e90893c"
   },
   "electron/migrations/024-unique-trusted-person-patient.ts": {
-    "mtime": 1784460848.1705644,
+    "mtime": 1786699141.407285,
     "ast_hash": "132ac3e96289b1ea1b1838c1fa0b501e",
     "semantic_hash": "132ac3e96289b1ea1b1838c1fa0b501e"
   },
   "electron/migrations/025-attachment-types.ts": {
-    "mtime": 1784460848.1705644,
+    "mtime": 1786699141.407285,
     "ast_hash": "97479dd099396d488fd09fe48e66ab30",
     "semantic_hash": "97479dd099396d488fd09fe48e66ab30"
   },
   "electron/migrations/026-remove-mutuelle.ts": {
-    "mtime": 1784460848.1715646,
+    "mtime": 1786699141.407285,
     "ast_hash": "6a668722a4de98ff63d44fda3eacc4af",
     "semantic_hash": "6a668722a4de98ff63d44fda3eacc4af"
   },
   "electron/migrations/027-add-assurance-mutuelle.ts": {
-    "mtime": 1784460848.1715646,
+    "mtime": 1786699141.407285,
     "ast_hash": "bcc21d3dab17d0f5371e987d36082cca",
     "semantic_hash": "bcc21d3dab17d0f5371e987d36082cca"
   },
   "electron/migrations/028-form-drafts.ts": {
-    "mtime": 1784460848.1715646,
+    "mtime": 1786699141.407285,
     "ast_hash": "43a23019832191cbaf03c41f17ee0907",
     "semantic_hash": "43a23019832191cbaf03c41f17ee0907"
   },
   "electron/migrations/029-patient-consentement-etude.ts": {
-    "mtime": 1784460848.1715646,
+    "mtime": 1786699141.407285,
     "ast_hash": "d53e00998dd81261ef97add7cd3b393c",
     "semantic_hash": "d53e00998dd81261ef97add7cd3b393c"
   },
   "electron/migrations/030-user-attachment-type.ts": {
-    "mtime": 1784460848.1715646,
+    "mtime": 1786699141.407285,
     "ast_hash": "368a6b6e413f82c0dab0c7e29a35cef7",
     "semantic_hash": "368a6b6e413f82c0dab0c7e29a35cef7"
   },
   "electron/migrations/031-patient-care.ts": {
-    "mtime": 1784460848.1715646,
+    "mtime": 1786699141.407285,
     "ast_hash": "aa50a25281c2dabcf460d9f61ecb84a3",
     "semantic_hash": "aa50a25281c2dabcf460d9f61ecb84a3"
   },
   "electron/migrations/032-seed-plan-soins.ts": {
-    "mtime": 1784460848.1715646,
+    "mtime": 1786699141.407285,
     "ast_hash": "bd1ca806ad48e75910b640507901820b",
     "semantic_hash": "bd1ca806ad48e75910b640507901820b"
   },
   "electron/migrations/033-prescriptions.ts": {
-    "mtime": 1784460848.1715646,
+    "mtime": 1786699141.407285,
     "ast_hash": "5b364256eff13a28022a393b471aa7fb",
     "semantic_hash": "5b364256eff13a28022a393b471aa7fb"
   },
   "electron/migrations/034-seed-week-plan-soins.ts": {
-    "mtime": 1784460848.1725645,
+    "mtime": 1786699141.407285,
     "ast_hash": "35e8c9c9a9c015ad3b05850573ad80e2",
     "semantic_hash": "35e8c9c9a9c015ad3b05850573ad80e2"
   },
   "electron/migrations/035-seed-vital-signs-range.ts": {
-    "mtime": 1784460848.1725645,
+    "mtime": 1786699141.407285,
     "ast_hash": "dbfec39ad241a39d8a817fca66f3983a",
     "semantic_hash": "dbfec39ad241a39d8a817fca66f3983a"
   },
   "electron/migrations/042-vital-signs-new-columns.ts": {
-    "mtime": 1784460848.1725645,
+    "mtime": 1786699141.407285,
     "ast_hash": "437c0efea7f5d23e2dc5577af4c2829e",
     "semantic_hash": "437c0efea7f5d23e2dc5577af4c2829e"
   },
   "electron/migrations/043-vital-signs-items.ts": {
-    "mtime": 1784460848.1725645,
+    "mtime": 1786699141.407285,
     "ast_hash": "7db1fbf31c1b742b81657946ddfcae19",
     "semantic_hash": "7db1fbf31c1b742b81657946ddfcae19"
   },
   "electron/migrations/044-lab-exam-tables.ts": {
-    "mtime": 1784460848.1725645,
+    "mtime": 1786699141.407285,
     "ast_hash": "0bcaa7d4eb3d4e55fe385d0a1325d7bb",
     "semantic_hash": "0bcaa7d4eb3d4e55fe385d0a1325d7bb"
   },
   "electron/migrations/045-conservateurs-tables.ts": {
-    "mtime": 1784460848.1725645,
+    "mtime": 1786699141.407285,
     "ast_hash": "02336f7f06a892c7effd652275959181",
     "semantic_hash": "02336f7f06a892c7effd652275959181"
   },
   "electron/migrations/046-service-hierarchy.ts": {
-    "mtime": 1784460848.1725645,
+    "mtime": 1786699141.407285,
     "ast_hash": "bae8fc80b6e9b1133ae39460c45b61cf",
     "semantic_hash": "bae8fc80b6e9b1133ae39460c45b61cf"
   },
   "electron/migrations/047-service-hierarchy-v2.ts": {
-    "mtime": 1784460848.1725645,
+    "mtime": 1786699141.407285,
     "ast_hash": "3bfabd7bec2d2f93a92eb1c45c68f157",
     "semantic_hash": "3bfabd7bec2d2f93a92eb1c45c68f157"
   },
   "electron/migrations/048-seed-fonctions.ts": {
-    "mtime": 1784460848.1735647,
+    "mtime": 1786699141.4082851,
     "ast_hash": "13a8ac4a15793f13c45965a8c2efcd7d",
     "semantic_hash": "13a8ac4a15793f13c45965a8c2efcd7d"
   },
   "electron/migrations/049-seed-localites.ts": {
-    "mtime": 1784460848.1735647,
+    "mtime": 1786699141.4082851,
     "ast_hash": "545bc849de43d080dba97224c2f3357a",
     "semantic_hash": "545bc849de43d080dba97224c2f3357a"
   },
   "electron/migrations/050-create-encounters.ts": {
-    "mtime": 1784460848.1735647,
+    "mtime": 1786699141.4082851,
     "ast_hash": "df1473e4218f8da63f1b6b531dabf1c9",
     "semantic_hash": "df1473e4218f8da63f1b6b531dabf1c9"
   },
   "electron/migrations/051-create-stays.ts": {
-    "mtime": 1784460848.1735647,
+    "mtime": 1786699141.4082851,
     "ast_hash": "d91ec8c43320712e333c6be0579f6411",
     "semantic_hash": "d91ec8c43320712e333c6be0579f6411"
   },
   "electron/migrations/052-restructure-tarifs.ts": {
-    "mtime": 1784460848.1735647,
+    "mtime": 1786699141.4082851,
     "ast_hash": "43e4677b93a870e8b2ade89b45ae6149",
     "semantic_hash": "43e4677b93a870e8b2ade89b45ae6149"
   },
   "electron/migrations/053-patient-clinical-documents.ts": {
-    "mtime": 1784460848.1735647,
+    "mtime": 1786699141.4082851,
     "ast_hash": "b55a12e33e8a54256f379bad3c039bab",
     "semantic_hash": "b55a12e33e8a54256f379bad3c039bab"
   },
   "electron/migrations/054-create-care-units.ts": {
-    "mtime": 1784460848.1735647,
+    "mtime": 1786699141.4082851,
     "ast_hash": "530778c72c6183aa1435f36cab73b6fc",
     "semantic_hash": "530778c72c6183aa1435f36cab73b6fc"
   },
   "electron/migrations/055-restructure-services.ts": {
-    "mtime": 1784460848.1735647,
+    "mtime": 1786699141.4082851,
     "ast_hash": "58cf4374d86b8340198c4d0f7165970c",
     "semantic_hash": "58cf4374d86b8340198c4d0f7165970c"
   },
   "electron/migrations/056-add-acte-declenche-to-doc-types.ts": {
-    "mtime": 1784460848.1735647,
+    "mtime": 1786699141.4082851,
     "ast_hash": "aeecb62c01efbe1d3c1ac4b26f602531",
     "semantic_hash": "aeecb62c01efbe1d3c1ac4b26f602531"
   },
   "electron/migrations/057-contact-origins.ts": {
-    "mtime": 1784460848.1745646,
+    "mtime": 1786699141.4082851,
     "ast_hash": "80c2442bf2737f329d767943377a8269",
     "semantic_hash": "80c2442bf2737f329d767943377a8269"
   },
   "electron/migrations/058-insurances.ts": {
-    "mtime": 1784460848.1745646,
+    "mtime": 1786699141.4082851,
     "ast_hash": "dd7beac4a93978af6c11381efce03fe7",
     "semantic_hash": "dd7beac4a93978af6c11381efce03fe7"
   },
-  "electron/migrations/059-contact-categories.ts": {
-    "mtime": 1784460848.1745646,
-    "ast_hash": "4624ecb3c9de10580230baea469b54c8",
-    "semantic_hash": "4624ecb3c9de10580230baea469b54c8"
-  },
   "electron/migrations/060-prescription-frequence-type.ts": {
-    "mtime": 1784460848.1745646,
+    "mtime": 1786699141.4082851,
     "ast_hash": "ba265a660f4162124ee6bd78f8561989",
     "semantic_hash": "ba265a660f4162124ee6bd78f8561989"
   },
   "electron/migrations/061-encounter-new-fields.ts": {
-    "mtime": 1784460848.1745646,
+    "mtime": 1786699141.4082851,
     "ast_hash": "8ad68d6155bd51184ff32a67969ecad8",
     "semantic_hash": "8ad68d6155bd51184ff32a67969ecad8"
   },
   "electron/migrations/062-add-care-unit-to-encounters.ts": {
-    "mtime": 1784460848.1745646,
+    "mtime": 1786699141.4082851,
     "ast_hash": "9d1387163ee0753f0ddaed9584239821",
     "semantic_hash": "9d1387163ee0753f0ddaed9584239821"
   },
   "electron/migrations/062-prescription-type.ts": {
-    "mtime": 1784460848.1745646,
+    "mtime": 1786699141.4082851,
     "ast_hash": "3f1602925ee348ec545822520d665bbb",
     "semantic_hash": "3f1602925ee348ec545822520d665bbb"
   },
   "electron/migrations/063-voie-type-dispositif-type.ts": {
-    "mtime": 1784460848.1755648,
+    "mtime": 1786699141.4082851,
     "ast_hash": "b8eea2fd47e59bb8a89dd8600f72f72d",
     "semantic_hash": "b8eea2fd47e59bb8a89dd8600f72f72d"
   },
   "electron/migrations/064-seed-crh-diabete.ts": {
-    "mtime": 1784460848.1755648,
+    "mtime": 1786699141.4082851,
     "ast_hash": "8d667f9dab0cb9144595f959c75a0533",
     "semantic_hash": "8d667f9dab0cb9144595f959c75a0533"
   },
   "electron/migrations/065-add-prescription-type.ts": {
-    "mtime": 1784460848.1755648,
+    "mtime": 1786699141.409285,
     "ast_hash": "fb30b411739ba7ddadc1cbe4921a1747",
     "semantic_hash": "fb30b411739ba7ddadc1cbe4921a1747"
   },
   "electron/migrations/066-add-service-care-unit-to-appointments.ts": {
-    "mtime": 1784460848.1755648,
+    "mtime": 1786699141.409285,
     "ast_hash": "230943b888f865a38b04011a807ca50e",
     "semantic_hash": "230943b888f865a38b04011a807ca50e"
   },
   "electron/migrations/066-fix-encounter-constraints.ts": {
-    "mtime": 1784460848.176565,
+    "mtime": 1786699141.409285,
     "ast_hash": "2c00c8784c42f28a110955fe421eb34f",
     "semantic_hash": "2c00c8784c42f28a110955fe421eb34f"
   },
   "electron/migrations/067-cleanup-orphaned-plan-items.ts": {
-    "mtime": 1784460848.176565,
+    "mtime": 1786699141.409285,
     "ast_hash": "89c076c2cb8990b15f3851af89232180",
     "semantic_hash": "89c076c2cb8990b15f3851af89232180"
   },
   "electron/migrations/068-fix-document-types.ts": {
-    "mtime": 1784460848.176565,
+    "mtime": 1786699141.409285,
     "ast_hash": "80797fdd351693f644af554d81415419",
     "semantic_hash": "80797fdd351693f644af554d81415419"
   },
   "electron/migrations/069-exam-categories-types.ts": {
-    "mtime": 1784460848.176565,
+    "mtime": 1786699141.409285,
     "ast_hash": "e59b74145aa30b650636fb5f0f6e58e3",
     "semantic_hash": "e59b74145aa30b650636fb5f0f6e58e3"
   },
   "electron/migrations/070-add-care-unit-to-encounters-fix.ts": {
-    "mtime": 1784460848.176565,
+    "mtime": 1786699141.409285,
     "ast_hash": "9e59d630fd403e15fd9b30c6e44cdb63",
     "semantic_hash": "9e59d630fd403e15fd9b30c6e44cdb63"
   },
   "electron/migrations/071-create-exam-requests.ts": {
-    "mtime": 1784460848.176565,
+    "mtime": 1786699141.409285,
     "ast_hash": "31caa143e2cef07ed278525570890acf",
     "semantic_hash": "31caa143e2cef07ed278525570890acf"
   },
   "electron/migrations/072-seed-lab-exam-data.ts": {
-    "mtime": 1784460848.176565,
+    "mtime": 1786699141.409285,
     "ast_hash": "9730807ff1cb41feb760b6a2136167d4",
     "semantic_hash": "9730807ff1cb41feb760b6a2136167d4"
   },
   "electron/migrations/073-seed-dispositif-voie-data.ts": {
-    "mtime": 1784460848.1775649,
+    "mtime": 1786699141.409285,
     "ast_hash": "4733e080b8004d4fd229128f6cb25b2e",
     "semantic_hash": "4733e080b8004d4fd229128f6cb25b2e"
   },
   "electron/migrations/074-add-exam-request-specialite.ts": {
-    "mtime": 1784460848.1775649,
+    "mtime": 1786699141.409285,
     "ast_hash": "986dc7f29fb7e2482bb630846ec9cdc7",
     "semantic_hash": "986dc7f29fb7e2482bb630846ec9cdc7"
   },
   "electron/migrations/075-add-exam-request-specialty-id.ts": {
-    "mtime": 1784460848.1775649,
+    "mtime": 1786699141.409285,
     "ast_hash": "beb151678f7f10830e7590e4bf17cb00",
     "semantic_hash": "beb151678f7f10830e7590e4bf17cb00"
   },
   "electron/migrations/076-add-exam-request-planned-hour-date.ts": {
-    "mtime": 1784460848.1775649,
+    "mtime": 1786699141.409285,
     "ast_hash": "f53d9a7fba30d28cdebd0c85d0acfb43",
     "semantic_hash": "f53d9a7fba30d28cdebd0c85d0acfb43"
   },
   "electron/preload.ts": {
-    "mtime": 1784460848.1775649,
-    "ast_hash": "fa858b60de953e7473c13738606a1108",
-    "semantic_hash": "fa858b60de953e7473c13738606a1108"
+    "mtime": 1786700781.7535949,
+    "ast_hash": "94ef569a9c06aa80d835961527c0dd82",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/appointment.service.spec.ts": {
-    "mtime": 1784460848.1775649,
-    "ast_hash": "5bde84b4e759f757b44927c0faca9bfb",
-    "semantic_hash": "5bde84b4e759f757b44927c0faca9bfb"
+    "mtime": 1786700781.7545948,
+    "ast_hash": "da36bd53fe505e209eddf9e06aafebc5",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/auth.service.spec.ts": {
-    "mtime": 1784460848.1775649,
+    "mtime": 1786699141.410285,
     "ast_hash": "3613cd8e79746c979586ea9e907da9fa",
     "semantic_hash": "3613cd8e79746c979586ea9e907da9fa"
   },
   "electron/services/__tests__/care-unit.service.spec.ts": {
-    "mtime": 1784460848.1775649,
+    "mtime": 1786699141.410285,
     "ast_hash": "1d02f808e6bfb2ebd46a920edacfc672",
     "semantic_hash": "1d02f808e6bfb2ebd46a920edacfc672"
   },
   "electron/services/__tests__/clinical-document.service.spec.ts": {
-    "mtime": 1784460848.178565,
-    "ast_hash": "9cc3c59b0d3878c4bdc03cdc1910f324",
-    "semantic_hash": "9cc3c59b0d3878c4bdc03cdc1910f324"
+    "mtime": 1786700781.7545948,
+    "ast_hash": "574fc891419cd2aba6784066b1e9dbf3",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/config-tarif.service.spec.ts": {
-    "mtime": 1784460848.178565,
+    "mtime": 1786699141.410285,
     "ast_hash": "e968c18eebbb740440b2409d76866a02",
     "semantic_hash": "e968c18eebbb740440b2409d76866a02"
   },
   "electron/services/__tests__/conservateur.service.spec.ts": {
-    "mtime": 1784460848.178565,
+    "mtime": 1786699141.410285,
     "ast_hash": "6447f3bc5077c89d12420d16c29c26d7",
     "semantic_hash": "6447f3bc5077c89d12420d16c29c26d7"
   },
   "electron/services/__tests__/currency.service.spec.ts": {
-    "mtime": 1784460848.178565,
+    "mtime": 1786699141.410285,
     "ast_hash": "491f6da259dc2e043b98320ff8e92aac",
     "semantic_hash": "491f6da259dc2e043b98320ff8e92aac"
   },
   "electron/services/__tests__/defensive-error.spec.ts": {
-    "mtime": 1784460848.178565,
+    "mtime": 1786699141.410285,
     "ast_hash": "e5e812d3645003a9ce6a107575afbef1",
     "semantic_hash": "e5e812d3645003a9ce6a107575afbef1"
   },
   "electron/services/__tests__/dispositifs.service.spec.ts": {
-    "mtime": 1784460848.179565,
+    "mtime": 1786699141.410285,
     "ast_hash": "9d9c33e54f7031638291337a3f4debd1",
     "semantic_hash": "9d9c33e54f7031638291337a3f4debd1"
   },
   "electron/services/__tests__/email.service.spec.ts": {
-    "mtime": 1784460848.179565,
+    "mtime": 1786699141.410285,
     "ast_hash": "e98c06b988a99e962cc19b3fef3769a5",
     "semantic_hash": "e98c06b988a99e962cc19b3fef3769a5"
   },
   "electron/services/__tests__/encounter.service.spec.ts": {
-    "mtime": 1784460848.179565,
-    "ast_hash": "f254b05b0075aaa21f6cd17bfedd26c8",
-    "semantic_hash": "f254b05b0075aaa21f6cd17bfedd26c8"
+    "mtime": 1786700781.7545948,
+    "ast_hash": "7e58119c05cc7945586c02f24f35b0ad",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/exam-request.service.spec.ts": {
-    "mtime": 1784460848.179565,
+    "mtime": 1786699141.410285,
     "ast_hash": "7468e3a392060c8bb746225413c8d526",
     "semantic_hash": "7468e3a392060c8bb746225413c8d526"
   },
   "electron/services/__tests__/exam-type.service.spec.ts": {
-    "mtime": 1784460848.179565,
-    "ast_hash": "6fa42f5189e74c160bdfd462a34c547f",
-    "semantic_hash": "6fa42f5189e74c160bdfd462a34c547f"
+    "mtime": 1786700781.7545948,
+    "ast_hash": "e8f232ce3a7ac69882be949b0003987a",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/fk-validator.test.ts": {
-    "mtime": 1784460848.179565,
+    "mtime": 1786699141.411285,
     "ast_hash": "27de7256f5f1de81b7b49e643f95e8fe",
     "semantic_hash": "27de7256f5f1de81b7b49e643f95e8fe"
   },
   "electron/services/__tests__/fonction.service.spec.ts": {
-    "mtime": 1784460848.180565,
-    "ast_hash": "45d768ac5e5f1107f7219dd332f64ce5",
-    "semantic_hash": "45d768ac5e5f1107f7219dd332f64ce5"
+    "mtime": 1786700781.7545948,
+    "ast_hash": "438c98393d2f5626c80215378ee70142",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/invoice.service.spec.ts": {
-    "mtime": 1784460848.180565,
+    "mtime": 1786699141.411285,
     "ast_hash": "fa76fe82b4537c93b431cd05483f76af",
     "semantic_hash": "fa76fe82b4537c93b431cd05483f76af"
   },
   "electron/services/__tests__/localite.service.spec.ts": {
-    "mtime": 1784460848.180565,
-    "ast_hash": "7744de4eef330d328d1b8ca85762c435",
-    "semantic_hash": "7744de4eef330d328d1b8ca85762c435"
+    "mtime": 1786700781.7545948,
+    "ast_hash": "70bfb510f9fa42f265df87030aa2ce5e",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/medical-act.service.spec.ts": {
-    "mtime": 1784460848.180565,
+    "mtime": 1786699141.411285,
     "ast_hash": "401772753d6f9c02ff35f17770557bcb",
     "semantic_hash": "401772753d6f9c02ff35f17770557bcb"
   },
   "electron/services/__tests__/medical-unit.service.spec.ts": {
-    "mtime": 1784460848.180565,
+    "mtime": 1786699141.411285,
     "ast_hash": "0244a6b7b49a7856c87c11b7cb1ea2e6",
     "semantic_hash": "0244a6b7b49a7856c87c11b7cb1ea2e6"
   },
   "electron/services/__tests__/migration.service.spec.ts": {
-    "mtime": 1784460848.180565,
-    "ast_hash": "bf2f0e768ef49d2889c0ddba71d94d59",
-    "semantic_hash": "bf2f0e768ef49d2889c0ddba71d94d59"
+    "mtime": 1786700781.7545948,
+    "ast_hash": "e8c1a7157828ea825b8c66a68ec13c32",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/password.service.spec.ts": {
-    "mtime": 1784460848.180565,
+    "mtime": 1786699141.411285,
     "ast_hash": "eb75754012a9db857f6e14f4f116fd63",
     "semantic_hash": "eb75754012a9db857f6e14f4f116fd63"
   },
   "electron/services/__tests__/patient-acte.service.spec.ts": {
-    "mtime": 1784460848.180565,
-    "ast_hash": "0e53e97a44a55f608b69b2fa858433ec",
-    "semantic_hash": "0e53e97a44a55f608b69b2fa858433ec"
+    "mtime": 1786700781.7545948,
+    "ast_hash": "4e87c069973225339875afda61e54d46",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/patient-attachment.service.spec.ts": {
-    "mtime": 1784460848.180565,
+    "mtime": 1786700781.7545948,
     "ast_hash": "f2cf36b5534b0f2aa702b66c6058875d",
     "semantic_hash": "f2cf36b5534b0f2aa702b66c6058875d"
   },
   "electron/services/__tests__/patient.service.spec.ts": {
-    "mtime": 1784460848.180565,
+    "mtime": 1786699141.412285,
     "ast_hash": "07f62f8fc100335a90d5c1580f1b9598",
     "semantic_hash": "07f62f8fc100335a90d5c1580f1b9598"
   },
   "electron/services/__tests__/plan-soins.service.spec.ts": {
-    "mtime": 1784460848.180565,
-    "ast_hash": "28245500620017841a2c2d1efd8a7952",
-    "semantic_hash": "28245500620017841a2c2d1efd8a7952"
+    "mtime": 1786700781.7555947,
+    "ast_hash": "44d9968c3f443ce53a495e7740c4e8cb",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/prescription.service.spec.ts": {
-    "mtime": 1784460848.180565,
-    "ast_hash": "5ab37d600c2c37b8a2aa9d198016ae4d",
-    "semantic_hash": "5ab37d600c2c37b8a2aa9d198016ae4d"
+    "mtime": 1786700781.7555947,
+    "ast_hash": "06acaf83ee8093619d82539777b4a9a9",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/service.service.spec.ts": {
-    "mtime": 1784460848.180565,
-    "ast_hash": "c3d83f6dff9523c06db566a79b761fb6",
-    "semantic_hash": "c3d83f6dff9523c06db566a79b761fb6"
+    "mtime": 1786700781.7555947,
+    "ast_hash": "b529b1885512b74bb660e94399c9278a",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/session.service.spec.ts": {
-    "mtime": 1784460848.180565,
+    "mtime": 1786699141.412285,
     "ast_hash": "89b7334e1d54ad65c755737ab8d5cdc7",
     "semantic_hash": "89b7334e1d54ad65c755737ab8d5cdc7"
   },
   "electron/services/__tests__/site.service.spec.ts": {
-    "mtime": 1784460848.180565,
+    "mtime": 1786699141.412285,
     "ast_hash": "df9c021507f086d6d643c1fb858b3116",
     "semantic_hash": "df9c021507f086d6d643c1fb858b3116"
   },
   "electron/services/__tests__/specialty.service.spec.ts": {
-    "mtime": 1784460848.180565,
+    "mtime": 1786699141.412285,
     "ast_hash": "42847e694315650d6661d79e05633f62",
     "semantic_hash": "42847e694315650d6661d79e05633f62"
   },
   "electron/services/__tests__/stay.service.spec.ts": {
-    "mtime": 1784460848.1815653,
-    "ast_hash": "89f3bcfe283750abfa5852237e31511a",
-    "semantic_hash": "89f3bcfe283750abfa5852237e31511a"
+    "mtime": 1786700781.7555947,
+    "ast_hash": "7b7c3d5e43b5e6654eed7374039e1070",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/system.service.spec.ts": {
-    "mtime": 1784460848.1815653,
+    "mtime": 1786699141.412285,
     "ast_hash": "e028c6e4149fb896cbc2e6163c7d4727",
     "semantic_hash": "e028c6e4149fb896cbc2e6163c7d4727"
   },
   "electron/services/__tests__/test-helper.ts": {
-    "mtime": 1784460848.1815653,
-    "ast_hash": "2901fdb092f97b63be479382af1811e6",
-    "semantic_hash": "2901fdb092f97b63be479382af1811e6"
+    "mtime": 1786700781.7555947,
+    "ast_hash": "c9018e1bb62bdc13e3dba33600043bdf",
+    "semantic_hash": ""
   },
   "electron/services/__tests__/trusted-person.service.spec.ts": {
-    "mtime": 1784460848.1815653,
+    "mtime": 1786699141.412285,
     "ast_hash": "de742fc3e4911e46cc44dee3453b0b8a",
     "semantic_hash": "de742fc3e4911e46cc44dee3453b0b8a"
   },
   "electron/services/__tests__/user-attachment.service.spec.ts": {
-    "mtime": 1784460848.1815653,
+    "mtime": 1786700781.7555947,
     "ast_hash": "c02ca043abb6b6f4553a6f230fc3647f",
     "semantic_hash": "c02ca043abb6b6f4553a6f230fc3647f"
   },
   "electron/services/__tests__/vital-signs.service.spec.ts": {
-    "mtime": 1784460848.1815653,
+    "mtime": 1786699141.413285,
     "ast_hash": "46595c478f6e05bb8fe0abb7a26c777c",
     "semantic_hash": "46595c478f6e05bb8fe0abb7a26c777c"
   },
   "electron/services/appointment.service.ts": {
-    "mtime": 1784460848.1815653,
-    "ast_hash": "3661ee2da72b376341de64287991ff87",
-    "semantic_hash": "3661ee2da72b376341de64287991ff87"
+    "mtime": 1786700781.7555947,
+    "ast_hash": "42d6a72eb9b3ad74c96565c9521a323e",
+    "semantic_hash": ""
   },
   "electron/services/attachment-type.service.ts": {
-    "mtime": 1784460848.1815653,
-    "ast_hash": "9b9a60a8ed5e2af927a07e36f6c4b359",
-    "semantic_hash": "9b9a60a8ed5e2af927a07e36f6c4b359"
+    "mtime": 1786700781.7555947,
+    "ast_hash": "49d12de833fb37731bfb3b089ae7cb18",
+    "semantic_hash": ""
   },
   "electron/services/auth.service.ts": {
-    "mtime": 1784460848.1815653,
+    "mtime": 1786699141.413285,
     "ast_hash": "397429179a98cc5c96a9ce64d22d4dab",
     "semantic_hash": "397429179a98cc5c96a9ce64d22d4dab"
   },
   "electron/services/auth/password.service.ts": {
-    "mtime": 1784460848.1815653,
+    "mtime": 1786699141.413285,
     "ast_hash": "4119a1497a1208e45b84ed7f34f8f555",
     "semantic_hash": "4119a1497a1208e45b84ed7f34f8f555"
   },
   "electron/services/auth/session.service.ts": {
-    "mtime": 1784460848.1815653,
+    "mtime": 1786699141.413285,
     "ast_hash": "849c0bec9c209ab60a7cda0b0acf62bc",
     "semantic_hash": "849c0bec9c209ab60a7cda0b0acf62bc"
   },
   "electron/services/care-unit.service.ts": {
-    "mtime": 1784460848.1825652,
-    "ast_hash": "2f5f47fc35b57f6c54a1141c19fdb80a",
-    "semantic_hash": "2f5f47fc35b57f6c54a1141c19fdb80a"
+    "mtime": 1786700781.7555947,
+    "ast_hash": "bb2ad09a1da6b82a67e0db5a5ff27239",
+    "semantic_hash": ""
   },
   "electron/services/clinical-document.service.ts": {
-    "mtime": 1784460848.1825652,
-    "ast_hash": "14a19cfc45675d67545b766a0d7527e8",
-    "semantic_hash": "14a19cfc45675d67545b766a0d7527e8"
+    "mtime": 1786700781.756595,
+    "ast_hash": "b75c8cadb1fbc2f72e9bda248f713bac",
+    "semantic_hash": ""
   },
   "electron/services/config-tarif.service.ts": {
-    "mtime": 1784460848.1825652,
-    "ast_hash": "56dec14c3a6789e50e784b889c0f4906",
-    "semantic_hash": "56dec14c3a6789e50e784b889c0f4906"
+    "mtime": 1786700781.756595,
+    "ast_hash": "3936ad8ad75b3e34439f5441f7744873",
+    "semantic_hash": ""
   },
   "electron/services/conservateur.service.ts": {
-    "mtime": 1784460848.1825652,
-    "ast_hash": "62b28c3f0cab4b87e5251d5dc28ea4e6",
-    "semantic_hash": "62b28c3f0cab4b87e5251d5dc28ea4e6"
-  },
-  "electron/services/contact-category.service.ts": {
-    "mtime": 1784460848.1825652,
-    "ast_hash": "cc70bc055d51127e1a7568b698e80f0c",
-    "semantic_hash": "cc70bc055d51127e1a7568b698e80f0c"
+    "mtime": 1786700781.756595,
+    "ast_hash": "6a6fcf2cc24a250389374a0746fdee3e",
+    "semantic_hash": ""
   },
   "electron/services/contact-origin.service.ts": {
-    "mtime": 1784460848.1825652,
-    "ast_hash": "215f78fae8ae99c10b32b8d45882eea0",
-    "semantic_hash": "215f78fae8ae99c10b32b8d45882eea0"
+    "mtime": 1786700781.756595,
+    "ast_hash": "fb1e4fdc8b043dab18e1f55d95823539",
+    "semantic_hash": ""
   },
   "electron/services/currency.service.ts": {
-    "mtime": 1784460848.1825652,
+    "mtime": 1786699141.414285,
     "ast_hash": "d12898aca126cd3139320c64bb07a7f6",
     "semantic_hash": "d12898aca126cd3139320c64bb07a7f6"
   },
   "electron/services/dispositif-type.service.ts": {
-    "mtime": 1784460848.1825652,
+    "mtime": 1786699141.414285,
     "ast_hash": "e1d9baab2a13200896a786213bb2ab52",
     "semantic_hash": "e1d9baab2a13200896a786213bb2ab52"
   },
   "electron/services/dispositifs.service.ts": {
-    "mtime": 1784460848.1825652,
+    "mtime": 1786700781.756595,
     "ast_hash": "550b664b8ef3af3438e8f753b194dc9a",
     "semantic_hash": "550b664b8ef3af3438e8f753b194dc9a"
   },
   "electron/services/email/email-config.service.ts": {
-    "mtime": 1784460848.1825652,
-    "ast_hash": "f7846ebf44cc19f7a26203684f3cec56",
-    "semantic_hash": "f7846ebf44cc19f7a26203684f3cec56"
+    "mtime": 1786700781.756595,
+    "ast_hash": "1cc1f0bda309047593256d53a75d18a6",
+    "semantic_hash": ""
   },
   "electron/services/email/email.service.ts": {
-    "mtime": 1784460848.1825652,
+    "mtime": 1786699141.414285,
     "ast_hash": "591f46b66208470b041c831944e7beec",
     "semantic_hash": "591f46b66208470b041c831944e7beec"
   },
   "electron/services/encounter.service.ts": {
-    "mtime": 1784460848.1825652,
-    "ast_hash": "72d76fbfbe7399f5d9fd9d8d5d9fb4aa",
-    "semantic_hash": "72d76fbfbe7399f5d9fd9d8d5d9fb4aa"
+    "mtime": 1786700781.756595,
+    "ast_hash": "11848afc9b81f95d29fcf91ba1e53a3c",
+    "semantic_hash": ""
   },
   "electron/services/exam-request.service.ts": {
-    "mtime": 1784460848.1825652,
-    "ast_hash": "3396793fcee2ce24f4d093b7623bed44",
-    "semantic_hash": "3396793fcee2ce24f4d093b7623bed44"
+    "mtime": 1786700781.756595,
+    "ast_hash": "320c69ba32e9db1c897431ede2113f03",
+    "semantic_hash": ""
   },
   "electron/services/exam-type.service.ts": {
-    "mtime": 1784460848.1825652,
-    "ast_hash": "b26d30b7953cfb7196af5fbcc3b64946",
-    "semantic_hash": "b26d30b7953cfb7196af5fbcc3b64946"
+    "mtime": 1786700781.756595,
+    "ast_hash": "c765a8b8031304b105ced19b538df2e6",
+    "semantic_hash": ""
   },
   "electron/services/export.service.ts": {
-    "mtime": 1784460848.2285683,
-    "ast_hash": "40a33da23271cd250407bde354acdce0",
-    "semantic_hash": "40a33da23271cd250407bde354acdce0"
+    "mtime": 1786704634.0803018,
+    "ast_hash": "a0bc83c0733857f53b3991d92b9b1d77",
+    "semantic_hash": ""
   },
   "electron/services/fonction.service.ts": {
-    "mtime": 1784460848.1835654,
+    "mtime": 1786699141.414285,
     "ast_hash": "747f7851568b898e366f174adb157293",
     "semantic_hash": "747f7851568b898e366f174adb157293"
   },
   "electron/services/form-draft.service.ts": {
-    "mtime": 1784460848.1835654,
-    "ast_hash": "8e566402399bac9293aa3a39890a1c45",
-    "semantic_hash": "8e566402399bac9293aa3a39890a1c45"
+    "mtime": 1786700781.756595,
+    "ast_hash": "4ff2fafbefe6d2509b292c265a823b6d",
+    "semantic_hash": ""
   },
   "electron/services/insurance.service.ts": {
-    "mtime": 1784460848.1835654,
-    "ast_hash": "1c7a584b426363037bb55532976ee09e",
-    "semantic_hash": "1c7a584b426363037bb55532976ee09e"
+    "mtime": 1786700781.756595,
+    "ast_hash": "c1dc85f369392cc573668ea3ff15cbd9",
+    "semantic_hash": ""
   },
   "electron/services/invoice.service.ts": {
-    "mtime": 1784460848.1835654,
-    "ast_hash": "121cfc2ecc2de516fed0cdc9564b52ab",
-    "semantic_hash": "121cfc2ecc2de516fed0cdc9564b52ab"
+    "mtime": 1786700781.7575948,
+    "ast_hash": "53fd61fb89ae40268a64419add92e655",
+    "semantic_hash": ""
   },
   "electron/services/localite.service.ts": {
-    "mtime": 1784460848.1835654,
-    "ast_hash": "be9a676f530812d4cb92e76319ecc6b6",
-    "semantic_hash": "be9a676f530812d4cb92e76319ecc6b6"
+    "mtime": 1786700781.7575948,
+    "ast_hash": "eb5cfc56961735e9578bdb6bd8ab26de",
+    "semantic_hash": ""
   },
   "electron/services/logo.service.ts": {
-    "mtime": 1784460848.1835654,
+    "mtime": 1786699141.415285,
     "ast_hash": "93e6953007af00e6ba950dc7c45843af",
     "semantic_hash": "93e6953007af00e6ba950dc7c45843af"
   },
   "electron/services/medical-act.service.ts": {
-    "mtime": 1784460848.1835654,
+    "mtime": 1786699141.415285,
     "ast_hash": "fe5f816fea031aa570924fd800e791be",
     "semantic_hash": "fe5f816fea031aa570924fd800e791be"
   },
   "electron/services/medical-unit.service.ts": {
-    "mtime": 1784460848.1835654,
-    "ast_hash": "fd9105918c29248bbb2883ecca7f2f5a",
-    "semantic_hash": "fd9105918c29248bbb2883ecca7f2f5a"
+    "mtime": 1786700781.7575948,
+    "ast_hash": "ce4d91e513bf2ca81c8d1a26d2e2ea04",
+    "semantic_hash": ""
   },
   "electron/services/migration.service.ts": {
-    "mtime": 1784460848.1835654,
-    "ast_hash": "1c230e923a94b2d4fc0068898a998bf0",
-    "semantic_hash": "1c230e923a94b2d4fc0068898a998bf0"
+    "mtime": 1786700781.7575948,
+    "ast_hash": "9f826cde16df570e975f6fe79b082505",
+    "semantic_hash": ""
   },
   "electron/services/patient-acte.service.ts": {
-    "mtime": 1784460848.1835654,
+    "mtime": 1786700781.7575948,
     "ast_hash": "9661b4331871347eaf8407147ce7918d",
     "semantic_hash": "9661b4331871347eaf8407147ce7918d"
   },
   "electron/services/patient-attachment.service.ts": {
-    "mtime": 1784460848.1835654,
-    "ast_hash": "349e6383b347c3ddb57b1dc15aada320",
-    "semantic_hash": "349e6383b347c3ddb57b1dc15aada320"
+    "mtime": 1786700781.7575948,
+    "ast_hash": "bec8a08cd7a1198422e75ed454a277ae",
+    "semantic_hash": ""
   },
   "electron/services/patient-export.service.ts": {
-    "mtime": 1784460848.1835654,
+    "mtime": 1786699141.415285,
     "ast_hash": "2c6356c9f77874e633e05dd68b370b10",
     "semantic_hash": "2c6356c9f77874e633e05dd68b370b10"
   },
   "electron/services/patient.service.ts": {
-    "mtime": 1784460848.1835654,
-    "ast_hash": "54a8a4ad4b4e0f62af5b64d481264b4f",
-    "semantic_hash": "54a8a4ad4b4e0f62af5b64d481264b4f"
+    "mtime": 1786700781.7575948,
+    "ast_hash": "46fb9f5662e953cf268636cbb05dd516",
+    "semantic_hash": ""
   },
   "electron/services/plan-soins.service.ts": {
-    "mtime": 1784460848.1835654,
-    "ast_hash": "10f3b2815121ec76833ea1a9c75aa5ef",
-    "semantic_hash": "10f3b2815121ec76833ea1a9c75aa5ef"
+    "mtime": 1786700781.7575948,
+    "ast_hash": "5389385eda36a9e66566d8d7b6f5c746",
+    "semantic_hash": ""
   },
   "electron/services/prescription.service.ts": {
-    "mtime": 1784460848.1845653,
-    "ast_hash": "c59af375b095ea0cd6c3406e7978e162",
-    "semantic_hash": "c59af375b095ea0cd6c3406e7978e162"
+    "mtime": 1786700781.7575948,
+    "ast_hash": "77e67598c32b884682b03d935f8d30bf",
+    "semantic_hash": ""
   },
   "electron/services/seed.service.ts": {
-    "mtime": 1784460848.1845653,
+    "mtime": 1786699141.416285,
     "ast_hash": "ba63557f5a83ec1a4785bbee5dd7232b",
     "semantic_hash": "ba63557f5a83ec1a4785bbee5dd7232b"
   },
   "electron/services/service.service.ts": {
-    "mtime": 1784460848.1845653,
-    "ast_hash": "9fea607be5bd827c23abe262c4cbcd96",
-    "semantic_hash": "9fea607be5bd827c23abe262c4cbcd96"
+    "mtime": 1786700781.7575948,
+    "ast_hash": "5ee8fa9edab9e800661c7fb7fc376831",
+    "semantic_hash": ""
   },
   "electron/services/settings.service.ts": {
-    "mtime": 1784460848.1845653,
-    "ast_hash": "b6eeb2685778270d8e8333fd7815ed52",
-    "semantic_hash": "b6eeb2685778270d8e8333fd7815ed52"
+    "mtime": 1786700781.7575948,
+    "ast_hash": "0852e7fe8199c2bd05f2de39e0923d19",
+    "semantic_hash": ""
   },
   "electron/services/site.service.ts": {
-    "mtime": 1784460848.1845653,
-    "ast_hash": "2c277e66fc5ba310a328d754ede58b66",
-    "semantic_hash": "2c277e66fc5ba310a328d754ede58b66"
+    "mtime": 1786700781.7575948,
+    "ast_hash": "37c277d6fc05bbf657717187d571b5b5",
+    "semantic_hash": ""
   },
   "electron/services/specialty.service.ts": {
-    "mtime": 1784460848.1845653,
-    "ast_hash": "8e76b7e37a4937275d65f99306057997",
-    "semantic_hash": "8e76b7e37a4937275d65f99306057997"
+    "mtime": 1786700781.7585948,
+    "ast_hash": "225ab38bd5bc5b5561fa4b3443c0ae35",
+    "semantic_hash": ""
   },
   "electron/services/stay.service.ts": {
-    "mtime": 1784460848.1845653,
-    "ast_hash": "6263cbfbe0961c6d7c36b84a714b680d",
-    "semantic_hash": "6263cbfbe0961c6d7c36b84a714b680d"
+    "mtime": 1786700781.7585948,
+    "ast_hash": "94da056ecc44640fc9ccf0d2436391b4",
+    "semantic_hash": ""
   },
   "electron/services/system.service.ts": {
-    "mtime": 1784460848.1845653,
+    "mtime": 1786699141.416285,
     "ast_hash": "d15a32e2ca947e383498b4e984b4fca6",
     "semantic_hash": "d15a32e2ca947e383498b4e984b4fca6"
   },
   "electron/services/trusted-person.service.ts": {
-    "mtime": 1784460848.1845653,
+    "mtime": 1786699141.416285,
     "ast_hash": "b225f5df2e0d0c6e4b2754357cb4efeb",
     "semantic_hash": "b225f5df2e0d0c6e4b2754357cb4efeb"
   },
   "electron/services/user-attachment.service.ts": {
-    "mtime": 1784460848.1845653,
-    "ast_hash": "b11b837c7f5241db8e39d446e8ee445a",
-    "semantic_hash": "b11b837c7f5241db8e39d446e8ee445a"
+    "mtime": 1786700781.7585948,
+    "ast_hash": "dafbc104f8e4f78490c8147f14923fda",
+    "semantic_hash": ""
   },
   "electron/services/utils/fk-validator.ts": {
-    "mtime": 1784460848.1845653,
-    "ast_hash": "5fa5a4a4cdea4617b97825595b335fbd",
-    "semantic_hash": "5fa5a4a4cdea4617b97825595b335fbd"
+    "mtime": 1786700781.7585948,
+    "ast_hash": "0b73deee7e5d265151528b8f980e4b95",
+    "semantic_hash": ""
   },
   "electron/services/vital-signs-item.service.ts": {
-    "mtime": 1784460848.1845653,
-    "ast_hash": "32840f4eec1596aa7a797bd70c86394c",
-    "semantic_hash": "32840f4eec1596aa7a797bd70c86394c"
+    "mtime": 1786700781.7585948,
+    "ast_hash": "e9d4545c7191631dc8ca46febed7caa0",
+    "semantic_hash": ""
   },
   "electron/services/vital-signs.service.ts": {
-    "mtime": 1784460848.1845653,
-    "ast_hash": "11e3801ba2cebeffa16a1b4b9367792d",
-    "semantic_hash": "11e3801ba2cebeffa16a1b4b9367792d"
+    "mtime": 1786700781.7585948,
+    "ast_hash": "e809219ee7895048bdf333325d89efd0",
+    "semantic_hash": ""
   },
   "electron/services/voie-type.service.ts": {
-    "mtime": 1784460848.1845653,
+    "mtime": 1786699141.416285,
     "ast_hash": "a3b1b7773856af1776ab2373f973a2bd",
     "semantic_hash": "a3b1b7773856af1776ab2373f973a2bd"
   },
   "electron/sqlite-data-source.ts": {
-    "mtime": 1784460848.1845653,
+    "mtime": 1786699141.416285,
     "ast_hash": "31693ffdf9a0265ec96ecb7e6baada1b",
     "semantic_hash": "31693ffdf9a0265ec96ecb7e6baada1b"
   },
   "electron/utils/create-handler.ts": {
-    "mtime": 1784460848.1845653,
+    "mtime": 1786699141.417285,
     "ast_hash": "ef0ed337fc8caba12901e5a528ec0cd4",
     "semantic_hash": "ef0ed337fc8caba12901e5a528ec0cd4"
   },
   "electron/utils/date-utils.ts": {
-    "mtime": 1784460848.1845653,
+    "mtime": 1786699141.417285,
     "ast_hash": "db44d9d472611447db5608a8408e7abf",
     "semantic_hash": "db44d9d472611447db5608a8408e7abf"
   },
   "electron/utils/file-utils.ts": {
-    "mtime": 1784460848.1845653,
+    "mtime": 1786699141.417285,
     "ast_hash": "9e6e8ec4235cf656182b4b22698e120a",
     "semantic_hash": "9e6e8ec4235cf656182b4b22698e120a"
   },
   "electron/utils/role-labels.ts": {
-    "mtime": 1784460848.1845653,
+    "mtime": 1786699141.417285,
     "ast_hash": "6f9cdfa39fc0b0261ab09071bf5a04e7",
     "semantic_hash": "6f9cdfa39fc0b0261ab09071bf5a04e7"
   },
   "electron/utils/service-controller-utils.ts": {
-    "mtime": 1784460848.1845653,
+    "mtime": 1786699141.417285,
     "ast_hash": "084ca67ac23239e0d41f39849716a86d",
     "semantic_hash": "084ca67ac23239e0d41f39849716a86d"
   },
   "package.json": {
-    "mtime": 1784460848.1885657,
-    "ast_hash": "4d7a54e5e267ab04c206300b9d31bb7b",
-    "semantic_hash": "4d7a54e5e267ab04c206300b9d31bb7b"
+    "mtime": 1786705531.1037545,
+    "ast_hash": "3c2c95dddcbe7c830151be9c7e30dfa9",
+    "semantic_hash": ""
   },
   "src/App.vue": {
-    "mtime": 1784460848.1915658,
-    "ast_hash": "2b5eb65603328f9e8ed345d07b49ee81",
-    "semantic_hash": "2b5eb65603328f9e8ed345d07b49ee81"
-  },
-  "src/api/__tests__/client.spec.ts": {
-    "mtime": 1784460848.1915658,
-    "ast_hash": "a0edfea92d130991136a74c428b7a4cd",
-    "semantic_hash": "a0edfea92d130991136a74c428b7a4cd"
-  },
-  "src/api/client.ts": {
-    "mtime": 1784460848.1915658,
-    "ast_hash": "ff43c8fdf9c3e7015fc3817904a22707",
-    "semantic_hash": "ff43c8fdf9c3e7015fc3817904a22707"
-  },
-  "src/api/dispositifs.ts": {
-    "mtime": 1784460848.1915658,
-    "ast_hash": "3bd888f90c855640864a67968c56ecec",
-    "semantic_hash": "3bd888f90c855640864a67968c56ecec"
-  },
-  "src/api/planSoins.ts": {
-    "mtime": 1784460848.1915658,
-    "ast_hash": "89c448a7a80aa93bb07a08caa36f2913",
-    "semantic_hash": "89c448a7a80aa93bb07a08caa36f2913"
-  },
-  "src/api/prescription.ts": {
-    "mtime": 1784460848.2325687,
-    "ast_hash": "df655c9021dc75e3c9d63d2adf58ef2c",
-    "semantic_hash": "df655c9021dc75e3c9d63d2adf58ef2c"
-  },
-  "src/api/vitalSigns.ts": {
-    "mtime": 1784460848.1915658,
-    "ast_hash": "b2bbdfd948217f43e1d8ad1e45c9ce5c",
-    "semantic_hash": "b2bbdfd948217f43e1d8ad1e45c9ce5c"
+    "mtime": 1786700781.7705948,
+    "ast_hash": "0683f98f9b84c522c67b518f515d37d9",
+    "semantic_hash": ""
   },
   "src/auto-imports.d.ts": {
-    "mtime": 1784460848.193566,
+    "mtime": 1786706278.6840527,
     "ast_hash": "6b8d14708b6271bee11c056cc10bca38",
     "semantic_hash": "6b8d14708b6271bee11c056cc10bca38"
   },
   "src/components.d.ts": {
-    "mtime": 1784460848.194566,
-    "ast_hash": "42e4ef4682b13d1801b20f2ba978dbf9",
-    "semantic_hash": "42e4ef4682b13d1801b20f2ba978dbf9"
+    "mtime": 1786700781.7705948,
+    "ast_hash": "60c9a320d0c69f6c42815674b38b75c4",
+    "semantic_hash": ""
   },
   "src/components/auth/ForgotPasswordForm.vue": {
-    "mtime": 1784460848.194566,
-    "ast_hash": "be03c36e32a726da1590ef178d47a4dd",
-    "semantic_hash": "be03c36e32a726da1590ef178d47a4dd"
+    "mtime": 1786700781.7705948,
+    "ast_hash": "5f30be4f67060f4279cb5731ec1748d7",
+    "semantic_hash": ""
   },
   "src/components/auth/LoginForm.vue": {
-    "mtime": 1784460848.194566,
+    "mtime": 1786699141.429331,
     "ast_hash": "1ed222e49c430a94e0e1009e6bbdcc42",
     "semantic_hash": "1ed222e49c430a94e0e1009e6bbdcc42"
   },
   "src/components/auth/ValidatePasswordForm.vue": {
-    "mtime": 1784460848.194566,
+    "mtime": 1786699141.429331,
     "ast_hash": "42384330f058cbe9f03f7671bf32b728",
     "semantic_hash": "42384330f058cbe9f03f7671bf32b728"
   },
   "src/components/common/SectionHeader.vue": {
-    "mtime": 1784460848.194566,
+    "mtime": 1786699141.429331,
     "ast_hash": "3c32b7991917ae1b9d33a8d1db10c0c9",
     "semantic_hash": "3c32b7991917ae1b9d33a8d1db10c0c9"
   },
   "src/components/facturation/InvoiceFormDialog.vue": {
-    "mtime": 1784460848.194566,
+    "mtime": 1786700781.7705948,
     "ast_hash": "915de5255e8902c5a42fe259d81ca14f",
     "semantic_hash": "915de5255e8902c5a42fe259d81ca14f"
   },
   "src/components/facturation/InvoicePaymentDialog.vue": {
-    "mtime": 1784460848.194566,
+    "mtime": 1786699141.4299982,
     "ast_hash": "dfcd409d03be13a932297b9e590baecd",
     "semantic_hash": "dfcd409d03be13a932297b9e590baecd"
   },
   "src/components/facturation/InvoicePrintView.vue": {
-    "mtime": 1784460848.194566,
+    "mtime": 1786699141.4301512,
     "ast_hash": "5d000d09201c40043e8b059b312b0edd",
     "semantic_hash": "5d000d09201c40043e8b059b312b0edd"
   },
   "src/components/layout/SideBar.vue": {
-    "mtime": 1784460848.194566,
-    "ast_hash": "e35291c5f8bab29cea784be22765b587",
-    "semantic_hash": "e35291c5f8bab29cea784be22765b587"
+    "mtime": 1786700781.7705948,
+    "ast_hash": "7bff18a17fc1d16050500038df0de907",
+    "semantic_hash": ""
   },
   "src/components/layout/TopBar.vue": {
-    "mtime": 1784460848.194566,
-    "ast_hash": "1fc6deabb564c8fc15822b318aa700a3",
-    "semantic_hash": "1fc6deabb564c8fc15822b318aa700a3"
+    "mtime": 1786700781.7715948,
+    "ast_hash": "a3eb5da8ee6b13c1742faf5558f33786",
+    "semantic_hash": ""
   },
   "src/components/layout/__tests__/SideBar.spec.ts": {
-    "mtime": 1784460848.1955662,
-    "ast_hash": "9e4482e6213ba8b338bcdb56721dfae4",
-    "semantic_hash": "9e4482e6213ba8b338bcdb56721dfae4"
+    "mtime": 1786700781.7715948,
+    "ast_hash": "fac9c0d8607a457a29f14dbdb0439c91",
+    "semantic_hash": ""
   },
   "src/components/patients/AdmissionTab.vue": {
-    "mtime": 1784460848.1955662,
-    "ast_hash": "360fe7ae65fa2c124e1bdb2a9335dd5b",
-    "semantic_hash": "360fe7ae65fa2c124e1bdb2a9335dd5b"
+    "mtime": 1786700781.7715948,
+    "ast_hash": "735444e6b9821b31c125c08e1c024673",
+    "semantic_hash": ""
   },
   "src/components/patients/AppointmentFormDialog.vue": {
-    "mtime": 1784460848.196566,
-    "ast_hash": "0128793b368b879ebac2a7811e9e9bd6",
-    "semantic_hash": "0128793b368b879ebac2a7811e9e9bd6"
+    "mtime": 1786700781.7715948,
+    "ast_hash": "5c27e04fdcffea94edd109c5b17a8e0e",
+    "semantic_hash": ""
   },
   "src/components/patients/BilanInitialTab.vue": {
-    "mtime": 1784460848.196566,
-    "ast_hash": "b99b7a0d35fe6c3a426d4210a3c30caf",
-    "semantic_hash": "b99b7a0d35fe6c3a426d4210a3c30caf"
+    "mtime": 1786700872.7975678,
+    "ast_hash": "52dd9517b5b571462c56dc9625c8330c",
+    "semantic_hash": ""
   },
   "src/components/patients/ClinicalDocForm.vue": {
-    "mtime": 1784460848.196566,
-    "ast_hash": "8e07d393dfc3e4b6e4259cbf97e1aeaf",
-    "semantic_hash": "8e07d393dfc3e4b6e4259cbf97e1aeaf"
+    "mtime": 1786700781.7731102,
+    "ast_hash": "02d79c2d01eefa1d42093b128994987a",
+    "semantic_hash": ""
   },
   "src/components/patients/ClinicalDocList.vue": {
-    "mtime": 1784460848.196566,
-    "ast_hash": "75ed55f850b3d0dde23b7e3b713225a1",
-    "semantic_hash": "75ed55f850b3d0dde23b7e3b713225a1"
+    "mtime": 1786700781.7731102,
+    "ast_hash": "d52b4ef630435ca9124baad02762fc6b",
+    "semantic_hash": ""
   },
   "src/components/patients/ContactFormDialog.vue": {
-    "mtime": 1784460848.196566,
-    "ast_hash": "1f835ad6ba868ffca932903ceb864f60",
-    "semantic_hash": "1f835ad6ba868ffca932903ceb864f60"
+    "mtime": 1786700781.773278,
+    "ast_hash": "d147e3c2670a1fe78ed4660ac30ceeab",
+    "semantic_hash": ""
   },
   "src/components/patients/ContactFormSelector.vue": {
-    "mtime": 1784460848.1975663,
-    "ast_hash": "6abd004c751717e95fe79818303962c6",
-    "semantic_hash": "6abd004c751717e95fe79818303962c6"
+    "mtime": 1786700781.7733698,
+    "ast_hash": "b7831b5e77af880b5c2054526e43a3dd",
+    "semantic_hash": ""
   },
   "src/components/patients/CrhDiabeteForm.vue": {
-    "mtime": 1784460848.1975663,
-    "ast_hash": "73ccc3a49daa5a0d404a3dc9ec001c17",
-    "semantic_hash": "73ccc3a49daa5a0d404a3dc9ec001c17"
+    "mtime": 1786700781.7734632,
+    "ast_hash": "a215c33deed61b3a3198679fc253a73c",
+    "semantic_hash": ""
   },
   "src/components/patients/DynamicFormRenderer.vue": {
-    "mtime": 1784460848.1975663,
+    "mtime": 1786699141.431888,
     "ast_hash": "140a2cfc20eadc4334584b7ecd8d3ab4",
     "semantic_hash": "140a2cfc20eadc4334584b7ecd8d3ab4"
   },
   "src/components/patients/EncountersTable.vue": {
-    "mtime": 1784460848.1975663,
-    "ast_hash": "e89605391552cf3a5933c03a16591ff6",
-    "semantic_hash": "e89605391552cf3a5933c03a16591ff6"
+    "mtime": 1786700781.7735946,
+    "ast_hash": "efe1387081eb7cb0880c1ac43df86a65",
+    "semantic_hash": ""
   },
   "src/components/patients/EvolutionMedicaleTab.vue": {
-    "mtime": 1784460848.1975663,
-    "ast_hash": "b20686242056791611c44bc0935425e2",
-    "semantic_hash": "b20686242056791611c44bc0935425e2"
+    "mtime": 1786700878.8395655,
+    "ast_hash": "3302d4e00fd59b24a99ab4b7d09eeb29",
+    "semantic_hash": ""
   },
   "src/components/patients/ExamensComplementairesTab.vue": {
-    "mtime": 1784460848.1975663,
-    "ast_hash": "3fee1e423bbec9f5ccc8ce18874e978c",
-    "semantic_hash": "3fee1e423bbec9f5ccc8ce18874e978c"
+    "mtime": 1786700781.7737722,
+    "ast_hash": "8643d0cee8703e3e6a0b8a6f560271b4",
+    "semantic_hash": ""
   },
   "src/components/patients/FicheDiabeteTab.vue": {
-    "mtime": 1784460848.1975663,
-    "ast_hash": "d182aca4b29ba02b3ebbf77fb5726fda",
-    "semantic_hash": "d182aca4b29ba02b3ebbf77fb5726fda"
+    "mtime": 1786700781.7738662,
+    "ast_hash": "7202afddc1da011209dad81d9a787ed3",
+    "semantic_hash": ""
   },
   "src/components/patients/ModeVieAtcdTab.vue": {
-    "mtime": 1784460848.1985664,
-    "ast_hash": "d0049aad14e66c87b292876060d81f4f",
-    "semantic_hash": "d0049aad14e66c87b292876060d81f4f"
+    "mtime": 1786700781.7739797,
+    "ast_hash": "44ba121e2ffc1ef7d33276e3ed4e01da",
+    "semantic_hash": ""
   },
   "src/components/patients/PatientAttachmentsSection.vue": {
-    "mtime": 1784460848.1985664,
+    "mtime": 1786699141.4337606,
     "ast_hash": "224dbd4c4769fa50898418b27a659981",
     "semantic_hash": "224dbd4c4769fa50898418b27a659981"
   },
   "src/components/patients/PatientBanner.vue": {
-    "mtime": 1784460848.1985664,
-    "ast_hash": "9f2171498ede4b17bcafdd6e57fbd22f",
-    "semantic_hash": "9f2171498ede4b17bcafdd6e57fbd22f"
+    "mtime": 1786700781.7740896,
+    "ast_hash": "97a1024825fb0e4134b2e9e601e1c0a0",
+    "semantic_hash": ""
   },
   "src/components/patients/PatientClinicalDocs.vue": {
-    "mtime": 1784460848.1985664,
-    "ast_hash": "01e2b50fe6499941fe71c241e20374d0",
-    "semantic_hash": "01e2b50fe6499941fe71c241e20374d0"
+    "mtime": 1786700781.7742033,
+    "ast_hash": "d5d65ed85ff7e4e3af1ae377a6c3cc30",
+    "semantic_hash": ""
   },
   "src/components/patients/PatientContextToolbar.vue": {
-    "mtime": 1784460848.1985664,
+    "mtime": 1786699141.4340389,
     "ast_hash": "f30a872d34b21619c20af765a64a285c",
     "semantic_hash": "f30a872d34b21619c20af765a64a285c"
   },
   "src/components/patients/PatientFormDialog.vue": {
-    "mtime": 1784460848.1985664,
-    "ast_hash": "57e0add3c7aedcf3bf03d8990380411e",
-    "semantic_hash": "57e0add3c7aedcf3bf03d8990380411e"
+    "mtime": 1786700781.774321,
+    "ast_hash": "9d68839d63839e13713276a30c0743e7",
+    "semantic_hash": ""
   },
   "src/components/patients/SortieTab.vue": {
-    "mtime": 1784460848.1985664,
-    "ast_hash": "9e28283b74f84af05e228428cee9b702",
-    "semantic_hash": "9e28283b74f84af05e228428cee9b702"
+    "mtime": 1786700781.7744715,
+    "ast_hash": "513771a5cfb2ef3719fb550207c2aa19",
+    "semantic_hash": ""
   },
   "src/components/patients/StayTimeline.vue": {
-    "mtime": 1784460848.1985664,
-    "ast_hash": "446e331d66ef63f6d71a47d6b9ba16f3",
-    "semantic_hash": "446e331d66ef63f6d71a47d6b9ba16f3"
+    "mtime": 1786700781.7745454,
+    "ast_hash": "1127fc89b4cb8aa2ca5a7a2092a1341d",
+    "semantic_hash": ""
   },
   "src/components/patients/__tests__/ClinicalDocForm.spec.ts": {
-    "mtime": 1784460848.1985664,
-    "ast_hash": "405195f0494314448c65fb7e759757f7",
-    "semantic_hash": "405195f0494314448c65fb7e759757f7"
+    "mtime": 1786700781.7745872,
+    "ast_hash": "3d1e74a6ec3682fdcabeb8067e20be7c",
+    "semantic_hash": ""
   },
   "src/components/patients/__tests__/ClinicalDocList.spec.ts": {
-    "mtime": 1784460848.1995664,
-    "ast_hash": "3ea793ef9879817d425bd9c4f679fb09",
-    "semantic_hash": "3ea793ef9879817d425bd9c4f679fb09"
+    "mtime": 1786700781.7747006,
+    "ast_hash": "55bfe3379ea22ef13abb05302bed71c8",
+    "semantic_hash": ""
   },
   "src/components/patients/__tests__/DynamicFormRenderer.spec.ts": {
-    "mtime": 1784460848.1995664,
-    "ast_hash": "99e712e125a3c31781a9be08507c5dd4",
-    "semantic_hash": "99e712e125a3c31781a9be08507c5dd4"
+    "mtime": 1786700781.7747848,
+    "ast_hash": "ac98d214a5cf6c86493c54e455536fa0",
+    "semantic_hash": ""
   },
   "src/components/patients/__tests__/PatientFormDialog.spec.ts": {
-    "mtime": 1784460848.1995664,
-    "ast_hash": "0a24050347c87c2a96d1c01224c8f7c4",
-    "semantic_hash": "0a24050347c87c2a96d1c01224c8f7c4"
+    "mtime": 1786700781.7749074,
+    "ast_hash": "80a8d83ec95f1a1c2afd2b204a0008a6",
+    "semantic_hash": ""
   },
   "src/components/settings/AttachmentTypesTab.vue": {
-    "mtime": 1784460848.1995664,
+    "mtime": 1786699141.4371667,
     "ast_hash": "3392d86d266b864a245494f5f1bfa882",
     "semantic_hash": "3392d86d266b864a245494f5f1bfa882"
   },
   "src/components/settings/CareUnitFormDialog.vue": {
-    "mtime": 1784460848.1995664,
+    "mtime": 1786699141.4371667,
     "ast_hash": "30967e1a9c7d73fe0ac71b2a2dcf5319",
     "semantic_hash": "30967e1a9c7d73fe0ac71b2a2dcf5319"
   },
   "src/components/settings/CareUnitsTab.vue": {
-    "mtime": 1784460848.1995664,
+    "mtime": 1786699141.4371667,
     "ast_hash": "6b5000758eba0cb59805356dd932d599",
     "semantic_hash": "6b5000758eba0cb59805356dd932d599"
   },
   "src/components/settings/CatalogueActesTab.vue": {
-    "mtime": 1784460848.1995664,
+    "mtime": 1786699141.4374993,
     "ast_hash": "621b0152fbf94992b7c6da94d89d4684",
     "semantic_hash": "621b0152fbf94992b7c6da94d89d4684"
   },
   "src/components/settings/ChampLocalisationFormDialog.vue": {
-    "mtime": 1784460848.2005665,
+    "mtime": 1786699141.4376338,
     "ast_hash": "0eec08902bae9e87b90cfbe884ba02f8",
     "semantic_hash": "0eec08902bae9e87b90cfbe884ba02f8"
   },
-  "src/components/settings/ContactCategoryFormDialog.vue": {
-    "mtime": 1784460848.2005665,
-    "ast_hash": "7c167a81c80becdde5fa040c7ad0f565",
-    "semantic_hash": "7c167a81c80becdde5fa040c7ad0f565"
-  },
-  "src/components/settings/ContactCategoryTab.vue": {
-    "mtime": 1784460848.2005665,
-    "ast_hash": "166a17a00f09430fafd1bd7fec993376",
-    "semantic_hash": "166a17a00f09430fafd1bd7fec993376"
-  },
   "src/components/settings/ContactOriginFormDialog.vue": {
-    "mtime": 1784460848.2005665,
+    "mtime": 1786699141.4376338,
     "ast_hash": "4bbd8ea6d9ff729cf4a8b3921d117786",
     "semantic_hash": "4bbd8ea6d9ff729cf4a8b3921d117786"
   },
   "src/components/settings/ContactOriginTab.vue": {
-    "mtime": 1784460848.2005665,
+    "mtime": 1786699141.437778,
     "ast_hash": "c7950aeb56cbea5b6f953f40ad892f42",
     "semantic_hash": "c7950aeb56cbea5b6f953f40ad892f42"
   },
   "src/components/settings/CurrencyFormDialog.vue": {
-    "mtime": 1784460848.2005665,
+    "mtime": 1786699141.4378848,
     "ast_hash": "ba0267c0fdd18d95d5412c12534435bf",
     "semantic_hash": "ba0267c0fdd18d95d5412c12534435bf"
   },
   "src/components/settings/DatabaseStatsCard.vue": {
-    "mtime": 1784460848.2005665,
+    "mtime": 1786699141.4378848,
     "ast_hash": "6eb5c8db01bc9313db522e03ab694172",
     "semantic_hash": "6eb5c8db01bc9313db522e03ab694172"
   },
   "src/components/settings/DispositifTypeTab.vue": {
-    "mtime": 1784460848.2005665,
+    "mtime": 1786699141.4380147,
     "ast_hash": "06fb943aa9cec8d2cdc162e5beb9125e",
     "semantic_hash": "06fb943aa9cec8d2cdc162e5beb9125e"
   },
   "src/components/settings/DispositifVoieTab.vue": {
-    "mtime": 1784460848.2005665,
+    "mtime": 1786699141.4381227,
     "ast_hash": "75a26cbb7e7c4784e5e20c7fb6689a98",
     "semantic_hash": "75a26cbb7e7c4784e5e20c7fb6689a98"
   },
   "src/components/settings/DocumentTypeFormDialog.vue": {
-    "mtime": 1784460848.2005665,
-    "ast_hash": "71c3e991991f995b94087f53277d3a84",
-    "semantic_hash": "71c3e991991f995b94087f53277d3a84"
+    "mtime": 1786700781.7749074,
+    "ast_hash": "1bb466a79ecf287d9044ce5b111c339f",
+    "semantic_hash": ""
   },
   "src/components/settings/DossierClinicTab.vue": {
-    "mtime": 1784460848.2005665,
+    "mtime": 1786699141.438319,
     "ast_hash": "2c420569af975bc4bad489f26bd10dba",
     "semantic_hash": "2c420569af975bc4bad489f26bd10dba"
   },
   "src/components/settings/ExamTypeTab.vue": {
-    "mtime": 1784460848.2005665,
-    "ast_hash": "778a7beda76fe79edff9c4d062038e67",
-    "semantic_hash": "778a7beda76fe79edff9c4d062038e67"
+    "mtime": 1786700781.7749074,
+    "ast_hash": "cc7a9cf74f833077f7d86416d7157cf1",
+    "semantic_hash": ""
   },
   "src/components/settings/FonctionFormDialog.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4387777,
     "ast_hash": "05849d6c91f3514d8a3792610d6c311a",
     "semantic_hash": "05849d6c91f3514d8a3792610d6c311a"
   },
   "src/components/settings/FonctionsTab.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.438836,
     "ast_hash": "50c7e5b757dba792dfdda9c98f07b6b3",
     "semantic_hash": "50c7e5b757dba792dfdda9c98f07b6b3"
   },
   "src/components/settings/IdentityTab.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4389277,
     "ast_hash": "c9464f63eef4ef9e48dfe9efe1bd7e76",
     "semantic_hash": "c9464f63eef4ef9e48dfe9efe1bd7e76"
   },
   "src/components/settings/InsuranceFormDialog.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4389277,
     "ast_hash": "3c6d8e44d1245b9f42ac4ce0f91ab158",
     "semantic_hash": "3c6d8e44d1245b9f42ac4ce0f91ab158"
   },
   "src/components/settings/InsuranceTab.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4391344,
     "ast_hash": "86bead2b1b3cf98ceb62969834fbce2b",
     "semantic_hash": "86bead2b1b3cf98ceb62969834fbce2b"
   },
   "src/components/settings/LocalitesTab.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4391344,
     "ast_hash": "25eba571a49d5b541c2625b30ccf8f89",
     "semantic_hash": "25eba571a49d5b541c2625b30ccf8f89"
   },
   "src/components/settings/MedicalActFormDialog.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4393847,
     "ast_hash": "58bfe3394956f59ce3efd6b79853fa3e",
     "semantic_hash": "58bfe3394956f59ce3efd6b79853fa3e"
   },
   "src/components/settings/MedicalUnitFormDialog.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4394746,
     "ast_hash": "2b9627510a5672ea80d5d2c0b34f5784",
     "semantic_hash": "2b9627510a5672ea80d5d2c0b34f5784"
   },
   "src/components/settings/MedicalUnitsTab.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4395416,
     "ast_hash": "303bbd01ea7fc8037221f34b1883531b",
     "semantic_hash": "303bbd01ea7fc8037221f34b1883531b"
   },
   "src/components/settings/PriceHistoryTimeline.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4396594,
     "ast_hash": "4647074cffda577d56a6ebe34ba4556d",
     "semantic_hash": "4647074cffda577d56a6ebe34ba4556d"
   },
   "src/components/settings/ServiceColorPicker.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4398038,
     "ast_hash": "db16fab0a6459ac9be79f9479ab40737",
     "semantic_hash": "db16fab0a6459ac9be79f9479ab40737"
   },
   "src/components/settings/ServiceFormDialog.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4398038,
     "ast_hash": "c54d5adea0456bb71feda6ea34ae2a6a",
     "semantic_hash": "c54d5adea0456bb71feda6ea34ae2a6a"
   },
   "src/components/settings/ServicesTab.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4399416,
     "ast_hash": "4c2c1d9097d3aad6c7bd371f9caadae4",
     "semantic_hash": "4c2c1d9097d3aad6c7bd371f9caadae4"
   },
   "src/components/settings/SiteFormDialog.vue": {
-    "mtime": 1784460848.2015665,
+    "mtime": 1786699141.4400957,
     "ast_hash": "1c4c8c834c7476933491fc40f01f842c",
     "semantic_hash": "1c4c8c834c7476933491fc40f01f842c"
   },
   "src/components/settings/SitesTab.vue": {
-    "mtime": 1784460848.2025666,
+    "mtime": 1786699141.4401808,
     "ast_hash": "286798ebea93cc501f27471132eb61e4",
     "semantic_hash": "286798ebea93cc501f27471132eb61e4"
   },
   "src/components/settings/SpecialtiesTab.vue": {
-    "mtime": 1784460848.2025666,
+    "mtime": 1786699141.4402838,
     "ast_hash": "73bb361470061fe260a027d85b81b091",
     "semantic_hash": "73bb361470061fe260a027d85b81b091"
   },
   "src/components/settings/SpecialtyFormDialog.vue": {
-    "mtime": 1784460848.2025666,
+    "mtime": 1786699141.4402838,
     "ast_hash": "5c424966d4dd66d67bc64f81953510af",
     "semantic_hash": "5c424966d4dd66d67bc64f81953510af"
   },
   "src/components/settings/StockageFormDialog.vue": {
-    "mtime": 1784460848.2025666,
+    "mtime": 1786699141.4402838,
     "ast_hash": "1f8a58355b20b19bc5b8d20a2d134a13",
     "semantic_hash": "1f8a58355b20b19bc5b8d20a2d134a13"
   },
   "src/components/settings/StockageTab.vue": {
-    "mtime": 1784460848.2025666,
+    "mtime": 1786699141.440285,
     "ast_hash": "3ecef7ffd1a330a0cf707089f22459bc",
     "semantic_hash": "3ecef7ffd1a330a0cf707089f22459bc"
   },
   "src/components/settings/SystemInfoRow.vue": {
-    "mtime": 1784460848.2025666,
+    "mtime": 1786699141.440285,
     "ast_hash": "84b50aec779f1ac5aefff471a8591034",
     "semantic_hash": "84b50aec779f1ac5aefff471a8591034"
   },
   "src/components/settings/SystemTab.vue": {
-    "mtime": 1784460848.2025666,
-    "ast_hash": "2ec2c3c09a4fe91fb1958b9c7ac7129f",
-    "semantic_hash": "2ec2c3c09a4fe91fb1958b9c7ac7129f"
+    "mtime": 1786700781.7749074,
+    "ast_hash": "4a8aefeddf478ebb74b2267ca89439e7",
+    "semantic_hash": ""
   },
   "src/components/settings/TarifsTab.vue": {
-    "mtime": 1784460848.2025666,
+    "mtime": 1786699141.440285,
     "ast_hash": "f708ab515d4a0b2cc9837de5277fd402",
     "semantic_hash": "f708ab515d4a0b2cc9837de5277fd402"
   },
   "src/components/settings/VoieTypeTab.vue": {
-    "mtime": 1784460848.2025666,
+    "mtime": 1786699141.440285,
     "ast_hash": "50f96692b425a07b3fb9415d3364f012",
     "semantic_hash": "50f96692b425a07b3fb9415d3364f012"
   },
   "src/components/settings/__tests__/CareUnitFormDialog.spec.ts": {
-    "mtime": 1784460848.2025666,
+    "mtime": 1786699141.440285,
     "ast_hash": "be506f9b502d4743b09a5a4cf1422d61",
     "semantic_hash": "be506f9b502d4743b09a5a4cf1422d61"
   },
   "src/components/settings/__tests__/CareUnitsTab.spec.ts": {
-    "mtime": 1784460848.2025666,
+    "mtime": 1786699141.440285,
     "ast_hash": "865fd99b13ca8f05a582a7ac3a490a4d",
     "semantic_hash": "865fd99b13ca8f05a582a7ac3a490a4d"
   },
-  "src/components/settings/__tests__/CategoryFormDialog.spec.ts": {
-    "mtime": 1784460848.2035666,
-    "ast_hash": "98f5c545685599bfe0404a431fa2157b",
-    "semantic_hash": "98f5c545685599bfe0404a431fa2157b"
-  },
   "src/components/settings/__tests__/ChampLocalisationFormDialog.spec.ts": {
-    "mtime": 1784460848.2035666,
+    "mtime": 1786699141.440285,
     "ast_hash": "f1d9c875f77884703d6e91a1c44bae5a",
     "semantic_hash": "f1d9c875f77884703d6e91a1c44bae5a"
   },
-  "src/components/settings/__tests__/ContactCategoryTab.spec.ts": {
-    "mtime": 1784460848.2035666,
-    "ast_hash": "2aa6ecde31e515d45c5c07496cbbe97f",
-    "semantic_hash": "2aa6ecde31e515d45c5c07496cbbe97f"
-  },
   "src/components/settings/__tests__/ContactOriginTab.spec.ts": {
-    "mtime": 1784460848.2035666,
+    "mtime": 1786699141.440285,
     "ast_hash": "a7419080d6a32da13dc5db9d86e931d6",
     "semantic_hash": "a7419080d6a32da13dc5db9d86e931d6"
   },
   "src/components/settings/__tests__/InsuranceTab.spec.ts": {
-    "mtime": 1784460848.2035666,
+    "mtime": 1786699141.441285,
     "ast_hash": "25f17b3cdefdb24eeac154f45ece7e79",
     "semantic_hash": "25f17b3cdefdb24eeac154f45ece7e79"
   },
   "src/components/settings/__tests__/LocalitesTab.spec.ts": {
-    "mtime": 1784460848.2035666,
+    "mtime": 1786699141.441285,
     "ast_hash": "f5e57b2a3487eee1563656fab287c626",
     "semantic_hash": "f5e57b2a3487eee1563656fab287c626"
   },
   "src/components/settings/__tests__/StockageFormDialog.spec.ts": {
-    "mtime": 1784460848.2035666,
+    "mtime": 1786699141.441285,
     "ast_hash": "8cf9149f9c89f58ad5f2126facebeac1",
     "semantic_hash": "8cf9149f9c89f58ad5f2126facebeac1"
   },
   "src/components/settings/__tests__/StockageTab.spec.ts": {
-    "mtime": 1784460848.2035666,
+    "mtime": 1786699141.441285,
     "ast_hash": "93456d33d93adeaa688821910dfc34fe",
     "semantic_hash": "93456d33d93adeaa688821910dfc34fe"
   },
   "src/components/settings/__tests__/TarifsTab.spec.ts": {
-    "mtime": 1784460848.2035666,
+    "mtime": 1786699141.441285,
     "ast_hash": "c331acd5e805b5ebd0cc9260f67cf2ae",
     "semantic_hash": "c331acd5e805b5ebd0cc9260f67cf2ae"
   },
   "src/components/update-notifier.vue": {
-    "mtime": 1784460848.2035666,
+    "mtime": 1786699141.442285,
     "ast_hash": "ec47efd458f73deface94cdfe226bb90",
     "semantic_hash": "ec47efd458f73deface94cdfe226bb90"
   },
   "src/components/users/UserAttachmentsSection.vue": {
-    "mtime": 1784460848.2045667,
+    "mtime": 1786699141.4429138,
     "ast_hash": "7522666b56170193c880d7b9330b8d17",
     "semantic_hash": "7522666b56170193c880d7b9330b8d17"
   },
   "src/components/users/UserDetailDialog.vue": {
-    "mtime": 1784460848.2045667,
-    "ast_hash": "813eaeff9f061fd39be7d0399eb22bab",
-    "semantic_hash": "813eaeff9f061fd39be7d0399eb22bab"
+    "mtime": 1786700781.7758913,
+    "ast_hash": "d2f2863a795b53b34ade7e16139ebe3f",
+    "semantic_hash": ""
   },
   "src/components/users/UserForm.vue": {
-    "mtime": 1784460848.2045667,
+    "mtime": 1786699141.4432507,
     "ast_hash": "913d8a6c26b318ae10dabc2e2c1dd7cf",
     "semantic_hash": "913d8a6c26b318ae10dabc2e2c1dd7cf"
   },
   "src/components/users/UserPrintDialog.vue": {
-    "mtime": 1784460848.2045667,
-    "ast_hash": "f1a74e723a36b3b14956d4fc250fe4d9",
-    "semantic_hash": "f1a74e723a36b3b14956d4fc250fe4d9"
+    "mtime": 1786700781.7759604,
+    "ast_hash": "6cd8567c4ad9068ed7125ae91e83488e",
+    "semantic_hash": ""
   },
   "src/components/utils/AppLoader.ts": {
-    "mtime": 1784460848.2045667,
+    "mtime": 1786699141.4438336,
     "ast_hash": "575d481e3a56ca97d3622b9400f42947",
     "semantic_hash": "575d481e3a56ca97d3622b9400f42947"
   },
   "src/composables/__tests__/useCareUnits.test.ts": {
-    "mtime": 1784460848.2045667,
+    "mtime": 1786699141.4438336,
     "ast_hash": "f0fc75eb1eb69087b2b0c4644c2723df",
     "semantic_hash": "f0fc75eb1eb69087b2b0c4644c2723df"
   },
   "src/composables/__tests__/useClinicalDocuments.test.ts": {
-    "mtime": 1784460848.2045667,
-    "ast_hash": "d3e58ea313b8938f3990da5ad871b203",
-    "semantic_hash": "d3e58ea313b8938f3990da5ad871b203"
+    "mtime": 1786700781.775989,
+    "ast_hash": "0ea2030ab615242829a9a3844045a771",
+    "semantic_hash": ""
   },
   "src/composables/__tests__/useConfigTarifs.test.ts": {
-    "mtime": 1784460848.2045667,
+    "mtime": 1786699141.4443643,
     "ast_hash": "a76d0dc2132ae19b86fdd1e0e47e66f8",
     "semantic_hash": "a76d0dc2132ae19b86fdd1e0e47e66f8"
   },
   "src/composables/__tests__/useConservateurs.test.ts": {
-    "mtime": 1784460848.2045667,
+    "mtime": 1786699141.4446287,
     "ast_hash": "4c4d061b424b3e4e1c9a5485cff85096",
     "semantic_hash": "4c4d061b424b3e4e1c9a5485cff85096"
   },
-  "src/composables/__tests__/useContactCategories.test.ts": {
-    "mtime": 1784460848.205567,
-    "ast_hash": "a4cd0280af09f976a5436b5776845587",
-    "semantic_hash": "a4cd0280af09f976a5436b5776845587"
-  },
   "src/composables/__tests__/useContactFormLogic.test.ts": {
-    "mtime": 1784460848.205567,
-    "ast_hash": "c1cd5b6311124bb363ac608c27dced84",
-    "semantic_hash": "c1cd5b6311124bb363ac608c27dced84"
+    "mtime": 1786700781.7760863,
+    "ast_hash": "fe5565ecd6cad6d319bfd122b18045c8",
+    "semantic_hash": ""
   },
   "src/composables/__tests__/useContactOrigins.test.ts": {
-    "mtime": 1784460848.205567,
+    "mtime": 1786699141.4450226,
     "ast_hash": "c64175cef9425e9fcb209b8744e55094",
     "semantic_hash": "c64175cef9425e9fcb209b8744e55094"
   },
   "src/composables/__tests__/useEncounters.test.ts": {
-    "mtime": 1784460848.205567,
-    "ast_hash": "a7316dba4aa5869e2a2f5758b9354485",
-    "semantic_hash": "a7316dba4aa5869e2a2f5758b9354485"
+    "mtime": 1786700781.7761421,
+    "ast_hash": "1d916ffda41766c04143c92ed190f202",
+    "semantic_hash": ""
   },
   "src/composables/__tests__/useExamRequests.test.ts": {
-    "mtime": 1784460848.205567,
+    "mtime": 1786699141.4458432,
     "ast_hash": "dc262de0d823770f18515bcb91e2e58f",
     "semantic_hash": "dc262de0d823770f18515bcb91e2e58f"
   },
   "src/composables/__tests__/useExamTypes.test.ts": {
-    "mtime": 1784460848.205567,
+    "mtime": 1786699141.4460626,
     "ast_hash": "c8713df321b74148c5bbaf9a33c4b64c",
     "semantic_hash": "c8713df321b74148c5bbaf9a33c4b64c"
   },
   "src/composables/__tests__/useInsurances.test.ts": {
-    "mtime": 1784460848.205567,
+    "mtime": 1786699141.446264,
     "ast_hash": "e6aeed1dc424afe521dd4cccb41b7fe1",
     "semantic_hash": "e6aeed1dc424afe521dd4cccb41b7fe1"
   },
   "src/composables/__tests__/useOpenPatients.test.ts": {
-    "mtime": 1784460848.205567,
+    "mtime": 1786699141.4465263,
     "ast_hash": "1c98f4af11931e06c98981c53eeaf088",
     "semantic_hash": "1c98f4af11931e06c98981c53eeaf088"
   },
   "src/composables/__tests__/usePatientActes.test.ts": {
-    "mtime": 1784460848.205567,
+    "mtime": 1786699141.4470246,
     "ast_hash": "648555b623ea9ae4876beac839af780b",
     "semantic_hash": "648555b623ea9ae4876beac839af780b"
   },
   "src/composables/__tests__/usePlanSoins.test.ts": {
-    "mtime": 1784460848.2065668,
-    "ast_hash": "29d3cd9b95b917ba2fae40ad27ec1000",
-    "semantic_hash": "29d3cd9b95b917ba2fae40ad27ec1000"
+    "mtime": 1786700781.7762072,
+    "ast_hash": "7c0d6de3f5890172a7e9d23c0574ab01",
+    "semantic_hash": ""
   },
   "src/composables/__tests__/useScoresCliniques.test.ts": {
-    "mtime": 1784460848.2065668,
+    "mtime": 1786699141.4475844,
     "ast_hash": "a887097081966849ecf28cd1a61fc89d",
     "semantic_hash": "a887097081966849ecf28cd1a61fc89d"
   },
   "src/composables/__tests__/useStays.test.ts": {
-    "mtime": 1784460848.2065668,
-    "ast_hash": "e9f367bad791089a2ddc3fb77a0d37f8",
-    "semantic_hash": "e9f367bad791089a2ddc3fb77a0d37f8"
+    "mtime": 1786700781.7762818,
+    "ast_hash": "738aa58f862fadbb3c5a8e2a8d71c325",
+    "semantic_hash": ""
   },
   "src/composables/__tests__/useVitalSigns.test.ts": {
-    "mtime": 1784460848.2065668,
-    "ast_hash": "0ef64c6d759acaeffeb6205ba26c4c50",
-    "semantic_hash": "0ef64c6d759acaeffeb6205ba26c4c50"
+    "mtime": 1786700781.7763333,
+    "ast_hash": "b97eda518aedbf9e28885223b828d6d4",
+    "semantic_hash": ""
   },
   "src/composables/useAppointments.ts": {
-    "mtime": 1784460848.2065668,
+    "mtime": 1786699141.448519,
     "ast_hash": "d8fab671f6b099b1743bfdd69a00fdc3",
     "semantic_hash": "d8fab671f6b099b1743bfdd69a00fdc3"
   },
   "src/composables/useAuth.ts": {
-    "mtime": 1784460848.2065668,
+    "mtime": 1786699141.4487062,
     "ast_hash": "94aa8e744303baac556e5338cb349d7a",
     "semantic_hash": "94aa8e744303baac556e5338cb349d7a"
   },
   "src/composables/useCareUnits.ts": {
-    "mtime": 1784460848.2065668,
-    "ast_hash": "7ccbd659e4b2e2f0e78af498115b8ba3",
-    "semantic_hash": "7ccbd659e4b2e2f0e78af498115b8ba3"
+    "mtime": 1786700781.7763333,
+    "ast_hash": "fe09241b5b573377546f02e82c88c3ea",
+    "semantic_hash": ""
   },
   "src/composables/useClinicalDocuments.ts": {
-    "mtime": 1784460848.2065668,
-    "ast_hash": "9e97fcbc7ffdad6ccafc41582b891f66",
-    "semantic_hash": "9e97fcbc7ffdad6ccafc41582b891f66"
+    "mtime": 1786700781.7765355,
+    "ast_hash": "47994586fb097a907c628d84d87d6c6f",
+    "semantic_hash": ""
   },
   "src/composables/useConfigTarifs.ts": {
-    "mtime": 1784460848.2065668,
-    "ast_hash": "12ad91ea5e235ecb3ee25b0e01306084",
-    "semantic_hash": "12ad91ea5e235ecb3ee25b0e01306084"
+    "mtime": 1786700781.7766016,
+    "ast_hash": "0ca91504572c0460027503b2cee37b0d",
+    "semantic_hash": ""
   },
   "src/composables/useConservateurs.ts": {
-    "mtime": 1784460848.2065668,
-    "ast_hash": "0bf503dd2b1005782d7a10659d9e2061",
-    "semantic_hash": "0bf503dd2b1005782d7a10659d9e2061"
-  },
-  "src/composables/useContactCategories.ts": {
-    "mtime": 1784460848.2065668,
-    "ast_hash": "3b970c4fd37d4ecef28b885950a9223c",
-    "semantic_hash": "3b970c4fd37d4ecef28b885950a9223c"
+    "mtime": 1786700781.7766547,
+    "ast_hash": "31737ebc9034602b5c4b8496b2033268",
+    "semantic_hash": ""
   },
   "src/composables/useContactFormLogic.ts": {
-    "mtime": 1784460848.2065668,
-    "ast_hash": "e102f73e45b22e2f4b88e95f308f40fb",
-    "semantic_hash": "e102f73e45b22e2f4b88e95f308f40fb"
+    "mtime": 1786700781.7767096,
+    "ast_hash": "4d2ce43fa44a00b76d46f7ae21b02fcc",
+    "semantic_hash": ""
   },
   "src/composables/useContactOrigins.ts": {
-    "mtime": 1784460848.207567,
-    "ast_hash": "dc84e04633f44da60bf4fdc6269a6a50",
-    "semantic_hash": "dc84e04633f44da60bf4fdc6269a6a50"
+    "mtime": 1786700781.7767546,
+    "ast_hash": "3e6e53d288e311be5424d1861e063607",
+    "semantic_hash": ""
   },
   "src/composables/useCrhDiabeteCalculations.ts": {
-    "mtime": 1784460848.207567,
-    "ast_hash": "7bd027b5edd5682d176af12c516fef58",
-    "semantic_hash": "7bd027b5edd5682d176af12c516fef58"
+    "mtime": 1786700781.7768133,
+    "ast_hash": "dc383d1e486b7e0951f099fd6ef1cc01",
+    "semantic_hash": ""
   },
   "src/composables/useCurrencies.ts": {
-    "mtime": 1784460848.207567,
-    "ast_hash": "52214bdf14aea3d75c729665f600354c",
-    "semantic_hash": "52214bdf14aea3d75c729665f600354c"
+    "mtime": 1786700781.7768643,
+    "ast_hash": "c01cd598c35804a2ecf61675196a0f25",
+    "semantic_hash": ""
   },
   "src/composables/useDispositifTypes.ts": {
-    "mtime": 1784460848.207567,
-    "ast_hash": "7ed7bb35d1b7ae64c551798b579b4cff",
-    "semantic_hash": "7ed7bb35d1b7ae64c551798b579b4cff"
+    "mtime": 1786700781.7769141,
+    "ast_hash": "1f69b9c1c5b6734302f3e76409e344c2",
+    "semantic_hash": ""
   },
   "src/composables/useEmailConfig.ts": {
-    "mtime": 1784460848.207567,
-    "ast_hash": "364ccc21e72d30d38ad98815414fb555",
-    "semantic_hash": "364ccc21e72d30d38ad98815414fb555"
+    "mtime": 1786700781.7769558,
+    "ast_hash": "5001c16a21eb296224c083e094d4ed24",
+    "semantic_hash": ""
   },
   "src/composables/useEncounters.ts": {
-    "mtime": 1784460848.207567,
-    "ast_hash": "616325c0472c4a2bee8b7fd11884e8e3",
-    "semantic_hash": "616325c0472c4a2bee8b7fd11884e8e3"
+    "mtime": 1786700781.777003,
+    "ast_hash": "d6ff58bd5e39d03008d148b1bb51bdca",
+    "semantic_hash": ""
   },
   "src/composables/useExamRequests.ts": {
-    "mtime": 1784460848.207567,
+    "mtime": 1786700781.777051,
     "ast_hash": "1bea41985bb635f571c2d4d94f29e4ab",
     "semantic_hash": "1bea41985bb635f571c2d4d94f29e4ab"
   },
   "src/composables/useExamTypes.ts": {
-    "mtime": 1784460848.207567,
-    "ast_hash": "eb54ba1f48adc5215d461f5d30edd3be",
-    "semantic_hash": "eb54ba1f48adc5215d461f5d30edd3be"
+    "mtime": 1786700781.777102,
+    "ast_hash": "15542cd1ef763dbcc78539b00b9fb22d",
+    "semantic_hash": ""
   },
   "src/composables/useExport.ts": {
-    "mtime": 1784460848.207567,
-    "ast_hash": "82fb5ef7b603ebb4057c81dcda6074d4",
-    "semantic_hash": "82fb5ef7b603ebb4057c81dcda6074d4"
+    "mtime": 1786700781.777151,
+    "ast_hash": "588d343a23f67ca305797981e6162598",
+    "semantic_hash": ""
   },
   "src/composables/useFonctions.ts": {
-    "mtime": 1784460848.207567,
-    "ast_hash": "2cdc5960beceade375fd2fdd973cb822",
-    "semantic_hash": "2cdc5960beceade375fd2fdd973cb822"
+    "mtime": 1786700781.7771928,
+    "ast_hash": "b5b56b9dd3ba734d31f9a8633189c4a1",
+    "semantic_hash": ""
   },
   "src/composables/useHospitalInfo.ts": {
-    "mtime": 1784460848.207567,
-    "ast_hash": "db1cd3880fc0a5be9a529bc01455cc58",
-    "semantic_hash": "db1cd3880fc0a5be9a529bc01455cc58"
+    "mtime": 1786700781.7771928,
+    "ast_hash": "d512dc33f9590a394758f86b839252db",
+    "semantic_hash": ""
   },
   "src/composables/useInsurances.ts": {
-    "mtime": 1784460848.207567,
+    "mtime": 1786699141.4518967,
     "ast_hash": "6a4f84d55f6a26532448e840e1792b5a",
     "semantic_hash": "6a4f84d55f6a26532448e840e1792b5a"
   },
   "src/composables/useInvoices.ts": {
-    "mtime": 1784460848.207567,
+    "mtime": 1786699141.4518967,
     "ast_hash": "b62357b6125225b44fa6644cce02b640",
     "semantic_hash": "b62357b6125225b44fa6644cce02b640"
   },
   "src/composables/useLocalites.ts": {
-    "mtime": 1784460848.208567,
-    "ast_hash": "55af44b75006d736978e3dfbd572a57d",
-    "semantic_hash": "55af44b75006d736978e3dfbd572a57d"
+    "mtime": 1786700781.7772787,
+    "ast_hash": "d6827172d9d23fb11b88a1e7a91d84fd",
+    "semantic_hash": ""
   },
   "src/composables/useLogo.ts": {
-    "mtime": 1784460848.208567,
-    "ast_hash": "60111dde05b24431a0275a94c2a7f21a",
-    "semantic_hash": "60111dde05b24431a0275a94c2a7f21a"
+    "mtime": 1786700781.7772787,
+    "ast_hash": "eab724c9c95cd19e68682b01a3709a03",
+    "semantic_hash": ""
   },
   "src/composables/useMedicalActs.ts": {
-    "mtime": 1784460848.208567,
-    "ast_hash": "3059348d60562399909b4ff25f6a82b7",
-    "semantic_hash": "3059348d60562399909b4ff25f6a82b7"
+    "mtime": 1786700781.7772787,
+    "ast_hash": "af52f5a620aede6ba77e23107c774910",
+    "semantic_hash": ""
   },
   "src/composables/useMedicalServices.ts": {
-    "mtime": 1784460848.208567,
+    "mtime": 1786699141.452285,
     "ast_hash": "57744473c3eb4b13fa14c96218eb74fc",
     "semantic_hash": "57744473c3eb4b13fa14c96218eb74fc"
   },
   "src/composables/useMedicalStaff.ts": {
-    "mtime": 1784460848.208567,
-    "ast_hash": "ca1869d3a8ecfbf09d62fdbda55342bc",
-    "semantic_hash": "ca1869d3a8ecfbf09d62fdbda55342bc"
+    "mtime": 1786700781.7772787,
+    "ast_hash": "7abe4a8e5a350aa62cacad830393971c",
+    "semantic_hash": ""
   },
   "src/composables/useMedicalUnits.ts": {
-    "mtime": 1784460848.208567,
-    "ast_hash": "79cbd2bf62ef219e0ee4b5e124cf52e1",
-    "semantic_hash": "79cbd2bf62ef219e0ee4b5e124cf52e1"
+    "mtime": 1786700781.7772787,
+    "ast_hash": "7000b738e5bf5b3c33768459ac9b77f2",
+    "semantic_hash": ""
   },
   "src/composables/useOpenPatients.ts": {
-    "mtime": 1784460848.208567,
+    "mtime": 1786700781.7772787,
     "ast_hash": "1ca17d41e8c53ae2229a5d6e5c24b05f",
     "semantic_hash": "1ca17d41e8c53ae2229a5d6e5c24b05f"
   },
   "src/composables/usePatientActes.ts": {
-    "mtime": 1784460848.208567,
-    "ast_hash": "d35af3c96a8e3297fd1d86480678f9d0",
-    "semantic_hash": "d35af3c96a8e3297fd1d86480678f9d0"
+    "mtime": 1786700781.7772787,
+    "ast_hash": "fff927d9cebd480d8b684e098c8ab48b",
+    "semantic_hash": ""
   },
   "src/composables/usePatientAttachments.ts": {
-    "mtime": 1784460848.208567,
+    "mtime": 1786699141.4536037,
     "ast_hash": "b961f7aa5ba3a8cdff04e3c357c3c23f",
     "semantic_hash": "b961f7aa5ba3a8cdff04e3c357c3c23f"
   },
   "src/composables/usePatientContext.ts": {
-    "mtime": 1784460848.208567,
-    "ast_hash": "551fd5e71c163970d56cb05b7b4e7e9c",
-    "semantic_hash": "551fd5e71c163970d56cb05b7b4e7e9c"
+    "mtime": 1786700781.7772787,
+    "ast_hash": "6d315b3808e7a0e5ff5c84130cde84c2",
+    "semantic_hash": ""
   },
   "src/composables/usePatientData.ts": {
-    "mtime": 1784460848.208567,
+    "mtime": 1786699141.4539099,
     "ast_hash": "4cac01ba0f4263eea7fff2cd78df282a",
     "semantic_hash": "4cac01ba0f4263eea7fff2cd78df282a"
   },
   "src/composables/usePatientFormDraft.ts": {
-    "mtime": 1784460848.208567,
-    "ast_hash": "f4800e910c436029bd6c4f9c1b6b3467",
-    "semantic_hash": "f4800e910c436029bd6c4f9c1b6b3467"
+    "mtime": 1786700781.7772787,
+    "ast_hash": "ef1ebddd2f079a4700195fb452eacaaa",
+    "semantic_hash": ""
   },
   "src/composables/usePatients.ts": {
-    "mtime": 1784460848.208567,
-    "ast_hash": "7fa4bcc08d15f9b065f5c67740b37762",
-    "semantic_hash": "7fa4bcc08d15f9b065f5c67740b37762"
+    "mtime": 1786700781.7772787,
+    "ast_hash": "a17d8ed1f16d108605a2015c7f55193d",
+    "semantic_hash": ""
   },
   "src/composables/usePlanSoins.ts": {
-    "mtime": 1784460848.208567,
-    "ast_hash": "ca1cfe10dd6233912ce280e9cac7823d",
-    "semantic_hash": "ca1cfe10dd6233912ce280e9cac7823d"
+    "mtime": 1786700781.7772787,
+    "ast_hash": "4e2fcf105e58723ce50caa5c1030fa40",
+    "semantic_hash": ""
   },
   "src/composables/useScoresCliniques.ts": {
-    "mtime": 1784460848.208567,
+    "mtime": 1786699141.4546154,
     "ast_hash": "0ea278e37a842ce44ae95100bb9b90ff",
     "semantic_hash": "0ea278e37a842ce44ae95100bb9b90ff"
   },
   "src/composables/useSidebar.ts": {
-    "mtime": 1784460848.208567,
+    "mtime": 1786699141.4547238,
     "ast_hash": "3941d24baff0113c2566394831468bd2",
     "semantic_hash": "3941d24baff0113c2566394831468bd2"
   },
   "src/composables/useSites.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "1b5d6225adc11eb9f85f2112eb3c7d8c",
-    "semantic_hash": "1b5d6225adc11eb9f85f2112eb3c7d8c"
+    "mtime": 1786700781.7777267,
+    "ast_hash": "0f05bde1c29549d1398f92906341453d",
+    "semantic_hash": ""
   },
   "src/composables/useSpecialties.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "765c8149c6bc3a016256fdeda5727905",
-    "semantic_hash": "765c8149c6bc3a016256fdeda5727905"
+    "mtime": 1786700781.7777565,
+    "ast_hash": "cd734bdad8b2d6b5304f321ac67620c8",
+    "semantic_hash": ""
   },
   "src/composables/useStays.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "2eafad08fea0f54d42b8b4e53aa3f6e7",
-    "semantic_hash": "2eafad08fea0f54d42b8b4e53aa3f6e7"
+    "mtime": 1786700781.7778015,
+    "ast_hash": "3c1cb94c7afc6345a6590ac24152a893",
+    "semantic_hash": ""
   },
   "src/composables/useSystemInfo.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "459ef6629733b83334f2e81cd6410c00",
-    "semantic_hash": "459ef6629733b83334f2e81cd6410c00"
+    "mtime": 1786700781.7778316,
+    "ast_hash": "83157c462901528f8ab18845c35b6ed5",
+    "semantic_hash": ""
   },
   "src/composables/useTrustedPerson.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "e5804f13b4b3da3530abe8da4551ac1d",
-    "semantic_hash": "e5804f13b4b3da3530abe8da4551ac1d"
+    "mtime": 1786700781.7778797,
+    "ast_hash": "41bc9f9e20d878ad03891a0de1a58161",
+    "semantic_hash": ""
   },
   "src/composables/useUserAttachments.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "aacecdf64cb8e9187f1706a51f6b02ae",
-    "semantic_hash": "aacecdf64cb8e9187f1706a51f6b02ae"
+    "mtime": 1786700781.777918,
+    "ast_hash": "7a4e208292fb21d5a77d5cde81726316",
+    "semantic_hash": ""
   },
   "src/composables/useUsers.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "0653821f351940ebfec5a38253849d16",
-    "semantic_hash": "0653821f351940ebfec5a38253849d16"
+    "mtime": 1786700781.7779477,
+    "ast_hash": "1ba4c940d86da06b8a6a5a366fdfa954",
+    "semantic_hash": ""
   },
   "src/composables/useVitalSigns.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "b63cde00764a4d5c9df3666e3f514cd7",
-    "semantic_hash": "b63cde00764a4d5c9df3666e3f514cd7"
+    "mtime": 1786700781.7780035,
+    "ast_hash": "5c22b7fe926ddd4e38c7fe8c0055b8c6",
+    "semantic_hash": ""
   },
   "src/composables/useVoieTypes.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "91750da5d5ace520215a9c80959c38df",
-    "semantic_hash": "91750da5d5ace520215a9c80959c38df"
+    "mtime": 1786700781.7780645,
+    "ast_hash": "847731e6ecf6b32abf7db85ae77891d0",
+    "semantic_hash": ""
   },
   "src/currency/currency.config.ts": {
-    "mtime": 1784460848.209567,
+    "mtime": 1786699141.455285,
     "ast_hash": "82f50ccd33bb4d06840ddac6728e914f",
     "semantic_hash": "82f50ccd33bb4d06840ddac6728e914f"
   },
   "src/currency/useCurrency.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "87091fddf1a0959ac7904e811d965a1f",
-    "semantic_hash": "87091fddf1a0959ac7904e811d965a1f"
+    "mtime": 1786700781.7780645,
+    "ast_hash": "cde2e0df6b634f82b017e4f91fdca959",
+    "semantic_hash": ""
   },
   "src/main.ts": {
-    "mtime": 1784460848.209567,
+    "mtime": 1786699141.456285,
     "ast_hash": "ee8fac64d6420130bdf88a642ab43b7e",
     "semantic_hash": "ee8fac64d6420130bdf88a642ab43b7e"
   },
   "src/router/index.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "4f9e1a187108b55911a44e3f4a763342",
-    "semantic_hash": "4f9e1a187108b55911a44e3f4a763342"
-  },
-  "src/stores/patientFormStore.ts": {
-    "mtime": 1784460848.209567,
-    "ast_hash": "062444d48063593eaecffe217b15b554",
-    "semantic_hash": "062444d48063593eaecffe217b15b554"
+    "mtime": 1786700781.7780645,
+    "ast_hash": "d54c213336d8f9463813c7b8d174c68c",
+    "semantic_hash": ""
   },
   "src/test-setup.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.456285,
     "ast_hash": "5e3103273ff4681ba9f00faeeb977120",
     "semantic_hash": "5e3103273ff4681ba9f00faeeb977120"
   },
   "src/types.d.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.456285,
     "ast_hash": "fe2578b9700968d9e1bc85b6e1a75c1b",
     "semantic_hash": "fe2578b9700968d9e1bc85b6e1a75c1b"
   },
   "src/types/crh-diabete.ts": {
-    "mtime": 1784460848.2105672,
-    "ast_hash": "d887711ad8b5ac532d087c6c288fbd7e",
-    "semantic_hash": "d887711ad8b5ac532d087c6c288fbd7e"
+    "mtime": 1786700781.7783372,
+    "ast_hash": "e1fc8358843cb52c5b92ba1e44e501eb",
+    "semantic_hash": ""
   },
   "src/types/soins.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.457285,
     "ast_hash": "dd722307df8f3652ebfbf2712f19480d",
     "semantic_hash": "dd722307df8f3652ebfbf2712f19480d"
   },
   "src/utils/__tests__/age.spec.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.457285,
     "ast_hash": "639c6f7b11bd5d915886df4b341e9d96",
     "semantic_hash": "639c6f7b11bd5d915886df4b341e9d96"
   },
   "src/utils/age.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.4583087,
     "ast_hash": "dcfe0e87ebe74bf62e757d83542108b7",
     "semantic_hash": "dcfe0e87ebe74bf62e757d83542108b7"
   },
   "src/utils/civilite.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.4585176,
     "ast_hash": "d1afd2eef0482a7a4cd91148301b0c97",
     "semantic_hash": "d1afd2eef0482a7a4cd91148301b0c97"
   },
   "src/utils/constants.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.4585176,
     "ast_hash": "f04d304c5c5005ab0b8441fe540bf9a6",
     "semantic_hash": "f04d304c5c5005ab0b8441fe540bf9a6"
   },
   "src/utils/date.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.4586968,
     "ast_hash": "cf1b4a9db776c66c9ae5126b70bfadb5",
     "semantic_hash": "cf1b4a9db776c66c9ae5126b70bfadb5"
   },
   "src/utils/display-name.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.458925,
     "ast_hash": "b0e7bca798ef88ee5777bf0c5e82f0da",
     "semantic_hash": "b0e7bca798ef88ee5777bf0c5e82f0da"
   },
   "src/utils/ipc.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.4591513,
     "ast_hash": "3f36cef47cab079abdffb21cc4cf8da3",
     "semantic_hash": "3f36cef47cab079abdffb21cc4cf8da3"
   },
   "src/utils/nip-generator.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.4592586,
     "ast_hash": "5bd816042d149a3f8cce023517bf3888",
     "semantic_hash": "5bd816042d149a3f8cce023517bf3888"
   },
   "src/utils/phone-codes.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.459285,
     "ast_hash": "365e8224657283e5ee17b8798e06e2d4",
     "semantic_hash": "365e8224657283e5ee17b8798e06e2d4"
   },
   "src/utils/role-labels.ts": {
-    "mtime": 1784460848.2105672,
+    "mtime": 1786699141.459285,
     "ast_hash": "c626383c6d395436b289ef9cc79e3d13",
     "semantic_hash": "c626383c6d395436b289ef9cc79e3d13"
   },
   "src/views/ConfigurationClinicView.vue": {
-    "mtime": 1784460848.2105672,
-    "ast_hash": "14430ab71bb13733c0e727b5bde066c0",
-    "semantic_hash": "14430ab71bb13733c0e727b5bde066c0"
+    "mtime": 1786700781.7783372,
+    "ast_hash": "e903af0df9d3522231183890c3abb137",
+    "semantic_hash": ""
   },
   "src/views/DashboardHome.vue": {
-    "mtime": 1784460848.2105672,
-    "ast_hash": "3972c19d742dc722f13ef3488f2a9aaf",
-    "semantic_hash": "3972c19d742dc722f13ef3488f2a9aaf"
+    "mtime": 1786700781.7783995,
+    "ast_hash": "bf3f8f8656e4a110a86a2e7ea5ac4a2e",
+    "semantic_hash": ""
   },
   "src/views/DashboardLayout.vue": {
-    "mtime": 1784460848.2115672,
+    "mtime": 1786699141.459285,
     "ast_hash": "d3883af3dbc082c3c2f2f296c57b3845",
     "semantic_hash": "d3883af3dbc082c3c2f2f296c57b3845"
   },
   "src/views/FacturationView.vue": {
-    "mtime": 1784460848.2115672,
-    "ast_hash": "6a94377b5210f1410e9858ff09f33d55",
-    "semantic_hash": "6a94377b5210f1410e9858ff09f33d55"
+    "mtime": 1786700781.7785034,
+    "ast_hash": "2bce4b6d0eb7a78601520cc89839fb1a",
+    "semantic_hash": ""
   },
   "src/views/ForgotPasswordView.vue": {
-    "mtime": 1784460848.2115672,
+    "mtime": 1786699141.460285,
     "ast_hash": "ce5ee7e90d5721b240654f7002575e18",
     "semantic_hash": "ce5ee7e90d5721b240654f7002575e18"
   },
   "src/views/LoginView.vue": {
-    "mtime": 1784460848.2115672,
+    "mtime": 1786699141.460285,
     "ast_hash": "23a40bbbbb3f77d23d3647a69b6fa5e2",
     "semantic_hash": "23a40bbbbb3f77d23d3647a69b6fa5e2"
   },
   "src/views/PatientFacturesView.vue": {
-    "mtime": 1784460848.2115672,
-    "ast_hash": "9cb9bc9ca7a4f239faf1aaf71b48d8ad",
-    "semantic_hash": "9cb9bc9ca7a4f239faf1aaf71b48d8ad"
+    "mtime": 1786700781.7785606,
+    "ast_hash": "e4d81de2b94a17ef58ce961661dfd85f",
+    "semantic_hash": ""
   },
   "src/views/PatientRecord.vue": {
-    "mtime": 1784460848.2115672,
-    "ast_hash": "731f60265f99522294207ccf1cf1f57b",
-    "semantic_hash": "731f60265f99522294207ccf1cf1f57b"
+    "mtime": 1786700781.7786622,
+    "ast_hash": "69ede241bad3ad8747f5dc6da5091874",
+    "semantic_hash": ""
   },
   "src/views/PatientsListView.vue": {
-    "mtime": 1784460848.2115672,
-    "ast_hash": "040f3460ba10ed8ac7700faa023fc244",
-    "semantic_hash": "040f3460ba10ed8ac7700faa023fc244"
+    "mtime": 1786700781.7787437,
+    "ast_hash": "80c2193eab1137c5224934a5441e10bf",
+    "semantic_hash": ""
   },
   "src/views/PharmacieView.vue": {
-    "mtime": 1784460848.2115672,
-    "ast_hash": "ad731dde1ae6eadc7bc4087657eac327",
-    "semantic_hash": "ad731dde1ae6eadc7bc4087657eac327"
+    "mtime": 1786700781.778795,
+    "ast_hash": "49236033ea5c153484a8e13aa726c861",
+    "semantic_hash": ""
   },
   "src/views/PlanningView.vue": {
-    "mtime": 1784460848.2115672,
+    "mtime": 1786699141.4616857,
     "ast_hash": "a38565906b22d1ee8e0cbe0711a5b25c",
     "semantic_hash": "a38565906b22d1ee8e0cbe0711a5b25c"
   },
   "src/views/ProfilView.vue": {
-    "mtime": 1784460848.2115672,
+    "mtime": 1786699141.4618604,
     "ast_hash": "890d9d9bc52f2a1408c93f3218b9a211",
     "semantic_hash": "890d9d9bc52f2a1408c93f3218b9a211"
   },
   "src/views/SettingsView.vue": {
-    "mtime": 1784460848.2115672,
+    "mtime": 1786699141.4620209,
     "ast_hash": "1ad489d0e4ee6e4bcb42eda6f51364f6",
     "semantic_hash": "1ad489d0e4ee6e4bcb42eda6f51364f6"
   },
   "src/views/UsersView.vue": {
-    "mtime": 1784460848.2115672,
-    "ast_hash": "4aebf2fe29c37e5f10b72f501aba8734",
-    "semantic_hash": "4aebf2fe29c37e5f10b72f501aba8734"
+    "mtime": 1786700781.7788618,
+    "ast_hash": "5b5d542618fe3d06999e664e3d08f96e",
+    "semantic_hash": ""
   },
   "src/views/ValidatePasswordView.vue": {
-    "mtime": 1784460848.2115672,
+    "mtime": 1786699141.4623485,
     "ast_hash": "c86a5b6e8b0ee89b1a24294c16d534ee",
     "semantic_hash": "c86a5b6e8b0ee89b1a24294c16d534ee"
   },
   "src/views/__tests__/ConfigurationClinicView.spec.ts": {
-    "mtime": 1784460848.2125673,
-    "ast_hash": "8d0c2e842a6a60cced7c80dec7bfcf5f",
-    "semantic_hash": "8d0c2e842a6a60cced7c80dec7bfcf5f"
+    "mtime": 1786700781.7788885,
+    "ast_hash": "657a34b34a50a67172b0a636ddc93874",
+    "semantic_hash": ""
   },
   "src/views/__tests__/PatientRecord.spec.ts": {
-    "mtime": 1784460848.2125673,
+    "mtime": 1786699141.4626322,
     "ast_hash": "a9ead098c51fdcb7ff2777e963c362c4",
     "semantic_hash": "a9ead098c51fdcb7ff2777e963c362c4"
   },
   "src/views/patients/ActesView.vue": {
-    "mtime": 1784460848.2125673,
+    "mtime": 1786700781.778977,
     "ast_hash": "e7db392cdf452fec664bfbedd0d5e2f3",
     "semantic_hash": "e7db392cdf452fec664bfbedd0d5e2f3"
   },
   "src/views/patients/ContactView.vue": {
-    "mtime": 1784460848.2125673,
-    "ast_hash": "7ee3034603d1c8d9ddcc670a0ad4dab6",
-    "semantic_hash": "7ee3034603d1c8d9ddcc670a0ad4dab6"
+    "mtime": 1786700781.778977,
+    "ast_hash": "c3780c8d5fc1df12611b8bfe55e89dd9",
+    "semantic_hash": ""
   },
   "src/views/patients/DossierClinicView.vue": {
-    "mtime": 1784460848.2125673,
-    "ast_hash": "0ee3902b8d2bcca932bae13ba2966409",
-    "semantic_hash": "0ee3902b8d2bcca932bae13ba2966409"
+    "mtime": 1786700781.7791135,
+    "ast_hash": "fd4201d85bf32a2c3ea669076b6d327e",
+    "semantic_hash": ""
   },
   "src/views/patients/DossierView.vue": {
-    "mtime": 1784460848.2125673,
-    "ast_hash": "55a03f73ef65b8c6be10b2bb9555cbdb",
-    "semantic_hash": "55a03f73ef65b8c6be10b2bb9555cbdb"
+    "mtime": 1786700781.7791975,
+    "ast_hash": "7c9624b4270747b2526dad8a00778956",
+    "semantic_hash": ""
   },
   "src/views/patients/ExamensView.vue": {
-    "mtime": 1784460848.2125673,
-    "ast_hash": "b98cb9735963cb93f2a523a4c3e44009",
-    "semantic_hash": "b98cb9735963cb93f2a523a4c3e44009"
+    "mtime": 1786700781.7792928,
+    "ast_hash": "5a408b8596a36d08ca6051a72022bac9",
+    "semantic_hash": ""
   },
   "src/views/patients/PatientLayout.vue": {
-    "mtime": 1784460848.2125673,
-    "ast_hash": "20baf0122234933c7e2a02d0e2866a26",
-    "semantic_hash": "20baf0122234933c7e2a02d0e2866a26"
+    "mtime": 1786700781.7794118,
+    "ast_hash": "a5ff604c8c4e5a79b63495fcb756be20",
+    "semantic_hash": ""
   },
   "src/views/patients/PrescriptionView.vue": {
-    "mtime": 1784460848.2355688,
-    "ast_hash": "7abe10c8e6ba1e6ed293efe682b84bff",
-    "semantic_hash": "7abe10c8e6ba1e6ed293efe682b84bff"
+    "mtime": 1786700781.7794971,
+    "ast_hash": "d7915316df2c889bda14937ab2d80332",
+    "semantic_hash": ""
   },
   "src/views/patients/RendezVousView.vue": {
-    "mtime": 1784460848.2135673,
+    "mtime": 1786699141.4649467,
     "ast_hash": "276d3f7eddfd378bb66503dcb100c4e6",
     "semantic_hash": "276d3f7eddfd378bb66503dcb100c4e6"
   },
   "src/views/patients/SejourView.vue": {
-    "mtime": 1784460848.2135673,
-    "ast_hash": "c44dcba7a13467d2701ebd328b9d12db",
-    "semantic_hash": "c44dcba7a13467d2701ebd328b9d12db"
+    "mtime": 1786700781.7796881,
+    "ast_hash": "dca7c2ee8cfc964441b57e95f1d74079",
+    "semantic_hash": ""
   },
   "src/views/patients/SoinsView.vue": {
-    "mtime": 1784460848.2135673,
+    "mtime": 1786699141.4655108,
     "ast_hash": "d0f7d56bdad98114efe08670d9273e85",
     "semantic_hash": "d0f7d56bdad98114efe08670d9273e85"
   },
   "src/views/patients/__tests__/DossierClinicView.spec.ts": {
-    "mtime": 1784460848.2135673,
-    "ast_hash": "1d13ee9f241536b40edea45e2ae884eb",
-    "semantic_hash": "1d13ee9f241536b40edea45e2ae884eb"
+    "mtime": 1786700781.7797172,
+    "ast_hash": "41649cdacd6d8c01d7148d265383e9f9",
+    "semantic_hash": ""
   },
   "src/views/patients/__tests__/ExamensView.test.ts": {
-    "mtime": 1784460848.2145674,
-    "ast_hash": "2b2b92245bbb4ffcd77244d7feaa674d",
-    "semantic_hash": "2b2b92245bbb4ffcd77244d7feaa674d"
+    "mtime": 1786700781.779849,
+    "ast_hash": "55733b0f52f7984cc790e56208360fb5",
+    "semantic_hash": ""
   },
   "src/views/patients/__tests__/PatientLayout.spec.ts": {
-    "mtime": 1784460848.2145674,
-    "ast_hash": "a4dcc50ed6a8bbc3671ba23f2f8084af",
-    "semantic_hash": "a4dcc50ed6a8bbc3671ba23f2f8084af"
+    "mtime": 1786700781.7799933,
+    "ast_hash": "447e21f83f5fe012367a883b855cf257",
+    "semantic_hash": ""
   },
   "src/views/patients/__tests__/PrescriptionView.test.ts": {
-    "mtime": 1784460848.2145674,
-    "ast_hash": "47a2bb2d2ab380f320fabea460725321",
-    "semantic_hash": "47a2bb2d2ab380f320fabea460725321"
+    "mtime": 1786700781.78009,
+    "ast_hash": "368dab7019cdeb26bfb23c1951f159b7",
+    "semantic_hash": ""
   },
   "src/views/patients/__tests__/SoinsView.test.ts": {
-    "mtime": 1784460848.2145674,
-    "ast_hash": "1d73cc5753fdc59e1fe2f8e2daeb25ee",
-    "semantic_hash": "1d73cc5753fdc59e1fe2f8e2daeb25ee"
+    "mtime": 1786700781.7802927,
+    "ast_hash": "5fcf9a81dacc3fc9f38eaf23159d2ca0",
+    "semantic_hash": ""
   },
   "src/views/patients/dossier/DossierDocumentsTab.vue": {
-    "mtime": 1784460848.2145674,
-    "ast_hash": "2dfe0b85fd07e60a55c38c54b713a241",
-    "semantic_hash": "2dfe0b85fd07e60a55c38c54b713a241"
+    "mtime": 1786700781.7804165,
+    "ast_hash": "cf333a262b89bcf1904787c48d546ee2",
+    "semantic_hash": ""
   },
   "src/views/patients/dossier/DossierMedicalTab.vue": {
-    "mtime": 1784460848.2145674,
+    "mtime": 1786699141.4675832,
     "ast_hash": "c0a97d7cab18f4e4307d425d26f5f559",
     "semantic_hash": "c0a97d7cab18f4e4307d425d26f5f559"
   },
   "src/views/patients/dossier/DossierOrdonnanceTab.vue": {
-    "mtime": 1784460848.2145674,
-    "ast_hash": "bd37fdf317544b2de0d53bcbac78cea4",
-    "semantic_hash": "bd37fdf317544b2de0d53bcbac78cea4"
+    "mtime": 1786700781.7804408,
+    "ast_hash": "72a3c67cbe67631def71e1210345a588",
+    "semantic_hash": ""
   },
   "src/views/patients/dossier/DossierScoresTab.vue": {
-    "mtime": 1784460848.2155676,
+    "mtime": 1786699141.4678812,
     "ast_hash": "5979bf5831024496f5792838bcb03a93",
     "semantic_hash": "5979bf5831024496f5792838bcb03a93"
   },
   "src/views/patients/soins/DiagrammeSyntheseTab.vue": {
-    "mtime": 1784460848.2155676,
-    "ast_hash": "521703723555656739a05081da5b6903",
-    "semantic_hash": "521703723555656739a05081da5b6903"
+    "mtime": 1786700781.7804408,
+    "ast_hash": "e0c3b3dda06623607d53d7a68ba0c407",
+    "semantic_hash": ""
   },
   "src/views/patients/soins/DispositifsAccesTab.vue": {
-    "mtime": 1784460848.2155676,
-    "ast_hash": "0700e2d1aafd7612c6fe30bfc1d3d7f4",
-    "semantic_hash": "0700e2d1aafd7612c6fe30bfc1d3d7f4"
+    "mtime": 1786700781.7804408,
+    "ast_hash": "78c0524d1a1a706290d5617510070ecc",
+    "semantic_hash": ""
   },
   "src/views/patients/soins/PlanDistributionTab.vue": {
-    "mtime": 1784460848.2155676,
-    "ast_hash": "1b1928291609d4120b43a77e6da42287",
-    "semantic_hash": "1b1928291609d4120b43a77e6da42287"
+    "mtime": 1786700781.7804408,
+    "ast_hash": "49e1268f62b8a4d0c7f9ce0726d70535",
+    "semantic_hash": ""
   },
   "src/views/patients/soins/VitalCheckTab.vue": {
-    "mtime": 1784460848.2155676,
-    "ast_hash": "c7d655f83d95aa7cf82a4d984d1b08c7",
-    "semantic_hash": "c7d655f83d95aa7cf82a4d984d1b08c7"
+    "mtime": 1786700781.781038,
+    "ast_hash": "343eec5600a85a6e9ea56592beed4f0f",
+    "semantic_hash": ""
   },
   "src/views/patients/soins/__tests__/DiagrammeSyntheseTab.test.ts": {
-    "mtime": 1784460848.2155676,
-    "ast_hash": "f28a92efc20e7f5c2cfa6af3ce330537",
-    "semantic_hash": "f28a92efc20e7f5c2cfa6af3ce330537"
+    "mtime": 1786700781.7810814,
+    "ast_hash": "f056a4d865fa24969b6f54d7e0481a32",
+    "semantic_hash": ""
   },
   "src/views/patients/soins/__tests__/DispositifsAccesTab.test.ts": {
-    "mtime": 1784460848.2165675,
-    "ast_hash": "8a4a9651d0ad520f651d8e528af00ef0",
-    "semantic_hash": "8a4a9651d0ad520f651d8e528af00ef0"
+    "mtime": 1786700781.781178,
+    "ast_hash": "24ef013b860bf2200965c8e5c324ae6a",
+    "semantic_hash": ""
   },
   "src/views/patients/soins/__tests__/PlanDistributionTab.test.ts": {
-    "mtime": 1784460848.2165675,
-    "ast_hash": "819cf69618233f936daae6bfaa1e9a3e",
-    "semantic_hash": "819cf69618233f936daae6bfaa1e9a3e"
+    "mtime": 1786700781.781228,
+    "ast_hash": "4063f6c41a2357196f70c1ab175b5ae4",
+    "semantic_hash": ""
   },
   "src/views/patients/soins/__tests__/VitalCheckTab.test.ts": {
-    "mtime": 1784460848.2165675,
-    "ast_hash": "13e3c76b09feed294bdd1b7a8cb7254a",
-    "semantic_hash": "13e3c76b09feed294bdd1b7a8cb7254a"
+    "mtime": 1786700781.7813416,
+    "ast_hash": "5924ec44871405672371fd56885338d4",
+    "semantic_hash": ""
   },
   "src/vite-env.d.ts": {
-    "mtime": 1784460848.2165675,
-    "ast_hash": "5effd9d28368f8a8e087af7887ba905a",
-    "semantic_hash": "5effd9d28368f8a8e087af7887ba905a"
+    "mtime": 1786700781.781473,
+    "ast_hash": "90f69f382012711d546f31590e6c2623",
+    "semantic_hash": ""
   },
   "tsconfig.json": {
-    "mtime": 1784460848.2165675,
+    "mtime": 1786699141.469285,
     "ast_hash": "5324ecbdddfe57afc8dfe4e2ee8f6689",
     "semantic_hash": "5324ecbdddfe57afc8dfe4e2ee8f6689"
   },
   "tsconfig.node.json": {
-    "mtime": 1784460848.2165675,
+    "mtime": 1786699141.469285,
     "ast_hash": "ecaf747962cf884482a294bb58744574",
     "semantic_hash": "ecaf747962cf884482a294bb58744574"
   },
   "vite.config.ts": {
-    "mtime": 1784460848.2165675,
+    "mtime": 1786699141.470285,
     "ast_hash": "19b854bf118164c4d1a057fc7e5bf355",
     "semantic_hash": "19b854bf118164c4d1a057fc7e5bf355"
   },
   "vitest.config.ts": {
-    "mtime": 1784460848.2165675,
-    "ast_hash": "b43cbc6aa84cf1028ad4f0b19cd6eb8a",
-    "semantic_hash": "b43cbc6aa84cf1028ad4f0b19cd6eb8a"
+    "mtime": 1786700781.781473,
+    "ast_hash": "8ec327ef5c55f1a20a888b8a4541427f",
+    "semantic_hash": ""
   },
   ".eslintrc.yaml": {
-    "mtime": 1784460848.1565635,
+    "mtime": 1786699141.3941653,
     "ast_hash": "80376fa7047395021fe5f1eeeaa7bb3d",
     "semantic_hash": "80376fa7047395021fe5f1eeeaa7bb3d"
   },
   "app-update.yml": {
-    "mtime": 1784460848.1575634,
+    "mtime": 1786699141.394554,
     "ast_hash": "c5519b841fb8daf029e36a8eef8dd9ce",
     "semantic_hash": "c5519b841fb8daf029e36a8eef8dd9ce"
   },
   "index.html": {
-    "mtime": 1784460848.1865654,
+    "mtime": 1786699141.421285,
     "ast_hash": "372ac208f5a8da0a213ee7189fcf2e4a",
     "semantic_hash": "372ac208f5a8da0a213ee7189fcf2e4a"
   },
   "public/cde.png": {
-    "mtime": 1784460848.1915658,
+    "mtime": 1786699141.425285,
     "ast_hash": "d34640de4dcc1fa3b5ca557fc56017ce",
     "semantic_hash": "d34640de4dcc1fa3b5ca557fc56017ce"
   },
   "public/favicon.svg": {
-    "mtime": 1784460848.1915658,
+    "mtime": 1786699141.425285,
     "ast_hash": "9a13a1a1d86b31a79b4c8a386f922909",
     "semantic_hash": "9a13a1a1d86b31a79b4c8a386f922909"
   },
   "src/assets/cde.png": {
-    "mtime": 1784460848.193566,
+    "mtime": 1786699141.4282851,
     "ast_hash": "d34640de4dcc1fa3b5ca557fc56017ce",
     "semantic_hash": "d34640de4dcc1fa3b5ca557fc56017ce"
   },
   "intelligent_resources/template_ordonance.jpeg": {
-    "mtime": 1784460848.1875656,
+    "mtime": 1786699141.422285,
     "ast_hash": "ab8673fa4c4db5ba581829d2c14299f6",
     "semantic_hash": "ab8673fa4c4db5ba581829d2c14299f6"
+  },
+  "electron/automerge/converters/act-price-history.converter.ts": {
+    "mtime": 1786699141.396368,
+    "ast_hash": "f0c679e2ba11aa4fb5fabd1936b58f3e",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/app-settings.converter.ts": {
+    "mtime": 1786699141.396368,
+    "ast_hash": "e3369deceb741562216289ea3750db96",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/attachment-type.converter.ts": {
+    "mtime": 1786699141.396368,
+    "ast_hash": "7b94a7b74ce4764b6a7419c06536313a",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/automerge-document.converter.ts": {
+    "mtime": 1786699141.396368,
+    "ast_hash": "f8b1afaf8535b7b226870290e981439b",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/care-unit.converter.ts": {
+    "mtime": 1786699141.3966,
+    "ast_hash": "f247101605e5053804836c55ef205c01",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/clinical-document-signature.converter.ts": {
+    "mtime": 1786699141.3966,
+    "ast_hash": "ff92c2a2e01d1d91750a69de1deee825",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/clinical-document-type.converter.ts": {
+    "mtime": 1786699141.3966,
+    "ast_hash": "62471c18222d6dc27a2f826174fb715e",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/clinical-document.converter.ts": {
+    "mtime": 1786699141.396667,
+    "ast_hash": "1084b8c37e80eeca9d047d2386ad7cd8",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/config-tarif.converter.ts": {
+    "mtime": 1786699141.396712,
+    "ast_hash": "542fffe4416433073602968812f7ea18",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/conservateur-champ-localisation.converter.ts": {
+    "mtime": 1786699141.3967242,
+    "ast_hash": "360438f8b10f553707d236b98fb5f856",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/conservateur-stockage.converter.ts": {
+    "mtime": 1786699141.3967664,
+    "ast_hash": "a34b0d0015fcc9a21a7d25fed6e4954c",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/contact-origin.converter.ts": {
+    "mtime": 1786699141.3967664,
+    "ast_hash": "0d5c6936e2b140b9a118d3bc95aa5033",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/currency.converter.ts": {
+    "mtime": 1786699141.3968184,
+    "ast_hash": "ee02f2f3e3346e4a91fe680ce588ee8f",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/dispositif-type.converter.ts": {
+    "mtime": 1786699141.3968184,
+    "ast_hash": "30700476b7ac206fba5aaa2346d1ea17",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/dispositif.converter.ts": {
+    "mtime": 1786699141.39687,
+    "ast_hash": "07979bc97df365ca9d9d8015bfe579d5",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/email-config.converter.ts": {
+    "mtime": 1786699141.39687,
+    "ast_hash": "ddaab01e019dad86abece930cede88af",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/encounter-movement.converter.ts": {
+    "mtime": 1786699141.39687,
+    "ast_hash": "749ae4040a09e943d4cc9ca4e918bb10",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/encounter.converter.ts": {
+    "mtime": 1786699141.396933,
+    "ast_hash": "3a07ad2e4d7851ad3baf42fdfbbf433a",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/exam-category.converter.ts": {
+    "mtime": 1786699141.3970273,
+    "ast_hash": "2d3f5918043c27bbe5b0c95910e69a86",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/exam-request.converter.ts": {
+    "mtime": 1786699141.3970792,
+    "ast_hash": "ab7519bea06bfcb00f8a5e6913692ec6",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/exam-type.converter.ts": {
+    "mtime": 1786699141.3971174,
+    "ast_hash": "dea8c07e7fd0a0da2254d1f61e2bc835",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/fonction.converter.ts": {
+    "mtime": 1786699141.3971174,
+    "ast_hash": "911e9ffabafa25f34fa81597fde913f3",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/form-draft.converter.ts": {
+    "mtime": 1786699141.3971708,
+    "ast_hash": "5363f5870ebaac78d1fa8458d623cfb2",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/insurance.converter.ts": {
+    "mtime": 1786699141.3972068,
+    "ast_hash": "bb98e7e12cec198694061c68d25972f5",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/invoice-item.converter.ts": {
+    "mtime": 1786699141.3972375,
+    "ast_hash": "dcd1c9595710ff613a2440def27331d1",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/invoice-payment.converter.ts": {
+    "mtime": 1786699141.3972642,
+    "ast_hash": "acd97337ebd05f6a8ebdf230458f8585",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/localite.converter.ts": {
+    "mtime": 1786699141.3973532,
+    "ast_hash": "fe87ba85b52bca7241ec9300752feb17",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/medical-act.converter.ts": {
+    "mtime": 1786699141.3973835,
+    "ast_hash": "8125c8802421ae138a3f0801e1ab3e92",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/medical-unit.converter.ts": {
+    "mtime": 1786699141.3973835,
+    "ast_hash": "2cce42cf83d13a96f376335c90d2cafc",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/patient-acte.converter.ts": {
+    "mtime": 1786699141.3974557,
+    "ast_hash": "fd328c2cf1197f3d2f65e1b165f3caf0",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/patient-attachment.converter.ts": {
+    "mtime": 1786699141.3974833,
+    "ast_hash": "7bc72a5bebdcc29214ad421fd20b5819",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/plan-soins-item.converter.ts": {
+    "mtime": 1786699141.3975534,
+    "ast_hash": "728af9fdd2067f62f7e3e2d514c29008",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/plan-soins.converter.ts": {
+    "mtime": 1786699141.397586,
+    "ast_hash": "3fe9de86a93b7f5c1d77014a087d1014",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/prescription.converter.ts": {
+    "mtime": 1786699141.39761,
+    "ast_hash": "30fe2f594aebc729785c11a832cb9b6f",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/service.converter.ts": {
+    "mtime": 1786699141.3976333,
+    "ast_hash": "7330334b663c3df8be4097fea85bb6aa",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/session.converter.ts": {
+    "mtime": 1786699141.3976681,
+    "ast_hash": "f5aabcaa03f2e6606217a3158e50d109",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/site.converter.ts": {
+    "mtime": 1786699141.3976946,
+    "ast_hash": "e7b84f6280bb99db090eff62d0e6e6c2",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/specialty.converter.ts": {
+    "mtime": 1786699141.3977218,
+    "ast_hash": "a181a7bce932fff1bc40ea2e7f309efb",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/stay-movement.converter.ts": {
+    "mtime": 1786699141.397733,
+    "ast_hash": "f60cfbf5a02138ab2228681e2a65ded7",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/stay.converter.ts": {
+    "mtime": 1786699141.3977582,
+    "ast_hash": "ab2b4c4788189fb81df7d0046efb206b",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/trusted-person.converter.ts": {
+    "mtime": 1786699141.3977857,
+    "ast_hash": "9d46a5ee77b01531d2fb7abb549ce902",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/user-attachment.converter.ts": {
+    "mtime": 1786699141.3978143,
+    "ast_hash": "3cc41ce2395ad89f64d29c50f401ec9e",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/user-favorite-service.converter.ts": {
+    "mtime": 1786699141.3978143,
+    "ast_hash": "8656aa9f19b36917e601fb663fb1e4a3",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/user-medical-unit.converter.ts": {
+    "mtime": 1786699141.397898,
+    "ast_hash": "d859650a0c757af06cbc1310e1639169",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/user-service.converter.ts": {
+    "mtime": 1786699141.3979087,
+    "ast_hash": "135f9af26aeee349b701cafe9d9b9f84",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/user-site.converter.ts": {
+    "mtime": 1786699141.3979495,
+    "ast_hash": "3152938b2baf144f9fa3ac1c914ad128",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/user-specialty.converter.ts": {
+    "mtime": 1786699141.3979495,
+    "ast_hash": "e90a25fd72d78b46c788460be94ebef3",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/vital-sign.converter.ts": {
+    "mtime": 1786699141.3979495,
+    "ast_hash": "d53d8b2ac7493c7fb473c03a77b0f9bf",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/vital-signs-item.converter.ts": {
+    "mtime": 1786699141.3979495,
+    "ast_hash": "77163692bcfdb66ea70600d70204aa91",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/voie-type.converter.ts": {
+    "mtime": 1786699141.3979495,
+    "ast_hash": "91e0dbac567908b3d56b585735ae8a5c",
+    "semantic_hash": ""
+  },
+  "electron/automerge/event-bus.ts": {
+    "mtime": 1786699141.3979495,
+    "ast_hash": "905badb3a004afaaa2ae86efa62fbb89",
+    "semantic_hash": ""
+  },
+  "electron/automerge/ipc-dispatcher.ts": {
+    "mtime": 1786699141.3979495,
+    "ast_hash": "1c5baa7b8175a1438bef25879978e710",
+    "semantic_hash": ""
+  },
+  "electron/automerge/remote-sync.service.ts": {
+    "mtime": 1786699141.3979495,
+    "ast_hash": "9e1cebefe7d94ea5342fba4f44a301df",
+    "semantic_hash": ""
+  },
+  "electron/automerge/utils/schema-field.ts": {
+    "mtime": 1786699141.3979495,
+    "ast_hash": "699d7d053c0551f949bc7fb5eb4a78fa",
+    "semantic_hash": ""
+  },
+  "electron/dto/clinical-document-signature.dto.ts": {
+    "mtime": 1786699141.3982852,
+    "ast_hash": "3d260d3cbcd466dcff5149ca109d9604",
+    "semantic_hash": ""
+  },
+  "electron/dto/clinical-document-type.dto.ts": {
+    "mtime": 1786699141.3982852,
+    "ast_hash": "ffaae9a877153238bd22c3ae3d03e5dd",
+    "semantic_hash": ""
+  },
+  "electron/dto/clinical-document.dto.ts": {
+    "mtime": 1786699141.3982852,
+    "ast_hash": "b1135235153d4dd712ad4a47e4c9e565",
+    "semantic_hash": ""
+  },
+  "electron/dto/contact-origin.dto.ts": {
+    "mtime": 1786699141.3982852,
+    "ast_hash": "088210f96bf49b98dc5eebce2840b121",
+    "semantic_hash": ""
+  },
+  "electron/dto/insurance.dto.ts": {
+    "mtime": 1786699141.399285,
+    "ast_hash": "773fe50566c0ecce24ce94e387060de8",
+    "semantic_hash": ""
+  },
+  "electron/handlers/sync.handler.ts": {
+    "mtime": 1786699141.4052851,
+    "ast_hash": "ebee517122233656133cd404891950e2",
+    "semantic_hash": ""
+  },
+  "electron/migrations/077-encounter-movements-new-fields.ts": {
+    "mtime": 1786699141.409285,
+    "ast_hash": "138a4fab81c8a12c357f48a7b47cd54c",
+    "semantic_hash": ""
+  },
+  "electron/migrations/078-patient-clinical-documents-source.ts": {
+    "mtime": 1786699141.409285,
+    "ast_hash": "f6671afa174cee4f779e2822406368f6",
+    "semantic_hash": ""
+  },
+  "electron/utils/barcode.ts": {
+    "mtime": 1786699141.417285,
+    "ast_hash": "7a7161a2df9ac3102d3ff92ecbd80bb9",
+    "semantic_hash": ""
+  },
+  "intelligent_resources/design_extraction.json": {
+    "mtime": 1786699141.421285,
+    "ast_hash": "2b41cde097ab15d50a29851227c88b77",
+    "semantic_hash": ""
+  },
+  "intelligent_resources/extract_design.py": {
+    "mtime": 1786699141.421285,
+    "ast_hash": "12a11c73ca7c996a45d8550ddc6446db",
+    "semantic_hash": ""
+  },
+  "src/components/SyncProgressDialog.vue": {
+    "mtime": 1786699141.4289436,
+    "ast_hash": "b4b9f0a42dc1c746170fe6a2417c5e37",
+    "semantic_hash": ""
+  },
+  "src/components/layout/SyncStatusIndicator.vue": {
+    "mtime": 1786699141.4301512,
+    "ast_hash": "c795b9d63e48bb4eb9b293dc8581c3b7",
+    "semantic_hash": ""
+  },
+  "src/components/patients/EncounterMovements.vue": {
+    "mtime": 1786699141.431888,
+    "ast_hash": "baaf7bf73c30939ac3f4f77d956cd27d",
+    "semantic_hash": ""
+  },
+  "src/components/prescriptions/OrdonnancePreview.vue": {
+    "mtime": 1786700781.7749074,
+    "ast_hash": "85aa3759288f5ba9187d975ba31fa890",
+    "semantic_hash": ""
+  },
+  "src/composables/useSyncStatus.ts": {
+    "mtime": 1786699141.4547238,
+    "ast_hash": "42a4514cc4fa7f442f36414e9c6d9c05",
+    "semantic_hash": ""
+  },
+  "src/utils/eventBus.ts": {
+    "mtime": 1786699141.4589887,
+    "ast_hash": "32e5c3e63d5f187a72304410c9595b52",
+    "semantic_hash": ""
+  },
+  "electron/automerge/__tests__/entity-type-map.spec.ts": {
+    "mtime": 1786699141.3960981,
+    "ast_hash": "d0fa53f3c0750a3bd8641696e14b3f79",
+    "semantic_hash": ""
+  },
+  "electron/automerge/__tests__/ipc-dispatcher.spec.ts": {
+    "mtime": 1786699141.3961506,
+    "ast_hash": "d85243776e21887b3e890e11fd6c7d45",
+    "semantic_hash": ""
+  },
+  "electron/automerge/__tests__/remote-sync.service.spec.ts": {
+    "mtime": 1786699141.3961976,
+    "ast_hash": "4c8c89cd7751c5cb389b49551580d9a8",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/exam-parameter.converter.ts": {
+    "mtime": 1786699141.3970273,
+    "ast_hash": "f9aceef6062d1c08a3ed751878995e0f",
+    "semantic_hash": ""
+  },
+  "electron/automerge/converters/exam-result.converter.ts": {
+    "mtime": 1786699141.3970792,
+    "ast_hash": "2f4ef180fcd13f67791fc4d33bdb8d35",
+    "semantic_hash": ""
+  },
+  "electron/automerge/entity-type-map.ts": {
+    "mtime": 1786699141.3979495,
+    "ast_hash": "ba052d986a3b5aaeed4a482121ed2d07",
+    "semantic_hash": ""
+  },
+  "electron/dto/ordonnance-libre.dto.ts": {
+    "mtime": 1786699141.399285,
+    "ast_hash": "19deeb9ca136d4643020728e1282d0eb",
+    "semantic_hash": ""
+  },
+  "electron/entities/exam-parameter.entity.ts": {
+    "mtime": 1786699141.401285,
+    "ast_hash": "2f44fd4439c604a4e3f3ff217e2f1344",
+    "semantic_hash": ""
+  },
+  "electron/entities/exam-result.entity.ts": {
+    "mtime": 1786699141.402285,
+    "ast_hash": "39052d30ed788f6d4459d6a2007537a3",
+    "semantic_hash": ""
+  },
+  "electron/handlers/__tests__/sync.handler.spec.ts": {
+    "mtime": 1786699141.404285,
+    "ast_hash": "eb616dd6acc27467d6bad570c4c4acb3",
+    "semantic_hash": ""
+  },
+  "electron/handlers/exam-parameter.handler.ts": {
+    "mtime": 1786699141.404285,
+    "ast_hash": "91a7b32882fe21fa03814d1a1c1950f2",
+    "semantic_hash": ""
+  },
+  "electron/handlers/exam-result.handler.ts": {
+    "mtime": 1786699141.4052851,
+    "ast_hash": "4e2088d8ea4abde169c632e26b285069",
+    "semantic_hash": ""
+  },
+  "electron/handlers/ordonnance-libre.handler.ts": {
+    "mtime": 1786699141.4052851,
+    "ast_hash": "861fc8b367c81015f30dfb308b94f8ee",
+    "semantic_hash": ""
+  },
+  "electron/migrations/079-seed-ordonnance-libre.ts": {
+    "mtime": 1786699141.409285,
+    "ast_hash": "bcde063fb11c46e0fa15878f8a710904",
+    "semantic_hash": ""
+  },
+  "electron/migrations/080-create-exam-parameters.ts": {
+    "mtime": 1786699141.409285,
+    "ast_hash": "3b4c34a0403196a9120bc1949ab8b177",
+    "semantic_hash": ""
+  },
+  "electron/migrations/081-create-exam-results.ts": {
+    "mtime": 1786699141.409285,
+    "ast_hash": "6de51654b0bcea7006d8cc1717a1ca92",
+    "semantic_hash": ""
+  },
+  "electron/migrations/082-add-validated-at-to-exam-requests.ts": {
+    "mtime": 1786699141.409285,
+    "ast_hash": "e404f7761625b141e6672f52857d049f",
+    "semantic_hash": ""
+  },
+  "electron/services/__tests__/export-templates.spec.ts": {
+    "mtime": 1786702804.0453641,
+    "ast_hash": "53cc4cce1919641f1b52f73be9b26830",
+    "semantic_hash": ""
+  },
+  "electron/services/__tests__/ordonnance-libre.service.spec.ts": {
+    "mtime": 1786699141.411285,
+    "ast_hash": "cb8edf0b598e33b30934bfe5c3b9659f",
+    "semantic_hash": ""
+  },
+  "electron/services/exam-parameter.service.ts": {
+    "mtime": 1786699141.414285,
+    "ast_hash": "cce45ed57dfe18aa503aa8549a9c2628",
+    "semantic_hash": ""
+  },
+  "electron/services/exam-result.service.ts": {
+    "mtime": 1786699141.414285,
+    "ast_hash": "e1e4d02df0ed3c7c00b00a2c70725080",
+    "semantic_hash": ""
+  },
+  "electron/services/ordonnance-libre.service.ts": {
+    "mtime": 1786699141.415285,
+    "ast_hash": "035d2625501abc4f67a7c7b921091399",
+    "semantic_hash": ""
+  },
+  "src/components/__tests__/SyncProgressDialog.spec.ts": {
+    "mtime": 1786699141.4289436,
+    "ast_hash": "24513e9afab82542cc614eaa47afe4e4",
+    "semantic_hash": ""
+  },
+  "src/components/patients/ExamValidationDialog.vue": {
+    "mtime": 1786699141.4324522,
+    "ast_hash": "77eea277874f614a31d638202ad5e111",
+    "semantic_hash": ""
+  },
+  "src/components/patients/ImportDocumentDialog.vue": {
+    "mtime": 1786699141.4328866,
+    "ast_hash": "17b48ff1e51a92d40c2fa9f51e79fc65",
+    "semantic_hash": ""
+  },
+  "src/components/patients/OrdonnanceLibreForm.vue": {
+    "mtime": 1786699141.433401,
+    "ast_hash": "e20a407f04b6d5121013b23bf023e0d6",
+    "semantic_hash": ""
+  },
+  "src/components/patients/OrdonnanceSortieTab.vue": {
+    "mtime": 1786700562.8665984,
+    "ast_hash": "348890e2c5c405435768a4dd84ea09b6",
+    "semantic_hash": ""
+  },
+  "src/components/patients/RichTextEditor.vue": {
+    "mtime": 1786705702.9819345,
+    "ast_hash": "ed1886155f5aa90021c5873bdb8c4daa",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/AdmissionTab.spec.ts": {
+    "mtime": 1786699141.491598,
+    "ast_hash": "bf5977adb7dbdd5d9f96cb8dfa777df9",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/BilanInitialTab.spec.ts": {
+    "mtime": 1786702764.3422852,
+    "ast_hash": "d3c4d0c0473137e95c28baf425e5ddc9",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/CrhDiabeteForm.spec.ts": {
+    "mtime": 1786702678.4100938,
+    "ast_hash": "448f68738be9637adc25cb683fd901b0",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/ImportDocumentDialog.spec.ts": {
+    "mtime": 1786699141.4361463,
+    "ast_hash": "9599ca067e06d8aca40ec63b5b30c8c1",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/ModeVieAtcdTab.spec.ts": {
+    "mtime": 1786702766.5862896,
+    "ast_hash": "1afe0b34cfe98da6cbd117406af79bdc",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/OrdonnanceSortieTab.spec.ts": {
+    "mtime": 1786699141.4364526,
+    "ast_hash": "54330ede4607c17f9d0861b3584be31a",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/PatientClinicalDocs.spec.ts": {
+    "mtime": 1786699141.436656,
+    "ast_hash": "d52392d004d7ed2add06f6e41211e520",
+    "semantic_hash": ""
+  },
+  "src/components/settings/ExamParameterForm.vue": {
+    "mtime": 1786699141.4384465,
+    "ast_hash": "6bd1a6ea38cf93dfa643d454761e5b0c",
+    "semantic_hash": ""
+  },
+  "src/components/settings/ExamParameterPanel.vue": {
+    "mtime": 1786699141.438513,
+    "ast_hash": "26f012de9b8e540eeffca7ac6b3bc68e",
+    "semantic_hash": ""
+  },
+  "src/composables/__tests__/useDispositifs.test.ts": {
+    "mtime": 1786699141.4452128,
+    "ast_hash": "71461679e04d1e524638c9311da9d71a",
+    "semantic_hash": ""
+  },
+  "src/composables/__tests__/useEmailConfig.test.ts": {
+    "mtime": 1786699141.445489,
+    "ast_hash": "410048e86c7aa6390380d55bdc52b335",
+    "semantic_hash": ""
+  },
+  "src/composables/__tests__/useMedicalStaff.test.ts": {
+    "mtime": 1786699141.446447,
+    "ast_hash": "4fb22c20f858ff04a502467eedd5733c",
+    "semantic_hash": ""
+  },
+  "src/composables/__tests__/useOrdonnanceLibre.spec.ts": {
+    "mtime": 1786699141.4467869,
+    "ast_hash": "567080f0e277e59b6c91c8c50c9f9d53",
+    "semantic_hash": ""
+  },
+  "src/composables/__tests__/usePatients.test.ts": {
+    "mtime": 1786699141.4471853,
+    "ast_hash": "06df5fa13775c1fecc749776a5818268",
+    "semantic_hash": ""
+  },
+  "src/composables/__tests__/usePrescriptions.test.ts": {
+    "mtime": 1786699141.4474907,
+    "ast_hash": "60311edf6fd9b1f53feb552b2e2881be",
+    "semantic_hash": ""
+  },
+  "src/composables/__tests__/useSyncStatus.test.ts": {
+    "mtime": 1786699141.447903,
+    "ast_hash": "850a7b2ed877bc7c7da6b713a23b071d",
+    "semantic_hash": ""
+  },
+  "src/composables/__tests__/useTrustedPerson.test.ts": {
+    "mtime": 1786699141.448033,
+    "ast_hash": "f412259d1bc57f07bc382ffa629228be",
+    "semantic_hash": ""
+  },
+  "src/composables/__tests__/useUsers.test.ts": {
+    "mtime": 1786699141.448129,
+    "ast_hash": "2dea4f07fb3d3dc1c9a62e737dabf3e0",
+    "semantic_hash": ""
+  },
+  "src/composables/useDispositifs.ts": {
+    "mtime": 1786699141.450261,
+    "ast_hash": "b3f49cf55b20017b9f540f36259815fa",
+    "semantic_hash": ""
+  },
+  "src/composables/useExamParameters.ts": {
+    "mtime": 1786699141.4506686,
+    "ast_hash": "c8fe906081e76375f778f003572529c0",
+    "semantic_hash": ""
+  },
+  "src/composables/useExamResults.ts": {
+    "mtime": 1786699141.450987,
+    "ast_hash": "f9de93da5785ebe6afbd8c2b1d9d1438",
+    "semantic_hash": ""
+  },
+  "src/composables/useOrdonnanceLibre.ts": {
+    "mtime": 1786699141.452285,
+    "ast_hash": "af1c1e342b21a5083a2b6c0f96456e27",
+    "semantic_hash": ""
+  },
+  "src/composables/usePrescriptions.ts": {
+    "mtime": 1786699141.4545274,
+    "ast_hash": "fce353f8032887645e9c278f5a467acb",
+    "semantic_hash": ""
+  },
+  "src/utils/allergy-helpers.ts": {
+    "mtime": 1786699141.4583087,
+    "ast_hash": "b467f6c9c035c83ea2c32ef94cd2b532",
+    "semantic_hash": ""
+  },
+  "src/views/patients/OrdonnanceView.vue": {
+    "mtime": 1786699141.4639478,
+    "ast_hash": "8f397924db3dcbe947ee30bc38c28f3e",
+    "semantic_hash": ""
+  },
+  "src/views/patients/__tests__/OrdonnanceLibreForm.spec.ts": {
+    "mtime": 1786699141.4662538,
+    "ast_hash": "4fbb648e3b4877a44a46ea8af66f80eb",
+    "semantic_hash": ""
+  },
+  "src/views/patients/__tests__/OrdonnanceView.spec.ts": {
+    "mtime": 1786699141.4664097,
+    "ast_hash": "90cb10344b5a64c75169cc7d6c4369bd",
+    "semantic_hash": ""
+  },
+  "src/views/patients/dossier/__tests__/DossierOrdonnanceTab.spec.ts": {
+    "mtime": 1786699141.4680352,
+    "ast_hash": "8b54bf0e9e8460af1b0cc7e992bf837b",
+    "semantic_hash": ""
+  },
+  "src/views/patients/ResultatsBioView.vue": {
+    "mtime": 1786699141.465176,
+    "ast_hash": "df89bca224f77eb65e7db4e4d0857cf6",
+    "semantic_hash": ""
+  },
+  "electron/migrations/083-seed-crc-diabete.ts": {
+    "mtime": 1786699141.409285,
+    "ast_hash": "20499aa5f4382a446203446f1a2bb6a8",
+    "semantic_hash": ""
+  },
+  "src/components/patients/CrcDiabeteForm.vue": {
+    "mtime": 1786699141.4316995,
+    "ast_hash": "694efd068afdc868f7a7f8567e598c30",
+    "semantic_hash": ""
+  },
+  "src/types/crc-diabete.ts": {
+    "mtime": 1786699141.456285,
+    "ast_hash": "d67cdd7580ee0ea26b9ca29539218d42",
+    "semantic_hash": ""
+  },
+  "electron/migrations/084-add-contact-types-to-document-types.ts": {
+    "mtime": 1786699141.409285,
+    "ast_hash": "e1d2dabbf62ad15697b2aeef77a96dfe",
+    "semantic_hash": ""
+  },
+  "scripts/seed-bio-params.js": {
+    "mtime": 1786699141.426285,
+    "ast_hash": "4f11aa9783f396bb1c8d6887faf12da1",
+    "semantic_hash": ""
+  },
+  "src/components/common/CollapsibleSection.vue": {
+    "mtime": 1786699141.429331,
+    "ast_hash": "b2a991becbdad36e06e74c80c6c2b2ac",
+    "semantic_hash": ""
+  },
+  "src/components/common/FormPreview.vue": {
+    "mtime": 1786700408.2405298,
+    "ast_hash": "c4d440052e161e226e3ce0e194a7b909",
+    "semantic_hash": ""
+  },
+  "src/utils/rich-text.ts": {
+    "mtime": 1786700376.6685064,
+    "ast_hash": "fd262a2444461cd0369fc3871551414d",
+    "semantic_hash": ""
+  },
+  "src/components/common/__tests__/CollapsibleSection.spec.ts": {
+    "mtime": 1786699141.429331,
+    "ast_hash": "796713d4602e66b89d1134e9294d2623",
+    "semantic_hash": ""
+  },
+  "src/components/common/__tests__/FormPreview.spec.ts": {
+    "mtime": 1786702822.445399,
+    "ast_hash": "4e7195137631c39130473250ba217b3b",
+    "semantic_hash": ""
+  },
+  "src/components/common/HtmlPreviewDialog.vue": {
+    "mtime": 1786708809.995089,
+    "ast_hash": "d23274f7f595c599995115814106fbb9",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/ContactFormDialog.spec.ts": {
+    "mtime": 1786699141.4354508,
+    "ast_hash": "512bbf1e9e4b695b3bb0675504a684b1",
+    "semantic_hash": ""
+  },
+  "src/components/common/__tests__/HtmlPreviewDialog.spec.ts": {
+    "mtime": 1786702677.0430903,
+    "ast_hash": "616eea3079bdbad0b93af177436ab47b",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/SortieTab.spec.ts": {
+    "mtime": 1786699141.43692,
+    "ast_hash": "de338be5c5d482cb329175330ed938ba",
+    "semantic_hash": ""
+  },
+  "electron/services/__tests__/exam-result.service.spec.ts": {
+    "mtime": 1786699141.410285,
+    "ast_hash": "4c46c90a3c21de0bf84057cf3ad6a1bd",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/ExamensComplementairesTab.spec.ts": {
+    "mtime": 1786699141.4360354,
+    "ast_hash": "1c6252cc858d914cfd9dbbfc6bfb0bd8",
+    "semantic_hash": ""
+  },
+  "src/views/patients/__tests__/ResultatsBioView.spec.ts": {
+    "mtime": 1786699141.4671364,
+    "ast_hash": "93406a44f12d7e73a6766e20ae23ddc4",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/EvolutionMedicaleTab.spec.ts": {
+    "mtime": 1786699141.4917421,
+    "ast_hash": "5630f87ace226c06b7afc4fa0d0828a2",
+    "semantic_hash": ""
+  },
+  "src/utils/__tests__/rich-text.spec.ts": {
+    "mtime": 1786702794.0203447,
+    "ast_hash": "efa7953bd1963e00d0e396ca07d71b1d",
+    "semantic_hash": ""
+  },
+  "electron/handlers/__tests__/export.handler.spec.ts": {
+    "mtime": 1786699141.404285,
+    "ast_hash": "9ec0a839d7737a035e0d8eeea03968c1",
+    "semantic_hash": ""
+  },
+  "electron/migrations/085-contact-category-remove.ts": {
+    "mtime": 1786699141.409285,
+    "ast_hash": "6050e4e1264c39535973af7585ed674c",
+    "semantic_hash": ""
+  },
+  "electron/services/__tests__/export.service.spec.ts": {
+    "mtime": 1786704659.7983663,
+    "ast_hash": "ede7e968b1b8cb3a99ab34b5d826172b",
+    "semantic_hash": ""
+  },
+  "electron/migrations/086-close-expired-active-encounters.ts": {
+    "mtime": 1786699141.409285,
+    "ast_hash": "f8d6ae869c8cbb92ba9a3b8c14fe5654",
+    "semantic_hash": ""
+  },
+  "electron/migrations/059-contact-categories.ts": {
+    "mtime": 1786699141.4082851,
+    "ast_hash": "4624ecb3c9de10580230baea469b54c8",
+    "semantic_hash": ""
+  },
+  "src/components/patients/ParameterHistoryDialog.vue": {
+    "mtime": 1786699141.4336414,
+    "ast_hash": "876dc81a4ad733cad27d1297a5cef08d",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/FicheDiabeteTab.spec.ts": {
+    "mtime": 1786699141.4360578,
+    "ast_hash": "05c3b287c9d467db4aea18ddbd434868",
+    "semantic_hash": ""
+  },
+  "src/composables/useParameterHistory.ts": {
+    "mtime": 1786699141.452285,
+    "ast_hash": "e0e053890a30c4fd0bc08c7027f813a3",
+    "semantic_hash": ""
+  },
+  "src/utils/__tests__/field-meta.spec.ts": {
+    "mtime": 1786699141.457285,
+    "ast_hash": "0584ab69b6450f7e851932b2f83e5d25",
+    "semantic_hash": ""
+  },
+  "src/utils/field-meta.ts": {
+    "mtime": 1786699141.4590657,
+    "ast_hash": "3254d098d494eac8b042213f9ed882cb",
+    "semantic_hash": ""
+  },
+  "src/utils/parameter-history.ts": {
+    "mtime": 1786699141.4592586,
+    "ast_hash": "586859c400cc253883097e27464c6f9b",
+    "semantic_hash": ""
+  },
+  "electron/services/__tests__/vital-signs-item.service.spec.ts": {
+    "mtime": 1786699141.413285,
+    "ast_hash": "6407d3d540812ed9d5c643acfd6515e4",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/CrcDiabeteForm.spec.ts": {
+    "mtime": 1786702679.780097,
+    "ast_hash": "05301ad70993102a0bd824147eceb0d0",
+    "semantic_hash": ""
+  },
+  "src/components/patients/__tests__/ParameterHistoryDialog.spec.ts": {
+    "mtime": 1786699141.4365697,
+    "ast_hash": "7f55637ebfea0ece3e2647db14e55796",
+    "semantic_hash": ""
+  },
+  "src/composables/__tests__/useParameterHistory.spec.ts": {
+    "mtime": 1786699141.4468954,
+    "ast_hash": "a996ed7cb7a7d8ab544429fba421d34a",
+    "semantic_hash": ""
+  },
+  "src/utils/medical-calculations.ts": {
+    "mtime": 1786699141.4592586,
+    "ast_hash": "6ab6996ac678d934a30b1d5148f07f2f",
+    "semantic_hash": ""
   }
 }

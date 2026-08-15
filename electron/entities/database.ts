@@ -38,11 +38,10 @@ import { UserMedicalUnitEntity } from './user-medical-unit.entity'
 import { UserFavoriteServiceEntity } from './user-favorite-service.entity'
 import { ContactOriginEntity } from './contact-origin.entity'
 import { InsuranceEntity } from './insurance.entity'
-import { ContactCategoryEntity } from './contact-category.entity'
 import { VoieTypeEntity } from './voie-type.entity'
 import { DispositifTypeEntity } from './dispositif-type.entity'
 import { EncounterEntity, EncounterMovementEntity } from './encounter.entity'
-import { StayEntity, StayMovementEntity } from './stay.entity'
+import {StayEntity, StayMovementEntity} from './stay.entity'
 import { CareUnitEntity } from './care-unit.entity'
 import { ClinicalDocumentTypeEntity } from './clinical-document-type.entity'
 import { ClinicalDocumentEntity } from './clinical-document.entity'
@@ -50,6 +49,8 @@ import { ClinicalDocumentSignatureEntity } from './clinical-document-signature.e
 import { ExamCategoryEntity } from './exam-category.entity'
 import { ExamTypeEntity } from './exam-type.entity'
 import { ExamRequestEntity } from './exam-request.entity'
+import { ExamParameterEntity } from './exam-parameter.entity'
+import { ExamResultEntity } from './exam-result.entity'
 import type { Entity } from './entity'
 
 export interface ServiceSiteEntity {
@@ -98,7 +99,6 @@ export interface DB {
   user_favorite_services: UserFavoriteServiceEntity
   contact_origins: ContactOriginEntity
   insurances: InsuranceEntity
-  contact_categories: ContactCategoryEntity
   voie_types: VoieTypeEntity
   dispositif_types: DispositifTypeEntity
   encounters: EncounterEntity
@@ -116,6 +116,8 @@ export interface DB {
   lab_exam_categories: ExamCategoryEntity
   lab_exams: ExamTypeEntity
   exam_requests: ExamRequestEntity
+  exam_parameters: ExamParameterEntity
+  exam_results: ExamResultEntity
 }
 
 export const ENTITIES: Entity[] = [
@@ -157,7 +159,6 @@ export const ENTITIES: Entity[] = [
   DispositifEntity,
   ContactOriginEntity,
   InsuranceEntity,
-  ContactCategoryEntity,
   VoieTypeEntity,
   DispositifTypeEntity,
   EncounterEntity,
@@ -173,4 +174,6 @@ export const ENTITIES: Entity[] = [
   ExamCategoryEntity,
   ExamTypeEntity,
   ExamRequestEntity,
+  ExamParameterEntity,
+  ExamResultEntity,
 ]

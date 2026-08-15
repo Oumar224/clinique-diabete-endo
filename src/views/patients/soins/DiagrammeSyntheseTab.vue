@@ -140,9 +140,8 @@ import {
   Tooltip,
   Filler,
 } from 'chart.js'
-import { getVitalSignsList, getVitalSignsItemsList } from '@/api/vitalSigns'
-import { getValidesPlanSoins } from '@/api/planSoins'
-import type { ValideRecord } from '@/api/planSoins'
+import { getVitalSignsList, getVitalSignsItemsList } from '@/composables/useVitalSigns'
+import { getValidesPlanSoins, type ValideRecord } from '@/composables/usePlanSoins'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler)
 

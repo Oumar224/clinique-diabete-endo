@@ -49,62 +49,64 @@
       </el-col>
     </el-row>
 
-    <!-- Section 2: Contacts du patient -->
+    <!-- Section 2: Timeline du séjour (mouvements du contact associé) -->
     <el-card class="sejour-view__card sejour-view__card--section">
-      <EncountersTable
-        :encounters="encounters"
-        @new-contact="openContactDialog"
-      />
+      <template #header>
+        <span><strong>Timeline du séjour</strong></span>
+      </template>
+      <div v-if="!activeEncounter" class="sejour-view__empty-card">
+        <el-empty description="Aucun contact hospitalisation actif" :image-size="48" />
+      </div>
+      <StayTimeline v-else :movements="timelineMovements" :loading="loadingMovements"
+        :contact-status="activeEncounter?.status ?? 'closed'"
+        :stay-status="activeStay?.status ?? 'cloture'" />
     </el-card>
-
-    <!-- Section 3: Mouvements du séjour -->
-    <el-card v-if="activeStay" class="sejour-view__card sejour-view__card--section">
-      <StayTimeline :movements="stayMovements" :loading="loadingMovements" />
-    </el-card>
-
-    <!-- Dialog: Nouveau contact -->
-    <ContactFormDialog
-      v-model:visible="contactDialogVisible"
-      :patient-id="patientId"
-      :patient-name="patientName"
-      :user-id="currentUserId"
-      @saved="onContactSaved"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePatientContext } from '@/composables/usePatientContext'
-import { useAuth } from '@/composables/useAuth'
-import { listEncountersByPatient } from '@/composables/useEncounters'
-import type { EncounterDto } from '@/composables/useEncounters'
-import { getActiveStay, getStayMovements } from '@/composables/useStays'
+import { useStays } from '@/composables/useStays'
+import { useEncounters } from '@/composables/useEncounters'
 import type { StayDto, StayMovementDto } from '@/composables/useStays'
-import EncountersTable from '@/components/patients/EncountersTable.vue'
+import type { EncounterDto, EncounterMovementDto } from '@/composables/useEncounters'
 import StayTimeline from '@/components/patients/StayTimeline.vue'
-import ContactFormDialog from '@/components/patients/ContactFormDialog.vue'
+import { on } from '@/utils/eventBus'
 
 const route = useRoute()
 const { activePatient } = usePatientContext()
-const { user } = useAuth()
+const { getActiveStay, listStaysByPatient } = useStays()
+const { listEncountersByPatient, getEncounterMovements } = useEncounters()
 
-const patientId = computed(() => Number(route.params.id) || activePatient.value?.id || 0)
-const patientName = computed(() => {
-  if (!activePatient.value) return ''
-  const p = activePatient.value
-  return `${p.prenom} ${p.nom}`
+const patientId = computed(() => {
+  const id = Number(route.params.id)
+  return Number.isFinite(id) && id > 0 ? id : (activePatient.value?.id ?? 0)
 })
 const patientInfo = computed(() => activePatient.value)
-const currentUserId = computed(() => user.value?.id ?? null)
 
 const loading = ref(true)
-const encounters = ref<EncounterDto[]>([])
 const activeStay = ref<StayDto | null>(null)
-const stayMovements = ref<StayMovementDto[]>([])
+const activeEncounter = ref<EncounterDto | null>(null)
+const encounterMovements = ref<EncounterMovementDto[]>([])
 const loadingMovements = ref(false)
-const contactDialogVisible = ref(false)
+
+const timelineMovements = computed<StayMovementDto[]>(() =>
+  encounterMovements.value.map(m => ({
+    id: m.id,
+    stay_id: activeStay.value?.id ?? 0,
+    movement_type: (m.step_label === 'Admission' ? 'admission' : m.step_label === 'Sortie' ? 'sortie' : 'transfert_service') as StayMovementDto['movement_type'],
+    from_service_id: m.from_service_id ?? null,
+    from_service_name: m.from_service_name ?? undefined,
+    to_service_id: m.service_id ?? null,
+    to_service_name: m.service_name ?? undefined,
+    moved_at: m.entered_at,
+    exited_at: m.exited_at ?? null,
+    notes: m.notes ?? null,
+    created_at: m.created_at ?? undefined,
+  }))
+)
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return '—'
@@ -140,45 +142,67 @@ function stayStatusTag(status: string): 'success' | 'info' | 'warning' {
   return status === 'en_cours' ? 'success' : status === 'transfere' ? 'warning' : 'info'
 }
 
-function openContactDialog() {
-  contactDialogVisible.value = true
-}
-
-async function onContactSaved() {
-  await loadEncounters()
-}
-
-async function loadEncounters() {
-  try {
-    encounters.value = await listEncountersByPatient(patientId.value)
-  } catch {
-    encounters.value = []
-  }
-}
-
 async function loadStayData() {
   try {
     activeStay.value = await getActiveStay(patientId.value)
+    let encounter: EncounterDto | null = null
+
     if (activeStay.value?.id) {
-      loadingMovements.value = true
-      try {
-        stayMovements.value = await getStayMovements(activeStay.value.id)
-      } catch {
-        stayMovements.value = []
-      } finally {
-        loadingMovements.value = false
+      // Load the active hospitalisation contact for this patient
+      const encounters = await listEncountersByPatient(patientId.value, 'active')
+      encounter = encounters.find(e => e.contact_type === 'hospitalisation') ?? null
+    }
+
+    if (!encounter) {
+      // Fallback to the most recent closed stay
+      const allStays = await listStaysByPatient(patientId.value)
+      const closedStay = allStays
+        .filter(s => s.status === 'cloture')
+        .sort((a, b) => new Date(b.sortie_date ?? b.admission_date ?? 0).getTime() - new Date(a.sortie_date ?? a.admission_date ?? 0).getTime())[0]
+      if (closedStay) {
+        activeStay.value = closedStay
+        // Find the associated encounter (any status)
+        const allEncounters = await listEncountersByPatient(patientId.value)
+        encounter = allEncounters.find(e => e.contact_type === 'hospitalisation') ?? null
       }
+    }
+
+    activeEncounter.value = encounter
+
+    loadingMovements.value = true
+    try {
+      if (encounter?.id) {
+        encounterMovements.value = await getEncounterMovements(encounter.id)
+      } else {
+        encounterMovements.value = []
+      }
+    } catch {
+      encounterMovements.value = []
+    } finally {
+      loadingMovements.value = false
     }
   } catch {
     activeStay.value = null
-    stayMovements.value = []
+    activeEncounter.value = null
+    encounterMovements.value = []
   }
 }
 
 onMounted(async () => {
   loading.value = true
-  await Promise.all([loadEncounters(), loadStayData()])
+  await loadStayData()
   loading.value = false
+})
+
+let unsubMovement: (() => void) | null = null
+onMounted(() => {
+  unsubMovement = on('movement-updated', () => {
+    loadStayData()
+  })
+})
+
+onUnmounted(() => {
+  unsubMovement?.()
 })
 </script>
 
@@ -200,6 +224,20 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+}
+
+.sejour-view__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.sejour-view__section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cd-gray-900);
+  margin: 0;
 }
 
 .sejour-view__empty-card {

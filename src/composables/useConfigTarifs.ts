@@ -41,7 +41,8 @@ export function useConfigTarifs() {
       const params: Record<string, any> = { acte_id: acteId }
       if (codeTarif !== undefined) params.code_tarif = codeTarif
       return await ipcInvoke<TarifDto | null>('tarifs:get-active', params)
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -51,7 +52,8 @@ export function useConfigTarifs() {
       const created = await ipcInvoke<TarifDto>('tarifs:create', { ...dto, code_tarif: dto.code_tarif || 'TARIF.STANDARD' })
       await fetchTarifs()
       return created
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -61,7 +63,8 @@ export function useConfigTarifs() {
       const updated = await ipcInvoke<TarifDto>('tarifs:update', { id, ...dto })
       await fetchTarifs()
       return updated
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -71,7 +74,8 @@ export function useConfigTarifs() {
       await ipcInvoke('tarifs:bulk-update', { items })
       await fetchTarifs()
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }
@@ -81,7 +85,8 @@ export function useConfigTarifs() {
       await ipcInvoke('tarifs:delete', { id })
       await fetchTarifs()
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }
@@ -90,7 +95,8 @@ export function useConfigTarifs() {
     if (acteId == null) return []
     try {
       return await ipcInvoke<any[]>('tarifs:price-history', { acteId })
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return []
     }
   }

@@ -10,8 +10,13 @@ import { LogoService } from './logo.service'
 import { PatientExportService } from './patient-export.service'
 import { PatientService } from './patient.service'
 import { ClinicalDocumentService } from './clinical-document.service'
+import { PrescriptionService } from './prescription.service'
 import { PatientEntity } from '../entities/patient.entity'
-import { generateUserListHtml, generateUserProfileHtml, generatePatientProfileHtml, generateCrhDiabeteHtml } from '../export-templates'
+import type { PatientDto } from '../dto/patient.dto'
+import { generateUserListHtml, generateUserProfileHtml, generatePatientProfileHtml, generateCrhDiabeteHtml, generateOrdonnanceHtml } from '../export-templates'
+import type { CrhDiabeteOptions } from '../export-templates'
+import { generateCode128Svg } from '../utils/barcode'
+import * as QRCode from 'qrcode'
 import { roleLabel } from '../utils/role-labels'
 import {
   COLORS,
@@ -38,6 +43,17 @@ import {
 
 const COLUMN_COUNT = 11
 
+const CRC_DIABETE_OPTIONS: CrhDiabeteOptions = {
+  docTitle: 'COMPTE RENDU DE CONSULTATION — DIABÈTE',
+  docRefPrefix: 'CDE-CRC',
+  typeLabel: 'CRC',
+}
+
+// CRH/CRC @page margins declared in export-templates.ts (mm): top 18mm, bottom 22mm, left/right 15mm.
+// printToPDF margins are in inches and override the CSS @page margins, so use inch equivalents to
+// match the on-screen preview and keep room for the @bottom-* footer margin boxes (0.87in ≈ 22mm).
+const CRH_MARGINS = { top: 0.71, bottom: 0.87, left: 0.59, right: 0.59 }
+
 interface ColumnDef {
   header: string
   key: string
@@ -53,6 +69,7 @@ export class ExportService {
     @inject(PatientExportService) private patientExportService: PatientExportService,
     @inject(PatientService) private patientService: PatientService,
     @inject(ClinicalDocumentService) private clinicalDocumentService: ClinicalDocumentService,
+    @inject(PrescriptionService) private prescriptionService: PrescriptionService,
   ) {}
 
   async exportUsersListPdf(_filters?: any): Promise<string> {
@@ -343,32 +360,228 @@ export class ExportService {
     ])
   }
 
-  async exportCrhDiabetePdf(documentId: string): Promise<string> {
-    const doc = await this.clinicalDocumentService.getDocumentById(documentId)
-    if (!doc) throw new Error('Document introuvable')
-
-    const patientId = await this.clinicalDocumentService.getPatientIdByDocument(doc.contactId)
-    const { patient, hospital, logo } = await this.patientExportService.enrich(patientId)
-
-    const contact = {
-      id: doc.contactId,
-      service_name: doc.serviceId ?? undefined,
-    }
-
-    const formData = doc.formData ? JSON.parse(doc.formData) : {}
-
-    let signedByName: string | undefined
-    if (doc.signedBy) {
-      const user = await this.authService.getUserById(Number(doc.signedBy))
-      signedByName = user ? `${user.prenom || ''} ${(user.nom || '').toUpperCase()}`.trim() : undefined
-    }
-
-    const html = generateCrhDiabeteHtml(formData, patient, contact, hospital as any, logo, doc.signedAt ?? undefined, signedByName)
-    const buffer = await this.generatePdf(html, { top: 0, bottom: 0, left: 0, right: 0 })
+  async exportCrhDiabetePdf(documentId?: string | null, formData?: Record<string, any>, patientId?: number | null, contactId?: string | number | null): Promise<string> {
+    const { html, patient } = await this.buildCrhDiabeteHtml(documentId, undefined, formData, patientId, contactId)
+    const buffer = await this.generatePdf(html, CRH_MARGINS)
     const safeName = `crh-${patient.nom || 'inconnu'}-${patient.prenom || ''}.pdf`.replace(/[^a-zA-Z0-9\-_.]/g, '_')
     return this.saveFile(buffer, safeName, [
       { name: 'PDF', extensions: ['pdf'] },
     ])
+  }
+
+  async exportCrcDiabetePdf(documentId?: string | null, formData?: Record<string, any>, patientId?: number | null, contactId?: string | number | null): Promise<string> {
+    const { html, patient } = await this.buildCrhDiabeteHtml(documentId, CRC_DIABETE_OPTIONS, formData, patientId, contactId)
+    const buffer = await this.generatePdf(html, CRH_MARGINS)
+    const safeName = `crc-${patient.nom || 'inconnu'}-${patient.prenom || ''}.pdf`.replace(/[^a-zA-Z0-9\-_.]/g, '_')
+    return this.saveFile(buffer, safeName, [
+      { name: 'PDF', extensions: ['pdf'] },
+    ])
+  }
+
+  async previewCrhDiabete(documentId?: string | null, formData?: Record<string, any>, patientId?: number | null, contactId?: string | number | null): Promise<string> {
+    const { html } = await this.buildCrhDiabeteHtml(documentId, undefined, formData, patientId, contactId)
+    return html
+  }
+
+  async previewCrcDiabete(documentId?: string | null, formData?: Record<string, any>, patientId?: number | null, contactId?: string | number | null): Promise<string> {
+    const { html } = await this.buildCrhDiabeteHtml(documentId, CRC_DIABETE_OPTIONS, formData, patientId, contactId)
+    return html
+  }
+
+  private async buildCrhDiabeteHtml(documentId?: string | null, options?: CrhDiabeteOptions, formDataOverride?: Record<string, any>, patientId?: number | null, contactId?: string | number | null): Promise<{ html: string; patient: PatientDto }> {
+    if (documentId) {
+      const doc = await this.clinicalDocumentService.getDocumentById(documentId)
+      if (!doc) throw new Error('Document introuvable')
+
+      const pid = await this.clinicalDocumentService.getPatientIdByDocument(doc.contactId!)
+      const { patient, hospital, logo } = await this.patientExportService.enrich(pid)
+
+      const contact = {
+        id: doc.contactId,
+        service_name: doc.serviceId ?? undefined,
+      }
+
+      let formData: Record<string, any>
+      if (formDataOverride && Object.keys(formDataOverride).length > 0) {
+        formData = formDataOverride
+      } else {
+        formData = doc.formData ? JSON.parse(doc.formData) : {}
+      }
+
+      let signedByName: string | undefined
+      if (doc.signedBy) {
+        const user = await this.authService.getUserById(Number(doc.signedBy))
+        signedByName = user ? `${user.prenom || ''} ${(user.nom || '').toUpperCase()}`.trim() : undefined
+      }
+
+      const html = generateCrhDiabeteHtml(formData, patient, contact, hospital as any, logo, doc.signedAt ?? undefined, signedByName, options)
+      return { html, patient }
+    }
+
+    if (patientId == null) throw new Error('Ni identifiant de document ni identifiant de patient fournis')
+    if (!formDataOverride || Object.keys(formDataOverride).length === 0) throw new Error('Les données du formulaire (formData) sont requises pour générer le document')
+
+    const { patient, hospital, logo } = await this.patientExportService.enrich(patientId)
+    const contact = { id: contactId ?? null }
+    const html = generateCrhDiabeteHtml(formDataOverride, patient, contact, hospital as any, logo, undefined, undefined, options)
+    return { html, patient }
+  }
+
+  async exportOrdonnancePdf(params: { patientId: number; prescriptionIds?: number[]; inlinePrescriptions?: Array<{ medicament: string; dosage: string; unite: string; voie: string; duree: number; frequenceType: string; frequence: string[]; prn: boolean; instructions: string }> }): Promise<string> {
+    const html = await this.generateOrdonnancePreview(params)
+    const buffer = await this.generatePdf(html)
+    const now = new Date()
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '')
+    return this.saveFile(buffer, `ordonnance-${dateStr}.pdf`, [
+      { name: 'PDF', extensions: ['pdf'] },
+    ])
+  }
+
+  async generateOrdonnancePreview(params: { patientId: number; prescriptionIds?: number[]; inlinePrescriptions?: Array<{ medicament: string; dosage: string; unite: string; voie: string; duree: number; frequenceType: string; frequence: string[]; prn: boolean; instructions: string }> }): Promise<string> {
+    const patientEntity = await this.patientService.getById(params.patientId)
+    if (!patientEntity) throw new Error('Patient introuvable')
+
+    const [prescriptions, hospital, logo, legalNotice, agrementNumber] = await Promise.all([
+      this.prescriptionService.listByPatient(params.patientId),
+      this.settingsService.getHospitalInfo(),
+      this.logoService.getLogoBase64(),
+      this.settingsService.getSetting('legal_notice'),
+      this.settingsService.getSetting('agrement_number'),
+    ])
+
+    const filteredPrescriptions = params.prescriptionIds
+      ? prescriptions.filter(p => params.prescriptionIds!.includes(p.id!))
+      : prescriptions.filter(p => p.statut === 'active')
+
+    const inlineMapped = (params.inlinePrescriptions || []).map(ip => ({
+      nomMedicament: ip.medicament || '',
+      posologie: [ip.dosage, ip.unite, ip.voie, Array.isArray(ip.frequence) ? ip.frequence.join(', ') : (ip.frequence || '')].filter(Boolean).join(' - '),
+      reglesConditionnelles: ip.instructions ? [ip.instructions] : undefined,
+    }))
+
+    let prescriptorUser: any = null
+    const firstPrescription = filteredPrescriptions[0]
+    if (firstPrescription?.prescripteur_id) {
+      prescriptorUser = await this.authService.getUserById(firstPrescription.prescripteur_id)
+    }
+
+    const age = patientEntity.date_naissance
+      ? Math.floor((new Date().getTime() - new Date(patientEntity.date_naissance).getTime()) / 31557600000)
+      : 0
+
+    const now = new Date()
+    const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    const ordonnanceRef = `ORD-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(patientEntity.id || 0).padStart(4, '0')}`
+
+    const medicaments = filteredPrescriptions.filter(p => (p.type || p.prescription_type) === 'medicament')
+    const soins = filteredPrescriptions.filter(p => (p.type || p.prescription_type) === 'soins')
+
+    const medecinFullName = prescriptorUser
+      ? `${prescriptorUser.prenom || ''} ${(prescriptorUser.nom || '').toUpperCase()}`
+      : 'Dr Non renseigné'
+
+    const patient = {
+      civilite: patientEntity.civilite || 'M.',
+      nom: patientEntity.nom || '',
+      prenom: patientEntity.prenom || '',
+      numeroDossier: patientEntity.nip || String(patientEntity.id || ''),
+      pieceIdentite: undefined as string | undefined,
+      dateNaissance: patientEntity.date_naissance || '',
+      age,
+      poids: undefined as number | undefined,
+      taille: undefined as number | undefined,
+      traitementChronique: undefined as boolean | undefined,
+    }
+
+    const medecin = {
+      nom: medecinFullName,
+      prenom: prescriptorUser?.prenom || '',
+      specialite: prescriptorUser?.service || '',
+      numeroOrdre: prescriptorUser?.numero_ordre || '—',
+    }
+
+    const structure = {
+      nom: hospital.name || '',
+      ville: hospital.city || '',
+      adresse: hospital.address || '',
+      telephone: hospital.phone || '',
+      numeroAgrement: agrementNumber || '—',
+    }
+
+    const clinique = {
+      logoUrl: logo, // base64 data URI or null
+    }
+
+    // Generate barcodes (Code128) for doctor order number and facility agreement number
+    const ordreSvg = medecin.numeroOrdre && medecin.numeroOrdre !== '—'
+      ? generateCode128Svg(medecin.numeroOrdre, { height: 40, barWidth: 2, fontSize: 10 })
+      : ''
+    const agrementSvg = structure.numeroAgrement && structure.numeroAgrement !== '—'
+      ? generateCode128Svg(structure.numeroAgrement, { height: 40, barWidth: 2, fontSize: 10 })
+      : ''
+
+    // Generate QR code for patient dossier number
+    let dossierQrSvg = ''
+    try {
+      if (patient.numeroDossier) {
+        dossierQrSvg = await QRCode.toString(patient.numeroDossier, { type: 'svg', width: 80, margin: 1 })
+      }
+    } catch { /* ignore */ }
+
+    // Map prescriptions
+    const hasInsulin = [...medicaments, ...(params.inlinePrescriptions || [])].some(p =>
+      (p.medicament || '').toLowerCase().includes('insuline'),
+    )
+    const mappedPrescriptions = [
+      ...medicaments.map(p => ({
+        nomMedicament: p.medicament || '',
+        posologie: [p.dosage, p.voie, (p.frequence || '').split(',').filter(Boolean).join(', ')].filter(Boolean).join(' - '),
+        reglesConditionnelles: p.instructions ? [p.instructions] : undefined,
+      })),
+      ...inlineMapped,
+    ]
+
+    const mappedDispositifs = soins.map(p => ({
+      nom: p.medicament || '',
+      quantiteFrequence: (p.frequence || '').split(',').filter(Boolean).join(', '),
+    }))
+
+    // Generate QR notices for medications needing demonstration
+    const noticeQrCodes: Array<{ medicament: string; svg: string; sousTitre: string; url?: string }> = []
+    if (hasInsulin) {
+      for (const p of mappedPrescriptions) {
+        if ((p.nomMedicament || '').toLowerCase().includes('insuline') || (p.nomMedicament || '').toLowerCase().includes('stylo')) {
+          try {
+            const qrSvg = await QRCode.toString(`https://example.com/notice/${encodeURIComponent(p.nomMedicament)}`, { type: 'svg', width: 70, margin: 1 })
+            noticeQrCodes.push({
+              medicament: p.nomMedicament,
+              svg: qrSvg,
+              sousTitre: p.nomMedicament.toLowerCase(),
+            })
+          } catch { /* skip */ }
+        }
+      }
+    }
+
+    // Default legal notice if none configured
+    const defaultLegalNotice = 'Ordonnance émise conformément à la réglementation en vigueur en République de Guinée relative à l\'exercice de la médecine et de la pharmacie. Toute falsification ou usage frauduleux de ce document expose son auteur aux sanctions prévues par la loi.'
+    const legalNoticeText = legalNotice || defaultLegalNotice
+
+    return generateOrdonnanceHtml({
+      clinique,
+      medecin,
+      structure,
+      patient,
+      prescriptions: mappedPrescriptions,
+      dispositifsMedicaux: mappedDispositifs,
+      dateEmission: dateStr,
+      heureEmission: timeStr,
+      numeroOrdonnance: ordonnanceRef,
+      legalNotice: legalNoticeText,
+      barcodes: { ordreSvg, agrementSvg },
+      qrCodes: { dossierSvg: dossierQrSvg, notices: noticeQrCodes.length > 0 ? noticeQrCodes : undefined },
+    })
   }
 
   async exportPatientsListExcel(_filters?: any): Promise<string> {
@@ -499,16 +712,28 @@ export class ExportService {
 
   private async generatePdf(html: string, margins?: { top: number; bottom: number; left: number; right: number }): Promise<Buffer> {
     const win = new BrowserWindow({ show: false, width: 800, height: 600 })
-    win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
-    await new Promise<void>((resolve) => {
-      win.webContents.on('did-finish-load', () => resolve())
-    })
-    const buffer = await win.webContents.printToPDF({
-      printBackground: true,
-      margins: margins ?? { top: 0.79, bottom: 0.79, left: 0.59, right: 0.59 },
-    })
-    win.close()
-    return buffer
+    // The document can embed a multi-MB base64 logo → a data: URL would exceed
+    // Chromium's 2 097 152-character navigation limit, `did-finish-load` would
+    // never fire and the export would hang forever. Load from a temp file instead.
+    const tmpFile = path.join(app.getPath('temp'), `crh-pdf-${Date.now()}.html`)
+    fs.writeFileSync(tmpFile, html, 'utf-8')
+    try {
+      await new Promise<void>((resolve, reject) => {
+        win.webContents.once('did-finish-load', () => resolve())
+        win.webContents.once('did-fail-load', (_event, errorCode) => {
+          reject(new Error(`Impossible de charger le document pour l'export PDF (code: ${errorCode})`))
+        })
+        win.loadFile(tmpFile)
+      })
+      const buffer = await win.webContents.printToPDF({
+        printBackground: true,
+        margins: margins ?? { top: 0.79, bottom: 0.79, left: 0.59, right: 0.59 },
+      })
+      return buffer
+    } finally {
+      win.close()
+      fs.rmSync(tmpFile, { force: true })
+    }
   }
 
   private async saveFile(

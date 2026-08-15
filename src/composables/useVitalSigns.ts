@@ -1,10 +1,6 @@
 import { ref, computed, provide, inject, watch, type Ref, type ComputedRef } from 'vue'
 import { ElMessage } from 'element-plus'
-import {
-  getVitalSigns as apiGetVitalSigns,
-  saveVitalSigns as apiSaveVitalSigns,
-  type VitalSignsRecord,
-} from '@/api/vitalSigns'
+import { ipcInvoke } from '@/utils/ipc'
 
 /**
  * Vital signs frontend model (matches what the form produces).
@@ -22,6 +18,14 @@ export interface VitalSigns {
   saO2: number | null
   diurese: number | null
   poids: number | null
+}
+
+export interface VitalSignsRecord extends VitalSigns {
+  id: number
+  patientId: number
+  createdBy: number
+  createdAt: string
+  updatedAt: string
 }
 
 // ── Provide/Inject key ────────────────────────────────────────────────────
@@ -85,7 +89,7 @@ export function provideVitalSigns(patientId: Ref<number | null>): VitalSignsCont
     loading.value = true
     error.value = null
     try {
-      const record = await apiGetVitalSigns(pid)
+      const record = await ipcInvoke<VitalSignsRecord | null>('vital-signs:get-today', { patientId: pid })
       vitalSigns.value = record ? toVitalSigns(record) : null
     } catch (e) {
       const msg = (e as Error).message
@@ -105,7 +109,7 @@ export function provideVitalSigns(patientId: Ref<number | null>): VitalSignsCont
     loading.value = true
     error.value = null
     try {
-      const record = await apiSaveVitalSigns(pid, data)
+      const record = await ipcInvoke<VitalSignsRecord>('vital-signs:save', { patientId: pid, ...data })
       vitalSigns.value = toVitalSigns(record)
       ElMessage.success('Constantes enregistrées')
     } catch (e) {
@@ -178,4 +182,44 @@ function toVitalSigns(record: VitalSignsRecord): VitalSigns {
     diurese: record.diurese,
     poids: record.poids,
   }
+}
+
+export interface VitalSignsItemInput {
+  date: string
+  hour: number
+  taSystolique: number | null
+  taDiastolique: number | null
+  frequenceCardiaque: number | null
+  temperature: number | null
+  glycemie: number | null
+  cetonemie: number | null
+  glucosurie: string | null
+  cetonurie: string | null
+  saO2: number | null
+  diurese: number | null
+  poids: number | null
+}
+
+export interface VitalSignsItemRecord extends VitalSignsItemInput {
+  id: number
+  patientId: number
+  createdBy: number
+  createdAt: string
+  updatedAt: string
+}
+
+export function getVitalSignsList(patientId: number, startDate: string, endDate: string): Promise<VitalSignsRecord[]> {
+  return ipcInvoke<VitalSignsRecord[]>('vital-signs:list', { patientId, startDate, endDate })
+}
+
+export function getVitalSignsItemsList(patientId: number, startDate: string, endDate: string): Promise<VitalSignsItemRecord[]> {
+  return ipcInvoke<VitalSignsItemRecord[]>('vital-signs-items:list', { patientId, startDate, endDate })
+}
+
+export function saveVitalSignsItem(patientId: number, data: VitalSignsItemInput): Promise<VitalSignsItemRecord> {
+  return ipcInvoke<VitalSignsItemRecord>('vital-signs-items:save', { patientId, ...data })
+}
+
+export function deleteVitalSignsItem(id: number): Promise<void> {
+  return ipcInvoke<void>('vital-signs-items:delete', { id })
 }

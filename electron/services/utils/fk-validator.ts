@@ -19,7 +19,6 @@ const TABLE_LABELS: Record<string, string> = {
   specialties: 'spécialité',
   care_units: 'unité de soins',
   sites: 'site',
-  contact_categories: 'catégorie de contact',
   insurances: 'assurance',
   currencies: 'devise',
   medical_acts: 'acte médical',

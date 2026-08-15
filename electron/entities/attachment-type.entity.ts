@@ -1,9 +1,13 @@
 import type { AttachmentTypeDto, CreateAttachmentTypeDto, UpdateAttachmentTypeDto } from '../dto/attachment-type.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { AttachmentTypeConverter } from '../automerge/converters/attachment-type.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class AttachmentTypeEntity {
-  id?: number
-  name?: string
-  created_at?: string
+  @SchemaField() id?: number
+  @SchemaField() name?: string
+  @SchemaField() created_at?: string
 
   static toDto(entity: AttachmentTypeEntity): AttachmentTypeDto {
     return {
@@ -26,6 +30,15 @@ export class AttachmentTypeEntity {
   }
 
   static documentType(): string { return 'AttachmentType' }
-  static documentSchema(): any { return {} }
-  static register(): void { /* No Automerge sync needed */ }
+  static documentSchema(): AutomergeDocument<AttachmentTypeEntity> {
+    return buildDocumentSchema(AttachmentTypeEntity) as AutomergeDocument<AttachmentTypeEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'attachment_type',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: AttachmentTypeConverter.toDocument, toEntity: AttachmentTypeConverter.toEntity },
+    })
+  }
 }

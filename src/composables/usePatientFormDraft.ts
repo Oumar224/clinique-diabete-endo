@@ -4,6 +4,7 @@ import { ipcInvoke } from '@/utils/ipc'
 const hasDraft = ref(false)
 const currentFormType = ref<'patient_create' | 'patient_edit' | null>(null)
 const currentPatientId = ref<number | null>(null)
+const error = ref<string | null>(null)
 
 export function usePatientFormDraft() {
   async function loadDraft(formType: string, patientId?: number): Promise<{ formData: any; activeStep: number } | null> {
@@ -16,7 +17,9 @@ export function usePatientFormDraft() {
         hasDraft.value = true
         return { formData: parsed, activeStep: result.active_step }
       }
-    } catch {}
+    } catch (e) {
+      error.value = (e as Error).message
+    }
     return null
   }
 
@@ -31,7 +34,9 @@ export function usePatientFormDraft() {
       currentFormType.value = formType as any
       currentPatientId.value = patientId ?? null
       hasDraft.value = true
-    } catch {}
+    } catch (e) {
+      error.value = (e as Error).message
+    }
   }
 
   async function clearDraft() {
@@ -40,11 +45,13 @@ export function usePatientFormDraft() {
         formType: currentFormType.value || 'patient_create',
         patientId: currentPatientId.value ?? undefined,
       })
-    } catch {}
+    } catch (e) {
+      error.value = (e as Error).message
+    }
     hasDraft.value = false
     currentFormType.value = null
     currentPatientId.value = null
   }
 
-  return { hasDraft, currentFormType, currentPatientId, loadDraft, saveDraft, clearDraft }
+  return { hasDraft, currentFormType, currentPatientId, loadDraft, saveDraft, clearDraft, error }
 }

@@ -1,23 +1,27 @@
 import type { VitalSignsDto } from '../dto/vital-signs.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { VitalSignConverter } from '../automerge/converters/vital-sign.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class VitalSignEntity {
-  id?: number
-  patient_id?: number
-  date?: string
-  ta_systolique?: number | null
-  ta_diastolique?: number | null
-  frequence_cardiaque?: number | null
-  temperature?: number | null
-  glycemie?: number | null
-  cetonemie?: number | null
-  glucosurie?: string | null
-  cetonurie?: string | null
-  sa_o2?: number | null
-  diurese?: number | null
-  poids?: number | null
-  created_by?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() patient_id?: number
+  @SchemaField() date?: string
+  @SchemaField() ta_systolique?: number 
+  @SchemaField() ta_diastolique?: number 
+  @SchemaField() frequence_cardiaque?: number 
+  @SchemaField() temperature?: number 
+  @SchemaField() glycemie?: number 
+  @SchemaField() cetonemie?: number 
+  @SchemaField() glucosurie?: string 
+  @SchemaField() cetonurie?: string 
+  @SchemaField() sa_o2?: number 
+  @SchemaField() diurese?: number 
+  @SchemaField() poids?: number 
+  @SchemaField() created_by?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: VitalSignEntity): VitalSignsDto {
     return {
@@ -68,6 +72,13 @@ export class VitalSignEntity {
   }
 
   static documentType(): string { return 'VitalSign' }
-  static documentSchema(): any { return {} }
-  static register(): void { /* No Automerge sync needed */ }
+  static documentSchema(): AutomergeDocument<VitalSignEntity> { return buildDocumentSchema(VitalSignEntity) as AutomergeDocument<VitalSignEntity> }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'vital_sign',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: VitalSignConverter.toDocument, toEntity: VitalSignConverter.toEntity },
+    })
+  }
 }

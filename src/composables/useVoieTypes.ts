@@ -31,7 +31,8 @@ export function useVoieTypes() {
       const created = await ipcInvoke<VoieTypeDto>('voie-types:create', dto)
       await fetchTypes()
       return created
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -41,7 +42,8 @@ export function useVoieTypes() {
       await ipcInvoke('voie-types:delete', { id })
       await fetchTypes()
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }

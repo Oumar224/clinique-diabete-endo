@@ -160,6 +160,11 @@ async function submit() {
     return
   }
 
+  if (!form.patient_id || form.patient_id <= 0) {
+    ElMessage.error('Patient non valide. Sélectionnez un patient valide.')
+    return
+  }
+
   saving.value = true
   try {
     if (window.electronAPI) {
@@ -167,16 +172,22 @@ async function submit() {
         patient_id: form.patient_id,
         date: form.date,
         notes: form.notes || undefined,
-        items: form.items,
+        items: form.items.map(item => ({
+          ...item,
+          quantite: Math.max(1, item.quantite),
+          prix_unitaire: Math.max(0, item.prix_unitaire),
+        })),
       }) as { success: boolean; data: any }
       if (result.success) {
         ElMessage.success('Facture créée avec succès')
         visible.value = false
         emit('created')
+      } else {
+        ElMessage.error((result as any).message || 'Erreur lors de la création de la facture')
       }
     }
   } catch (e) {
-    ElMessage.error((e as Error).message)
+    ElMessage.error(`Erreur: ${(e instanceof Error ? e.message : String(e))}`)
   } finally {
     saving.value = false
   }

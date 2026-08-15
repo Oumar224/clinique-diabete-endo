@@ -8,7 +8,7 @@ export interface PatientDto {
   telephone?: string
   email?: string
   medecin_traitant?: string
-  allergies?: string[]
+  allergies?: Array<string | { libelle: string; type: string }>
   automerge_id?: string
   photo?: string
   nip?: string

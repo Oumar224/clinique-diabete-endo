@@ -36,6 +36,10 @@ export function registerPatientHandlers() {
     return PatientEntity.toDto(deleted)
   })
 
+  createHandler('patients:exists', async ({ ids }: { ids: number[] }) => {
+    return await container.resolve(PatientService).existByIds(ids)
+  })
+
   createHandler('trusted-person:get', async ({ patientId }: { patientId: number }) => {
     const entity = await container.resolve(TrustedPersonService).getByPatientId(patientId)
     return entity ? TrustedPersonEntity.toDto(entity) : null

@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { ServiceEntity } from '../entities/service.entity'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class ServiceService {
@@ -98,7 +99,7 @@ export class ServiceService {
         .insertInto('services')
         .values({
           name: (entity.name ?? '').trim(),
-          description: entity.description ?? null,
+          description: entity.description ?? undefined,
           duration: entity.duration ?? 30,
           color: entity.color ?? '#0E5C5B',
           sort_order: nextOrder,
@@ -124,6 +125,7 @@ export class ServiceService {
     }
 
     created.site_ids = entity.site_ids ?? []
+    entityEventBus.emitEntityChange({ entityType: 'service', action: 'created', id: created.id!, entity: created, source: 'local', timestamp: Date.now() })
     return created
   }
 
@@ -182,6 +184,7 @@ export class ServiceService {
 
     const updated = await this.getById(entity.id)
     if (!updated) throw new Error('Service introuvable après mise à jour')
+    entityEventBus.emitEntityChange({ entityType: 'service', action: 'updated', id: entity.id!, entity: updated, source: 'local', timestamp: Date.now() })
     return updated
   }
 
@@ -241,6 +244,7 @@ export class ServiceService {
       }
       throw err
     }
+    entityEventBus.emitEntityChange({ entityType: 'service', action: 'deleted', id, entity: existing, source: 'local', timestamp: Date.now() })
   }
 
   // ─── Reorder services ────────────────────────────────────────

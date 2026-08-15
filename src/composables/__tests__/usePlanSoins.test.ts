@@ -5,25 +5,15 @@ import { ref, defineComponent, h, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import { ElMessageBox } from 'element-plus'
 import { provideVitalSigns } from '../useVitalSigns'
-import { usePlanSoins } from '../usePlanSoins'
+import { usePlanSoins, getPlanSoins, getValidesPlanSoins, reprendreSoin, suspendrePrescription, reprendrePrescription, isInsulin, voieColor } from '../usePlanSoins'
+import { useAuth } from '@/composables/useAuth'
 import type { PlanSoinsContext } from '../usePlanSoins'
 import type { BlocHoraire, SoinItem } from '@/types/soins'
 
-const { mockGetPlanSoins, mockValiderSoin, mockSuspendreSoin } = vi.hoisted(() => ({
-  mockGetPlanSoins: vi.fn(),
-  mockValiderSoin: vi.fn(),
-  mockSuspendreSoin: vi.fn(),
-}))
+const mockIpcInvoke = vi.hoisted(() => vi.fn())
 
-vi.mock('@/api/planSoins', () => ({
-  getPlanSoins: mockGetPlanSoins,
-  validerSoin: mockValiderSoin,
-  suspendreSoin: mockSuspendreSoin,
-}))
-
-vi.mock('@/api/vitalSigns', () => ({
-  getVitalSigns: vi.fn(() => Promise.resolve(null)),
-  saveVitalSigns: vi.fn(),
+vi.mock('@/utils/ipc', () => ({
+  ipcInvoke: mockIpcInvoke,
 }))
 
 vi.mock('@/composables/useAuth', () => ({
@@ -34,7 +24,13 @@ vi.mock('@/composables/useAuth', () => ({
 
 vi.mock('element-plus', () => ({
   ElMessage: { success: vi.fn(), warning: vi.fn(), info: vi.fn(), error: vi.fn() },
-  ElMessageBox: { prompt: vi.fn(() => Promise.resolve({ value: 'Refus patient' })) },
+  ElMessageBox: { prompt: vi.fn(async (_title: string, _msg: string, opts?: any) => {
+    if (opts?.inputValidator) {
+      const result = opts.inputValidator('Test motif')
+      if (result !== true && typeof result === 'string') throw new Error(result)
+    }
+    return { value: 'Refus patient' }
+  }) },
 }))
 
 const SOIN_EN_ATTENTE: SoinItem = { id: 1, medicament: 'Metformine', dosage: '500 mg', voie: 'PO', statut: 'en_attente' }
@@ -88,18 +84,13 @@ function mountPlanSoinsContext(patientIdValue: number | null) {
 describe('usePlanSoins', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetPlanSoins.mockResolvedValue(makePlanRecord())
-    mockValiderSoin.mockImplementation(async (_id: number, validePar: string) => ({
-      ...SOIN_EN_ATTENTE,
-      statut: 'valide' as const,
-      validePar,
-      valideA: '10:30',
-    }))
-    mockSuspendreSoin.mockImplementation(async (_id: number, _motif: string) => ({
-      ...SOIN_EN_ATTENTE,
-      statut: 'suspendu' as const,
-      motifSuspension: _motif,
-    }))
+    mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+      if (channel === 'plan-soins:list') return makePlanRecord()
+      if (channel === 'plan-soins:valider') return { ...SOIN_EN_ATTENTE, statut: 'valide' as const, validePar: params?.validePar, valideA: '10:30' }
+      if (channel === 'plan-soins:suspendre') return { ...SOIN_EN_ATTENTE, statut: 'suspendu' as const, motifSuspension: params?.motif }
+      if (channel === 'vital-signs:get-today') return null
+      return null
+    })
   })
 
   describe('initial state', () => {
@@ -116,14 +107,18 @@ describe('usePlanSoins', () => {
     it('fetches plan from API and sets blocs', async () => {
       const { ctx } = mountPlanSoinsContext(null)
       await ctx.fetchPlan(1, '2026-07-03')
-      expect(mockGetPlanSoins).toHaveBeenCalledWith(1, '2026-07-03')
+      expect(mockIpcInvoke).toHaveBeenCalledWith('plan-soins:list', { patientId: 1, date: '2026-07-03' })
       expect(ctx.blocs.value.length).toBe(2)
       expect(ctx.blocs.value[0].heure).toBe('08h00')
       expect(ctx.blocs.value[1].heure).toBe('12h00')
     })
 
     it('sets blocs to empty when API returns null', async () => {
-      mockGetPlanSoins.mockResolvedValue(null)
+      mockIpcInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'plan-soins:list') return null
+        if (channel === 'vital-signs:get-today') return null
+        return null
+      })
       const { ctx } = mountPlanSoinsContext(null)
       await ctx.fetchPlan(1, '2026-07-03')
       expect(ctx.blocs.value).toEqual([])
@@ -132,12 +127,17 @@ describe('usePlanSoins', () => {
     it('does not fetch when id is falsy', async () => {
       const { ctx } = mountPlanSoinsContext(null)
       await ctx.fetchPlan(0, '2026-07-03')
-      expect(mockGetPlanSoins).not.toHaveBeenCalled()
+      const listCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'plan-soins:list')
+      expect(listCalls).toHaveLength(0)
       expect(ctx.blocs.value).toEqual([])
     })
 
     it('sets error on API failure', async () => {
-      mockGetPlanSoins.mockRejectedValue(new Error('Network error'))
+      mockIpcInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'plan-soins:list') throw new Error('Network error')
+        if (channel === 'vital-signs:get-today') return null
+        return null
+      })
       const { ctx } = mountPlanSoinsContext(null)
       await ctx.fetchPlan(1, '2026-07-03')
       expect(ctx.error.value).toBe('Network error')
@@ -150,7 +150,8 @@ describe('usePlanSoins', () => {
       patientId.value = 1
       await nextTick()
       await new Promise(r => setTimeout(r, 0))
-      expect(mockGetPlanSoins).toHaveBeenCalled()
+      const listCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'plan-soins:list')
+      expect(listCalls.length).toBeGreaterThan(0)
     })
 
     it('clears blocs when patientId becomes null', async () => {
@@ -168,7 +169,8 @@ describe('usePlanSoins', () => {
       const { ctx } = mountPlanSoinsContext(null)
       await ctx.fetchPlan(1, '2026-07-03')
       await ctx.valider(SOIN_EN_ATTENTE)
-      expect(mockValiderSoin).toHaveBeenCalledWith(1, 'Test User')
+      const validerCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'plan-soins:valider')
+      expect(validerCalls).toHaveLength(1)
       const updatedSoin = ctx.blocs.value[0].soins[0]
       expect(updatedSoin.statut).toBe('valide')
     })
@@ -177,7 +179,8 @@ describe('usePlanSoins', () => {
       const { ctx } = mountPlanSoinsContext(null)
       await ctx.fetchPlan(1, '2026-07-03')
       await ctx.valider(SOIN_INSULIN)
-      expect(mockValiderSoin).not.toHaveBeenCalled()
+      const validerCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'plan-soins:valider')
+      expect(validerCalls).toHaveLength(0)
       expect(ctx.insulinBlocked.value).toBe(true)
     })
 
@@ -185,16 +188,44 @@ describe('usePlanSoins', () => {
       const { ctx } = mountPlanSoinsContext(null)
       await ctx.fetchPlan(1, '2026-07-03')
       await ctx.valider(SOIN_EN_ATTENTE)
-      expect(mockValiderSoin).toHaveBeenCalled()
+      const validerCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'plan-soins:valider')
+      expect(validerCalls.length).toBeGreaterThan(0)
       expect(ctx.insulinBlocked.value).toBe(false)
     })
 
     it('sets error on API failure', async () => {
-      mockValiderSoin.mockRejectedValue(new Error('DB error'))
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'plan-soins:list') return makePlanRecord()
+        if (channel === 'plan-soins:valider') throw new Error('DB error')
+        if (channel === 'vital-signs:get-today') return null
+        return null
+      })
       const { ctx } = mountPlanSoinsContext(null)
       await ctx.fetchPlan(1, '2026-07-03')
       await ctx.valider(SOIN_EN_ATTENTE)
       expect(ctx.error.value).toBe('DB error')
+    })
+
+    it('uses "Utilisateur inconnu" when user is null', async () => {
+      vi.mocked(useAuth).mockReturnValueOnce({ user: ref(null) } as any)
+      const { ctx } = mountPlanSoinsContext(null)
+      await ctx.fetchPlan(1, '2026-07-03')
+      await ctx.valider(SOIN_EN_ATTENTE)
+      const validerCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'plan-soins:valider')
+      expect(validerCalls.length).toBe(1)
+    })
+
+    it('handles soin not found in any bloc gracefully', async () => {
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'plan-soins:list') return { blocs: [{ heure: '08h00', soins: [{ id: 99, medicament: 'Other', dosage: '100mg', voie: 'PO', statut: 'en_attente' }] }] }
+        if (channel === 'plan-soins:valider') return { id: params?.soinId, statut: 'valide', validePar: params?.validePar, valideA: '10:30' }
+        if (channel === 'vital-signs:get-today') return null
+        return null
+      })
+      const { ctx } = mountPlanSoinsContext(null)
+      await ctx.fetchPlan(1, '2026-07-03')
+      await ctx.valider({ id: 1, medicament: 'Metformine', dosage: '500mg', voie: 'PO', statut: 'en_attente' })
+      expect(ctx.blocs.value[0].soins[0].id).toBe(99)
     })
   })
 
@@ -203,7 +234,8 @@ describe('usePlanSoins', () => {
       const { ctx } = mountPlanSoinsContext(null)
       await ctx.fetchPlan(1, '2026-07-03')
       await ctx.suspendre(SOIN_EN_ATTENTE)
-      expect(mockSuspendreSoin).toHaveBeenCalledWith(1, 'Refus patient')
+      const suspendreCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'plan-soins:suspendre')
+      expect(suspendreCalls).toHaveLength(1)
       const updatedSoin = ctx.blocs.value[0].soins[0]
       expect(updatedSoin.statut).toBe('suspendu')
     })
@@ -213,15 +245,99 @@ describe('usePlanSoins', () => {
       const { ctx } = mountPlanSoinsContext(null)
       await ctx.fetchPlan(1, '2026-07-03')
       await ctx.suspendre(SOIN_EN_ATTENTE)
-      expect(mockSuspendreSoin).not.toHaveBeenCalled()
+      const suspendreCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'plan-soins:suspendre')
+      expect(suspendreCalls).toHaveLength(0)
     })
 
     it('sets error on API failure', async () => {
-      mockSuspendreSoin.mockRejectedValue(new Error('DB error'))
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'plan-soins:list') return makePlanRecord()
+        if (channel === 'plan-soins:suspendre') throw new Error('DB error')
+        if (channel === 'vital-signs:get-today') return null
+        return null
+      })
       const { ctx } = mountPlanSoinsContext(null)
       await ctx.fetchPlan(1, '2026-07-03')
       await ctx.suspendre(SOIN_EN_ATTENTE)
       expect(ctx.error.value).toBe('DB error')
     })
+
+    it('returns early on close error', async () => {
+      vi.mocked(ElMessageBox.prompt).mockRejectedValueOnce('close')
+      const { ctx } = mountPlanSoinsContext(null)
+      await ctx.fetchPlan(1, '2026-07-03')
+      await ctx.suspendre(SOIN_EN_ATTENTE)
+      const suspendreCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'plan-soins:suspendre')
+      expect(suspendreCalls).toHaveLength(0)
+    })
+
+    it('handles non-Error string throw from IPC', async () => {
+      mockIpcInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'plan-soins:list') return makePlanRecord()
+        if (channel === 'plan-soins:suspendre') throw 'raw string error'
+        if (channel === 'vital-signs:get-today') return null
+        return null
+      })
+      const { ctx } = mountPlanSoinsContext(null)
+      await ctx.fetchPlan(1, '2026-07-03')
+      await ctx.suspendre(SOIN_EN_ATTENTE)
+      expect(ctx.error.value).toBe('raw string error')
+    })
+  })
+})
+
+describe('standalone exported functions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockIpcInvoke.mockResolvedValue(null)
+  })
+
+  it('getPlanSoins calls ipcInvoke with correct params', async () => {
+    const mockRecord = { id: 1, patientId: 1, date: '2026-01-01', blocs: [] }
+    mockIpcInvoke.mockResolvedValueOnce(mockRecord)
+    const result = await getPlanSoins(1, '2026-01-01')
+    expect(mockIpcInvoke).toHaveBeenCalledWith('plan-soins:list', { patientId: 1, date: '2026-01-01' })
+    expect(result).toBe(mockRecord)
+  })
+
+  it('getValidesPlanSoins calls ipcInvoke with correct params', async () => {
+    const mockRecords = [{ date: '2026-01-01', heure: '08h00', medicament: 'M', dosage: '100mg', voie: 'PO', validePar: null, valideA: null }]
+    mockIpcInvoke.mockResolvedValueOnce(mockRecords)
+    const result = await getValidesPlanSoins(1, '2026-01-01', '2026-01-07')
+    expect(mockIpcInvoke).toHaveBeenCalledWith('plan-soins:valides', { patientId: 1, startDate: '2026-01-01', endDate: '2026-01-07' })
+    expect(result).toBe(mockRecords)
+  })
+
+  it('reprendreSoin calls ipcInvoke with correct params', async () => {
+    mockIpcInvoke.mockResolvedValueOnce({ id: 1 })
+    const result = await reprendreSoin(1)
+    expect(mockIpcInvoke).toHaveBeenCalledWith('plan-soins:reprise', { soinId: 1 })
+    expect(result).toEqual({ id: 1 })
+  })
+
+  it('suspendrePrescription calls ipcInvoke with correct params', async () => {
+    mockIpcInvoke.mockResolvedValueOnce([{ id: 1 }])
+    const result = await suspendrePrescription(5, 'Motif test')
+    expect(mockIpcInvoke).toHaveBeenCalledWith('plan-soins:suspendre-prescription', { prescriptionId: 5, motif: 'Motif test' })
+    expect(result).toEqual([{ id: 1 }])
+  })
+
+  it('reprendrePrescription calls ipcInvoke with correct params', async () => {
+    mockIpcInvoke.mockResolvedValueOnce([{ id: 1 }])
+    const result = await reprendrePrescription(10)
+    expect(mockIpcInvoke).toHaveBeenCalledWith('plan-soins:reprendre-prescription', { prescriptionId: 10 })
+    expect(result).toEqual([{ id: 1 }])
+  })
+})
+
+describe('re-exported functions from soins', () => {
+  it('isInsulin detects insulin medications', () => {
+    expect(isInsulin('Insuline Lantus')).toBe(true)
+    expect(isInsulin('Metformine')).toBe(false)
+  })
+
+  it('voieColor returns a value for known voie', () => {
+    const color = voieColor('PO')
+    expect(color).toBeDefined()
   })
 })

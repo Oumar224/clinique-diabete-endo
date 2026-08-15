@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import { ipcInvoke } from '@/utils/ipc'
 
 export interface EncounterDto {
@@ -21,7 +22,6 @@ export interface EncounterDto {
   prise_en_charge_precision?: string | null
   sinistre_info?: string | null
   notes?: string | null
-  contact_category_id?: number | null
   care_unit_id?: number | null
   status: 'active' | 'closed'
   created_by?: number | null
@@ -32,77 +32,196 @@ export interface EncounterDto {
 export interface EncounterMovementDto {
   id?: number
   encounter_id: number
+  from_service_id?: number | null
+  from_service_name?: string
   service_id?: number | null
   service_name?: string
   step_label: string
   entered_at: string
   exited_at?: string | null
+  motif?: string | null
   notes?: string | null
+  created_by?: number | null
   created_at?: string
 }
 
-export async function listEncountersByPatient(patientId: number, status?: string): Promise<EncounterDto[]> {
-  return ipcInvoke<EncounterDto[]>('encounters:list-by-patient', { patient_id: patientId, status })
-}
-
-export async function getEncounter(id: number): Promise<EncounterDto> {
-  return ipcInvoke<EncounterDto>('encounters:get', { id })
-}
-
-export async function createEncounter(data: {
-  patient_id: number
-  contact_type: string
-  contact_type_precision?: string | null
-  start_date: string
-  end_date?: string | null
+export interface EncounterMovementCreateDto {
+  encounter_id: number
+  from_service_id?: number | null
   service_id: number
-  medecin_id?: number | null
-  responsable_id?: number | null
-  origin: string
-  origin_precision?: string | null
-  zone_situation: string
-  zone_precision?: string | null
-  prise_en_charge: string
-  prise_en_charge_precision?: string | null
-  sinistre_info?: string | null
+  step_label: string
+  entered_at: string
+  exited_at?: string | null
+  motif?: string | null
   notes?: string | null
-  contact_category_id?: number | null
-  care_unit_id?: number | null
   created_by?: number | null
-}): Promise<EncounterDto> {
-  return ipcInvoke<EncounterDto>('encounters:create', data)
 }
 
-export async function getEncounterMovements(encounterId: number): Promise<EncounterMovementDto[]> {
-  return ipcInvoke<EncounterMovementDto[]>('encounters:get-movements', { encounter_id: encounterId })
-}
+const loading = ref(false)
+const error = ref<string | null>(null)
 
-export async function updateEncounter(id: number, data: Partial<{
-  contact_type: string
-  contact_type_precision?: string | null
-  start_date: string
-  end_date?: string | null
-  service_id: number
-  medecin_id?: number | null
-  responsable_id?: number | null
-  origin: string
-  origin_precision?: string | null
-  zone_situation: string
-  zone_precision?: string | null
-  prise_en_charge: string
-  prise_en_charge_precision?: string | null
-  sinistre_info?: string | null
-  notes?: string | null
-  contact_category_id?: number | null
-  care_unit_id?: number | null
-}>): Promise<EncounterDto> {
-  return ipcInvoke<EncounterDto>('encounters:update', { id, ...data })
-}
+export function useEncounters() {
+  async function listEncountersByPatient(patientId: number, status?: string): Promise<EncounterDto[]> {
+    loading.value = true
+    error.value = null
+    try {
+      return await ipcInvoke<EncounterDto[]>('encounters:list-by-patient', { patient_id: patientId, status })
+    } catch (e) {
+      error.value = (e as Error).message
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
 
-export async function deleteEncounter(id: number): Promise<void> {
-  await ipcInvoke('encounters:delete', { id })
-}
+  async function getEncounter(id: number): Promise<EncounterDto | null> {
+    loading.value = true
+    error.value = null
+    try {
+      return await ipcInvoke<EncounterDto>('encounters:get', { id })
+    } catch (e) {
+      error.value = (e as Error).message
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
 
-export async function closeEncounter(id: number): Promise<void> {
-  await ipcInvoke('encounters:close', { id })
+  async function createEncounter(data: {
+    patient_id: number
+    contact_type: string
+    contact_type_precision?: string | null
+    start_date: string
+    end_date?: string | null
+    service_id: number
+    medecin_id?: number | null
+    responsable_id?: number | null
+    origin: string
+    origin_precision?: string | null
+    zone_situation: string
+    zone_precision?: string | null
+    prise_en_charge: string
+    prise_en_charge_precision?: string | null
+    sinistre_info?: string | null
+    notes?: string | null
+    care_unit_id?: number | null
+    created_by?: number | null
+  }): Promise<EncounterDto | null> {
+    loading.value = true
+    error.value = null
+    try {
+      return await ipcInvoke<EncounterDto>('encounters:create', data)
+    } catch (e) {
+      error.value = (e as Error).message
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function getEncounterMovements(encounterId: number): Promise<EncounterMovementDto[]> {
+    loading.value = true
+    error.value = null
+    try {
+      return await ipcInvoke<EncounterMovementDto[]>('encounters:get-movements', { encounter_id: encounterId })
+    } catch (e) {
+      error.value = (e as Error).message
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function updateEncounter(id: number, data: Partial<{
+    contact_type: string
+    contact_type_precision?: string | null
+    start_date: string
+    end_date?: string | null
+    service_id: number
+    medecin_id?: number | null
+    responsable_id?: number | null
+    origin: string
+    origin_precision?: string | null
+    zone_situation: string
+    zone_precision?: string | null
+    prise_en_charge: string
+    prise_en_charge_precision?: string | null
+    sinistre_info?: string | null
+    notes?: string | null
+    care_unit_id?: number | null
+  }>): Promise<EncounterDto | null> {
+    loading.value = true
+    error.value = null
+    try {
+      return await ipcInvoke<EncounterDto>('encounters:update', { id, ...data })
+    } catch (e) {
+      error.value = (e as Error).message
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function deleteEncounter(id: number): Promise<void> {
+    loading.value = true
+    error.value = null
+    try {
+      await ipcInvoke('encounters:delete', { id })
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function closeEncounter(id: number): Promise<void> {
+    loading.value = true
+    error.value = null
+    try {
+      await ipcInvoke('encounters:close', { id })
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function addEncounterMovement(dto: EncounterMovementCreateDto): Promise<EncounterMovementDto | null> {
+    loading.value = true
+    error.value = null
+    try {
+      return await ipcInvoke<EncounterMovementDto>('encounters:add-movement', dto)
+    } catch (e) {
+      error.value = (e as Error).message
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function closeCurrentEncounterMovement(encounterId: number): Promise<void> {
+    loading.value = true
+    error.value = null
+    try {
+      await ipcInvoke('encounters:close-current-movement', { encounter_id: encounterId })
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    loading,
+    error,
+    listEncountersByPatient,
+    getEncounter,
+    createEncounter,
+    updateEncounter,
+    deleteEncounter,
+    getEncounterMovements,
+    addEncounterMovement,
+    closeCurrentEncounterMovement,
+    closeEncounter,
+  }
 }

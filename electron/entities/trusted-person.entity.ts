@@ -1,21 +1,25 @@
 import type { TrustedPersonDto } from '../dto/trusted-person.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { TrustedPersonConverter } from '../automerge/converters/trusted-person.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class TrustedPersonEntity {
-  id?: number
-  patient_id?: number
-  has_trusted?: number
-  nom?: string
-  prenom?: string
-  profession?: string
-  residence?: string
-  residence_code?: string
-  telephone?: string
-  email?: string
-  complement_adresse?: string
-  lien_parente?: string
-  attachments?: string
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() patient_id?: number
+  @SchemaField() has_trusted?: number
+  @SchemaField() nom?: string
+  @SchemaField() prenom?: string
+  @SchemaField() profession?: string
+  @SchemaField() residence?: string
+  @SchemaField() residence_code?: string
+  @SchemaField() telephone?: string
+  @SchemaField() email?: string
+  @SchemaField() complement_adresse?: string
+  @SchemaField() lien_parente?: string
+  @SchemaField() attachments?: string
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static fromDto(dto: TrustedPersonDto): TrustedPersonEntity {
     const e = new TrustedPersonEntity()
@@ -60,6 +64,15 @@ export class TrustedPersonEntity {
   }
 
   static documentType(): string { return 'TrustedPerson' }
-  static documentSchema(): any { return {} }
-  static register(): void { /* No Automerge sync needed */ }
+  static documentSchema(): AutomergeDocument<TrustedPersonEntity> {
+    return buildDocumentSchema(TrustedPersonEntity) as AutomergeDocument<TrustedPersonEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'trusted_person',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: TrustedPersonConverter.toDocument, toEntity: TrustedPersonConverter.toEntity },
+    })
+  }
 }

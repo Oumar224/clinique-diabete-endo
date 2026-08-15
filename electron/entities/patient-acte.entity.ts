@@ -1,14 +1,18 @@
 import type { PatientActeDto } from '../dto/patient-acte.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { PatientActeConverter } from '../automerge/converters/patient-acte.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class PatientActeEntity {
-  id?: number
-  encounter_id?: number
-  patient_id?: number
-  acte_id?: number
-  tarif_id?: number
-  quantite?: number
-  statut_paiement?: string
-  created_at?: string
+  @SchemaField() id?: number
+  @SchemaField() encounter_id?: number
+  @SchemaField() patient_id?: number
+  @SchemaField() acte_id?: number
+  @SchemaField() tarif_id?: number
+  @SchemaField() quantite?: number
+  @SchemaField() statut_paiement?: string
+  @SchemaField() created_at?: string
 
   static toDto(entity: PatientActeEntity): PatientActeDto {
     return {
@@ -43,6 +47,15 @@ export class PatientActeEntity {
   }
 
   static documentType(): string { return 'PatientActe' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<PatientActeEntity> {
+    return buildDocumentSchema(PatientActeEntity) as AutomergeDocument<PatientActeEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'patient_acte',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: PatientActeConverter.toDocument, toEntity: PatientActeConverter.toEntity },
+    })
+  }
 }

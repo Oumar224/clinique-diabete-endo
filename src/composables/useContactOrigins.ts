@@ -32,7 +32,8 @@ export function useContactOrigins() {
     try {
       const result = await ipcInvoke<ContactOriginDto[]>('contact-origins:list-active')
       return result ?? []
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return []
     }
   }
@@ -47,7 +48,8 @@ export function useContactOrigins() {
       const created = await ipcInvoke<ContactOriginDto>('contact-origins:create', data)
       await fetchOrigins()
       return created ?? null
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -62,7 +64,8 @@ export function useContactOrigins() {
       const updated = await ipcInvoke<ContactOriginDto>('contact-origins:update', { id, ...data })
       await fetchOrigins()
       return updated
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -72,7 +75,8 @@ export function useContactOrigins() {
       await ipcInvoke('contact-origins:delete', { id })
       await fetchOrigins()
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }

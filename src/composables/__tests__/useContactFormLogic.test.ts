@@ -116,7 +116,6 @@ describe('useContactFormLogic', () => {
       form.value.medecin_name = 'Dr. Diallo'
       form.value.responsable_id = 8
       form.value.responsable_name = 'Dr. Sow'
-      form.value.contact_category_id = 3
       form.value.assurance_id = 3
       form.value.care_unit_id = 5
 
@@ -139,7 +138,6 @@ describe('useContactFormLogic', () => {
       expect(form.value.end_date).toBe('')
       expect(form.value.responsable_id).toBeNull()
       expect(form.value.responsable_name).toBe('')
-      expect(form.value.contact_category_id).toBeNull()
       expect(form.value.care_unit_id).toBeNull()
     })
   })
@@ -193,7 +191,6 @@ describe('useContactFormLogic', () => {
       expect(form.value.end_date).toBe('')
       expect(form.value.responsable_id).toBeNull()
       expect(form.value.responsable_name).toBe('')
-      expect(form.value.contact_category_id).toBeNull()
       expect(form.value.care_unit_id).toBeNull()
     })
   })

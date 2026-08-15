@@ -36,7 +36,8 @@ export function useMedicalActs() {
       const created = await ipcInvoke<MedicalActDto>('acts:create', dto)
       await fetchActs()
       return created
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -46,7 +47,8 @@ export function useMedicalActs() {
       const updated = await ipcInvoke<MedicalActDto>('acts:update', { id, ...dto })
       await fetchActs()
       return updated
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -56,7 +58,8 @@ export function useMedicalActs() {
       await ipcInvoke('acts:delete', { id })
       await fetchActs()
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }

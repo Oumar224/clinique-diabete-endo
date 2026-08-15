@@ -69,12 +69,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { usePatientContext } from '@/composables/usePatientContext'
-import { listEncountersByPatient, type EncounterDto } from '@/composables/useEncounters'
+import { useEncounters, type EncounterDto } from '@/composables/useEncounters'
 import { ElMessage } from 'element-plus'
 import ContactFormSelector from '@/components/patients/ContactFormSelector.vue'
 import PatientClinicalDocs from '@/components/patients/PatientClinicalDocs.vue'
 
 const { activePatient } = usePatientContext()
+const { listEncountersByPatient } = useEncounters()
 
 const encounters = ref<EncounterDto[]>([])
 const selectedContactId = ref<string>('')

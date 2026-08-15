@@ -32,7 +32,9 @@ vi.mock('element-plus', () => ({
 }))
 
 vi.mock('@/composables/usePatients', () => ({
-  getPatient: mockGetPatient,
+  usePatients: vi.fn(() => ({
+    getPatient: mockGetPatient,
+  })),
 }))
 
 vi.mock('@/composables/usePatientContext', () => ({

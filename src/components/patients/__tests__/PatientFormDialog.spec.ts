@@ -302,4 +302,61 @@ describe('PatientFormDialog', () => {
     expect(state.regions.length).toBeGreaterThan(0)
     expect(state.regions[0].type).toBe('region')
   })
+
+  // ─── Allergies — structured { libelle, type } preservation ───────
+
+  describe('allergies (structured { libelle, type })', () => {
+    it('addAllergy pushes a structured { libelle, type: "Autre" } entry', async () => {
+      mockLocalites()
+      const wrapper = createWrapper()
+      const state = setupState(wrapper)
+
+      state.allergyInputValue = 'Aspirine'
+      state.addAllergy()
+
+      expect(state.form.allergies).toEqual([
+        { libelle: 'Aspirine', type: 'Autre' },
+      ])
+      // input is cleared and the add input is hidden again
+      expect(state.allergyInputValue).toBe('')
+      expect(state.allergyInputVisible).toBe(false)
+    })
+
+    it('does not duplicate an allergy that already exists', async () => {
+      mockLocalites()
+      const wrapper = createWrapper()
+      const state = setupState(wrapper)
+
+      state.form.allergies = [{ libelle: 'Aspirine', type: 'Autre' }]
+      state.allergyInputValue = 'Aspirine'
+      state.addAllergy()
+
+      expect(state.form.allergies).toHaveLength(1)
+    })
+
+    it('edit-mode open keeps string entries as strings and converts structured entries to { libelle, type } objects', async () => {
+      mockLocalites()
+      const wrapper = createWrapper()
+
+      await wrapper.vm.open({
+        id: 7,
+        civilite: 'M', nom: 'Diallo', prenom: 'Amadou',
+        date_naissance: '1985-06-15', nir: '1850615123456', telephone: '0612345678',
+        allergies: [
+          'Pénicilline',
+          { libelle: 'Arachide', type: 'Alimentaire' },
+          { libelle: 'Latex' },
+        ],
+      })
+
+      const state = setupState(wrapper)
+      // strings stay strings, structured entries are preserved as objects,
+      // and entries missing a type default to 'Autre'
+      expect(state.form.allergies).toEqual([
+        'Pénicilline',
+        { libelle: 'Arachide', type: 'Alimentaire' },
+        { libelle: 'Latex', type: 'Autre' },
+      ])
+    })
+  })
 })

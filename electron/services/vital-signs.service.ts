@@ -3,6 +3,8 @@ import { type Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { VitalSignEntity } from '../entities/vital-sign.entity'
+import { validateForeignKeys } from './utils/fk-validator'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class VitalSignsService {
@@ -41,6 +43,12 @@ export class VitalSignsService {
   }
 
   async save(entity: VitalSignEntity): Promise<VitalSignEntity> {
+    // Validate foreign keys before insert
+    await validateForeignKeys(this.db as any, [
+      { table: 'patient', column: 'patient_id', value: entity.patient_id },
+      { table: 'user', column: 'created_by', value: entity.created_by },
+    ])
+
     const patientId = entity.patient_id!
     const date = entity.date!
 
@@ -93,6 +101,8 @@ export class VitalSignsService {
       .where('date', '=', date)
       .executeTakeFirst()
 
-    return saved as unknown as VitalSignEntity
+    const result = saved as unknown as VitalSignEntity
+    entityEventBus.emitEntityChange({ entityType: 'vital_sign', action: existing ? 'updated' : 'created', id: result.id!, entity: result, source: 'local', timestamp: Date.now() })
+    return result
   }
 }

@@ -1,11 +1,11 @@
 export interface AttachmentTypeDto {
-  id: number
-  name: string
-  created_at: string
+  id?: number
+  name?: string
+  created_at?: string
 }
 
 export interface CreateAttachmentTypeDto {
-  name: string
+  name?: string
 }
 
 export interface UpdateAttachmentTypeDto {

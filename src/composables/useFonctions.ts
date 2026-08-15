@@ -31,7 +31,7 @@ export function useFonctions() {
       const created = await ipcInvoke<FonctionDto>('fonctions:create', { name })
       fonctions.value.push(created)
       return created
-    } catch { return null }
+    } catch (e) { error.value = (e as Error).message; return null }
   }
 
   async function updateFonction(id: number, dto: Partial<FonctionDto>): Promise<FonctionDto | null> {
@@ -40,7 +40,7 @@ export function useFonctions() {
       const idx = fonctions.value.findIndex(f => f.id === id)
       if (idx !== -1) fonctions.value[idx] = updated
       return updated
-    } catch { return null }
+    } catch (e) { error.value = (e as Error).message; return null }
   }
 
   async function deleteFonction(id: number): Promise<boolean> {
@@ -48,7 +48,7 @@ export function useFonctions() {
       await ipcInvoke('fonctions:delete', { id })
       fonctions.value = fonctions.value.filter(f => f.id !== id)
       return true
-    } catch { return false }
+    } catch (e) { error.value = (e as Error).message; return false }
   }
 
   async function toggleFonction(id: number): Promise<boolean> {
@@ -57,7 +57,7 @@ export function useFonctions() {
       const f = fonctions.value.find(f => f.id === id)
       if (f) f.is_active = !f.is_active
       return true
-    } catch { return false }
+    } catch (e) { error.value = (e as Error).message; return false }
   }
 
   return { fonctions, loading, error, fetchFonctions, createFonction, updateFonction, deleteFonction, toggleFonction }

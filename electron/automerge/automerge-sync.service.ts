@@ -1,15 +1,15 @@
 import { singleton, inject, delay } from 'tsyringe'
+import { randomUUID } from 'crypto'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import { EntityRegistry } from './entity-registry'
 import { AutomergeSqliteStorageAdapter } from './storage/automerge-sqlite-storage'
-import type { ChangeCallback } from './utils/entity-types'
-import { randomUUID } from 'crypto'
+import { entityEventBus } from './event-bus'
+import type { EntityChangeEvent } from './event-bus'
 
 @singleton()
 export class AutomergeSyncService {
   private storageAdapter: AutomergeSqliteStorageAdapter
   private isInitialized = false
-  private changeCallbacks: Map<string, ChangeCallback[]> = new Map()
 
   constructor(
     @inject(delay(() => AppDatabaseDatasource)) _datasource: AppDatabaseDatasource,
@@ -35,75 +35,44 @@ export class AutomergeSyncService {
       await this.triggerEntityRegistration()
     }
 
+    entityEventBus.on('entity:changed', (event: EntityChangeEvent) => {
+      if (event.source === 'remote') return
+      this.handleEntityChange(event)
+    })
+
     console.log(`[AutomergeSync] Initialized with ${registry.getAllTypes().length} entity types`)
     this.isInitialized = true
   }
 
-  async create<T extends { id?: number; automerge_id?: string }>(
-    entityType: string, entity: T
-  ): Promise<string> {
-    const registration = EntityRegistry.getInstance().get(entityType)
-    if (!registration) throw new Error(`Unknown entity type: ${entityType}`)
+  private async handleEntityChange(event: EntityChangeEvent): Promise<void> {
+    const registration = EntityRegistry.getInstance().get(event.entityType)
+    if (!registration) return
 
-    const doc = registration.converter.toDocument(entity)
-    doc.automergeId = randomUUID()
-    doc.lastModified = Date.now()
-    doc.modifiedBy = 'local'
-
-    await this.storageAdapter.save(doc.automergeId, new Uint8Array(Buffer.from(JSON.stringify(doc))))
-    entity.automerge_id = doc.automergeId
-    this.notifyChange(entityType, entity.id!, entity)
-    return doc.automergeId
-  }
-
-  async update<T extends { automerge_id?: string }>(
-    entityType: string, id: number, updates: Partial<T>
-  ): Promise<void> {
-    const registration = EntityRegistry.getInstance().get(entityType)
-    if (!registration) throw new Error(`Unknown entity type: ${entityType}`)
-
-    if (updates.automerge_id) {
-      const existing = await this.storageAdapter.load(updates.automerge_id)
-      if (existing) {
-        const raw = Buffer.from(existing).toString()
-        const doc = raw ? JSON.parse(raw) : {}
-        for (const [key, value] of Object.entries(updates)) {
-          if (key !== 'id' && key !== 'automerge_id') doc[key] = value
+    try {
+      if (event.action === 'deleted') {
+        const entity = event.entity as { automerge_id?: string } | null
+        if (entity?.automerge_id) {
+          await this.storageAdapter.remove(entity.automerge_id)
         }
-        doc.lastModified = Date.now()
-        await this.storageAdapter.save(doc.automergeId, new Uint8Array(Buffer.from(JSON.stringify(doc))))
+        return
       }
-    }
-    this.notifyChange(entityType, id, updates)
-  }
 
-  async delete<T extends { id?: number; automerge_id?: string }>(
-    entityType: string, entity: T
-  ): Promise<void> {
-    if (entity.automerge_id) {
-      await this.storageAdapter.remove(entity.automerge_id)
-    }
-    this.notifyChange(entityType, entity.id!, null)
-  }
+      const entity = event.entity as { id?: number; automerge_id?: string } | null
+      if (!entity) return
 
-  watch(entityType: string, callback: ChangeCallback): () => void {
-    if (!this.changeCallbacks.has(entityType)) {
-      this.changeCallbacks.set(entityType, [])
-    }
-    this.changeCallbacks.get(entityType)!.push(callback)
-    return () => {
-      const cbs = this.changeCallbacks.get(entityType)
-      if (cbs) {
-        const idx = cbs.indexOf(callback)
-        if (idx >= 0) cbs.splice(idx, 1)
+      const doc = registration.converter.toDocument(entity)
+      if (!doc.automergeId) {
+        doc.automergeId = randomUUID()
       }
-    }
-  }
+      doc.lastModified = Date.now()
+      doc.modifiedBy = 'local'
 
-  private notifyChange(entityType: string, id: number, changes: unknown): void {
-    const callbacks = this.changeCallbacks.get(entityType)
-    if (callbacks) {
-      callbacks.forEach(cb => cb(String(id), entityType, changes))
+      await this.storageAdapter.save(
+        doc.automergeId,
+        new Uint8Array(Buffer.from(JSON.stringify(doc))),
+      )
+    } catch (error) {
+      console.error(`[AutomergeSync] Error handling ${event.action} for ${event.entityType}:`, error)
     }
   }
 

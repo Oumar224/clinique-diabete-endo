@@ -302,4 +302,42 @@ describe('AppointmentService', () => {
 
     await expect(service.create(entity)).rejects.toThrow()
   })
+
+  // ─── FK Validation ───────────────────────────────────────────────
+
+  it('should reject create with invalid medecin_id', async () => {
+    const entity = AppointmentEntity.fromDto({
+      patient_id: patientId,
+      date: '2025-06-15',
+      time: '09:00',
+      medecin_id: 99999,
+    })
+
+    await expect(service.create(entity)).rejects.toThrow("utilisateur (ID 99999) n'existe pas")
+  })
+
+  it('should reject update with invalid medecin_id', async () => {
+    const created = await service.create(AppointmentEntity.fromDto({
+      patient_id: patientId,
+      date: '2025-06-15',
+      time: '09:00',
+    }))
+
+    await expect(
+      service.update(created.id!, { medecin_id: 99999 } as any)
+    ).rejects.toThrow("utilisateur (ID 99999) n'existe pas")
+  })
+
+  it('should create with null optional medecin_id', async () => {
+    const entity = AppointmentEntity.fromDto({
+      patient_id: patientId,
+      date: '2025-06-15',
+      time: '09:00',
+      medecin_id: null as any,
+    })
+
+    const created = await service.create(entity)
+    expect(created.id).toBeGreaterThan(0)
+    expect(created.patient_id).toBe(patientId)
+  })
 })

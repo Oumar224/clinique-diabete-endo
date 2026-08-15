@@ -1,16 +1,20 @@
 import type { LocaliteDto } from '../dto/localite.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { LocaliteConverter } from '../automerge/converters/localite.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class LocaliteEntity {
-  id?: number
-  code?: string
-  name?: string
-  type?: string
-  parent_id?: number | null
-  country?: string
-  region?: string
-  is_active?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() code?: string
+  @SchemaField() name?: string
+  @SchemaField() type?: string
+  @SchemaField() parent_id?: number 
+  @SchemaField() country?: string
+  @SchemaField() region?: string
+  @SchemaField() is_active?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: LocaliteEntity): LocaliteDto {
     return { id: entity.id, code: entity.code as string, name: entity.name as string, type: entity.type as 'region' | 'prefecture' | 'commune' | 'sous_prefecture', parent_id: entity.parent_id, country: entity.country as string, region: entity.region, is_active: entity.is_active === 1, created_at: entity.created_at, updated_at: entity.updated_at }
@@ -22,6 +26,15 @@ export class LocaliteEntity {
     return e
   }
   static documentType(): string { return 'Localite' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<LocaliteEntity> {
+    return buildDocumentSchema(LocaliteEntity) as AutomergeDocument<LocaliteEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'localite',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: LocaliteConverter.toDocument, toEntity: LocaliteConverter.toEntity },
+    })
+  }
 }

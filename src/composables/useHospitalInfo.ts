@@ -26,6 +26,7 @@ const info = ref<HospitalInfoDto>({
 })
 const loading = ref(false)
 const loaded = ref(false)
+const error = ref<string | null>(null)
 
 export function useHospitalInfo() {
   async function loadInfo() {
@@ -36,7 +37,9 @@ export function useHospitalInfo() {
       if (data) {
         info.value = data
       }
-    } catch {}
+    } catch (e) {
+      error.value = (e as Error).message
+    }
     loaded.value = true
     loading.value = false
   }
@@ -69,6 +72,7 @@ export function useHospitalInfo() {
     info,
     loading,
     loaded,
+    error,
     loadInfo,
     saveInfo,
     saveLogo,

@@ -42,4 +42,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
     },
   },
+  onEntityChanged(callback: (event: { entityType: string; action: string; id: number | string; source: string; timestamp: number }) => void) {
+    const subscription = (_event: any, data: any) => callback(data)
+    ipcRenderer.on('entity:changed', subscription)
+    return () => {
+      ipcRenderer.removeListener('entity:changed', subscription)
+    }
+  },
+  onSyncProgress(callback: (event: { phase: string; entityType: string; processed: number; total: number; timestamp: number; error?: string }) => void) {
+    const subscription = (_event: any, data: any) => callback(data)
+    ipcRenderer.on('sync:progress', subscription)
+    return () => {
+      ipcRenderer.removeListener('sync:progress', subscription)
+    }
+  },
 })

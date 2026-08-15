@@ -16,7 +16,7 @@ export interface Patient {
   assuranceMutuelle?: string
   consentementEtude?: string
   medecin_traitant?: string
-  allergies: string[]
+  allergies: Array<string | { libelle: string; type: string }>
   photo?: string | null
   nip?: string
   lieu_naissance?: string

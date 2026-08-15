@@ -3,23 +3,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref, defineComponent, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
-import { provideVitalSigns } from '../useVitalSigns'
+import { provideVitalSigns, deleteVitalSignsItem } from '../useVitalSigns'
 import type { VitalSignsContext } from '../useVitalSigns'
 
 // ---------------------------------------------------------------------------
 // Hoisted – mock functions created before vi.mock runs
 // ---------------------------------------------------------------------------
-const { mockGetVitalSigns, mockSaveVitalSigns } = vi.hoisted(() => ({
-  mockGetVitalSigns: vi.fn(),
-  mockSaveVitalSigns: vi.fn(),
-}))
+const mockIpcInvoke = vi.hoisted(() => vi.fn())
 
 // ---------------------------------------------------------------------------
-// Mock the API layer
+// Mock the IPC layer
 // ---------------------------------------------------------------------------
-vi.mock('@/api/vitalSigns', () => ({
-  getVitalSigns: mockGetVitalSigns,
-  saveVitalSigns: mockSaveVitalSigns,
+vi.mock('@/utils/ipc', () => ({
+  ipcInvoke: mockIpcInvoke,
 }))
 
 // ---------------------------------------------------------------------------
@@ -94,11 +90,12 @@ function makeRecord(overrides: Partial<{
 describe('provideVitalSigns', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // By default the API returns null (no vital signs recorded today)
-    mockGetVitalSigns.mockResolvedValue(null)
-    mockSaveVitalSigns.mockImplementation(async (_pid: number, data: any) =>
-      makeRecord(data),
-    )
+    // Default: get returns null (no vital signs today), save returns a record
+    mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+      if (channel === 'vital-signs:get-today') return null
+      if (channel === 'vital-signs:save') return makeRecord(params)
+      return null
+    })
   })
 
   // -----------------------------------------------------------------------
@@ -115,9 +112,11 @@ describe('provideVitalSigns', () => {
     })
 
     it('returns false when vital signs exist but date is not today', async () => {
-      mockGetVitalSigns.mockResolvedValue(
-        makeRecord({ date: '2020-01-01T00:00:00.000Z', glycemie: 1.2 }),
-      )
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'vital-signs:get-today') return makeRecord({ date: '2020-01-01T00:00:00.000Z', glycemie: 1.2 })
+        if (channel === 'vital-signs:save') return makeRecord(params)
+        return null
+      })
       const { ctx } = mountVitalSignsContext(1)
       await nextTick()
       await new Promise(r => setTimeout(r, 0))
@@ -126,9 +125,11 @@ describe('provideVitalSigns', () => {
     })
 
     it('returns false when glycemia is null', async () => {
-      mockGetVitalSigns.mockResolvedValue(
-        makeRecord({ date: new Date().toISOString(), glycemie: null }),
-      )
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'vital-signs:get-today') return makeRecord({ date: new Date().toISOString(), glycemie: null })
+        if (channel === 'vital-signs:save') return makeRecord(params)
+        return null
+      })
       const { ctx } = mountVitalSignsContext(1)
       await nextTick()
       await new Promise(r => setTimeout(r, 0))
@@ -137,9 +138,11 @@ describe('provideVitalSigns', () => {
     })
 
     it('returns false when glycemia is 0', async () => {
-      mockGetVitalSigns.mockResolvedValue(
-        makeRecord({ date: new Date().toISOString(), glycemie: 0 }),
-      )
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'vital-signs:get-today') return makeRecord({ date: new Date().toISOString(), glycemie: 0 })
+        if (channel === 'vital-signs:save') return makeRecord(params)
+        return null
+      })
       const { ctx } = mountVitalSignsContext(1)
       await nextTick()
       await new Promise(r => setTimeout(r, 0))
@@ -148,9 +151,11 @@ describe('provideVitalSigns', () => {
     })
 
     it('returns true when glycemia > 0 and date is today', async () => {
-      mockGetVitalSigns.mockResolvedValue(
-        makeRecord({ date: new Date().toISOString(), glycemie: 1.2 }),
-      )
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'vital-signs:get-today') return makeRecord({ date: new Date().toISOString(), glycemie: 1.2 })
+        if (channel === 'vital-signs:save') return makeRecord(params)
+        return null
+      })
       const { ctx } = mountVitalSignsContext(1)
       await nextTick()
       await new Promise(r => setTimeout(r, 0))
@@ -164,7 +169,6 @@ describe('provideVitalSigns', () => {
   // -----------------------------------------------------------------------
   describe('saveVitalSigns', () => {
     it('saves data and updates vitalSigns ref', async () => {
-      mockGetVitalSigns.mockResolvedValue(null)
       const { ctx } = mountVitalSignsContext(1)
       await nextTick()
       await new Promise(r => setTimeout(r, 0))
@@ -189,8 +193,10 @@ describe('provideVitalSigns', () => {
       }
       await ctx.saveVitalSigns(data)
 
-      expect(mockSaveVitalSigns).toHaveBeenCalledOnce()
-      expect(mockSaveVitalSigns).toHaveBeenCalledWith(1, data)
+      // Check that ipcInvoke was called with 'vital-signs:save' channel
+      const saveCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs:save')
+      expect(saveCalls).toHaveLength(1)
+      expect(saveCalls[0][1]).toEqual({ patientId: 1, ...data })
       expect(ctx.vitalSigns.value).not.toBeNull()
       expect(ctx.vitalSigns.value!.taSystolique).toBe(130)
     })
@@ -238,7 +244,8 @@ describe('provideVitalSigns', () => {
         poids: null,
       })
 
-      expect(mockSaveVitalSigns).not.toHaveBeenCalled()
+      const saveCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs:save')
+      expect(saveCalls).toHaveLength(0)
       expect(ctx.vitalSigns.value).toBeNull()
     })
   })
@@ -248,14 +255,16 @@ describe('provideVitalSigns', () => {
   // -----------------------------------------------------------------------
   describe('fetchVitalSigns', () => {
     it('fetches vital signs from the API on mount (via immediate watch)', async () => {
-      mockGetVitalSigns.mockResolvedValue(
-        makeRecord({ taSystolique: 140, glycemie: 1.8 }),
-      )
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'vital-signs:get-today') return makeRecord({ taSystolique: 140, glycemie: 1.8 })
+        if (channel === 'vital-signs:save') return makeRecord(params)
+        return null
+      })
       const { ctx } = mountVitalSignsContext(1)
       await nextTick()
       await new Promise(r => setTimeout(r, 0))
 
-      expect(mockGetVitalSigns).toHaveBeenCalledWith(1)
+      expect(mockIpcInvoke).toHaveBeenCalledWith('vital-signs:get-today', { patientId: 1 })
       expect(ctx.vitalSigns.value).not.toBeNull()
       expect(ctx.vitalSigns.value!.taSystolique).toBe(140)
     })
@@ -265,7 +274,8 @@ describe('provideVitalSigns', () => {
       await nextTick()
       await new Promise(r => setTimeout(r, 0))
 
-      expect(mockGetVitalSigns).not.toHaveBeenCalled()
+      const getCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs:get-today')
+      expect(getCalls).toHaveLength(0)
       expect(ctx.vitalSigns.value).toBeNull()
     })
   })
@@ -314,7 +324,10 @@ describe('provideVitalSigns', () => {
   // -----------------------------------------------------------------------
   describe('error handling', () => {
     it('sets error when fetch fails', async () => {
-      mockGetVitalSigns.mockRejectedValue(new Error('Network error'))
+      mockIpcInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'vital-signs:get-today') throw new Error('Network error')
+        return null
+      })
       const { ctx } = mountVitalSignsContext(1)
 
       // Wait for all promises to settle
@@ -327,9 +340,11 @@ describe('provideVitalSigns', () => {
     })
 
     it('sets error when save fails', async () => {
-      // Start with null data
-      mockGetVitalSigns.mockResolvedValue(null)
-      mockSaveVitalSigns.mockRejectedValue(new Error('DB timeout'))
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'vital-signs:get-today') return null
+        if (channel === 'vital-signs:save') throw new Error('DB timeout')
+        return null
+      })
       const { ctx } = mountVitalSignsContext(1)
       await nextTick()
       await new Promise(r => setTimeout(r, 0))
@@ -352,5 +367,25 @@ describe('provideVitalSigns', () => {
       expect(ctx.error.value).toBe('DB timeout')
       expect(ctx.vitalSigns.value).toBeNull() // not updated on failure
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// deleteVitalSignsItem
+// ---------------------------------------------------------------------------
+describe('deleteVitalSignsItem', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockIpcInvoke.mockResolvedValue({ success: true, data: null })
+  })
+
+  it('calls ipcInvoke with the vital-signs-items:delete channel and the id', async () => {
+    await deleteVitalSignsItem(42)
+    expect(mockIpcInvoke).toHaveBeenCalledWith('vital-signs-items:delete', { id: 42 })
+  })
+
+  it('propagates backend errors', async () => {
+    mockIpcInvoke.mockRejectedValue(new Error('Delete failed'))
+    await expect(deleteVitalSignsItem(7)).rejects.toThrow('Delete failed')
   })
 })

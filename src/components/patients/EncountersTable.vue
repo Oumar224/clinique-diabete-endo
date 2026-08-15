@@ -12,6 +12,7 @@
       style="width:100%"
       size="small"
       empty-text="Aucun contact enregistré"
+      :row-class-name="tableRowClassName"
       @expand-change="onExpandChange"
     >
       <el-table-column type="expand" width="32">
@@ -67,19 +68,22 @@
           {{ originLabel(row.origin) }}{{ row.origin_precision ? ` (${row.origin_precision})` : '' }}
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="Statut" width="90">
+      <el-table-column prop="status" label="Statut" width="100">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
-            {{ row.status === 'active' ? 'Actif' : 'Fermé' }}
-          </el-tag>
+          <span v-if="row.status === 'active'" class="encounters-table__status-active">
+            <span class="encounters-table__status-dot" />
+            Actif
+          </span>
+          <el-tag v-else type="info" size="small">Fermé</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="Actions" width="80" fixed="right">
         <template #default="{ row }">
-          <el-button text size="small" @click="emit('edit-contact', row)">
+          <el-button v-if="row.status !== 'closed'" text size="small" @click="emit('edit-contact', row)">
             <el-icon><Edit /></el-icon>
           </el-button>
           <el-popconfirm
+            v-if="row.status !== 'closed'"
             title="Supprimer ce contact ?"
             confirm-button-text="Oui"
             cancel-button-text="Non"
@@ -101,7 +105,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { Edit, Delete } from '@element-plus/icons-vue'
 import { ipcInvoke } from '@/utils/ipc'
-import { getEncounterMovements } from '@/composables/useEncounters'
+import { useEncounters } from '@/composables/useEncounters'
 import type { EncounterDto, EncounterMovementDto } from '@/composables/useEncounters'
 
 defineProps<{
@@ -113,6 +117,7 @@ const emit = defineEmits<{
   'edit-contact': [encounter: EncounterDto]
   'delete-contact': [id: number]
 }>()
+const { getEncounterMovements } = useEncounters()
 
 const movementsMap = reactive<Record<number, EncounterMovementDto[]>>({})
 const loadingMovements = reactive<Record<number, boolean>>({})
@@ -183,6 +188,11 @@ function contactTypeTag(type: string): 'primary' | 'danger' | 'warning' | 'info'
 function originLabel(origin: string): string {
   if (!origin) return '—'
   return originLabelMap.value[origin] || origin
+}
+
+function tableRowClassName({ row }: { row: EncounterDto }) {
+  if (row.status === 'active') return 'row--active'
+  return ''
 }
 </script>
 
@@ -277,5 +287,49 @@ function originLabel(origin: string): string {
   font-size: 11px;
   color: var(--cd-gray-400);
   font-style: italic;
+}
+
+:deep(.el-table__row.row--active) {
+  background: linear-gradient(90deg, rgba(26, 82, 118, 0.10) 0%, rgba(26, 82, 118, 0.02) 100%) !important;
+  position: relative;
+}
+
+:deep(.el-table__row.row--active:hover > td) {
+  background: linear-gradient(90deg, rgba(26, 82, 118, 0.14) 0%, rgba(26, 82, 118, 0.04) 100%) !important;
+}
+
+:deep(.el-table__row.row--active td) {
+  border-left: none;
+}
+
+:deep(.el-table__row.row--active td:first-child) {
+  border-left: 4px solid var(--cd-primary, #1a5276);
+  box-shadow: inset 4px 0 8px -2px rgba(26, 82, 118, 0.15);
+}
+
+.encounters-table__status-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cd-primary, #1a5276);
+  background: rgba(26, 82, 118, 0.08);
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.encounters-table__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25); }
+  50% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.08); }
 }
 </style>

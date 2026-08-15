@@ -53,7 +53,8 @@ export function usePatientActes() {
     try {
       const created = await ipcInvoke<PatientActeDto>('patient-actes:create', dto)
       return created
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -66,7 +67,8 @@ export function usePatientActes() {
         patientActes.value[idx] = { ...patientActes.value[idx], statut_paiement: statut }
       }
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }
@@ -76,7 +78,8 @@ export function usePatientActes() {
       await ipcInvoke('patient-actes:delete', { id })
       patientActes.value = patientActes.value.filter(a => a.id !== id)
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }

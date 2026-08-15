@@ -1,11 +1,15 @@
 import type { FonctionDto } from '../dto/settings.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { FonctionConverter } from '../automerge/converters/fonction.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class FonctionEntity {
-  id?: number
-  name?: string
-  is_active?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() name?: string
+  @SchemaField() is_active?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: FonctionEntity): FonctionDto {
     return { id: entity.id, name: entity.name as string, is_active: entity.is_active as unknown as boolean, created_at: entity.created_at, updated_at: entity.updated_at }
@@ -17,6 +21,15 @@ export class FonctionEntity {
     return e
   }
   static documentType(): string { return 'Fonction' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<FonctionEntity> {
+    return buildDocumentSchema(FonctionEntity) as AutomergeDocument<FonctionEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'fonction',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: FonctionConverter.toDocument, toEntity: FonctionConverter.toEntity },
+    })
+  }
 }

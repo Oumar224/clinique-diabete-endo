@@ -3,12 +3,65 @@
     <el-row :gutter="0" class="patient-clinical-docs__layout">
       <!-- Left column: Document list -->
       <el-col :span="8" class="patient-clinical-docs__list-col">
+        <!-- Filter bar -->
+        <div class="patient-clinical-docs__filters">
+          <el-segmented
+            v-model="filterSource"
+            :options="sourceFilterOptions"
+            size="small"
+          />
+          <el-select
+            v-model="filterTypeId"
+            placeholder="Tous les types"
+            clearable
+            size="small"
+            style="width: 180px"
+          >
+            <el-option
+              v-for="dt in documentTypes"
+              :key="dt.id"
+              :label="dt.label"
+              :value="dt.id"
+            />
+          </el-select>
+          <el-select
+            v-model="filterCategory"
+            placeholder="Toutes catégories"
+            clearable
+            size="small"
+            style="width: 160px"
+          >
+            <el-option label="Consultation" value="consultation" />
+            <el-option label="Labo" value="lab" />
+            <el-option label="Livraison" value="delivery" />
+            <el-option label="Autre" value="other" />
+          </el-select>
+          <el-date-picker
+            v-model="filterDateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
+            value-format="YYYY-MM-DD"
+            size="small"
+            style="width: 260px"
+          />
+          <el-button
+            size="small"
+            :disabled="isContactExpired"
+            @click="showImportDialog = true"
+          >
+            Importer
+          </el-button>
+        </div>
+
         <ClinicalDocList
-          :documents="documents"
+          :documents="filteredDocuments"
           :document-types="documentTypes"
           :selected-id="selectedDocument?.id ?? null"
           :loading="loading"
           :disabled="isContactExpired"
+          class="patient-clinical-docs__doclist"
           @select="handleSelect"
           @create="handleCreate"
           @delete-document="handleDelete"
@@ -27,15 +80,25 @@
         />
       </el-col>
     </el-row>
+
+    <!-- Import Document Dialog -->
+    <ImportDocumentDialog
+      :visible="showImportDialog"
+      :document-types="documentTypes"
+      :disabled="isContactExpired"
+      @update:visible="showImportDialog = $event"
+      @import="handleImport"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useClinicalDocuments } from '@/composables/useClinicalDocuments'
 import { usePatientContext } from '@/composables/usePatientContext'
 import { useAuth } from '@/composables/useAuth'
+import ImportDocumentDialog from './ImportDocumentDialog.vue'
 
 const props = defineProps<{
   contactId: string
@@ -57,6 +120,7 @@ const {
   checkContactExpired,
   getDocumentType,
   selectDocument,
+  importFile,
 } = useClinicalDocuments()
 
 const { activePatient } = usePatientContext()
@@ -77,6 +141,67 @@ const isReadonly = computed(() => {
 const selectedDocType = computed(() => {
   if (!selectedDocument.value) return null
   return getDocumentType(selectedDocument.value.documentTypeId) ?? null
+})
+
+// ─── Import dialog ─────────────────────────────────────────────────────────
+const showImportDialog = ref(false)
+
+async function handleImport(data: { file: File; documentTypeId: string; title: string }) {
+  if (!props.contactId) {
+    ElMessage.warning('Aucun contact sélectionné')
+    return
+  }
+  const createdBy = user.value?.id?.toString() ?? ''
+  const result = await importFile({
+    contactId: props.contactId,
+    createdBy,
+    file: data.file,
+    documentTypeId: data.documentTypeId,
+    title: data.title,
+  })
+  if (result) {
+    showImportDialog.value = false
+  }
+}
+
+// ─── Filters ───────────────────────────────────────────────────────────────
+const filterSource = ref<'all' | 'created' | 'imported'>('all')
+const filterTypeId = ref<string | null>(null)
+const filterCategory = ref<string | null>(null)
+const filterDateRange = ref<[string, string] | null>(null)
+
+const sourceFilterOptions = [
+  { label: 'Tous', value: 'all' },
+  { label: 'Créés', value: 'created' },
+  { label: 'Importés', value: 'imported' },
+]
+
+const filteredDocuments = computed(() => {
+  let result = documents.value
+  if (filterSource.value === 'created') {
+    result = result.filter(d => d.source !== 'imported')
+  } else if (filterSource.value === 'imported') {
+    result = result.filter(d => d.source === 'imported')
+  }
+  if (filterTypeId.value) {
+    result = result.filter(d => d.documentTypeId === filterTypeId.value)
+  }
+  if (filterCategory.value) {
+    result = result.filter(d => d.documentType?.category === filterCategory.value)
+  }
+  if (filterDateRange.value) {
+    const [start, end] = filterDateRange.value
+    if (start && end) {
+      const startDate = new Date(start)
+      const endDate = new Date(end)
+      endDate.setHours(23, 59, 59, 999)
+      result = result.filter(d => {
+        const docDate = new Date(d.createdAt)
+        return docDate >= startDate && docDate <= endDate
+      })
+    }
+  }
+  return result
 })
 
 // Watch for contact ID changes
@@ -175,6 +300,22 @@ function handleCloseForm() {
   height: 100%;
   overflow-y: auto;
   padding: 12px 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.patient-clinical-docs__filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.patient-clinical-docs__doclist {
+  flex: 1;
+  min-height: 0;
 }
 
 .patient-clinical-docs__form-col {

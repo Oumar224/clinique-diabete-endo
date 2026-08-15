@@ -33,18 +33,18 @@ export interface SessionDto {
 
 export interface LoginResult {
   token?: string
-  user: UserDto
+  user?: UserDto
   mustChangePassword?: boolean
 }
 
 export interface ValidatePasswordDto {
-  userId: number
-  oldPassword: string
-  newPassword: string
+  userId?: number
+  oldPassword?: string
+  newPassword?: string
 }
 
 export interface SyncUserRelationsDto {
-  id: number
+  id?: number
   specialty_ids?: number[]
   service_ids?: number[]
   site_ids?: number[]
@@ -52,7 +52,7 @@ export interface SyncUserRelationsDto {
 }
 
 export interface TerminateContractDto {
-  id: number
-  motif: string
+  id?: number
+  motif?: string
   resilie_par?: number
 }

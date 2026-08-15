@@ -1,11 +1,15 @@
 import type { DispositifTypeDto } from '../dto/settings.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { DispositifTypeConverter } from '../automerge/converters/dispositif-type.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class DispositifTypeEntity {
-  id?: number
-  label?: string
-  is_active?: number
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() label?: string
+  @SchemaField() is_active?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: DispositifTypeEntity): DispositifTypeDto {
     return { id: entity.id, label: entity.label as string, is_active: entity.is_active as unknown as boolean, created_at: entity.created_at, updated_at: entity.updated_at }
@@ -17,6 +21,15 @@ export class DispositifTypeEntity {
     return e
   }
   static documentType(): string { return 'DispositifType' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  static documentSchema(): AutomergeDocument<DispositifTypeEntity> {
+    return buildDocumentSchema(DispositifTypeEntity) as AutomergeDocument<DispositifTypeEntity>
+  }
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'dispositif_type',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: DispositifTypeConverter.toDocument, toEntity: DispositifTypeConverter.toEntity },
+    })
+  }
 }

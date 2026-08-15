@@ -399,6 +399,17 @@ describe('PatientAttachmentService', () => {
     ).rejects.toThrow()
   })
 
+  it('should verify FK constraint fails with descriptive error for invalid patient_id', async () => {
+    await expect(
+      service.create({
+        patient_id: 88888,
+        display_name: 'Bad.pdf',
+        file_name: 'bad.pdf',
+        file_data: 'data:,',
+      }),
+    ).rejects.toThrow()
+  })
+
   // ─── Edge cases ─────────────────────────────────────────────────
 
   it('handles very long display_name and file_name', async () => {

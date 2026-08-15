@@ -16,12 +16,18 @@
         <div class="patient-banner__meta">
           <span><strong>&Acirc;ge&nbsp;:</strong> {{ age }} ans</span>
           <span class="patient-banner__sep">|</span>
-          <span>N\u00b0 SS&nbsp;: {{ maskNir(patient.nir) }}</span>
+          <span>N° SS&nbsp;: {{ maskNir(patient.nir) }}</span>
           <span v-if="addressLine" class="patient-banner__sep">|</span>
           <span v-if="addressLine" class="patient-banner__address">{{ addressLine }}</span>
           <span v-if="patient.allergies && patient.allergies.length" class="patient-banner__allergies">
             <el-icon style="color:#e74c3c"><WarningFilled /></el-icon>
-            Allergies&nbsp;: {{ patient.allergies.join(', ') }}
+            Allergies&nbsp;:
+            <span
+              v-for="(a, i) in normalizeAllergies(patient.allergies)"
+              :key="i"
+              class="patient-banner__allergy-chip"
+              :style="{ background: allergyTypeColors(a.type).bg, color: allergyTypeColors(a.type).text, borderColor: allergyTypeColors(a.type).border }"
+            >{{ a.libelle }}</span>
           </span>
         </div>
       </div>
@@ -39,6 +45,7 @@ import { computed } from 'vue'
 import { Edit, WarningFilled } from '@element-plus/icons-vue'
 import { getCiviliteSymbol } from '@/utils/civilite'
 import type { Patient } from '@/composables/usePatientContext'
+import { normalizeAllergies, allergyTypeColors } from '@/utils/allergy-helpers'
 
 const props = defineProps<{
   patient: Patient | null
@@ -119,10 +126,23 @@ function maskNir(nir: string | undefined): string {
 .patient-banner__allergies {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   color: #e74c3c;
   font-weight: 600;
   margin-left: 4px;
+  flex-wrap: wrap;
+}
+
+.patient-banner__allergy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid;
+  white-space: nowrap;
 }
 
 .patient-banner__actions {

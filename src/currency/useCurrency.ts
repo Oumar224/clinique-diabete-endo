@@ -40,7 +40,6 @@ export function useCurrency() {
   }
 
   return {
-    currencyCode,
     currencyDef,
     loadCurrency,
     setCurrency,

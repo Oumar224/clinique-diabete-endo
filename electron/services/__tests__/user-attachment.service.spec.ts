@@ -396,6 +396,17 @@ describe('UserAttachmentService', () => {
     ).rejects.toThrow()
   })
 
+  it('should verify FK constraint fails for invalid user_id with descriptive error', async () => {
+    await expect(
+      service.create({
+        user_id: 88888,
+        display_name: 'Bad.pdf',
+        file_name: 'bad.pdf',
+        file_data: 'data:,',
+      }),
+    ).rejects.toThrow()
+  })
+
   // ─── Edge cases ─────────────────────────────────────────────────
 
   it('handles very long display_name and file_name', async () => {

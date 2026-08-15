@@ -1,43 +1,30 @@
-      import type { StayDto, StayMovementDto } from '../dto/stay.dto'
-
-export interface StayRow {
-  id: number
-  patient_id: number
-  admission_date: string
-  mode_admission: string
-  service_id: number
-  chambre: string | null
-  lit: string | null
-  medecin_id: number | null
-  notes: string | null
-  status: string
-  sortie_date: string | null
-  created_by: number | null
-  created_at: string | null
-  updated_at: string | null
-}
+import type { StayDto, StayCreateDto, StayMovementDto } from '../dto/stay.dto'
+import { EntityRegistry } from '../automerge/entity-registry'
+import { StayConverter } from '../automerge/converters/stay.converter'
+import { StayMovementConverter } from '../automerge/converters/stay-movement.converter'
+import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class StayEntity {
-  id?: number
-  patient_id?: number
-  admission_date?: string
-  mode_admission?: string
-  service_id?: number
-  chambre?: string | null
-  lit?: string | null
-  medecin_id?: number | null
-  notes?: string | null
-  status?: string
-  sortie_date?: string | null
-  created_by?: number | null
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() patient_id?: number
+  @SchemaField() admission_date?: string
+  @SchemaField() mode_admission?: string
+  @SchemaField() service_id?: number
+  @SchemaField() chambre?: string
+  @SchemaField() lit?: string
+  @SchemaField() medecin_id?: number
+  @SchemaField() notes?: string
+  @SchemaField() status?: string
+  @SchemaField() sortie_date?: string
+  @SchemaField() created_by?: number
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
-  static documentType(): string { return 'Stay' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  service_name?: string
+  medecin_name?: string
 
-  static toDto(entity: StayRow & { service_name?: string; medecin_name?: string }): StayDto {
+  static toDto(entity: StayEntity): StayDto {
     return {
       id: entity.id,
       patient_id: entity.patient_id,
@@ -53,36 +40,66 @@ export class StayEntity {
       status: entity.status as StayDto['status'],
       sortie_date: entity.sortie_date,
       created_by: entity.created_by,
-      created_at: entity.created_at ?? undefined,
-      updated_at: entity.updated_at ?? undefined,
+      created_at: entity.created_at,
+      updated_at: entity.updated_at,
     }
   }
 
-  static toDtos(entities: (StayRow & { service_name?: string; medecin_name?: string })[]): StayDto[] {
+  static toDtos(entities: StayEntity[]): StayDto[] {
     return entities.map(StayEntity.toDto)
+  }
+
+  static fromDto(dto: StayCreateDto): StayEntity {
+    const e = new StayEntity()
+    e.patient_id = dto.patient_id
+    e.admission_date = dto.admission_date
+    e.mode_admission = dto.mode_admission
+    e.service_id = dto.service_id
+    e.medecin_id = dto.medecin_id
+    e.chambre = dto.chambre
+    e.lit = dto.lit
+    e.notes = dto.notes
+    e.created_by = dto.created_by
+    return e
+  }
+
+  static documentType(): string {
+    return 'Stay'
+  }
+
+  static documentSchema(): AutomergeDocument<StayEntity> {
+    return buildDocumentSchema(StayEntity) as AutomergeDocument<StayEntity>
+  }
+
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'stay',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: StayConverter.toDocument, toEntity: StayConverter.toEntity },
+    })
   }
 }
 
 export class StayMovementEntity {
-  id?: number
-  stay_id?: number
-  movement_type?: string
-  from_service_id?: number | null
-  to_service_id?: number | null
-  chambre?: string | null
-  lit?: string | null
-  moved_at?: string
-  notes?: string | null
-  created_at?: string
+  @SchemaField() id?: number
+  @SchemaField() stay_id?: number
+  @SchemaField() movement_type?: string
+  @SchemaField() from_service_id?: number
+  @SchemaField() to_service_id?: number
+  @SchemaField() chambre?: string
+  @SchemaField() lit?: string
+  @SchemaField() moved_at?: string
+  @SchemaField() notes?: string
+  @SchemaField() created_at?: string
 
-  static documentType(): string { return 'StayMovement' }
-  static documentSchema(): any { return {} }
-  static register(): void {}
+  from_service_name?: string
+  to_service_name?: string
 
-  static toDto(entity: StayMovementEntity & { from_service_name?: string; to_service_name?: string }): StayMovementDto {
+  static toDto(entity: StayMovementEntity): StayMovementDto {
     return {
       id: entity.id,
-      stay_id: entity.stay_id!,
+      stay_id: entity.stay_id,
       movement_type: entity.movement_type as StayMovementDto['movement_type'],
       from_service_id: entity.from_service_id,
       from_service_name: entity.from_service_name,
@@ -90,13 +107,30 @@ export class StayMovementEntity {
       to_service_name: entity.to_service_name,
       chambre: entity.chambre,
       lit: entity.lit,
-      moved_at: entity.moved_at!,
+      moved_at: entity.moved_at,
       notes: entity.notes,
       created_at: entity.created_at,
     }
   }
 
-  static toDtos(entities: (StayMovementEntity & { from_service_name?: string; to_service_name?: string })[]): StayMovementDto[] {
+  static toDtos(entities: StayMovementEntity[]): StayMovementDto[] {
     return entities.map(StayMovementEntity.toDto)
+  }
+
+  static documentType(): string {
+    return 'StayMovement'
+  }
+
+  static documentSchema(): AutomergeDocument<StayMovementEntity> {
+    return buildDocumentSchema(StayMovementEntity) as AutomergeDocument<StayMovementEntity>
+  }
+
+  static register(): void {
+    EntityRegistry.getInstance().register({
+      type: this.documentType(),
+      tableName: 'stay_movement',
+      documentSchema: this.documentSchema(),
+      converter: { toDocument: StayMovementConverter.toDocument, toEntity: StayMovementConverter.toEntity },
+    })
   }
 }

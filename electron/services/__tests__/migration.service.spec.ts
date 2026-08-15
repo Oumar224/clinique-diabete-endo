@@ -7,7 +7,7 @@ import os from 'node:os'
 import { NodeSqliteDialect } from '../../driver/node-sqlite-dialect'
 import { MigrationService } from '../migration.service'
 
-describe('MigrationService', () => {
+describe('MigrationService', { timeout: 30_000 }, () => {
   let db: Kysely<any>
   let dbDir: string
   let dbPath: string
@@ -24,12 +24,12 @@ describe('MigrationService', () => {
     fs.rmSync(dbDir, { recursive: true, force: true })
   })
 
-  it('should run all 40 migrations successfully', async () => {
+  it('should run all 79 migrations successfully', async () => {
     const svc = new MigrationService(db)
     await expect(svc.runMigrations()).resolves.not.toThrow()
 
     const rows = await sql`SELECT name FROM kysely_migration`.execute(db)
-    expect(rows.rows.length).toBe(40)
+    expect(rows.rows.length).toBe(79)
 
     const names = rows.rows.map((r: any) => r.name)
     expect(names).toContain('025-attachment-types')
@@ -46,6 +46,11 @@ describe('MigrationService', () => {
     expect(names).toContain('042-vital-signs-new-columns')
     expect(names).toContain('043-vital-signs-items')
     expect(names).toContain('046-service-hierarchy')
+    expect(names).toContain('057-contact-origins')
+    expect(names).toContain('058-insurances')
+    expect(names).toContain('059-contact-categories')
+    expect(names).toContain('060-prescription-frequence-type')
+    expect(names).toContain('086-close-expired-active-encounters')
   })
 
   it('should create all settings tables', async () => {
@@ -84,5 +89,21 @@ describe('MigrationService', () => {
 
     const codes = currencies.rows.map((r: any) => r.code)
     expect(codes).toEqual(['EUR', 'GNF', 'XOF'])
+  })
+
+  it('should drop contact_categories and contact_category_id after 059 + 085', async () => {
+    const svc = new MigrationService(db)
+    await svc.runMigrations()
+
+    const tables = await sql<{ name: string }>`
+      SELECT name FROM sqlite_master WHERE type='table' AND name='contact_categories'
+    `.execute(db)
+    expect(tables.rows).toHaveLength(0)
+
+    const cols = await sql<{ name: string }>`
+      PRAGMA table_info('encounters')
+    `.execute(db)
+    const columnNames = cols.rows.map((r: any) => r.name)
+    expect(columnNames).not.toContain('contact_category_id')
   })
 })

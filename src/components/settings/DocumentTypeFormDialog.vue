@@ -38,6 +38,18 @@
         </el-select>
       </el-form-item>
 
+      <el-form-item label="Types de contact supportés" prop="contactTypes">
+  <el-select
+    v-model="form.contactTypes"
+    multiple
+    placeholder="Sélectionner les types de contact"
+    style="width: 100%"
+  >
+    <el-option label="Consultation" value="consultation" />
+    <el-option label="Hospitalisation" value="hospitalisation" />
+  </el-select>
+</el-form-item>
+
       <el-form-item label="Description">
         <el-input
           v-model="form.description"
@@ -127,6 +139,7 @@ const form = reactive({
   category: '',
   description: '',
   acteIdDeclenche: null as number | null,
+  contactTypes: [] as string[],
 })
 
 const formSchemaText = ref('')
@@ -162,6 +175,7 @@ async function open(row?: ClinicalDocumentTypeDTO) {
     form.category = row.category
     form.description = row.description ?? ''
     form.acteIdDeclenche = row.acteIdDeclenche ?? null
+    form.contactTypes = row.contactTypes ?? []
     formSchemaText.value = JSON.stringify(row.formSchema ?? [], null, 2)
   } else {
     isEdit.value = false
@@ -171,6 +185,7 @@ async function open(row?: ClinicalDocumentTypeDTO) {
     form.category = ''
     form.description = ''
     form.acteIdDeclenche = null
+    form.contactTypes = []
     formSchemaText.value = '[]'
   }
   schemaError.value = ''
@@ -206,6 +221,7 @@ async function handleSave() {
         category: form.category,
         description: form.description || null,
         acteIdDeclenche: form.acteIdDeclenche,
+        contactTypes: form.contactTypes,
         formSchema,
       })
       ElMessage.success('Type de document modifié')
@@ -216,6 +232,7 @@ async function handleSave() {
         category: form.category,
         description: form.description || null,
         acteIdDeclenche: form.acteIdDeclenche,
+        contactTypes: form.contactTypes,
         formSchema,
       })
       ElMessage.success('Type de document créé')

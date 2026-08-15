@@ -22,7 +22,7 @@ export function registerInvoiceHandlers() {
 
   createHandler('invoices:update', async (dto: InvoiceUpdateDto) => {
     const { id, ...data } = dto
-    return await container.resolve(InvoiceService).update(id, data)
+    return await container.resolve(InvoiceService).update(id!, data)
   })
 
   createHandler('invoices:add-payment', async (payment: InvoicePaymentDto) => {

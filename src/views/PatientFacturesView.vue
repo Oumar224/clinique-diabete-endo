@@ -6,12 +6,12 @@
     </div>
 
     <el-table v-loading="loading" :data="invoices" style="width:100%">
-      <el-table-column prop="numero" label="N° Facture" width="160" />
       <el-table-column prop="date" label="Date" width="110">
         <template #default="{ row }">
           {{ formatDate(row.date) }}
         </template>
       </el-table-column>
+      <el-table-column prop="numero" label="N° Facture" width="160" />
       <el-table-column prop="montant_total" label="Montant" width="120" align="right">
         <template #default="{ row }">
           {{ formatCurrency(row.montant_total) }}
@@ -54,10 +54,11 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Plus, Printer, Money } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { invoices, fetchPatientInvoices } from '@/composables/useInvoices'
 import { useCurrency } from '@/currency/useCurrency'
 import { usePatientContext } from '@/composables/usePatientContext'
-import { getPatient } from '@/composables/usePatients'
+import { usePatients } from '@/composables/usePatients'
 import InvoiceFormDialog from '@/components/facturation/InvoiceFormDialog.vue'
 import InvoicePaymentDialog from '@/components/facturation/InvoicePaymentDialog.vue'
 import InvoicePrintView from '@/components/facturation/InvoicePrintView.vue'
@@ -65,6 +66,7 @@ import InvoicePrintView from '@/components/facturation/InvoicePrintView.vue'
 const route = useRoute()
 const { formatCurrency, loadCurrency } = useCurrency()
 const { setActivePatient } = usePatientContext()
+const { getPatient } = usePatients()
 const loading = ref(true)
 const patientId = ref(0)
 const formDialogRef = ref<InstanceType<typeof InvoiceFormDialog> | null>(null)
@@ -98,6 +100,10 @@ function openCreate() {
 }
 
 function openPayment(inv: any) {
+  if (!patientId.value || patientId.value <= 0) {
+    ElMessage.error('Patient non valide')
+    return
+  }
   paymentDialogRef.value?.open(inv)
 }
 

@@ -4,6 +4,8 @@ import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { InvoiceEntity } from '../entities/invoice.entity'
 import type { InvoiceDto, InvoiceItemDto, InvoicePaymentDto, InvoiceCreateDto, InvoiceStatsDto } from '../dto/invoice.dto'
+import { validateForeignKeys } from './utils/fk-validator'
+import { entityEventBus } from '../automerge/event-bus'
 
 @singleton()
 export class InvoiceService {
@@ -102,9 +104,15 @@ export class InvoiceService {
   }
 
   async create(dto: InvoiceCreateDto): Promise<InvoiceDto> {
-    const dateStr = dto.date
+    // Validate foreign keys before insert
+    await validateForeignKeys(this.db as any, [
+      { table: 'patient', column: 'patient_id', value: dto.patient_id },
+      { table: 'user', column: 'created_by', value: dto.created_by },
+    ])
+
+    const dateStr = dto.date!
     const numero = await this.generateNumero(dateStr)
-    const montantTotal = dto.items.reduce((sum, item) => sum + item.montant, 0)
+    const montantTotal = (dto.items ?? []).reduce((sum, item) => sum + (item.montant ?? 0), 0)
 
     const result = await this.db
       .insertInto('invoice')
@@ -123,7 +131,7 @@ export class InvoiceService {
 
     if (!result) throw new Error('Échec de la création de la facture')
 
-    for (const item of dto.items) {
+    for (const item of (dto.items ?? [])) {
       await this.db
         .insertInto('invoice_item')
         .values({
@@ -137,7 +145,9 @@ export class InvoiceService {
         .execute()
     }
 
-    return (await this.getById(result.id!))!
+    const invoiceDto = (await this.getById(result.id!))!
+    entityEventBus.emitEntityChange({ entityType: 'invoice', action: 'created', id: result.id!, entity: invoiceDto, source: 'local', timestamp: Date.now() })
+    return invoiceDto
   }
 
   async update(id: number, data: { notes?: string; status?: string }): Promise<InvoiceDto> {
@@ -160,10 +170,19 @@ export class InvoiceService {
         .execute()
     }
 
-    return (await this.getById(id))!
+    const invoiceDto = (await this.getById(id))!
+    entityEventBus.emitEntityChange({ entityType: 'invoice', action: 'updated', id, entity: invoiceDto, source: 'local', timestamp: Date.now() })
+    return invoiceDto
   }
 
   async addPayment(payment: InvoicePaymentDto): Promise<InvoiceDto> {
+    // Validate foreign keys before insert
+    await validateForeignKeys(this.db as any, [
+      { table: 'invoice', column: 'invoice_id', value: payment.invoice_id },
+      { table: 'user', column: 'created_by', value: payment.created_by },
+    ])
+
+    // Look up the invoice to update its totals
     const invoice = await this.db
       .selectFrom('invoice')
       .selectAll()

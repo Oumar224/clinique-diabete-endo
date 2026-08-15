@@ -1,3 +1,5 @@
+import { buildDocumentSchema } from '../automerge/utils/schema-field'
+
 export class AutomergeDocumentEntity {
   document_id?: string
   data?: Uint8Array
@@ -8,7 +10,7 @@ export class AutomergeDocumentEntity {
   }
 
   static documentSchema(): any {
-    return {}
+    return buildDocumentSchema(AutomergeDocumentEntity)
   }
 
   static register(): void {

@@ -81,7 +81,12 @@
             <span class="dossier-view__value">
               <template v-if="!patient.allergies || patient.allergies.length === 0">Aucune</template>
               <span v-else class="dossier-view__allergies-tags">
-                <el-tag v-for="a in patient.allergies" :key="a" type="danger" size="small">{{ a }}</el-tag>
+                <span
+                  v-for="(a, i) in normalizeAllergies(patient.allergies)"
+                  :key="i"
+                  class="dossier-view__allergy-chip"
+                  :style="{ background: allergyTypeColors(a.type).bg, color: allergyTypeColors(a.type).text, borderColor: allergyTypeColors(a.type).border }"
+                ><span class="dossier-view__allergy-type">{{ a.type }}</span> {{ a.libelle }}</span>
               </span>
             </span>
           </div>
@@ -136,12 +141,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { usePatientContext } from '@/composables/usePatientContext'
 import { useLocalites } from '@/composables/useLocalites'
-import { getTrustedPerson, type TrustedPersonDto } from '@/composables/useTrustedPerson'
+import { useTrustedPerson, type TrustedPersonDto } from '@/composables/useTrustedPerson'
 import { formatDate } from '@/utils/date'
 import { getCiviliteSymbol } from '@/utils/civilite'
 import { ipcInvoke } from '@/utils/ipc'
+import { normalizeAllergies, allergyTypeColors } from '@/utils/allergy-helpers'
 const { activePatient, age } = usePatientContext()
 const { localites, fetchLocalites } = useLocalites()
+const { getTrustedPerson } = useTrustedPerson()
 const trustedPerson = ref<TrustedPersonDto | null>(null)
 const sites = ref<Array<{ id: number; name: string }>>([])
 
@@ -264,6 +271,25 @@ onMounted(async () => {
   display: inline-flex;
   gap: 4px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.dossier-view__allergy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid;
+}
+.dossier-view__allergy-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  opacity: 0.7;
 }
 
 /* ── Responsive: single column on mobile ─────────────────── */

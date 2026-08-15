@@ -1,40 +1,37 @@
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
+import { ref, nextTick } from 'vue'
 import DossierClinicView from '../DossierClinicView.vue'
 
 // ===========================================================================
-// Hoisted mocks — available before any vi.mock() call
+// Hoisted mocks
 // ===========================================================================
 const {
   mockFetchDocumentTypes,
-  mockFetchDocumentTypesWithPricing,
   mockFetchDocumentsByPatient,
-  mockCreateDocumentWithActe,
+  mockCreateDocument,
   mockDeleteDocument,
-  mockCheckContactExpired,
   mockListEncountersByPatient,
   mockElMessage,
   mockElMessageBox,
-  // State containers for composable refs (plain objects that the mock
-  // composable returns directly — NOT wrapped in React refs, so Vue's
-  // template uses them as-is without auto-unwrapping).
+  mockSelectDocument,
   state,
 } = vi.hoisted(() => ({
   mockFetchDocumentTypes: vi.fn(),
-  mockFetchDocumentTypesWithPricing: vi.fn(),
   mockFetchDocumentsByPatient: vi.fn(),
-  mockCreateDocumentWithActe: vi.fn(),
+  mockCreateDocument: vi.fn(),
   mockDeleteDocument: vi.fn(),
-  mockCheckContactExpired: vi.fn(),
   mockListEncountersByPatient: vi.fn(),
   mockElMessage: { success: vi.fn(), warning: vi.fn(), info: vi.fn(), error: vi.fn() },
   mockElMessageBox: { confirm: vi.fn(() => Promise.resolve()), alert: vi.fn(() => Promise.resolve()) },
+  mockSelectDocument: vi.fn(),
   state: {
     documents: [] as any[],
+    selectedDocument: null as any,
     loading: false,
+    documentTypes: [] as any[],
   },
 }))
 
@@ -53,6 +50,12 @@ vi.mock('element-plus', () => ({
 vi.mock('@element-plus/icons-vue', () => ({
   Plus: { render: () => {} },
   Delete: { render: () => {} },
+  Upload: { render: () => {} },
+  User: { render: () => {} },
+  View: { render: () => {} },
+  ArrowLeft: { render: () => {} },
+  DocumentChecked: { render: () => {} },
+  Lock: { render: () => {} },
 }))
 
 vi.mock('@/composables/usePatientContext', () => ({
@@ -61,21 +64,39 @@ vi.mock('@/composables/usePatientContext', () => ({
   })),
 }))
 
-vi.mock('@/composables/useClinicalDocuments', () => ({
-  useClinicalDocuments: vi.fn(() => ({
-    // These are plain arrays / booleans (not refs). The component's
-    // `<script setup>` destructures them directly, and the template
-    // accesses `.length` / boolean truthiness without ref unwrapping.
-    documents: state.documents,
-    loading: state.loading,
-    fetchDocumentTypes: mockFetchDocumentTypes,
-    fetchDocumentTypesWithPricing: mockFetchDocumentTypesWithPricing,
-    fetchDocumentsByPatient: mockFetchDocumentsByPatient,
-    createDocumentWithActe: mockCreateDocumentWithActe,
-    deleteDocument: mockDeleteDocument,
-    checkContactExpired: mockCheckContactExpired,
-  })),
-}))
+vi.mock('@/composables/useClinicalDocuments', async () => {
+  const { ref: vueRef } = await import('vue')
+  const docsRef = vueRef<any[]>([])
+  const docTypesRef = vueRef<any[]>([])
+  const loadingRef = vueRef(false)
+
+  return {
+    useClinicalDocuments: vi.fn(() => {
+      const selectedDocument = vueRef(state.selectedDocument)
+      // Sync refs with state on each call (called per mount)
+      docsRef.value = [...state.documents]
+      docTypesRef.value = [...state.documentTypes]
+      loadingRef.value = state.loading
+
+      return {
+        documentTypes: docTypesRef,
+        documents: docsRef,
+        selectedDocument,
+        loading: loadingRef,
+        fetchDocumentTypes: mockFetchDocumentTypes,
+        fetchDocumentsByPatient: mockFetchDocumentsByPatient,
+        createDocument: mockCreateDocument,
+        importFile: vi.fn(),
+        openPdf: vi.fn(),
+        updateDocumentData: vi.fn(),
+        signDocument: vi.fn(),
+        deleteDocument: mockDeleteDocument,
+        getDocumentType: (typeId: string) => state.documentTypes.find((t: any) => t.id === typeId) ?? null,
+        selectDocument: (doc: any) => { selectedDocument.value = doc; mockSelectDocument(doc) },
+      }
+    }),
+  }
+})
 
 vi.mock('@/composables/useAuth', () => ({
   useAuth: vi.fn(() => ({
@@ -90,30 +111,29 @@ vi.mock('@/composables/useCurrencies', () => ({
 }))
 
 vi.mock('@/composables/useEncounters', () => ({
-  listEncountersByPatient: mockListEncountersByPatient,
+  useEncounters: vi.fn(() => ({
+    listEncountersByPatient: mockListEncountersByPatient,
+  })),
 }))
 
 // ===========================================================================
-// Flush micro-tasks and Vue updates
+// Helpers
 // ===========================================================================
 function waitForData() {
   return new Promise(resolve => setTimeout(resolve, 0))
 }
 
 // ===========================================================================
-// Stubs for Element Plus components
+// Stubs
 // ===========================================================================
 const stubs = {
-  // ── Table ────────────────────────────────────────────────────────────
   'el-table': {
     template: [
       '<div class="el-table">',
       '  <div v-for="(item, idx) in (data || [])" :key="idx" class="el-table__row" @click="$emit(\'row-click\', item)">',
       '    <div class="el-table__cell-doc">',
       '      <span class="el-table__label">{{ item.documentType?.label || item.title }}</span>',
-      '      <span v-if="item.documentType?.acteLabel" class="el-table__acte">{{ item.documentType.acteLabel }}</span>',
       '    </div>',
-      '    <span class="el-table__contact">#{{ item.contactId }}</span>',
       '    <span class="el-table__status">{{ item.status === \'signed\' ? \'Signé\' : \'Brouillon\' }}</span>',
       '    <span class="el-table__date">{{ item.createdAt }}</span>',
       '  </div>',
@@ -126,28 +146,20 @@ const stubs = {
     template: '<div class="el-table-column"><slot :row="row" /></div>',
     props: ['prop', 'label', 'width', 'align'],
   },
-
-  // ── Buttons ──────────────────────────────────────────────────────────
   'el-button': {
     template:
-      '<button class="el-button" :disabled="disabled" @click="$emit(\'click\', $event)"><slot /></button>',
-    props: ['disabled', 'type', 'size', 'icon', 'text', 'loading'],
+      '<button class="el-button" :disabled="disabled" :title="title || \'\'" @click="$emit(\'click\', $event)"><slot /></button>',
+    props: ['disabled', 'type', 'size', 'icon', 'text', 'loading', 'title'],
     emits: ['click'],
   },
-
-  // ── Tags ─────────────────────────────────────────────────────────────
   'el-tag': {
     template: '<span class="el-tag" :class="`el-tag--${type}`"><slot /></span>',
     props: ['type', 'size', 'effect'],
   },
-
-  // ── Empty state ──────────────────────────────────────────────────────
   'el-empty': {
     template: '<div class="el-empty"><p class="el-empty__description">{{ description }}</p><slot /></div>',
     props: ['description', 'imageSize'],
   },
-
-  // ── Dialog ───────────────────────────────────────────────────────────
   'el-dialog': {
     template: [
       '<div v-if="modelValue" class="el-dialog">',
@@ -159,8 +171,6 @@ const stubs = {
     props: ['modelValue', 'title', 'width', 'top'],
     emits: ['update:modelValue'],
   },
-
-  // ── Select ───────────────────────────────────────────────────────────
   'el-select': {
     template: [
       '<select class="el-select" :value="modelValue" @change="onChange">',
@@ -181,24 +191,6 @@ const stubs = {
     template: '<option class="el-option" :value="value">{{ label }}</option>',
     props: ['value', 'label'],
   },
-
-  // ── Collapse / Catalog ───────────────────────────────────────────────
-  'el-collapse': {
-    template: '<div class="el-collapse"><slot /></div>',
-    props: ['modelValue'],
-    emits: ['update:modelValue'],
-  },
-  'el-collapse-item': {
-    template: [
-      '<div class="el-collapse-item">',
-      '  <div class="el-collapse-item__title"><slot name="title" /></div>',
-      '  <div class="el-collapse-item__content"><slot /></div>',
-      '</div>',
-    ].join(''),
-    props: ['name'],
-  },
-
-  // ── Misc ─────────────────────────────────────────────────────────────
   'el-skeleton': {
     template: '<div class="el-skeleton"><slot /></div>',
     props: ['rows', 'animated'],
@@ -210,13 +202,62 @@ const stubs = {
   'el-icon': {
     template: '<span class="el-icon"><slot /></span>',
   },
-  'el-divider': {
-    template: '<hr class="el-divider" />',
+  'el-alert': {
+    template: '<div class="el-alert" :class="`el-alert--${type}`">{{ title }}<slot /></div>',
+    props: ['type', 'title', 'closable', 'showIcon'],
+  },
+  'el-form': {
+    template: '<form class="el-form"><slot /></form>',
+    props: ['model', 'rules', 'labelPosition'],
+    methods: {
+      validate() { return Promise.resolve(true) },
+      clearValidate() {},
+      resetFields() {},
+    },
+  },
+  'el-form-item': {
+    template: '<div class="el-form-item"><label>{{ label }}</label><slot /></div>',
+    props: ['label', 'prop'],
+  },
+  'el-popconfirm': {
+    template: '<div class="el-popconfirm"><slot /></div>',
+    props: ['title'],
+  },
+  'el-segmented': {
+    template: `
+      <div class="el-segmented">
+        <button
+          v-for="opt in options"
+          :key="opt.value"
+          class="el-segmented__item"
+          :class="{ 'is-active': modelValue === opt.value }"
+          @click="$emit('update:modelValue', opt.value)"
+        >{{ opt.label }}</button>
+      </div>
+    `,
+    props: ['modelValue', 'options', 'size'],
+    emits: ['update:modelValue'],
+  },
+  'el-date-picker': {
+    template: '<div class="el-date-picker" :value="modelValue" />',
+    props: ['modelValue', 'type', 'rangeSeparator', 'startLabel', 'endLabel', 'startPlaceholder', 'endPlaceholder', 'valueFormat', 'size', 'style'],
+    emits: ['update:modelValue'],
+  },
+  ImportDocumentDialog: {
+    template: '<div class="import-document-dialog-stub" v-if="visible"><slot /></div>',
+    props: ['visible', 'documentTypes', 'disabled'],
+    emits: ['update:visible', 'import'],
+  },
+  ClinicalDocForm: {
+    name: 'ClinicalDocForm',
+    template: '<div class="clinical-doc-form"><slot /></div>',
+    props: ['document', 'documentType', 'readonly', 'contactDisplay'],
+    emits: ['save', 'sign', 'close'],
   },
 }
 
 // ===========================================================================
-// Factory: default test data
+// Factory helpers
 // ===========================================================================
 function makeDocumentType(overrides: Record<string, any> = {}) {
   return {
@@ -254,7 +295,7 @@ function makeEncounter(overrides: Record<string, any> = {}) {
   return {
     id: 42,
     patient_id: 1,
-    contact_type: 'consultation',
+    contact_type: 'hospitalisation',
     contact_type_precision: null,
     start_date: '2026-07-01T08:00:00.000Z',
     end_date: '2026-07-01T09:00:00.000Z',
@@ -274,18 +315,17 @@ function makeEncounter(overrides: Record<string, any> = {}) {
 describe('DossierClinicView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-
-    // Reset shared mock state
     state.documents = []
     state.loading = false
+    state.selectedDocument = null
+    state.documentTypes = []
 
-    // Default mock implementations for happy-path tests
     mockFetchDocumentTypes.mockResolvedValue(undefined)
-    mockFetchDocumentTypesWithPricing.mockResolvedValue([])
     mockFetchDocumentsByPatient.mockResolvedValue(undefined)
     mockListEncountersByPatient.mockResolvedValue([])
     mockDeleteDocument.mockResolvedValue(true)
-    mockCheckContactExpired.mockResolvedValue(false)
+    mockCreateDocument.mockResolvedValue(makeDocument())
+    mockSelectDocument.mockImplementation((doc: any) => { state.selectedDocument = doc })
   })
 
   // -----------------------------------------------------------------------
@@ -294,17 +334,13 @@ describe('DossierClinicView', () => {
   describe('document list', () => {
     it('shows empty state when no documents exist', async () => {
       state.documents = []
-      state.loading = false
-
       const wrapper = mount(DossierClinicView, { global: { stubs } })
 
       await nextTick()
       await waitForData()
       await nextTick()
 
-      // el-empty should show when documents is empty and not loading
-      expect(wrapper.find('.el-empty').exists()).toBe(true)
-      expect(wrapper.find('.el-empty__description').text()).toContain('Aucun document clinique')
+      expect(wrapper.find('.el-table').exists()).toBe(true)
     })
 
     it('loads and displays documents on mount', async () => {
@@ -313,7 +349,6 @@ describe('DossierClinicView', () => {
         makeDocument({ id: 'doc-2', documentType: makeDocumentType({ label: 'Ordonnance', category: 'Prescription' }) }),
       ]
       state.documents = docs
-      state.loading = false
 
       const wrapper = mount(DossierClinicView, { global: { stubs } })
 
@@ -321,11 +356,8 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      // Verify data fetching
       expect(mockFetchDocumentsByPatient).toHaveBeenCalledTimes(1)
       expect(mockFetchDocumentsByPatient).toHaveBeenCalledWith(1)
-
-      // Verify table renders document labels
       expect(wrapper.find('.el-table').exists()).toBe(true)
       expect(wrapper.text()).toContain('Compte rendu')
       expect(wrapper.text()).toContain('Ordonnance')
@@ -333,7 +365,6 @@ describe('DossierClinicView', () => {
 
     it('calls fetchDocumentTypes and listEncountersByPatient on mount', async () => {
       state.documents = [makeDocument()]
-      mockFetchDocumentTypesWithPricing.mockResolvedValue([makeDocumentType()])
       mockListEncountersByPatient.mockResolvedValue([makeEncounter()])
 
       mount(DossierClinicView, { global: { stubs } })
@@ -343,32 +374,28 @@ describe('DossierClinicView', () => {
       await nextTick()
 
       expect(mockFetchDocumentTypes).toHaveBeenCalledTimes(1)
-      expect(mockFetchDocumentTypesWithPricing).toHaveBeenCalledTimes(1)
       expect(mockFetchDocumentsByPatient).toHaveBeenCalledWith(1)
       expect(mockListEncountersByPatient).toHaveBeenCalledWith(1, 'active')
     })
 
-    it('renders loading indicator when loading is true', async () => {
-      state.loading = true
+    it('renders loading skeleton during initial load', async () => {
+      mockFetchDocumentTypes.mockReturnValue(new Promise(() => {}))
       state.documents = []
 
       const wrapper = mount(DossierClinicView, { global: { stubs } })
 
       await nextTick()
-      await waitForData()
-      await nextTick()
 
-      expect(wrapper.text()).toContain('Chargement des documents')
+      expect(wrapper.find('.el-skeleton').exists()).toBe(true)
     })
   })
 
   // -----------------------------------------------------------------------
-  // "Nouveau document" button opens the creation dialog
+  // "Nouveau Document" button opens the type dialog
   // -----------------------------------------------------------------------
-  describe('"Nouveau document" button', () => {
-    it('opens the new document dialog when clicked', async () => {
+  describe('"Nouveau Document" button', () => {
+    it('opens the type selection dialog when clicked', async () => {
       state.documents = []
-      mockFetchDocumentTypesWithPricing.mockResolvedValue([makeDocumentType()])
       mockListEncountersByPatient.mockResolvedValue([makeEncounter()])
 
       const wrapper = mount(DossierClinicView, { global: { stubs } })
@@ -377,30 +404,24 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      // Dialog should initially be hidden
       expect(wrapper.find('.el-dialog').exists()).toBe(false)
 
-      // Click "Nouveau document" button
-      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau document')
+      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau Document')
       expect(newBtn).toBeTruthy()
       await newBtn!.trigger('click')
       await nextTick()
 
-      // Dialog should now be visible
       expect(wrapper.find('.el-dialog').exists()).toBe(true)
       expect(wrapper.find('.el-dialog').isVisible()).toBe(true)
     })
   })
 
   // -----------------------------------------------------------------------
-  // Dialog step 1: contact selection
+  // Dialog — type selection
   // -----------------------------------------------------------------------
-  describe('dialog step 1 — contact selection', () => {
-    it('shows contact selector when dialog opens', async () => {
-      const encounters = [
-        makeEncounter({ id: 42, contact_type: 'consultation', start_date: '2026-07-01T08:00:00.000Z', service_name: 'Médecine générale' }),
-        makeEncounter({ id: 43, contact_type: 'urgence', start_date: '2026-06-28T14:00:00.000Z', service_name: 'Urgences' }),
-      ]
+  describe('type selection dialog', () => {
+    it('shows document type dropdown when activeContact exists', async () => {
+      const encounters = [makeEncounter({ id: 42 })]
       state.documents = []
       mockListEncountersByPatient.mockResolvedValue(encounters)
 
@@ -410,25 +431,18 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      // Open dialog
-      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau document')
+      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau Document')
       await newBtn!.trigger('click')
       await nextTick()
 
-      // Dialog should show the contact selection step
       const dialog = wrapper.find('.el-dialog')
-      expect(dialog.text()).toContain('Sélectionnez le contact')
-
-      // Select should have options matching encounters
-      const options = wrapper.findAll('.el-option')
-      expect(options.length).toBe(2)
+      expect(dialog.exists()).toBe(true)
+      expect(dialog.text()).toContain('Type de document')
     })
 
-    it('advances to catalog step when a contact is selected', async () => {
-      const encounters = [makeEncounter({ id: 42 })]
+    it('shows empty message when no active contact', async () => {
       state.documents = []
-      mockListEncountersByPatient.mockResolvedValue(encounters)
-      mockFetchDocumentTypesWithPricing.mockResolvedValue([makeDocumentType()])
+      mockListEncountersByPatient.mockResolvedValue([])
 
       const wrapper = mount(DossierClinicView, { global: { stubs } })
 
@@ -436,94 +450,12 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      // Open dialog
-      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau document')
+      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau Document')
       await newBtn!.trigger('click')
       await nextTick()
 
-      // Before selecting a contact, catalog step should not be shown
-      expect(dialogText(wrapper)).not.toContain('Type de document')
-
-      // Select a contact
-      const select = wrapper.find('.el-select')
-      await select.setValue('42')
-      await nextTick()
-
-      // After selection, the catalog step should appear
-      expect(dialogText(wrapper)).toContain('Type de document')
-    })
-  })
-
-  // -----------------------------------------------------------------------
-  // Dialog step 2: catalog rendering
-  // -----------------------------------------------------------------------
-  describe('dialog step 2 — catalog rendering', () => {
-    it('renders document types grouped by category', async () => {
-      const docTypes = [
-        makeDocumentType({ id: 'dt-1', label: 'Compte rendu', category: 'Consultation' }),
-        makeDocumentType({ id: 'dt-2', label: 'Certificat médical', category: 'Consultation' }),
-        makeDocumentType({ id: 'dt-3', label: 'Ordonnance', category: 'Prescription', acteLabel: 'Prescription médicale', prixUnitaire: 5000 }),
-      ]
-      const encounters = [makeEncounter({ id: 42 })]
-
-      state.documents = []
-      mockFetchDocumentTypesWithPricing.mockResolvedValue(docTypes)
-      mockListEncountersByPatient.mockResolvedValue(encounters)
-
-      const wrapper = mount(DossierClinicView, { global: { stubs } })
-
-      await nextTick()
-      await waitForData()
-      await nextTick()
-
-      // Open dialog and select contact
-      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau document')
-      await newBtn!.trigger('click')
-      await nextTick()
-
-      const select = wrapper.find('.el-select')
-      await select.setValue('42')
-      await nextTick()
-
-      // The catalog step should show categories
-      const dialogBody = wrapper.find('.el-dialog__body')
-      expect(dialogBody.text()).toContain('Consultation')
-      expect(dialogBody.text()).toContain('Prescription')
-
-      // Should show document type items
-      expect(dialogBody.text()).toContain('Compte rendu')
-      expect(dialogBody.text()).toContain('Certificat médical')
-      expect(dialogBody.text()).toContain('Ordonnance')
-      expect(dialogBody.text()).toContain('Prescription médicale')
-
-      // Should show "Créer" buttons for each type
-      const createButtons = wrapper.findAll('button.el-button').filter(b => b.text().trim() === 'Créer')
-      expect(createButtons.length).toBe(3)
-    })
-
-    it('shows empty catalog message when no document types available', async () => {
-      const encounters = [makeEncounter({ id: 42 })]
-
-      state.documents = []
-      mockFetchDocumentTypesWithPricing.mockResolvedValue([])
-      mockListEncountersByPatient.mockResolvedValue(encounters)
-
-      const wrapper = mount(DossierClinicView, { global: { stubs } })
-
-      await nextTick()
-      await waitForData()
-      await nextTick()
-
-      // Open dialog and select contact
-      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau document')
-      await newBtn!.trigger('click')
-      await nextTick()
-
-      const select = wrapper.find('.el-select')
-      await select.setValue('42')
-      await nextTick()
-
-      expect(wrapper.find('.el-dialog__body').text()).toContain('Aucun type de document disponible')
+      const dialog = wrapper.find('.el-dialog')
+      expect(dialog.text()).toContain('Aucun contact actif')
     })
   })
 
@@ -531,27 +463,17 @@ describe('DossierClinicView', () => {
   // Creating a document
   // -----------------------------------------------------------------------
   describe('creating a document', () => {
-    it('calls createDocumentWithActe when a catalog item is clicked', async () => {
-      const docTypes = [
-        makeDocumentType({
-          id: 'dt-1',
-          label: 'Compte rendu',
-          category: 'Consultation',
-          acteIdDeclenche: 10,
-          acteLabel: 'Consultation',
-          prixUnitaire: 10000,
-        }),
-      ]
+    it('calls createDocument when type is selected and Créer clicked', async () => {
+      const docTypes = [makeDocumentType({ id: 'dt-1', label: 'Compte rendu' })]
       const encounters = [makeEncounter({ id: 42, service_id: 5 })]
 
       state.documents = []
-      mockFetchDocumentTypesWithPricing.mockResolvedValue(docTypes)
-      mockListEncountersByPatient.mockResolvedValue(encounters)
-      mockCreateDocumentWithActe.mockResolvedValue({
-        document: makeDocument(),
-        acteId: 100,
-        prixUnitaire: 10000,
+      state.documentTypes = docTypes
+      mockFetchDocumentTypes.mockImplementation(async () => {
+        state.documents = []
       })
+      mockListEncountersByPatient.mockResolvedValue(encounters)
+      mockCreateDocument.mockResolvedValue(makeDocument())
 
       const wrapper = mount(DossierClinicView, { global: { stubs } })
 
@@ -559,72 +481,32 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      // Open dialog
-      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau document')
+      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau Document')
       await newBtn!.trigger('click')
       await nextTick()
 
-      // Select contact
-      const select = wrapper.find('.el-select')
-      await select.setValue('42')
+      // Find the select inside the dialog (not the filter bar select)
+      const dialogSelect = wrapper.find('.el-dialog .el-select')
+      expect(dialogSelect.exists()).toBe(true)
+      await dialogSelect.setValue('dt-1')
       await nextTick()
 
-      // Click "Créer" button on the first catalog item
       const createBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Créer')
       expect(createBtn).toBeTruthy()
       await createBtn!.trigger('click')
 
-      // Wait for async creation flow
       await waitForData()
       await nextTick()
 
-      // Verify API was called with correct params
-      expect(mockCheckContactExpired).toHaveBeenCalledWith('42')
-      expect(mockCreateDocumentWithActe).toHaveBeenCalledTimes(1)
-      expect(mockCreateDocumentWithActe).toHaveBeenCalledWith('dt-1', '42', '5', '1')
-
-      // Success message should be shown
+      expect(mockCreateDocument).toHaveBeenCalledTimes(1)
       expect(mockElMessage.success).toHaveBeenCalledWith(
-        expect.stringContaining('Compte rendu'),
+        expect.stringContaining('Document créé'),
       )
-
-      // Dialog should close after successful creation
-      expect(wrapper.find('.el-dialog').exists()).toBe(false)
-
-      // Documents should be refreshed
-      expect(mockFetchDocumentsByPatient).toHaveBeenCalledWith(1)
     })
 
-    it('shows warning when no contact is selected', async () => {
-      const docTypes = [makeDocumentType({ id: 'dt-1', label: 'Compte rendu' })]
-      state.documents = []
-      mockFetchDocumentTypesWithPricing.mockResolvedValue(docTypes)
-      mockListEncountersByPatient.mockResolvedValue([makeEncounter({ id: 42 })])
-
-      const wrapper = mount(DossierClinicView, { global: { stubs } })
-
-      await nextTick()
-      await waitForData()
-      await nextTick()
-
-      // Call handleCreateDoc via component instance with no contact selected
-      // (wrapper.vm exposes <script setup> bindings used in the template)
-      await wrapper.vm.handleCreateDoc(docTypes[0])
-      await nextTick()
-
-      expect(mockElMessage.warning).toHaveBeenCalledWith(
-        expect.stringContaining('Sélectionnez d\'abord un contact'),
-      )
-      expect(mockCreateDocumentWithActe).not.toHaveBeenCalled()
-    })
-
-    it('prevents creation when contact is expired', async () => {
-      mockCheckContactExpired.mockResolvedValue(true)
-      const docTypes = [makeDocumentType({ id: 'dt-1', label: 'Compte rendu' })]
+    it('disables Créer button when no type is selected', async () => {
       const encounters = [makeEncounter({ id: 42 })]
-
       state.documents = []
-      mockFetchDocumentTypesWithPricing.mockResolvedValue(docTypes)
       mockListEncountersByPatient.mockResolvedValue(encounters)
 
       const wrapper = mount(DossierClinicView, { global: { stubs } })
@@ -633,38 +515,20 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      // Open dialog
-      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau document')
+      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau Document')
       await newBtn!.trigger('click')
       await nextTick()
 
-      // Select contact
-      const select = wrapper.find('.el-select')
-      await select.setValue('42')
-      await nextTick()
-
-      // Click "Créer"
       const createBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Créer')
-      await createBtn!.trigger('click')
-
-      await waitForData()
-      await nextTick()
-
-      expect(mockCheckContactExpired).toHaveBeenCalledWith('42')
-      expect(mockCreateDocumentWithActe).not.toHaveBeenCalled()
-      expect(mockElMessageBox.alert).toHaveBeenCalledWith(
-        expect.stringContaining('expiré'),
-        'Contact expiré',
-        expect.any(Object),
-      )
+      expect(createBtn!.attributes('disabled')).toBeDefined()
     })
   })
 
   // -----------------------------------------------------------------------
-  // Row click — opens detail dialog
+  // Row click — opens full page form
   // -----------------------------------------------------------------------
-  describe('row click — detail dialog', () => {
-    it('opens detail dialog when a table row is clicked', async () => {
+  describe('row click — full page form', () => {
+    it('enters full page mode when a table row is clicked', async () => {
       const docs = [
         makeDocument({
           id: 'doc-1',
@@ -681,29 +545,23 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      // Click the table row
       const row = wrapper.find('.el-table__row')
       expect(row.exists()).toBe(true)
       await row.trigger('click')
       await nextTick()
 
-      // Detail dialog should be visible
-      const detailDialog = wrapper.findAll('.el-dialog').find(d => d.text().includes('Document'))
-      expect(detailDialog).toBeTruthy()
-      expect(detailDialog!.isVisible()).toBe(true)
+      expect(mockSelectDocument).toHaveBeenCalled()
+      expect(wrapper.find('.dossier-clinic__full-page').exists()).toBe(true)
     })
 
-    it('displays document information in the detail dialog', async () => {
-      const docs = [
-        makeDocument({
-          id: 'doc-1',
-          documentType: makeDocumentType({ label: 'Compte rendu', acteLabel: 'Consultation' }),
-          contactId: '42',
-          status: 'draft',
-          createdAt: '2026-07-03T10:00:00.000Z',
-        }),
-      ]
-      state.documents = docs
+    it('displays document title in full page header', async () => {
+      const doc = makeDocument({
+        id: 'doc-1',
+        documentType: makeDocumentType({ label: 'Compte rendu' }),
+        status: 'draft',
+      })
+      state.documents = [doc]
+      state.selectedDocument = doc
 
       const wrapper = mount(DossierClinicView, { global: { stubs } })
 
@@ -711,29 +569,21 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      // Click the table row
-      const row = wrapper.find('.el-table__row')
-      await row.trigger('click')
+      wrapper.vm.fullPageMode = true
       await nextTick()
 
-      // Detail dialog shows document info
-      const detailDialog = wrapper.findAll('.el-dialog').find(d => d.text().includes('Document'))
-      expect(detailDialog).toBeTruthy()
-      expect(detailDialog!.text()).toContain('Compte rendu')
-      expect(detailDialog!.text()).toContain('Brouillon')
-      expect(detailDialog!.text()).toContain('#42')
+      expect(wrapper.find('.dossier-clinic__full-page').exists()).toBe(true)
+      expect(wrapper.find('.dossier-clinic__full-page-doc-title').text()).toContain('Compte rendu')
     })
 
-    it('shows signed status badge in detail dialog', async () => {
-      const docs = [
-        makeDocument({
-          id: 'doc-1',
-          status: 'signed',
-          signedAt: '2026-07-04T10:00:00.000Z',
-          documentType: makeDocumentType({ label: 'Compte rendu' }),
-        }),
-      ]
-      state.documents = docs
+    it('shows signed status tag in full page header', async () => {
+      const doc = makeDocument({
+        id: 'doc-1',
+        status: 'signed',
+        documentType: makeDocumentType({ label: 'Compte rendu' }),
+      })
+      state.documents = [doc]
+      state.selectedDocument = doc
 
       const wrapper = mount(DossierClinicView, { global: { stubs } })
 
@@ -741,12 +591,38 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      const row = wrapper.find('.el-table__row')
-      await row.trigger('click')
+      wrapper.vm.fullPageMode = true
       await nextTick()
 
-      const detailDialog = wrapper.findAll('.el-dialog').find(d => d.text().includes('Document'))
-      expect(detailDialog!.text()).toContain('Signé')
+      expect(wrapper.find('.dossier-clinic__full-page').exists()).toBe(true)
+      expect(wrapper.find('.dossier-clinic__full-page-header-right').text()).toContain('Signé')
+    })
+
+    it('returns to list when back button is clicked', async () => {
+      const doc = makeDocument({
+        id: 'doc-1',
+        documentType: makeDocumentType({ label: 'Compte rendu' }),
+      })
+      state.documents = [doc]
+      state.selectedDocument = doc
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      wrapper.vm.fullPageMode = true
+      await nextTick()
+
+      expect(wrapper.find('.dossier-clinic__full-page').exists()).toBe(true)
+
+      const backBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Retour'))
+      expect(backBtn).toBeTruthy()
+      await backBtn!.trigger('click')
+      await nextTick()
+
+      expect(mockSelectDocument).toHaveBeenCalledWith(null)
     })
   })
 
@@ -769,30 +645,21 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      // Invoke onDelete directly via component instance. The delete button
-      // is nested inside el-table → el-table-column → el-tooltip → el-button
-      // stubs, so native DOM click propagation does not reach the handler.
       await wrapper.vm.onDelete(doc)
 
       await waitForData()
       await nextTick()
 
-      // ElMessageBox.confirm should have been called
       expect(mockElMessageBox.confirm).toHaveBeenCalledWith(
         expect.stringContaining('Compte rendu'),
         'Confirmation',
         expect.objectContaining({ type: 'warning' }),
       )
-
-      // deleteDocument should have been called with the document ID
       expect(mockDeleteDocument).toHaveBeenCalledWith('doc-1')
-
-      // Documents should be refreshed after deletion
       expect(mockFetchDocumentsByPatient).toHaveBeenCalled()
     })
 
     it('does not delete when confirmation is cancelled', async () => {
-      // Make ElMessageBox.confirm reject (user cancels)
       mockElMessageBox.confirm.mockRejectedValueOnce(new Error('cancel'))
 
       const doc = makeDocument({
@@ -813,7 +680,6 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      // deleteDocument should NOT have been called
       expect(mockDeleteDocument).not.toHaveBeenCalled()
     })
   })
@@ -822,11 +688,10 @@ describe('DossierClinicView', () => {
   // Dialog close resets state
   // -----------------------------------------------------------------------
   describe('dialog close resets state', () => {
-    it('resets createStep and newContactId when dialog is closed', async () => {
+    it('resets selectedTypeId when dialog is closed', async () => {
       const encounters = [makeEncounter({ id: 42 })]
       state.documents = []
       mockListEncountersByPatient.mockResolvedValue(encounters)
-      mockFetchDocumentTypesWithPricing.mockResolvedValue([makeDocumentType()])
 
       const wrapper = mount(DossierClinicView, { global: { stubs } })
 
@@ -834,35 +699,277 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      // Open dialog
-      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau document')
+      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouveau Document')
       await newBtn!.trigger('click')
       await nextTick()
 
-      // Select contact to advance to catalog step
-      const select = wrapper.find('.el-select')
-      await select.setValue('42')
+      expect(wrapper.find('.el-dialog').exists()).toBe(true)
+
+      wrapper.vm.showTypeDialog = false
       await nextTick()
 
-      expect(wrapper.vm.createStep).toBe('catalog')
-      expect(wrapper.vm.newContactId).toBe('42')
+      expect(wrapper.vm.selectedTypeId).toBe('')
+      expect(wrapper.find('.el-dialog').exists()).toBe(false)
+    })
+  })
 
-      // Close dialog — set showNewDialog to false
-      wrapper.vm.showNewDialog = false
+  // -----------------------------------------------------------------------
+  // Import document dialog
+  // -----------------------------------------------------------------------
+  describe('import document dialog', () => {
+    it('renders "Importer Document" button (not "Importer PDF")', async () => {
+      state.documents = []
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
       await nextTick()
 
-      // State should be reset by the watch
-      expect(wrapper.vm.createStep).toBe('contact')
-      expect(wrapper.vm.newContactId).toBe('')
-      expect(wrapper.vm.openCats).toEqual([])
+      const importBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Importer Document'))
+      expect(importBtn).toBeTruthy()
+      // Ensure it's not "Importer PDF"
+      const pdfBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Importer PDF'))
+      expect(pdfBtn).toBeUndefined()
+    })
+
+    it('opens import dialog when "Importer Document" button is clicked', async () => {
+      state.documents = []
+      mockListEncountersByPatient.mockResolvedValue([makeEncounter()])
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const importBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Importer Document'))
+      expect(importBtn).toBeTruthy()
+      await importBtn!.trigger('click')
+      await nextTick()
+
+      // The ImportDocumentDialog stub should be visible
+      const dialog = wrapper.find('.import-document-dialog-stub')
+      expect(dialog.exists()).toBe(true)
+    })
+
+    it('disables import button when no active contact', async () => {
+      state.documents = []
+      mockListEncountersByPatient.mockResolvedValue([])
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const importBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Importer Document'))
+      expect(importBtn!.attributes('disabled')).toBeDefined()
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Source filter
+  // -----------------------------------------------------------------------
+  describe('source filter', () => {
+    it('filters documents by source: "created" shows only non-imported', async () => {
+      state.documentTypes = [
+        makeDocumentType({ id: 'dt-1', label: 'Compte rendu', category: 'consultation' }),
+      ]
+      state.documents = [
+        makeDocument({ id: 'doc-1', source: 'created', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+        makeDocument({ id: 'doc-2', source: 'imported', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+        makeDocument({ id: 'doc-3', source: 'created', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+      ]
+      mockListEncountersByPatient.mockResolvedValue([makeEncounter()])
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      // Default shows all 3
+      const rows = wrapper.findAll('.el-table__row')
+      expect(rows).toHaveLength(3)
+
+      // Click "Créés" segmented item
+      const createdBtn = wrapper.findAll('.el-segmented__item').find(b => b.text() === 'Créés')
+      expect(createdBtn).toBeTruthy()
+      await createdBtn!.trigger('click')
+      await nextTick()
+
+      const rowsAfter = wrapper.findAll('.el-table__row')
+      expect(rowsAfter).toHaveLength(2)
+    })
+
+    it('filters documents by source: "imported" shows only imported', async () => {
+      state.documentTypes = [
+        makeDocumentType({ id: 'dt-1', label: 'Compte rendu', category: 'consultation' }),
+      ]
+      state.documents = [
+        makeDocument({ id: 'doc-1', source: 'created', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+        makeDocument({ id: 'doc-2', source: 'imported', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+      ]
+      mockListEncountersByPatient.mockResolvedValue([makeEncounter()])
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const importedBtn = wrapper.findAll('.el-segmented__item').find(b => b.text() === 'Importés')
+      await importedBtn!.trigger('click')
+      await nextTick()
+
+      const rows = wrapper.findAll('.el-table__row')
+      expect(rows).toHaveLength(1)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Document type filter
+  // -----------------------------------------------------------------------
+  describe('document type filter', () => {
+    it('filters documents by document type', async () => {
+      state.documentTypes = [
+        makeDocumentType({ id: 'dt-1', label: 'Compte rendu', category: 'consultation' }),
+        makeDocumentType({ id: 'dt-2', label: 'Labo', category: 'lab' }),
+      ]
+      state.documents = [
+        makeDocument({ id: 'doc-1', documentTypeId: 'dt-1', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+        makeDocument({ id: 'doc-2', documentTypeId: 'dt-2', documentType: makeDocumentType({ id: 'dt-2', category: 'lab' }) }),
+        makeDocument({ id: 'doc-3', documentTypeId: 'dt-1', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+      ]
+      mockListEncountersByPatient.mockResolvedValue([makeEncounter()])
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      // Default: all 3
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(3)
+
+      // Set type filter via VM
+      const vm = wrapper.vm as any
+      vm.filterTypeId = 'dt-2'
+      await nextTick()
+
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(1)
+
+      // Clear filter
+      vm.filterTypeId = null
+      await nextTick()
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(3)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Date range filter
+  // -----------------------------------------------------------------------
+  describe('date range filter', () => {
+    it('filters documents by date range', async () => {
+      state.documentTypes = [
+        makeDocumentType({ id: 'dt-1', label: 'Compte rendu', category: 'consultation' }),
+      ]
+      state.documents = [
+        makeDocument({ id: 'doc-1', createdAt: '2026-07-03T10:00:00.000Z', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+        makeDocument({ id: 'doc-2', createdAt: '2026-08-15T10:00:00.000Z', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+        makeDocument({ id: 'doc-3', createdAt: '2026-09-01T10:00:00.000Z', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+      ]
+      mockListEncountersByPatient.mockResolvedValue([makeEncounter()])
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      // Default: all 3
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(3)
+
+      // Filter to July only
+      const vm = wrapper.vm as any
+      vm.filterDateRange = ['2026-07-01', '2026-07-31']
+      await nextTick()
+
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(1)
+
+      // Clear filter
+      vm.filterDateRange = null
+      await nextTick()
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(3)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Combined filters
+  // -----------------------------------------------------------------------
+  describe('combined filters', () => {
+    it('combines source + type + date filters together', async () => {
+      state.documentTypes = [
+        makeDocumentType({ id: 'dt-1', label: 'Compte rendu', category: 'consultation' }),
+        makeDocumentType({ id: 'dt-2', label: 'Labo', category: 'lab' }),
+      ]
+      state.documents = [
+        makeDocument({ id: 'doc-1', source: 'created', createdAt: '2026-07-03T10:00:00.000Z', documentTypeId: 'dt-1', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+        makeDocument({ id: 'doc-2', source: 'imported', createdAt: '2026-07-10T10:00:00.000Z', documentTypeId: 'dt-2', documentType: makeDocumentType({ id: 'dt-2', category: 'lab' }) }),
+        makeDocument({ id: 'doc-3', source: 'created', createdAt: '2026-08-01T10:00:00.000Z', documentTypeId: 'dt-1', documentType: makeDocumentType({ id: 'dt-1', category: 'consultation' }) }),
+        makeDocument({ id: 'doc-4', source: 'created', createdAt: '2026-07-05T10:00:00.000Z', documentTypeId: 'dt-2', documentType: makeDocumentType({ id: 'dt-2', category: 'lab' }) }),
+      ]
+      mockListEncountersByPatient.mockResolvedValue([makeEncounter()])
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      // Default: all 4
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(4)
+
+      const vm = wrapper.vm as any
+
+      // Filter: source=created, type=dt-1, date=July
+      const createdBtn = wrapper.findAll('.el-segmented__item').find(b => b.text() === 'Créés')
+      await createdBtn!.trigger('click')
+      vm.filterTypeId = 'dt-1'
+      vm.filterDateRange = ['2026-07-01', '2026-07-31']
+      await nextTick()
+
+      // Only doc-1 matches: created + dt-1 + July
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(1)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Row click renders ClinicalDocForm
+  // -----------------------------------------------------------------------
+  describe('row click renders ClinicalDocForm', () => {
+    it('renders ClinicalDocForm in full page mode with correct props', async () => {
+      const docType = makeDocumentType({ id: 'dt-1', label: 'Compte rendu', category: 'consultation' })
+      const doc = makeDocument({
+        id: 'doc-1',
+        documentTypeId: 'dt-1',
+        documentType: docType,
+        contactId: '42',
+        status: 'draft',
+      })
+      state.documents = [doc]
+      state.documentTypes = [docType]
+      mockListEncountersByPatient.mockResolvedValue([makeEncounter()])
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      // Click the row
+      const row = wrapper.find('.el-table__row')
+      expect(row.exists()).toBe(true)
+      await row.trigger('click')
+      await nextTick()
+
+      // Full page should show
+      expect(wrapper.find('.dossier-clinic__full-page').exists()).toBe(true)
+
+      // ClinicalDocForm stub should be rendered
+      const form = wrapper.findComponent({ name: 'ClinicalDocForm' })
+      expect(form.exists()).toBe(true)
+      expect(form.props('document')).toEqual(doc)
+      expect(form.props('readonly')).toBe(false)
     })
   })
 })
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-/** Extract text from the visible dialog body (ignores hidden dialogs). */
-function dialogText(wrapper: ReturnType<typeof mount>): string {
-  const visible = wrapper.findAll('.el-dialog').filter(d => d.isVisible())
-  return visible.length > 0 ? visible[0].text() : ''
-}

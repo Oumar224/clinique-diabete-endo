@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import { ipcInvoke } from '@/utils/ipc'
 
 export interface ExamCategoryDto {
@@ -24,6 +25,7 @@ export interface ExamTypeDto {
 const CATEGORIES: ExamCategoryDto[] = [
   { id: 1, code: 'imagerie', label: 'Imagerie', sort_order: 1 },
   { id: 2, code: 'laboratoire', label: 'Laboratoire', sort_order: 2 },
+  { id: 3, code: 'avis', label: 'Avis spécialisé', sort_order: 3 },
 ]
 
 const categories = ref<ExamCategoryDto[]>(CATEGORIES)
@@ -95,6 +97,7 @@ export function useExamTypes() {
       return created
     } catch (e) {
       error.value = (e as Error).message
+      ElMessage.error((e as Error).message)
       return null
     }
   }
@@ -108,6 +111,7 @@ export function useExamTypes() {
       return updated
     } catch (e) {
       error.value = (e as Error).message
+      ElMessage.error((e as Error).message)
       return null
     }
   }
@@ -118,6 +122,7 @@ export function useExamTypes() {
       return true
     } catch (e) {
       error.value = (e as Error).message
+      ElMessage.error((e as Error).message)
       return false
     }
   }

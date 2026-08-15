@@ -3,6 +3,7 @@ import logoSrc from '@/assets/cde.png'
 import { ipcInvoke } from '@/utils/ipc'
 
 const logoUrl = ref<string | null>(null)
+const error = ref<string | null>(null)
 
 export function useLogo() {
   async function loadLogo() {
@@ -13,8 +14,8 @@ export function useLogo() {
         updateFavicon(data)
         return
       }
-    } catch {
-      // No Electron IPC or no custom logo — fallback to bundled default
+    } catch (e) {
+      error.value = (e as Error).message
     }
     logoUrl.value = null
   }
@@ -35,5 +36,6 @@ export function useLogo() {
   return {
     logoUrl: computed(() => logoUrl.value || logoSrc),
     refreshLogo: loadLogo,
+    error,
   }
 }

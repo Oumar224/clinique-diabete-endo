@@ -5,7 +5,9 @@ import type { ClinicalDocumentDTO, ClinicalDocumentTypeDTO } from '@/composables
 
 // ─── Mock Element Plus ─────────────────────────────────────────────
 
-const mockConfirm = vi.fn()
+const { mockConfirm } = vi.hoisted(() => ({
+  mockConfirm: vi.fn(),
+}))
 vi.mock('element-plus', () => ({
   ElMessage: { success: vi.fn(), warning: vi.fn(), error: vi.fn() },
   ElMessageBox: { confirm: mockConfirm },
@@ -85,14 +87,95 @@ const signedDocument: ClinicalDocumentDTO = {
   signedBy: 'Dr. Diallo',
 }
 
+const importedDocument: ClinicalDocumentDTO = {
+  id: 'doc-003',
+  contactId: '1',
+  patientId: '42',
+  serviceId: '5',
+  documentTypeId: CONSULT_TYPE_ID,
+  title: 'Compte rendu importé',
+  status: 'draft',
+  formData: {},
+  source: 'imported',
+  pdfPath: '/path/to/imported-doc.pdf',
+  createdBy: 'Dr. Diallo',
+  createdAt: '2024-06-15T10:00:00.000Z',
+  updatedAt: '2024-06-15T12:00:00.000Z',
+}
+
+const importedDocumentNoPdf: ClinicalDocumentDTO = {
+  id: 'doc-004',
+  contactId: '1',
+  patientId: '42',
+  serviceId: '5',
+  documentTypeId: CONSULT_TYPE_ID,
+  title: 'Image importée',
+  status: 'draft',
+  formData: {},
+  source: 'imported',
+  createdBy: 'Dr. Diallo',
+  createdAt: '2024-06-15T10:00:00.000Z',
+  updatedAt: '2024-06-15T12:00:00.000Z',
+}
+
+const importedPdfDoc: ClinicalDocumentDTO = {
+  id: 'doc-imported-pdf',
+  contactId: '1',
+  patientId: '42',
+  serviceId: '5',
+  documentTypeId: '',
+  title: 'rapport.pdf',
+  status: 'draft',
+  formData: {},
+  source: 'imported',
+  pdfPath: '/path/to/rapport.pdf',
+  createdBy: 'Dr. Test',
+  createdAt: '2024-06-15T10:00:00.000Z',
+  updatedAt: '2024-06-15T10:00:00.000Z',
+}
+
+const importedImageDoc: ClinicalDocumentDTO = {
+  id: 'doc-imported-img',
+  contactId: '1',
+  patientId: '42',
+  serviceId: '5',
+  documentTypeId: '',
+  title: 'radio.jpg',
+  status: 'draft',
+  formData: {},
+  source: 'imported',
+  pdfPath: '/path/to/radio.jpg',
+  createdBy: 'Dr. Test',
+  createdAt: '2024-06-15T10:00:00.000Z',
+  updatedAt: '2024-06-15T10:00:00.000Z',
+}
+
+const importedDocDoc: ClinicalDocumentDTO = {
+  id: 'doc-imported-doc',
+  contactId: '1',
+  patientId: '42',
+  serviceId: '5',
+  documentTypeId: '',
+  title: 'compte-rendu.docx',
+  status: 'draft',
+  formData: {},
+  source: 'imported',
+  pdfPath: '/path/to/compte-rendu.docx',
+  createdBy: 'Dr. Test',
+  createdAt: '2024-06-15T10:00:00.000Z',
+  updatedAt: '2024-06-15T10:00:00.000Z',
+}
+
 describe('ClinicalDocForm', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockConfirm.mockResolvedValue(true)
+    DynamicFormRendererStub.methods.validate.mockResolvedValue(true)
+    DynamicFormRendererStub.methods.resetValidation.mockReset()
   })
 
   function createWrapper({
-    document = null,
+    document: doc = null,
     docType = null,
     readonly = false,
   }: {
@@ -102,7 +185,7 @@ describe('ClinicalDocForm', () => {
   } = {}) {
     return mount(ClinicalDocForm, {
       props: {
-        document,
+        document: doc,
         documentType: docType,
         readonly,
       },
@@ -301,17 +384,14 @@ describe('ClinicalDocForm', () => {
     })
   })
 
-  // ─── Close button ────────────────────────────────────────────────
+  // ─── Close behavior ──────────────────────────────────────────────
 
   describe('close', () => {
-    it('emits close event when close button is clicked', async () => {
+    it('does not render a close button in non-CRH form (parent handles navigation)', () => {
       const wrapper = createWrapper({ document: draftDocument, docType: documentType })
-
-      const closeBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Fermer'))
-      expect(closeBtn).toBeDefined()
-      await closeBtn!.trigger('click')
-
-      expect(wrapper.emitted('close')).toBeDefined()
+      const buttons = wrapper.findAll('.el-button')
+      const closeBtn = buttons.find(b => b.text().includes('Fermer'))
+      expect(closeBtn).toBeUndefined()
     })
   })
 
@@ -327,6 +407,104 @@ describe('ClinicalDocForm', () => {
     it('does not display signed info for draft documents', () => {
       const wrapper = createWrapper({ document: draftDocument, docType: documentType })
       expect(wrapper.text()).not.toContain('Signé le')
+    })
+  })
+
+  // ─── Imported document viewer ─────────────────────────────────────
+
+  describe('imported document viewer', () => {
+    it('shows "Importé" tag when document.source is "imported"', () => {
+      const wrapper = createWrapper({ document: importedDocument, docType: documentType })
+      const tags = wrapper.findAll('.el-tag')
+      const importedTag = tags.find(t => t.text().includes('Importé'))
+      expect(importedTag).toBeDefined()
+    })
+
+    it('shows document title for imported documents', () => {
+      const wrapper = createWrapper({ document: importedDocument, docType: documentType })
+      expect(wrapper.text()).toContain('Compte rendu importé')
+    })
+
+    it('shows "Ouvrir dans le visionneuse système" button when pdfPath exists', () => {
+      const wrapper = createWrapper({ document: importedDocument, docType: documentType })
+      const buttons = wrapper.findAll('.el-button')
+      const openBtn = buttons.find(b => b.text().includes('Ouvrir dans le visionneuse système'))
+      expect(openBtn).toBeDefined()
+    })
+
+    it('does not show "Ouvrir dans le visionneuse système" button when pdfPath is absent', () => {
+      const wrapper = createWrapper({ document: importedDocumentNoPdf, docType: documentType })
+      const buttons = wrapper.findAll('.el-button')
+      const openBtn = buttons.find(b => b.text().includes('Ouvrir dans le visionneuse système'))
+      expect(openBtn).toBeUndefined()
+    })
+
+    it('shows metadata (created by, created date) for imported documents', () => {
+      const wrapper = createWrapper({ document: importedDocument, docType: documentType })
+      expect(wrapper.text()).toContain('Créé par')
+      expect(wrapper.text()).toContain('Dr. Diallo')
+      expect(wrapper.text()).toContain('Créé le')
+      expect(wrapper.text()).toContain('Importé le')
+    })
+
+    it('does NOT show the DynamicFormRenderer for imported documents', () => {
+      const wrapper = createWrapper({ document: importedDocument, docType: documentType })
+      const renderer = wrapper.findComponent({ name: 'DynamicFormRenderer' })
+      expect(renderer.exists()).toBe(false)
+    })
+
+    it('does NOT show the "Type de document introuvable" empty state for imported documents', () => {
+      const wrapper = createWrapper({ document: importedDocument, docType: null })
+      // The imported document viewer block renders its own content (title, tag, etc.)
+      // and should NOT fall through to the "Type de document introuvable" v-else block
+      expect(wrapper.text()).not.toContain('Type de document introuvable')
+      expect(wrapper.text()).toContain('Importé')
+    })
+
+    it('does NOT show save or sign buttons for imported documents', () => {
+      const wrapper = createWrapper({ document: importedDocument, docType: documentType })
+      expect(wrapper.text()).not.toContain('Enregistrer')
+      expect(wrapper.text()).not.toContain('Signer')
+    })
+
+    it('uses "Document importé" as fallback title when document.title is empty', () => {
+      const docNoTitle: ClinicalDocumentDTO = {
+        ...importedDocument,
+        title: undefined,
+      }
+      const wrapper = createWrapper({ document: docNoTitle, docType: documentType })
+      expect(wrapper.text()).toContain('Document importé')
+    })
+
+    it('renders an iframe for PDF imported documents', () => {
+      const wrapper = createWrapper({ document: importedPdfDoc, docType: null })
+      const iframe = wrapper.find('iframe.doc-form__pdf-viewer')
+      expect(iframe.exists()).toBe(true)
+    })
+
+    it('renders an img for image imported documents', () => {
+      const wrapper = createWrapper({ document: importedImageDoc, docType: null })
+      const img = wrapper.find('img.doc-form__image-viewer')
+      expect(img.exists()).toBe(true)
+    })
+
+    it('shows fallback for doc imported documents', () => {
+      const wrapper = createWrapper({ document: importedDocDoc, docType: null })
+      const empty = wrapper.find('.el-empty')
+      expect(empty.exists()).toBe(true)
+      expect(empty.attributes('description')).toBe('Document importé')
+    })
+
+    it('sets iframe src to file:// protocol path for PDFs', () => {
+      const wrapper = createWrapper({ document: importedPdfDoc, docType: null })
+      const iframe = wrapper.find('iframe.doc-form__pdf-viewer')
+      expect(iframe.attributes('src')).toBe('file:///path/to/rapport.pdf')
+    })
+
+    it('sets img src to file:// protocol path for images', () => {
+      const wrapper = createWrapper({ document: importedImageDoc, docType: null })
+      const img = wrapper.find('img.doc-form__image-viewer')
+      expect(img.attributes('src')).toBe('file:///path/to/radio.jpg')
     })
   })
 })

@@ -64,10 +64,21 @@ const routes: RouteRecordRaw[] = [
             meta: { roles: ['MEDECIN', 'ADMIN'] },
           },
           {
+            path: 'ordonnances',
+            name: 'patient-ordonnances',
+            component: () => import('@/views/patients/OrdonnanceView.vue'),
+            meta: { label: 'Ordonnances', icon: 'Tickets', roles: ['MEDECIN', 'ADMIN'] },
+          },
+          {
             path: 'examens',
             name: 'patient-examens',
             component: () => import('@/views/patients/ExamensView.vue'),
             meta: { roles: ['MEDECIN', 'ADMIN'] },
+          },
+          {
+            path: 'labo',
+            name: 'patient-labo',
+            component: () => import('@/views/patients/ResultatsBioView.vue'),
           },
           {
             path: 'actes',

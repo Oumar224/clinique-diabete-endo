@@ -2,32 +2,33 @@ import type { UserDto } from '../dto/auth.dto'
 import { EntityRegistry } from '../automerge/entity-registry'
 import { UserConverter } from '../automerge/converters/user.converter'
 import type { AutomergeDocument } from '../automerge/utils/entity-types'
+import { SchemaField, buildDocumentSchema } from '../automerge/utils/schema-field'
 
 export class UserEntity {
-  id?: number
-  nom?: string
-  prenom?: string
-  email?: string
-  password_hash?: string
-  role?: 'MEDECIN' | 'SECRETAIRE' | 'PHARMACIEN' | 'COMPTABLE' | 'ADMIN' | 'INFIRMIER'
-  service?: string
-  photo?: string
-  telephone?: string
-  telephone_country_code?: string
-  fonction?: string
-  fonction_id?: number
-  date_debut_contrat?: string
-  date_fin_contrat?: string
-  type_contrat?: string
-  statut_resiliation?: string
-  motif_resiliation?: string
-  date_resiliation?: string
-  resilie_par?: number
-  is_active?: number
-  is_validated?: number
-  automerge_id?: string
-  created_at?: string
-  updated_at?: string
+  @SchemaField() id?: number
+  @SchemaField() nom?: string
+  @SchemaField() prenom?: string
+  @SchemaField() email?: string
+  @SchemaField() password_hash?: string
+  @SchemaField() role?: 'MEDECIN' | 'SECRETAIRE' | 'PHARMACIEN' | 'COMPTABLE' | 'ADMIN' | 'INFIRMIER'
+  @SchemaField() service?: string
+  @SchemaField() photo?: string
+  @SchemaField() telephone?: string
+  @SchemaField() telephone_country_code?: string
+  @SchemaField() fonction?: string
+  @SchemaField() fonction_id?: number
+  @SchemaField() date_debut_contrat?: string
+  @SchemaField() date_fin_contrat?: string
+  @SchemaField() type_contrat?: string
+  @SchemaField() statut_resiliation?: string
+  @SchemaField() motif_resiliation?: string
+  @SchemaField() date_resiliation?: string
+  @SchemaField() resilie_par?: number
+  @SchemaField() is_active?: number
+  @SchemaField() is_validated?: number
+  @SchemaField() automerge_id?: string
+  @SchemaField() created_at?: string
+  @SchemaField() updated_at?: string
 
   static toDto(entity: UserEntity): UserDto {
     return {
@@ -88,7 +89,7 @@ export class UserEntity {
   }
 
   static documentSchema(): AutomergeDocument<UserEntity> {
-    return {} as AutomergeDocument<UserEntity>
+    return buildDocumentSchema(UserEntity) as AutomergeDocument<UserEntity>
   }
 
   static register(): void {

@@ -1,20 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import {
-  listEncountersByPatient,
-  getEncounter,
-  createEncounter,
-  getEncounterMovements,
-  closeEncounter,
-} from '../useEncounters'
-import type { EncounterDto, EncounterMovementDto } from '../useEncounters'
 
-const mockInvoke = vi.fn()
-vi.stubGlobal('window', {
-  electronAPI: {
-    invoke: mockInvoke,
-  },
-})
+const mockIpcInvoke = vi.hoisted(() => vi.fn())
+vi.mock('@/utils/ipc', () => ({
+  ipcInvoke: mockIpcInvoke,
+}))
+
+import { useEncounters } from '../useEncounters'
+import type { EncounterDto, EncounterMovementDto } from '../useEncounters'
 
 const mockEncounters: EncounterDto[] = [
   {
@@ -68,45 +61,72 @@ const mockMovements: EncounterMovementDto[] = [
 
 describe('useEncounters', () => {
   beforeEach(() => {
-    mockInvoke.mockReset()
-    mockInvoke.mockResolvedValue({ success: true, data: [] })
+    mockIpcInvoke.mockReset()
+    mockIpcInvoke.mockResolvedValue([])
   })
 
   describe('listEncountersByPatient', () => {
     it('appelle encounters:list-by-patient et retourne les données', async () => {
-      mockInvoke.mockResolvedValue({ success: true, data: mockEncounters })
+      mockIpcInvoke.mockResolvedValue(mockEncounters)
+      const { listEncountersByPatient } = useEncounters()
 
-      // ipcInvoke sanitize convertit undefined en null via JSON.stringify
       const result = await listEncountersByPatient(42)
-      expect(mockInvoke).toHaveBeenCalledWith('encounters:list-by-patient', { patient_id: 42, status: null })
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:list-by-patient', { patient_id: 42, status: undefined })
       expect(result).toEqual(mockEncounters)
     })
 
     it('filtre par statut actif', async () => {
-      mockInvoke.mockResolvedValue({ success: true, data: [mockEncounters[0]] })
+      mockIpcInvoke.mockResolvedValue([mockEncounters[0]])
+      const { listEncountersByPatient } = useEncounters()
+
       const result = await listEncountersByPatient(42, 'active')
-      expect(mockInvoke).toHaveBeenCalledWith('encounters:list-by-patient', { patient_id: 42, status: 'active' })
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:list-by-patient', { patient_id: 42, status: 'active' })
       expect(result).toHaveLength(1)
       expect(result[0].status).toBe('active')
     })
 
-    it('propage l\'erreur IPC', async () => {
-      mockInvoke.mockRejectedValue(new Error('Erreur réseau'))
-      await expect(listEncountersByPatient(42)).rejects.toThrow('Erreur réseau')
+    it('retourne un tableau vide et set error en cas d\'erreur IPC', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur réseau'))
+      const { listEncountersByPatient, error } = useEncounters()
+
+      const result = await listEncountersByPatient(42)
+
+      expect(result).toEqual([])
+      expect(error.value).toBe('Erreur réseau')
     })
 
-    it('propage l\'erreur du backend (success: false)', async () => {
-      mockInvoke.mockResolvedValue({ success: false, message: 'Patient introuvable' })
-      await expect(listEncountersByPatient(99999)).rejects.toThrow('Patient introuvable')
+    it('retourne un tableau vide et set error pour success: false', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Patient introuvable'))
+      const { listEncountersByPatient, error } = useEncounters()
+
+      const result = await listEncountersByPatient(99999)
+
+      expect(result).toEqual([])
+      expect(error.value).toBe('Patient introuvable')
     })
   })
 
   describe('getEncounter', () => {
     it('appelle encounters:get avec le bon id', async () => {
-      mockInvoke.mockResolvedValue({ success: true, data: mockEncounters[0] })
+      mockIpcInvoke.mockResolvedValue(mockEncounters[0])
+      const { getEncounter } = useEncounters()
+
       const result = await getEncounter(1)
-      expect(mockInvoke).toHaveBeenCalledWith('encounters:get', { id: 1 })
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:get', { id: 1 })
       expect(result).toEqual(mockEncounters[0])
+    })
+
+    it('retourne null et set error en cas d\'erreur', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Introuvable'))
+      const { getEncounter, error } = useEncounters()
+
+      const result = await getEncounter(999)
+
+      expect(result).toBeNull()
+      expect(error.value).toBe('Introuvable')
     })
   })
 
@@ -125,7 +145,8 @@ describe('useEncounters', () => {
         prise_en_charge: 'maladie_naturelle',
         status: 'active',
       }
-      mockInvoke.mockResolvedValue({ success: true, data: newEncounter })
+      mockIpcInvoke.mockResolvedValue(newEncounter)
+      const { createEncounter } = useEncounters()
 
       const payload = {
         patient_id: 42,
@@ -138,12 +159,13 @@ describe('useEncounters', () => {
       }
 
       const result = await createEncounter(payload)
-      expect(mockInvoke).toHaveBeenCalledWith('encounters:create', payload)
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:create', payload)
       expect(result).toEqual(newEncounter)
     })
 
     it('envoie les champs optionnels', async () => {
-      mockInvoke.mockResolvedValue({ success: true, data: mockEncounters[0] })
+      mockIpcInvoke.mockResolvedValue(mockEncounters[0])
+      const { createEncounter } = useEncounters()
 
       const payload = {
         patient_id: 42,
@@ -164,35 +186,186 @@ describe('useEncounters', () => {
       }
 
       await createEncounter(payload)
-      expect(mockInvoke).toHaveBeenCalledWith('encounters:create', payload)
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:create', payload)
+    })
+
+    it('retourne null et set error en cas d\'erreur', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur création'))
+      const { createEncounter, error } = useEncounters()
+
+      const result = await createEncounter({
+        patient_id: 42,
+        contact_type: 'consultation',
+        start_date: '2024-07-01T09:00:00.000Z',
+        service_id: 5,
+        origin: 'auto_refere',
+        zone_situation: 'zone_responsabilite',
+        prise_en_charge: 'maladie_naturelle',
+      })
+
+      expect(result).toBeNull()
+      expect(error.value).toBe('Erreur création')
+    })
+  })
+
+  describe('updateEncounter', () => {
+    it('appelle encounters:update et retourne l\'encounter mis à jour', async () => {
+      const updated = { ...mockEncounters[0], notes: 'Mis à jour' }
+      mockIpcInvoke.mockResolvedValue(updated)
+      const { updateEncounter } = useEncounters()
+
+      const result = await updateEncounter(1, { notes: 'Mis à jour' })
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:update', { id: 1, notes: 'Mis à jour' })
+      expect(result).toEqual(updated)
+    })
+
+    it('retourne null et set error en cas d\'erreur', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur update'))
+      const { updateEncounter, error } = useEncounters()
+
+      const result = await updateEncounter(1, { notes: 'X' })
+
+      expect(result).toBeNull()
+      expect(error.value).toBe('Erreur update')
+    })
+  })
+
+  describe('deleteEncounter', () => {
+    it('appelle encounters:delete', async () => {
+      mockIpcInvoke.mockResolvedValue(undefined)
+      const { deleteEncounter } = useEncounters()
+
+      await deleteEncounter(1)
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:delete', { id: 1 })
+    })
+
+    it('set error en cas d\'erreur', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur delete'))
+      const { deleteEncounter, error } = useEncounters()
+
+      await deleteEncounter(1)
+
+      expect(error.value).toBe('Erreur delete')
     })
   })
 
   describe('getEncounterMovements', () => {
     it('appelle encounters:get-movements et retourne les mouvements', async () => {
-      mockInvoke.mockResolvedValue({ success: true, data: mockMovements })
+      mockIpcInvoke.mockResolvedValue(mockMovements)
+      const { getEncounterMovements } = useEncounters()
+
       const result = await getEncounterMovements(1)
-      expect(mockInvoke).toHaveBeenCalledWith('encounters:get-movements', { encounter_id: 1 })
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:get-movements', { encounter_id: 1 })
       expect(result).toEqual(mockMovements)
     })
 
     it('retourne un tableau vide si pas de mouvements', async () => {
-      mockInvoke.mockResolvedValue({ success: true, data: [] })
+      mockIpcInvoke.mockResolvedValue([])
+      const { getEncounterMovements } = useEncounters()
+
       const result = await getEncounterMovements(1)
+
       expect(result).toHaveLength(0)
     })
 
-    it('propage l\'erreur', async () => {
-      mockInvoke.mockRejectedValue(new Error('Erreur'))
-      await expect(getEncounterMovements(1)).rejects.toThrow('Erreur')
+    it('retourne un tableau vide et set error en cas d\'erreur', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur'))
+      const { getEncounterMovements, error } = useEncounters()
+
+      const result = await getEncounterMovements(1)
+
+      expect(result).toEqual([])
+      expect(error.value).toBe('Erreur')
+    })
+  })
+
+  describe('addEncounterMovement', () => {
+    it('appelle encounters:add-movement et retourne le mouvement créé', async () => {
+      const newMovement: EncounterMovementDto = { ...mockMovements[0], id: 3 }
+      mockIpcInvoke.mockResolvedValue(newMovement)
+      const { addEncounterMovement } = useEncounters()
+
+      const dto = {
+        encounter_id: 1,
+        service_id: 5,
+        step_label: 'Accueil',
+        entered_at: '2024-06-15T10:00:00.000Z',
+      }
+
+      const result = await addEncounterMovement(dto)
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:add-movement', dto)
+      expect(result).toEqual(newMovement)
+    })
+
+    it('retourne null et set error en cas d\'erreur', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur mouvement'))
+      const { addEncounterMovement, error } = useEncounters()
+
+      const result = await addEncounterMovement({
+        encounter_id: 1,
+        service_id: 5,
+        step_label: 'Test',
+        entered_at: '2024-06-15T10:00:00.000Z',
+      })
+
+      expect(result).toBeNull()
+      expect(error.value).toBe('Erreur mouvement')
     })
   })
 
   describe('closeEncounter', () => {
     it('appelle encounters:close avec le bon id', async () => {
-      mockInvoke.mockResolvedValue({ success: true })
+      mockIpcInvoke.mockResolvedValue(undefined)
+      const { closeEncounter } = useEncounters()
+
       await closeEncounter(1)
-      expect(mockInvoke).toHaveBeenCalledWith('encounters:close', { id: 1 })
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:close', { id: 1 })
+    })
+
+    it('set error en cas d\'erreur', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur close'))
+      const { closeEncounter, error } = useEncounters()
+
+      await closeEncounter(1)
+
+      expect(error.value).toBe('Erreur close')
+    })
+  })
+
+  describe('closeCurrentEncounterMovement', () => {
+    it('appelle encounters:close-current-movement', async () => {
+      mockIpcInvoke.mockResolvedValue(undefined)
+      const { closeCurrentEncounterMovement } = useEncounters()
+
+      await closeCurrentEncounterMovement(1)
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:close-current-movement', { encounter_id: 1 })
+    })
+
+    it('set error en cas d\'erreur', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur'))
+      const { closeCurrentEncounterMovement, error } = useEncounters()
+
+      await closeCurrentEncounterMovement(1)
+
+      expect(error.value).toBe('Erreur')
+    })
+  })
+
+  describe('loading state', () => {
+    it('sets loading true during listEncountersByPatient and false after', async () => {
+      mockIpcInvoke.mockResolvedValue(mockEncounters)
+      const { listEncountersByPatient, loading } = useEncounters()
+
+      const promise = listEncountersByPatient(42)
+      expect(loading.value).toBe(true)
+      await promise
+      expect(loading.value).toBe(false)
     })
   })
 })

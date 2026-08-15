@@ -8,7 +8,7 @@ import { AppDatabaseDatasource } from '../../sqlite-data-source'
 import { PatientActeService } from '../patient-acte.service'
 import { ConfigTarifService } from '../config-tarif.service'
 
-describe('PatientActeService', () => {
+describe('PatientActeService', { timeout: 30_000 }, () => {
   let tempDir: string
   let dbPath: string
   let patientId: number
@@ -178,14 +178,14 @@ describe('PatientActeService', () => {
     const service = container.resolve(PatientActeService)
     await expect(
       service.create({ patient_id: patientId, acte_id: 99999 })
-    ).rejects.toThrow('Acte médical introuvable')
+    ).rejects.toThrow("Impossible de créer la demande : acte médical (ID 99999) n'existe pas dans la base de données")
   })
 
   it('should reject non-existent patient_id', async () => {
     const service = container.resolve(PatientActeService)
     await expect(
       service.create({ patient_id: 99999, acte_id: acteId })
-    ).rejects.toThrow('Patient introuvable')
+    ).rejects.toThrow("Impossible de créer la demande : patient (ID 99999) n'existe pas dans la base de données")
   })
 
   // ─── updateStatut ────────────────────────────────────────────

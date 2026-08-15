@@ -140,7 +140,7 @@
               size="small"
               @close="removeAllergy(i)"
             >
-              {{ tag }}
+              {{ typeof tag === 'string' ? tag : tag.libelle }}
             </el-tag>
             <el-input
               v-if="allergyInputVisible"
@@ -279,8 +279,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { Camera, Delete, WarningFilled } from '@element-plus/icons-vue'
 import { showLoader, hideLoader } from '@/components/utils/AppLoader'
-import { createPatient, updatePatient, type PatientDto } from '@/composables/usePatients'
-import { getTrustedPerson, upsertTrustedPerson, deleteTrustedPerson } from '@/composables/useTrustedPerson'
+import { usePatients, type PatientDto } from '@/composables/usePatients'
+import { useTrustedPerson } from '@/composables/useTrustedPerson'
 import type { Patient } from '@/composables/usePatientContext'
 import { generateNip } from '@/utils/nip-generator'
 import { calculateAge } from '@/utils/age'
@@ -290,6 +290,8 @@ import { ipcInvoke } from '@/utils/ipc'
 import { usePatientFormDraft } from '@/composables/usePatientFormDraft'
 
 const patientFormDraft = usePatientFormDraft()
+const { createPatient, updatePatient } = usePatients()
+const { getTrustedPerson, upsertTrustedPerson, deleteTrustedPerson } = useTrustedPerson()
 
 const emit = defineEmits<{ saved: [] }>()
 
@@ -375,7 +377,7 @@ const form = reactive({
   email: '',
   site_id: null as number | null,
   medecin_traitant: '',
-  allergies: [] as string[],
+  allergies: [] as Array<string | { libelle: string; type: string }>,
   photo: null as string | null,
   nip: '',
   residence_code: '',
@@ -414,8 +416,11 @@ function showAllergyInput() {
 
 function addAllergy() {
   const val = allergyInputValue.value.trim()
-  if (val && !(form.allergies ?? []).includes(val)) {
-    form.allergies = [...(form.allergies ?? []), val]
+  if (val) {
+    const exists = (form.allergies ?? []).some(a => (typeof a === 'string' ? a : a.libelle) === val)
+    if (!exists) {
+      form.allergies = [...(form.allergies ?? []), { libelle: val, type: 'Autre' }]
+    }
   }
   allergyInputValue.value = ''
   allergyInputVisible.value = false
@@ -747,7 +752,9 @@ async function open(patient?: Patient) {
     form.site_id = patient.site_id ?? null
     await nextTick()
     form.medecin_traitant = patient.medecin_traitant || ''
-    form.allergies = [...patient.allergies]
+    form.allergies = (patient.allergies || []).map((a: any) =>
+      typeof a === 'string' ? a : { libelle: a.libelle || '', type: a.type || 'Autre' },
+    )
     form.photo = patient.photo ?? null
     form.residence_code = patient.residence_code || ''
     form.complement_adresse = patient.complement_adresse || ''

@@ -66,7 +66,8 @@ export function useConservateurs() {
       const created = await ipcInvoke<StockageDto>('conservateurs:create', dto)
       await fetchStockages()
       return created ?? null
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -76,7 +77,8 @@ export function useConservateurs() {
       const updated = await ipcInvoke<StockageDto>('conservateurs:update', { id, ...dto })
       await fetchStockages()
       return updated
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -86,7 +88,8 @@ export function useConservateurs() {
       await ipcInvoke('conservateurs:delete', { id })
       await fetchStockages()
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }
@@ -97,7 +100,8 @@ export function useConservateurs() {
       const idx = stockages.value.findIndex(s => s.id === id)
       if (idx !== -1) stockages.value[idx] = toggled
       return toggled
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -129,7 +133,8 @@ export function useConservateurs() {
       const created = await ipcInvoke<ChampLocalisationDto>('conservateurs:champs-create', dto)
       await fetchChampsByStockage(dto.stockage_id)
       return created ?? null
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -139,7 +144,8 @@ export function useConservateurs() {
       const updated = await ipcInvoke<ChampLocalisationDto>('conservateurs:champs-update', { id, ...dto })
       await fetchChampsByStockage(dto.stockage_id)
       return updated
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return null
     }
   }
@@ -151,7 +157,8 @@ export function useConservateurs() {
         await fetchChampsByStockage(stockageId)
       }
       return true
-    } catch {
+    } catch (e) {
+      error.value = (e as Error).message
       return false
     }
   }

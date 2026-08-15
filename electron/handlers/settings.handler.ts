@@ -9,7 +9,6 @@ import { SystemService } from '../services/system.service'
 import { CurrencyService } from '../services/currency.service'
 import { MedicalUnitService } from '../services/medical-unit.service'
 import { SiteService } from '../services/site.service'
-import { SpecialtyService } from '../services/specialty.service'
 import { FonctionService } from '../services/fonction.service'
 import { LocaliteService } from '../services/localite.service'
 import { CurrencyEntity } from '../entities/currency.entity'
@@ -24,8 +23,6 @@ import { MedicalUnitEntity } from '../entities/medical-unit.entity'
 import type { MedicalUnitDto } from '../dto/medical-unit.dto'
 import { SiteEntity } from '../entities/site.entity'
 import type { SiteDto } from '../dto/site.dto'
-import { SpecialtyEntity } from '../entities/specialty.entity'
-import type { SpecialtyDto } from '../dto/specialty.dto'
 import { FonctionEntity } from '../entities/fonction.entity'
 import type { FonctionDto } from '../dto/settings.dto'
 import { LocaliteEntity } from '../entities/localite.entity'
@@ -341,41 +338,6 @@ export function registerSettingsHandlers() {
 
   createHandler('sites:delete', async ({ id }: { id: number }) => {
     await container.resolve(SiteService).delete(id)
-    return { success: true }
-  })
-
-  // ════════════════════════════════════════════════════════════════
-  // SPECIALTIES
-  // ════════════════════════════════════════════════════════════════
-  createHandler('specialties:list', async ({ activeOnly }: { activeOnly?: boolean } = {}) => {
-    const entities = await container.resolve(SpecialtyService).list(activeOnly)
-    return SpecialtyEntity.toDtos(entities)
-  })
-
-  createHandler('specialties:get', async ({ id }: { id: number }) => {
-    const entity = await container.resolve(SpecialtyService).getById(id)
-    return entity ? SpecialtyEntity.toDto(entity) : null
-  })
-
-  createHandler('specialties:create', async (dto: SpecialtyDto) => {
-    const entity = SpecialtyEntity.fromDto(dto)
-    const created = await container.resolve(SpecialtyService).create(entity)
-    return SpecialtyEntity.toDto(created)
-  })
-
-  createHandler('specialties:update', async (dto: SpecialtyDto) => {
-    const entity = SpecialtyEntity.fromDto(dto)
-    const updated = await container.resolve(SpecialtyService).update(entity)
-    return SpecialtyEntity.toDto(updated)
-  })
-
-  createHandler('specialties:toggle', async ({ id, is_active }: { id: number; is_active: boolean }) => {
-    const entity = await container.resolve(SpecialtyService).toggle(id, is_active)
-    return SpecialtyEntity.toDto(entity)
-  })
-
-  createHandler('specialties:delete', async ({ id }: { id: number }) => {
-    await container.resolve(SpecialtyService).delete(id)
     return { success: true }
   })
 

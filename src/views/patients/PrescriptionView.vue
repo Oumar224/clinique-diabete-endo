@@ -262,7 +262,7 @@
     </el-card>
 
     <!-- Loading state -->
-    <div v-if="loading" class="prescription-view__loading">
+    <div v-if="prescriptionsLoading" class="prescription-view__loading">
       <p>Chargement des prescriptions...</p>
     </div>
 
@@ -301,6 +301,11 @@
       @row-click="onRowClick"
       :row-class-name="tableRowClass"
     >
+      <el-table-column label="Date" width="110">
+        <template #default="{ row }">
+          {{ formatCompactDateTime(row.createdAt) }}
+        </template>
+      </el-table-column>
       <el-table-column label="Type" width="130" align="center">
         <template #default="{ row }">
           <span
@@ -344,12 +349,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="Date" width="110">
-        <template #default="{ row }">
-          {{ formatCompactDateTime(row.createdAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="Actions" width="120" align="center">
+      <el-table-column label="Actions" width="150" align="center">
         <template #default="{ row }">
           <div class="prescription-cell__actions">
             <el-tooltip content="Modifier" placement="top" :show-after="400">
@@ -362,6 +362,7 @@
                 <el-icon><Edit /></el-icon>
               </el-button>
             </el-tooltip>
+
             <el-tooltip
               v-if="row.statut === 'active'"
               content="Arrêter"
@@ -394,7 +395,7 @@
     </el-table>
 
     <!-- Empty state -->
-    <el-empty v-if="!loading && prescriptions.length === 0" description="Aucune prescription" />
+    <el-empty v-if="!prescriptionsLoading && prescriptions.length === 0" description="Aucune prescription" />
 
     <!-- ================================================================ -->
     <!-- Edit prescription dialog                                         -->
@@ -767,9 +768,12 @@
           <el-button type="danger" plain @click="onDeleteFromDetail">
             Supprimer
           </el-button>
+
         </div>
       </template>
     </el-dialog>
+
+
   </div>
 </template>
 
@@ -790,17 +794,13 @@ import {
   CONSIGNES_PRISE_OPTIONS,
 } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
-import {
-  getPrescriptions,
-  createPrescription as apiCreatePrescription,
-  updatePrescription,
-  stopPrescription as apiStopPrescription,
-  deletePrescription,
-} from '@/api/prescription'
-import type { PrescriptionRecord } from '@/api/prescription'
+import { usePrescriptions, type PrescriptionRecord } from '@/composables/usePrescriptions'
+
 
 const route = useRoute()
 const { user } = useAuth()
+
+const { prescriptions, loading: prescriptionsLoading, fetchPrescriptions, createPrescription, updatePrescription, stopPrescription, deletePrescription } = usePrescriptions()
 
 const patientId = computed(() => {
   const id = Number(route.params.id)
@@ -811,7 +811,6 @@ const showForm = ref(false)
 const interactionWarning = ref('')
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
-const loading = ref(true)
 const prescriptionError = ref<string | null>(null)
 const stoppingId = ref<number | null>(null)
 
@@ -820,8 +819,6 @@ const editingPrescription = ref<PrescriptionRecord | null>(null)
 const showEditDialog = ref(false)
 const editFormRef = ref<FormInstance>()
 const editing = ref(false)
-
-const prescriptions = ref<PrescriptionRecord[]>([])
 
 /* ── Table filter ── */
 const tableTypeFilter = ref('all')
@@ -911,6 +908,7 @@ const createFormRules = computed<FormRules>(() => {
     return {
       medicament: [{ required: true, message: 'Choisissez un médicament', trigger: 'change' }],
       dosage: [{ required: true, message: 'Indiquez la quantité', trigger: 'blur' }],
+      unite: [{ required: true, message: 'Sélectionnez l\'unité', trigger: 'change' }],
       voie: [{ required: true, message: 'Sélectionnez la voie d\'administration', trigger: 'change' }],
       duree: [{ required: true, message: 'Indiquez la durée', trigger: 'blur' }],
       frequence: [{ required: true, message: 'Sélectionnez au moins une fréquence', trigger: 'change' }],
@@ -929,6 +927,7 @@ const editFormRules = computed<FormRules>(() => {
     return {
       medicament: [{ required: true, message: 'Choisissez un médicament', trigger: 'change' }],
       dosage: [{ required: true, message: 'Indiquez la quantité', trigger: 'blur' }],
+      unite: [{ required: true, message: 'Sélectionnez l\'unité', trigger: 'change' }],
       voie: [{ required: true, message: 'Sélectionnez la voie d\'administration', trigger: 'change' }],
       duree: [{ required: true, message: 'Indiquez la durée', trigger: 'blur' }],
       frequence: [{ required: true, message: 'Sélectionnez au moins une fréquence', trigger: 'change' }],
@@ -950,15 +949,12 @@ const INTERACTIONS_DB: Record<string, string[]> = {
 
 async function loadPrescriptions() {
   if (!patientId.value) return
-  loading.value = true
   prescriptionError.value = null
   try {
-    prescriptions.value = await getPrescriptions(patientId.value)
+    await fetchPrescriptions(patientId.value)
   } catch (e) {
     prescriptionError.value = (e as Error).message
     ElMessage.error(`Erreur de chargement: ${(e as Error).message}`)
-  } finally {
-    loading.value = false
   }
 }
 
@@ -1019,15 +1015,26 @@ async function onPrescrire() {
     interactionWarning.value = ''
   }
 
+  if (!patientId.value) {
+    ElMessage.error('Patient non valide')
+    submitting.value = false
+    return
+  }
+
   submitting.value = true
 
   try {
     const prescripteurId = user.value?.id ?? 0
     const payload = buildApiPayload(form)
-    const result = await apiCreatePrescription(patientId.value!, {
+    const result = await createPrescription(patientId.value, {
       ...payload,
       prescripteurId,
     })
+
+    if (!result) {
+      ElMessage.error('Erreur de création')
+      return
+    }
 
     const itemsCount = result.itemsGenerated
     const itemLabel = itemsCount > 0
@@ -1041,7 +1048,12 @@ async function onPrescrire() {
 
     await loadPrescriptions()
   } catch (e) {
-    ElMessage.error(`Erreur de création: ${(e as Error).message}`)
+    const msg = (e as Error).message
+    if (msg.includes('introuvable dans patient')) {
+      ElMessage.error('Le dossier patient semble inaccessible. Veuillez rafraîchir la page.')
+    } else {
+      ElMessage.error(`Erreur de création: ${msg}`)
+    }
   } finally {
     submitting.value = false
   }
@@ -1060,7 +1072,7 @@ async function onStop(id: number) {
 
   stoppingId.value = id
   try {
-    await apiStopPrescription(id)
+    await stopPrescription(id)
     ElMessage.success('Prescription arrêtée')
     await loadPrescriptions()
   } catch (e) {
@@ -1115,6 +1127,10 @@ async function onEditSubmit() {
   try {
     const payload = buildApiPayload(editForm)
     const result = await updatePrescription(editingPrescription.value.id, payload)
+    if (!result) {
+      ElMessage.error('Erreur de mise à jour')
+      return
+    }
     ElMessage.success(`Prescription modifiée — ${result.itemsGenerated} administration(s) générée(s)`)
     showEditDialog.value = false
     editingPrescription.value = null
@@ -1212,6 +1228,8 @@ function onDeleteFromDetail() {
   showDetailDialog.value = false
   if (selectedPrescription.value) onDelete(selectedPrescription.value)
 }
+
+
 
 onMounted(() => {
   loadPrescriptions()
