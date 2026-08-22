@@ -52,7 +52,7 @@ export class AutomergeSyncService {
       if (event.action === 'deleted') {
         const entity = event.entity as { automerge_id?: string } | null
         if (entity?.automerge_id) {
-          await this.storageAdapter.remove(entity.automerge_id)
+          await this.storageAdapter.remove([entity.automerge_id])
         }
         return
       }
@@ -68,7 +68,7 @@ export class AutomergeSyncService {
       doc.modifiedBy = 'local'
 
       await this.storageAdapter.save(
-        doc.automergeId,
+        [doc.automergeId],
         new Uint8Array(Buffer.from(JSON.stringify(doc))),
       )
     } catch (error) {

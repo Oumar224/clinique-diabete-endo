@@ -169,7 +169,7 @@
             </el-col>
             <el-col :span="20">
               <el-form-item label="Instructions">
-                <el-input v-model="inlineForm.instructions" type="textarea" :rows="2" />
+                <RichTextEditor v-model="inlineForm.instructions" :rows="2" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -217,7 +217,7 @@
               <strong>{{ item.medicament }}</strong> — {{ item.dosage }} {{ item.unite }} — {{ item.voie }} —
               {{ formatFrequence(item.frequence) }}
               <span v-if="item.prn" class="ordonnance-libre-form__preview-prn">(si besoin)</span>
-              <span v-if="item.instructions" class="ordonnance-libre-form__preview-instructions">{{ item.instructions }}</span>
+              <span v-if="!isRichTextEmpty(item.instructions)" class="ordonnance-libre-form__preview-instructions" v-html="item.instructions"></span>
             </div>
           </div>
         </div>
@@ -230,13 +230,12 @@
         Enregistrer Brouillon
       </el-button>
       <el-button
-        v-if="document?.status === 'draft'"
         type="primary"
         :loading="signing"
         :disabled="saving || signing"
         @click="handleSign"
       >
-        Signer et Verrouiller
+        {{ document?.status === 'signed' ? 'Resigner' : 'Signer' }}
       </el-button>
     </div>
   </div>
@@ -248,6 +247,8 @@ import { ElMessageBox } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import SectionHeader from '@/components/common/SectionHeader.vue'
+import RichTextEditor from '@/components/patients/RichTextEditor.vue'
+import { isRichTextEmpty } from '@/utils/rich-text'
 import { useOrdonnanceLibre } from '@/composables/useOrdonnanceLibre'
 import { usePatientContext } from '@/composables/usePatientContext'
 import {
@@ -386,11 +387,14 @@ async function handleSign() {
   if (!props.document) return
 
   try {
+    const resigning = props.document?.status === 'signed'
     await ElMessageBox.confirm(
-      'Êtes-vous sûr de vouloir signer et verrouiller ce document ? Cette action est irréversible.',
-      'Confirmation de signature',
+      resigning
+        ? 'Resigner ce document ? L\'ancienne signature sera écrasée.'
+        : 'Êtes-vous sûr de vouloir signer et verrouiller ce document ? Cette action est irréversible.',
+      resigning ? 'Re-signature' : 'Confirmation de signature',
       {
-        confirmButtonText: 'Signer',
+        confirmButtonText: resigning ? 'Resigner' : 'Signer',
         cancelButtonText: 'Annuler',
         type: 'warning',
       },

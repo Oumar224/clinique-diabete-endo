@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateCrhDiabeteHtml, generatePatientProfileHtml } from '../../export-templates'
+import { generateCrhDiabeteHtml, generateOrdonnanceHtml, generatePatientProfileHtml } from '../../export-templates'
 
 // ─── Test data factories ───────────────────────────────────────────
 
@@ -89,9 +89,6 @@ function createDefaultData() {
       },
     },
     evolutionMedicale: {
-      infoPatientFamille: true,
-      produitsSanguins: false,
-      bmrBhre: false,
       journalEvolution: 'Évolution favorable',
     },
     ordonnanceSortie: [],
@@ -100,6 +97,9 @@ function createDefaultData() {
       destinationSortie: 'Domicile',
       conclusionSortie: 'Bon état général',
       rdvSuivi: [],
+      infoPatientFamille: true,
+      produitsSanguins: false,
+      bmrBhre: false,
     },
   }
 }
@@ -639,7 +639,7 @@ describe('generateCrhDiabeteHtml', () => {
       expect(sectionContent(html, "8. TRAITEMENT À L'ENTRÉE")).toContain('Non renseigné')
       expect(sectionContent(html, "9. EXAMEN CLINIQUE À L'ENTRÉE")).toContain('Non renseigné')
       expect(sectionContent(html, "13. PROJET DE SOIN")).toContain('Non renseigné')
-      expect(html).toContain('14. SORTIE')
+      expect(html).toContain('15. SORTIE')
     })
 
     it('renders Non renseigné for empty / tag-only histoireRecent and conclusionEntree', () => {
@@ -692,7 +692,7 @@ describe('generateCrhDiabeteHtml', () => {
     it('renders imagerieTests with date, type and rich-text resultat', () => {
       const html = generateCrhDiabeteHtml(createDefaultData(), createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
       expect(html).toContain('<strong>Imagerie / Test :</strong>')
-      expect(html).toContain('Imagerie / Test — 2026-01-05 — Échographie cardiaque')
+      expect(html).toContain('Imagerie / Test — 05/01/2026 — Échographie cardiaque')
       expect(html).toContain('FEVG conservée à 55%')
     })
 
@@ -702,9 +702,59 @@ describe('generateCrhDiabeteHtml', () => {
       expect(html).toContain('Imagerie / Test — Scanner abdominal')
     })
 
+    it('renders imagerieTests date-desc in the PDF', () => {
+      const data = createDefaultData()
+      data.examensComplementaires.imagerieTests = [
+        { _key: 'older', date: '2026-01-05', type: 'Échographie cardiaque', typeLibre: '', resultat: '<p>FEVG 55%.</p>' },
+        { _key: 'empty', date: '', type: '__autre__', typeLibre: 'Scanner abdominal', resultat: '' },
+        { _key: 'newer', date: '2026-02-01', type: 'Scanner cérébral', typeLibre: '', resultat: '<p>RAS</p>' },
+      ]
+      const html = generateCrhDiabeteHtml(data, createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+      const sectionStart = html.indexOf('<strong>Imagerie / Test :</strong>')
+      const nextSection = html.indexOf('<div class="crh-section">', sectionStart)
+      const section = html.slice(sectionStart, nextSection === -1 ? undefined : nextSection)
+      const newer = section.indexOf('Imagerie / Test — 01/02/2026 — Scanner cérébral')
+      const older = section.indexOf('Imagerie / Test — 05/01/2026 — Échographie cardiaque')
+      const empty = section.indexOf('Imagerie / Test — Scanner abdominal')
+      expect(newer).toBeGreaterThan(-1)
+      expect(older).toBeGreaterThan(-1)
+      expect(empty).toBeGreaterThan(-1)
+      // most recent first, empties last
+      expect(newer).toBeLessThan(older)
+      expect(older).toBeLessThan(empty)
+    })
+
+    it('renders imagerie label, bio range, bio requestDate and RDV dates as DD/MM/YYYY', () => {
+      const data = createDefaultData()
+      data.sortie.rdvSuivi = [
+        { _key: 'rdv1', date: '2025-02-10', heure: '09:30', intitule: 'Consultation endocrinologie', lieuPraticien: 'Dr. Camara' },
+      ]
+      const html = generateCrhDiabeteHtml(data, createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+      // imagerie label date
+      expect(html).toContain('Imagerie / Test — 05/01/2026 — Échographie cardiaque')
+      expect(html).not.toContain('Imagerie / Test — 2026-01-05')
+      // bio date range + bio requestDate cells
+      expect(html).toContain('Résultat Bio (01/01/2026 → 31/01/2026)')
+      expect(html).toContain('<td>10/01/2026</td>')
+      expect(html).not.toContain('2026-01-01 → 2026-01-31')
+      // RDV de suivi date cell
+      expect(html).toContain('<td>10/02/2025 09:30</td>')
+      // month picker diagnostic rendered as MM/YYYY
+      expect(html).toContain('06/2010')
+    })
+
+    it('passes a legacy full-date dateDiagnostic through unchanged (not truncated to MM/YYYY)', () => {
+      const data = createDefaultData()
+      data.ficheDiabete.dateDiagnostic = '2026-01-15'
+      const html = generateCrhDiabeteHtml(data, createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+      // full-date value renders as-is, matching the UI's formatMonth behavior
+      expect(html).toContain('>2026-01-15 (évolution :')
+      expect(html).not.toContain('>01/2026 (évolution')
+    })
+
     it('renders the bilanBio heading with the date range', () => {
       const html = generateCrhDiabeteHtml(createDefaultData(), createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
-      expect(html).toContain('<strong>Résultat Bio (2026-01-01 → 2026-01-31) :</strong>')
+      expect(html).toContain('<strong>Résultat Bio (01/01/2026 → 31/01/2026) :</strong>')
     })
 
     it('renders bilanBio rows with values, units and reference values', () => {
@@ -813,12 +863,12 @@ describe('generateCrhDiabeteHtml', () => {
       expect(html).not.toContain('&lt;strong&gt;')
     })
 
-    it('embeds tabagismeDetail rich text unescaped — no literal &lt;p&gt;', () => {
+    it('embeds tabagismeDetail rich text unescaped in the stacked layout — no literal &lt;p&gt;', () => {
       const data = createDefaultData()
       data.modeVieAtcd.tabagisme = 'Fumeur actif'
       data.modeVieAtcd.tabagismeDetail = '<p>15 cigarettes/jour <strong>depuis 20 ans</strong></p>'
       const html = generateCrhDiabeteHtml(data, createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
-      expect(html).toContain('<div class="crh-rich" style="font-size:11px;color:#555"><p>15 cigarettes/jour <strong>depuis 20 ans</strong></p></div>')
+      expect(html).toContain('<div class="crh-para"><strong>Tabac :</strong><br>Fumeur actif<br><div class="crh-rich"><p>15 cigarettes/jour <strong>depuis 20 ans</strong></p></div></div>')
       expect(html).not.toContain('&lt;p&gt;')
       expect(html).not.toContain('&lt;strong&gt;')
     })
@@ -856,6 +906,444 @@ describe('generateCrhDiabeteHtml', () => {
       expect(html).toContain('<div class="crh-rich"><p>Bon état général, <strong>régime adapté</strong></p></div>')
       expect(html).not.toContain('&lt;strong&gt;')
     })
+  })
+
+  // ─── Réglementaires checkboxes moved from ÉVOLUTION to SORTIE ────
+
+  describe('réglementaires checkboxes in section 15 SORTIE', () => {
+    const SECTION_11 = '<div class="crh-section-title">11. '
+
+    function section11Content(html: string): string {
+      const start = html.indexOf(SECTION_11)
+      const nextSection = html.indexOf('<div class="crh-section">', start + SECTION_11.length)
+      return html.slice(start, nextSection === -1 ? undefined : nextSection)
+    }
+
+    it('renders the réglementaires checkboxes inside section 15 SORTIE, not section 11', () => {
+      const html = generateCrhDiabeteHtml(createDefaultData(), createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+      expect(html.indexOf(SECTION_11)).toBeLessThan(html.indexOf('15. SORTIE'))
+      // the row appears after the SORTIE header and before the conclusion block
+      expect(html.indexOf('15. SORTIE')).toBeLessThan(html.indexOf('Information du patient / famille'))
+      expect(html.indexOf('Information du patient / famille')).toBeLessThan(html.indexOf('Conclusion / Synthèse de sortie'))
+      // section 11 (between its header and section 12) no longer contains the rows
+      const section11 = section11Content(html)
+      expect(section11).not.toContain('Information du patient / famille')
+      expect(section11).not.toContain('Administration de produits sanguins')
+      expect(section11).not.toContain('Porteur / Contact BMR ou BHRe')
+    })
+
+    it('renders legacy evolutionMedicale.* booleans via the fallback pick-up', () => {
+      const data = createDefaultData()
+      // pre-move signed documents keep the booleans only under evolutionMedicale.*
+      delete (data.sortie as any).infoPatientFamille
+      delete (data.sortie as any).produitsSanguins
+      delete (data.sortie as any).bmrBhre
+      data.evolutionMedicale.infoPatientFamille = true
+      data.evolutionMedicale.produitsSanguins = true
+      data.evolutionMedicale.bmrBhre = true
+      const html = generateCrhDiabeteHtml(data, createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+      // all three rows still render inside section 15 SORTIE
+      expect(html.indexOf('15. SORTIE')).toBeLessThan(html.indexOf('Information du patient / famille'))
+      expect(html.indexOf('15. SORTIE')).toBeLessThan(html.indexOf('Administration de produits sanguins'))
+      expect(html.indexOf('15. SORTIE')).toBeLessThan(html.indexOf('Porteur / Contact BMR ou BHRe'))
+      expect(html.indexOf('Information du patient / famille')).toBeLessThan(html.indexOf('Conclusion / Synthèse de sortie'))
+      expect(section11Content(html)).not.toContain('Information du patient / famille')
+    })
+
+    it('does not override explicit sortie booleans with legacy evolutionMedicale values', () => {
+      const data = createDefaultData()
+      // sortie explicitly sets infoPatientFamille: false → the legacy true must not leak through
+      data.sortie.infoPatientFamille = false
+      data.evolutionMedicale.infoPatientFamille = true
+      const html = generateCrhDiabeteHtml(data, createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+      expect(html).not.toContain('Information du patient / famille')
+    })
+  })
+
+  // ─── Section 11 ÉVOLUTION ET AVIS + sous-partie Avis ─────────────
+
+  describe('section 11 ÉVOLUTION ET AVIS', () => {
+    function section11Content(html: string): string {
+      const start = html.indexOf('<div class="crh-section-title">11. ')
+      const nextSection = html.indexOf('<div class="crh-section">', start + 1)
+      return html.slice(start, nextSection === -1 ? undefined : nextSection)
+    }
+
+    it('renames section 11 to ÉVOLUTION ET AVIS', () => {
+      const html = generateCrhDiabeteHtml(createDefaultData(), createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+
+      expect(html).toContain('<div class="crh-section-title">11. ÉVOLUTION ET AVIS</div>')
+      expect(html).not.toContain('11. ÉVOLUTION MÉDICALE')
+    })
+
+    it('renders the Avis sub-part with the formatted date, specialite and motif', () => {
+      const data = createDefaultData()
+      data.evolutionMedicale.avis = [
+        { _key: 'a1', date: '2026-08-15', specialite: 'Cardiologie', motif: 'Tolérance' },
+      ]
+      const html = generateCrhDiabeteHtml(data, createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+
+      const section11 = section11Content(html)
+      expect(section11).toContain('<div class="crh-ord-subtitle">Avis</div>')
+      expect(section11).toContain('<span style="font-weight:bold;">15/08/2026 — Cardiologie</span> : Tolérance')
+    })
+
+    it('escapes the specialite and motif of an avis', () => {
+      const data = createDefaultData()
+      data.evolutionMedicale.avis = [
+        { _key: 'a1', date: '2026-08-15', specialite: 'Cardio & Co', motif: 'A < B' },
+      ]
+      const html = generateCrhDiabeteHtml(data, createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+
+      const section11 = section11Content(html)
+      expect(section11).toContain('<span style="font-weight:bold;">15/08/2026 — Cardio &amp; Co</span> : A &lt; B')
+      expect(section11).not.toContain('A < B')
+    })
+
+    it('omits the Avis sub-part when there is no avis', () => {
+      const html = generateCrhDiabeteHtml(createDefaultData(), createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+      expect(html).not.toContain('crh-ord-subtitle">Avis')
+
+      const data = createDefaultData()
+      data.evolutionMedicale.avis = []
+      const htmlEmpty = generateCrhDiabeteHtml(data, createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+      expect(htmlEmpty).not.toContain('crh-ord-subtitle">Avis')
+    })
+  })
+
+  // ─── Annexe (pièces jointes) ────────────────────────────────────
+
+  describe('annexe (pièces jointes)', () => {
+    const IMG_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
+    function renderWithAnnexes(annexes: Array<{
+      display_name?: string
+      file_name?: string
+      mime_type?: string
+      file_size?: number
+      description?: string
+      file_data?: string
+    }>): string {
+      return generateCrhDiabeteHtml(
+        createDefaultData(),
+        createDefaultPatient(),
+        createDefaultContact(),
+        createDefaultHospital(),
+        null,
+        undefined,
+        undefined,
+        undefined,
+        annexes,
+      )
+    }
+
+    it('renders the 16. ANNEXE section with an image, its data URI and caption', () => {
+      const html = renderWithAnnexes([
+        {
+          display_name: 'Photo pied.png',
+          file_name: 'photo-pied.png',
+          mime_type: 'image/png',
+          file_size: 1024,
+          description: 'Plaie du pied gauche avant traitement',
+          file_data: IMG_DATA_URI,
+        },
+      ])
+
+      expect(html).toContain('16. ANNEXE')
+      expect(html).toContain('<div class="annexe-item-name">Photo pied.png</div>')
+      expect(html).toContain(`<img src="${IMG_DATA_URI}" class="annexe-img" />`)
+      expect(html).toContain('<div class="annexe-caption crh-rich">Plaie du pied gauche avant traitement</div>')
+      expect(html.indexOf('annexe-item-name')).toBeLessThan(html.indexOf('class="annexe-img"'))
+      // Section is inserted between the SORTIE section and the SIGNATURES block
+      expect(html.indexOf('15. SORTIE')).toBeLessThan(html.indexOf('16. ANNEXE'))
+      expect(html.indexOf('16. ANNEXE')).toBeLessThan(html.indexOf('SIGNATURES'))
+    })
+
+    it('renders no name above the image when display_name is empty', () => {
+      const html = renderWithAnnexes([
+        {
+          display_name: '',
+          file_name: 'photo-pied.png',
+          mime_type: 'image/png',
+          file_size: 1024,
+          file_data: IMG_DATA_URI,
+        },
+      ])
+
+      expect(html).toContain('16. ANNEXE')
+      expect(html).toContain('class="annexe-img"')
+      // la classe CSS .annexe-item-name reste dans le <style> : l'assertion porte sur la section ANNEXE
+      const sectionStart = html.indexOf('<div class="crh-section-title">16. ANNEXE')
+      const nextSection = html.indexOf('<div class="crh-section">', sectionStart)
+      const section = html.slice(sectionStart, nextSection === -1 ? undefined : nextSection)
+      expect(section).not.toContain('annexe-item-name')
+      expect(html).not.toMatch(/annexe-item-name">[^<]/)
+    })
+
+    it('renders a PDF attachment as a file entry with name and metadata', () => {
+      const html = renderWithAnnexes([
+        {
+          display_name: 'Compte rendu labo.pdf',
+          file_name: 'cr-labo.pdf',
+          mime_type: 'application/pdf',
+          file_size: 2048,
+        },
+      ])
+
+      expect(html).toContain('16. ANNEXE')
+      expect(html).toContain('<div class="annexe-item annexe-file">')
+      expect(html).toContain('<span class="annexe-file-name">Compte rendu labo.pdf</span>')
+      expect(html).toContain('<span class="annexe-file-meta">application/pdf · 2 Ko</span>')
+      // no caption when the attachment has no description
+      expect(html).not.toContain('class="annexe-caption"')
+    })
+
+    it('renders the caption inside the file block when a PDF has a description', () => {
+      const html = renderWithAnnexes([
+        {
+          display_name: 'Compte rendu labo.pdf',
+          file_name: 'cr-labo.pdf',
+          mime_type: 'application/pdf',
+          file_size: 2048,
+          description: 'Bilan biologique du 12/01/2026',
+        },
+      ])
+
+      const sectionStart = html.indexOf('<div class="crh-section-title">16. ANNEXE')
+      const nextSection = html.indexOf('<div class="crh-section">', sectionStart)
+      const section = html.slice(sectionStart, nextSection === -1 ? undefined : nextSection)
+
+      expect(section).toContain('<div class="annexe-item annexe-file">')
+      expect(section).toContain('<span class="annexe-file-name">Compte rendu labo.pdf</span>')
+      expect(section).toContain('<div class="annexe-caption crh-rich">Bilan biologique du 12/01/2026</div>')
+      expect(section.indexOf('annexe-file-name')).toBeLessThan(section.indexOf('annexe-caption'))
+    })
+
+    it('renders a rich HTML description unescaped in the caption', () => {
+      const html = renderWithAnnexes([
+        {
+          display_name: 'Photo pied.png',
+          file_name: 'photo-pied.png',
+          mime_type: 'image/png',
+          file_size: 1024,
+          description: '<p>Texte <strong>gras</strong> et <em>italique</em></p>',
+          file_data: IMG_DATA_URI,
+        },
+      ])
+
+      expect(html).toContain('<div class="annexe-caption crh-rich"><p>Texte <strong>gras</strong> et <em>italique</em></p></div>')
+      expect(html).not.toContain('&lt;strong&gt;')
+    })
+
+    it('omits the caption when the rich description is empty HTML', () => {
+      const html = renderWithAnnexes([
+        {
+          display_name: 'Photo pied.png',
+          file_name: 'photo-pied.png',
+          mime_type: 'image/png',
+          file_size: 1024,
+          description: '<p></p>',
+          file_data: IMG_DATA_URI,
+        },
+      ])
+
+      expect(html).toContain('16. ANNEXE')
+      expect(html).toContain('class="annexe-img"')
+      expect(html).not.toContain('class="annexe-caption"')
+    })
+
+    it('escapes HTML-like characters in plain-text descriptions', () => {
+      const html = renderWithAnnexes([
+        {
+          display_name: 'Note.txt',
+          file_name: 'note.txt',
+          mime_type: 'text/plain',
+          file_size: 64,
+          description: 'A < B',
+        },
+      ])
+
+      expect(html).toContain('<div class="annexe-caption crh-rich">A &lt; B</div>')
+    })
+
+    it('omits the ANNEXE section when annexeAttachments is empty', () => {
+      const html = renderWithAnnexes([])
+
+      expect(html).not.toContain('16. ANNEXE')
+      expect(html).not.toContain('class="annexe-img"')
+      expect(html).not.toContain('class="annexe-file"')
+      expect(html).not.toContain('class="annexe-caption"')
+      // SIGNATURES still closes the document
+      expect(html).toContain('<!-- SIGNATURES -->')
+    })
+
+    it('omits the ANNEXE section when annexeAttachments is undefined', () => {
+      const html = generateCrhDiabeteHtml(
+        createDefaultData(),
+        createDefaultPatient(),
+        createDefaultContact(),
+        createDefaultHospital(),
+        null,
+      )
+
+      expect(html).not.toContain('16. ANNEXE')
+      expect(html).not.toContain('class="annexe-img"')
+    })
+
+    describe('ordonnance section', () => {
+      function ordonnanceSectionContent(html: string): string {
+        const anchor = '<div class="crh-section-title">14. ORDONNANCE'
+        const start = html.indexOf(anchor)
+        const nextSection = html.indexOf('<div class="crh-section">', start + anchor.length)
+        return html.slice(start, nextSection === -1 ? undefined : nextSection)
+      }
+
+      function renderWithOrdonnance(ordonnance: any) {
+        return generateCrhDiabeteHtml(
+          createDefaultData(),
+          createDefaultPatient(),
+          createDefaultContact(),
+          createDefaultHospital(),
+          null,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          ordonnance,
+        )
+      }
+
+      it('renders the 14. ORDONNANCE section between PROJET DE SOIN and SORTIE', () => {
+        const html = generateCrhDiabeteHtml(createDefaultData(), createDefaultPatient(), createDefaultContact(), createDefaultHospital(), null)
+        expect(html).toContain('14. ORDONNANCE')
+        expect(html.indexOf('13. PROJET DE SOIN')).toBeLessThan(html.indexOf('14. ORDONNANCE'))
+        expect(html.indexOf('14. ORDONNANCE')).toBeLessThan(html.indexOf('15. SORTIE'))
+      })
+
+      it('renders medicaments, soins, examens and avis blocks with their items', () => {
+        const html = renderWithOrdonnance({
+          medicaments: [{ nom: 'Metformine 500', posologie: '1cp x2/jour' }],
+          soins: [{ nom: 'Pansement', posologie: '1/jour' }],
+          examens: [{ label: 'NFS', detail: 'À jeun' }],
+          avis: [{ label: 'Cardiologue' }],
+        })
+        const section = ordonnanceSectionContent(html)
+        expect(section).toContain('MÉDICAMENTS')
+        expect(section).toContain('SOINS')
+        expect(section).toContain('DEMANDES D\u2019EXAMENS')
+        expect(section).toContain('AVIS SPÉCIALISÉS')
+        expect(section).toContain('Metformine 500')
+        expect(section).toContain('1cp x2/jour')
+        expect(section).toContain('Pansement')
+        expect(section).toContain('NFS')
+        expect(section).toContain('Cardiologue')
+      })
+
+      it('renders "Non renseigné" when no ordonnance data is provided', () => {
+        const html = renderWithOrdonnance(undefined)
+        expect(ordonnanceSectionContent(html)).toContain('Non renseigné')
+      })
+
+      it('escapes HTML in medication names and exam labels', () => {
+        const html = renderWithOrdonnance({
+          medicaments: [{ nom: '<script>alert(1)</script>', posologie: 'x' }],
+          avis: [{ label: 'Avis < spécialiste >' }],
+        })
+        const section = ordonnanceSectionContent(html)
+      expect(section).toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
+      expect(section).toContain('Avis &lt; spécialiste &gt;')
+      expect(section).not.toContain('<script>alert(1)</script>')
+    })
+
+    it('groups medicaments into courte durée and longue durée subgroups with the right relative order', () => {
+      const html = renderWithOrdonnance({
+        medicaments: [
+          { nom: 'Metformine 500', posologie: '1cp x2/jour', dureeType: 'courte' },
+          { nom: 'Insuline Glargine', posologie: '20 UI au coucher', dureeType: 'longue' },
+        ],
+      })
+      const section = ordonnanceSectionContent(html)
+      expect(section).toContain('<div class="crh-ord-subtitle">Traitement de courte durée</div>')
+      expect(section).toContain('<div class="crh-ord-subtitle">Traitement de longue durée</div>')
+      const courteIndex = section.indexOf('<div class="crh-ord-subtitle">Traitement de courte durée</div>')
+      const longueIndex = section.indexOf('<div class="crh-ord-subtitle">Traitement de longue durée</div>')
+      const metformineIndex = section.indexOf('Metformine 500')
+      const insulineIndex = section.indexOf('Insuline Glargine')
+      expect(courteIndex).toBeGreaterThan(-1)
+      expect(metformineIndex).toBeGreaterThan(courteIndex)
+      expect(metformineIndex).toBeLessThan(longueIndex)
+      expect(insulineIndex).toBeGreaterThan(longueIndex)
+    })
+
+    it('defaults medicaments without dureeType to the courte durée subgroup', () => {
+      const html = renderWithOrdonnance({
+        medicaments: [{ nom: 'Paracétamol', posologie: '1cp x3/jour' }],
+      })
+      const section = ordonnanceSectionContent(html)
+      expect(section).toContain('<div class="crh-ord-subtitle">Traitement de courte durée</div>')
+      expect(section).not.toContain('<div class="crh-ord-subtitle">Traitement de longue durée</div>')
+      expect(section.indexOf('Traitement de courte durée')).toBeLessThan(section.indexOf('Paracétamol'))
+    })
+
+    it('renders only the longue durée subgroup when all medicaments are longue durée', () => {
+      const html = renderWithOrdonnance({
+        medicaments: [{ nom: 'Amlodipine 5', posologie: '1cp le matin', dureeType: 'longue' }],
+      })
+      const section = ordonnanceSectionContent(html)
+      expect(section).not.toContain('<div class="crh-ord-subtitle">Traitement de courte durée</div>')
+      expect(section).toContain('<div class="crh-ord-subtitle">Traitement de longue durée</div>')
+      expect(section.indexOf('Traitement de longue durée')).toBeLessThan(section.indexOf('Amlodipine 5'))
+    })
+
+    it('omits the MÉDICAMENTS block and its subgroups when there are no medicaments', () => {
+      const html = renderWithOrdonnance({ medicaments: [] })
+      const section = ordonnanceSectionContent(html)
+      expect(section).not.toContain('crh-ord-subtitle')
+      expect(section).not.toContain('MÉDICAMENTS')
+      expect(section).toContain('Non renseigné')
+    })
+
+    it('renders rich ordonnance detail (motif) without escaping', () => {
+      const html = renderWithOrdonnance({
+        examens: [{ label: 'Bilan cardiaque', detail: '<p>Bilan <strong>cardiaque</strong></p>' }],
+      })
+      const section = ordonnanceSectionContent(html)
+      expect(section).toContain('<strong>cardiaque</strong>')
+      expect(section).not.toContain('&lt;')
+      // single-paragraph rich detail keeps the inline "label : detail" layout
+      expect(section).toContain('>Bilan cardiaque</span> : Bilan <strong>cardiaque</strong></div>')
+    })
+
+    it('keeps legacy plain-string ordonnance detail unchanged', () => {
+      const html = renderWithOrdonnance({
+        examens: [{ label: 'NFS', detail: 'À jeun' }],
+      })
+      const section = ordonnanceSectionContent(html)
+      expect(section).toContain('>NFS</span> : À jeun</div>')
+      expect(section).not.toContain('&lt;')
+    })
+
+    it('collapses multi-paragraph rich ordonnance detail into <br> so the inline layout survives', () => {
+      const html = renderWithOrdonnance({
+        examens: [{ label: 'Surveillance', detail: '<p>Glycémie à jeun</p><p>HbA1c à 3 mois</p>' }],
+      })
+      const section = ordonnanceSectionContent(html)
+      // paragraph boundaries become <br> (any serializer variant: <br>, <br/>, <br />)
+      expect(section).toMatch(/Glycémie à jeun<br\s*\/?>HbA1c à 3 mois/)
+      // no mid-string </p><p> block element remains inside the inline "label : detail" line
+      expect(section).not.toContain('Glycémie à jeun</p><p>HbA1c à 3 mois')
+    })
+
+    it('strips paragraph attributes (text-align) from rich ordonnance detail', () => {
+      const html = renderWithOrdonnance({
+        examens: [{ label: 'ECG', detail: '<p style="text-align:center">Repos strict</p>' }],
+      })
+      const section = ordonnanceSectionContent(html)
+      expect(section).not.toContain('<p style')
+      expect(section).toContain('Repos strict')
+      expect(section).toContain('>ECG</span> : Repos strict</div>')
+    })
+  })
   })
 })
 
@@ -902,6 +1390,105 @@ describe('generatePatientProfileHtml', () => {
       const patient = createDefaultPatient()
       const html = generatePatientProfileHtml(patient, null, createDefaultHospital(), null)
       expect(html).toContain('Aucune')
+    })
+  })
+
+  describe('generateOrdonnanceHtml', () => {
+    function createOrdonnanceParams(prescriptions: Array<{ nomMedicament: string; posologie: string; reglesConditionnelles?: string[]; dureeType?: 'courte' | 'longue' }>) {
+      return {
+        clinique: { logoUrl: null },
+        medecin: { nom: 'DUPONT', prenom: 'Jean', specialite: 'Médecine interne', numeroOrdre: '01234' },
+        structure: { nom: 'Clinique Diabète', ville: 'Conakry', adresse: 'Rue 123', telephone: '+224 000', numeroAgrement: 'AGR-1' },
+        patient: { civilite: 'M.', nom: 'CAMARA', prenom: 'Moussa', numeroDossier: 'P-42', dateNaissance: '01/01/1980', age: 45 },
+        prescriptions,
+        dispositifsMedicaux: [],
+        dateEmission: '16/08/2026',
+        heureEmission: '10:30',
+        numeroOrdonnance: 'ORD-2026-08-0001',
+        legalNotice: 'Notice légale',
+        barcodes: { ordreSvg: '', agrementSvg: '' },
+        qrCodes: { dossierSvg: '' },
+      }
+    }
+
+    it('groups prescriptions into courte durée and longue durée sections', () => {
+      const html = generateOrdonnanceHtml(createOrdonnanceParams([
+        { nomMedicament: 'Metformine 500', posologie: '1cp x2/jour', dureeType: 'courte' },
+        { nomMedicament: 'Insuline Glargine', posologie: '20 UI au coucher', dureeType: 'longue' },
+      ]))
+      expect(html).toContain('Traitement de courte durée')
+      expect(html).toContain('Traitement de longue durée')
+      const courteIndex = html.indexOf('Traitement de courte durée')
+      const longueIndex = html.indexOf('Traitement de longue durée')
+      const metformineIndex = html.indexOf('METFORMINE 500')
+      const insulineIndex = html.indexOf('INSULINE GLARGINE')
+      expect(courteIndex).toBeGreaterThan(-1)
+      expect(metformineIndex).toBeGreaterThan(courteIndex)
+      expect(metformineIndex).toBeLessThan(longueIndex)
+      expect(insulineIndex).toBeGreaterThan(longueIndex)
+    })
+
+    it('indents the prescriptions to the right inside each duration section', () => {
+      const html = generateOrdonnanceHtml(createOrdonnanceParams([
+        { nomMedicament: 'Metformine 500', posologie: '1cp x2/jour', dureeType: 'courte' },
+        { nomMedicament: 'Insuline Glargine', posologie: '20 UI au coucher', dureeType: 'longue' },
+      ]))
+      const courteSection = html.slice(html.indexOf('Traitement de courte durée'), html.indexOf('Traitement de longue durée'))
+      expect(courteSection).toContain('padding-left:20px')
+      expect(courteSection.indexOf('padding-left:20px')).toBeLessThan(courteSection.indexOf('METFORMINE 500'))
+      const longueSection = html.slice(html.indexOf('Traitement de longue durée'))
+      expect(longueSection).toContain('padding-left:20px')
+      expect(longueSection.indexOf('padding-left:20px')).toBeLessThan(longueSection.indexOf('INSULINE GLARGINE'))
+    })
+
+    it('defaults missing dureeType to courte durée', () => {
+      const html = generateOrdonnanceHtml(createOrdonnanceParams([
+        { nomMedicament: 'Paracétamol', posologie: '1cp x3/jour' },
+      ]))
+      expect(html).toContain('Traitement de courte durée')
+      expect(html).toContain('PARACÉTAMOL')
+      expect(html).not.toContain('Traitement de longue durée')
+    })
+
+    it('renders only the longue durée section when all prescriptions are longue', () => {
+      const html = generateOrdonnanceHtml(createOrdonnanceParams([
+        { nomMedicament: 'Amlodipine 5', posologie: '1cp le matin', dureeType: 'longue' },
+      ]))
+      expect(html).not.toContain('Traitement de courte durée')
+      expect(html).toContain('Traitement de longue durée')
+      expect(html).toContain('AMLODIPINE 5')
+    })
+
+    it('renders "Aucun médicament prescrit" when prescriptions is empty', () => {
+      const html = generateOrdonnanceHtml(createOrdonnanceParams([]))
+      expect(html).toContain('Aucun médicament prescrit')
+      expect(html).not.toContain('Traitement de courte durée')
+      expect(html).not.toContain('Traitement de longue durée')
+    })
+
+    it('keeps regles conditionnelles inside each duration section', () => {
+      const html = generateOrdonnanceHtml(createOrdonnanceParams([
+        { nomMedicament: 'Warfarine 5', posologie: '1cp le soir', reglesConditionnelles: ['Ne pas interrompre'], dureeType: 'longue' },
+      ]))
+      expect(html).toContain('**** Ne pas interrompre')
+      expect(html.indexOf('Traitement de longue durée')).toBeLessThan(html.indexOf('**** Ne pas interrompre'))
+    })
+
+    it('renders rich reglesConditionnelles without double-escaping', () => {
+      const html = generateOrdonnanceHtml(createOrdonnanceParams([
+        { nomMedicament: 'Metformine 500', posologie: '1cp x2/jour', reglesConditionnelles: ['<p>Prendre <strong>le matin</strong></p>'], dureeType: 'courte' },
+      ]))
+      expect(html).toContain('<strong>le matin</strong>')
+      expect(html).not.toContain('&lt;strong&gt;')
+      expect(html).not.toContain('&lt;p&gt;')
+    })
+
+    it('keeps legacy plain-string reglesConditionnelles unchanged', () => {
+      const html = generateOrdonnanceHtml(createOrdonnanceParams([
+        { nomMedicament: 'Warfarine 5', posologie: '1cp le soir', reglesConditionnelles: ['Ne pas interrompre'], dureeType: 'longue' },
+      ]))
+      expect(html).toContain('**** Ne pas interrompre')
+      expect(html).not.toContain('&lt;')
     })
   })
 })

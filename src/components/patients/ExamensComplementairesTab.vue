@@ -5,10 +5,17 @@
       title="Imagerie / Test"
       :keys="['imagerieTests']"
       :model-value="data"
+      :readonly="readonly"
       @save="emit('change')"
     >
       <template #default="{ draft }">
-        <div v-for="(exam, idx) in draft.imagerieTests" :key="exam._key" class="examen-card">
+        <div
+          v-for="(exam, idx) in sortedImagerieTests(draft.imagerieTests)"
+          :key="exam._key"
+          class="examen-card"
+          :data-exam-key="exam._key"
+          :class="{ 'examen-card--flash': exam._key === highlightedExamKey }"
+        >
           <div class="examen-card__header">
             <span class="examen-card__title">Examen #{{ idx + 1 }}</span>
             <el-button
@@ -16,7 +23,7 @@
               type="danger"
               size="small"
               :aria-label="`Supprimer examen #${idx + 1}`"
-              @click="removeExamen(draft.imagerieTests, idx)"
+              @click="removeExamen(draft.imagerieTests, exam)"
             >
               <template #icon>
                 <el-icon><Delete /></el-icon>
@@ -26,7 +33,7 @@
           <el-row :gutter="16">
             <el-col :span="6">
               <el-form-item label="Date de l'examen">
-                <el-date-picker v-model="exam.date" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+                <el-date-picker v-model="exam.date" type="date" value-format="YYYY-MM-DD" format="DD/MM/YYYY" style="width:100%" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
@@ -68,7 +75,7 @@
         variant="compact"
         :fields="imagerieTestsPreviewFields"
         empty-text="Aucun examen renseigné"
-        @edit="() => openSection('imagerie')"
+        @edit="onImagerieEdit"
       />
     </div>
 
@@ -77,16 +84,18 @@
       title="Résultat Bio"
       :keys="['bilanBio']"
       :model-value="data"
+      :readonly="readonly"
       @save="emit('change')"
     >
       <template #default="{ draft }">
         <el-row :gutter="16">
-          <el-col :span="10">
+          <el-col :span="14">
             <el-form-item label="Plage de dates">
               <el-date-picker
                 :model-value="rangeValue(draft.bilanBio)"
                 type="daterange"
                 value-format="YYYY-MM-DD"
+                format="DD/MM/YYYY"
                 start-placeholder="Date début"
                 end-placeholder="Date fin"
                 style="width:100%"
@@ -95,55 +104,24 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="14">
-            <el-form-item label=" ">
+          <el-col :span="10">
+            <div class="bio-actions">
               <el-button type="primary" :loading="bioLoading" :disabled="!rangeValue(draft.bilanBio) || !patientId" @click="fetchBio(draft.bilanBio)">
                 Récupérer les résultats
               </el-button>
               <el-button text type="danger" size="small" :disabled="!draft.bilanBio.results.length" @click="clearBio(draft.bilanBio)">
                 Effacer
               </el-button>
-            </el-form-item>
+            </div>
           </el-col>
         </el-row>
-        <div class="bio-table-wrap">
-          <table class="bio-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Paramètre</th>
-                <th>Valeur</th>
-                <th>Unité</th>
-                <th>Références</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="!draft.bilanBio.results.length">
-                <td colspan="6" class="bio-table__empty">Aucun résultat récupéré — choisissez une plage de dates puis cliquez sur « Récupérer les résultats ».</td>
-              </tr>
-              <template v-for="group in bioGroupsOf(draft.bilanBio.results)" :key="group.examName">
-                <tr class="bio-table__group-row">
-                  <td colspan="6" class="bio-table__group">{{ group.examName }}</td>
-                </tr>
-                <tr v-for="r in group.results" :key="r.id ?? r.parameterId ?? r.parameterName ?? r.requestDate ?? draft.bilanBio.results.indexOf(r)">
-                  <td>{{ bioDate(r) }}</td>
-                  <td>{{ r.parameterName }}</td>
-                  <td :class="{ 'bio-table__abnormal': r.isNormal === false }">{{ r.value }}</td>
-                  <td>{{ r.parameterUnit }}</td>
-                  <td>{{ formatReferenceValues(r.parameterReferenceValues) }}</td>
-                  <td class="bio-table__actions">
-                    <el-button size="small" type="danger" :aria-label="`Supprimer ${r.parameterName ?? 'résultat'}`" @click="removeBio(draft.bilanBio.results, draft.bilanBio.results.indexOf(r))">
-                      <template #icon>
-                        <el-icon><Delete /></el-icon>
-                      </template>
-                    </el-button>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
+        <BioMatrixTable
+          :groups="bioMatrixGroups(draft.bilanBio.results)"
+          :deletable="true"
+          max-height="420px"
+          empty-text="Aucun résultat récupéré — choisissez une plage de dates puis cliquez sur « Récupérer les résultats »."
+          @delete="row => onBioMatrixDelete(draft.bilanBio.results, row)"
+        />
         <p class="bio-hint">La plage de dates et les résultats récupérés sont enregistrés dans le compte-rendu et dans le PDF.</p>
       </template>
     </StagedCollapsibleSection>
@@ -161,24 +139,32 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, nextTick } from 'vue'
+import { computed, ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import type { ExamensComplementairesData } from '@/types/crh-diabete'
-import { useExamResults } from '@/composables/useExamResults'
+import { useExamResults, type MatrixGroup, type MatrixRow } from '@/composables/useExamResults'
 import type { ExamenImagerie, BilanBioResult } from '@/types/crh-diabete'
+import type { ExamRequestDto } from '@/composables/useExamRequests'
+import { ipcInvoke } from '@/utils/ipc'
 import RichTextEditor from '@/components/patients/RichTextEditor.vue'
 import StagedCollapsibleSection from '@/components/common/StagedCollapsibleSection.vue'
 import FormPreview from '@/components/common/FormPreview.vue'
 import type { FormPreviewField } from '@/components/common/FormPreview.vue'
+import BioMatrixTable from '@/components/patients/BioMatrixTable.vue'
 import { isRichTextEmpty } from '@/utils/rich-text'
+import { formatDate } from '@/utils/date'
 
 const FIELD_PREFIX = 'examensComplementaires'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   data: ExamensComplementairesData
   patientId?: number | null
   fieldMeta?: Record<string, string>
-}>()
+  readonly?: boolean
+}>(), {
+  readonly: false,
+})
 
 const emit = defineEmits<{
   change: []
@@ -216,14 +202,14 @@ const EXAMEN_TYPES = [
   'Holter',
 ] as const
 
-const { fetchByPatient, results: bioResults, loading: bioLoading } = useExamResults()
+const { fetchByPatient, results: bioResults, loading: bioLoading, buildMatrix } = useExamResults()
 
 const imagerieTestsPreviewFields = computed<FormPreviewField[]>(() =>
-  props.data.imagerieTests.map(exam => ({
-    label: [exam.date, effectiveExamenType(exam)].filter(Boolean).join(' · ') || 'Examen',
+  sortedImagerieTests(props.data.imagerieTests).map(exam => ({
+    label: [exam.date ? formatDate(exam.date) : '', effectiveExamenType(exam)].filter(Boolean).join(' · ') || 'Examen',
     value: isRichTextEmpty(exam.resultat) ? undefined : exam.resultat,
     rich: true,
-    key: `${FIELD_PREFIX}.imagerieTests`,
+    key: `${FIELD_PREFIX}.imagerieTests.${exam._key}`,
     updatedAt: metaFor(`${FIELD_PREFIX}.imagerieTests`),
     tracked: !!props.fieldMeta,
   })),
@@ -233,20 +219,44 @@ const bilanBioPreviewFields = computed<FormPreviewField[]>(() => {
   const r = props.data.bilanBio
   if (!r.results.length) return []
   return [
-    { label: 'Plage de dates', value: r.dateFrom && r.dateTo ? `${r.dateFrom} → ${r.dateTo}` : null, key: `${FIELD_PREFIX}.bilanBio.dateFrom`, updatedAt: metaFor(`${FIELD_PREFIX}.bilanBio.dateFrom`), tracked: !!props.fieldMeta },
+    { label: 'Plage de dates', value: r.dateFrom && r.dateTo ? `${formatDate(r.dateFrom)} → ${formatDate(r.dateTo)}` : null, key: `${FIELD_PREFIX}.bilanBio.dateFrom`, updatedAt: metaFor(`${FIELD_PREFIX}.bilanBio.dateFrom`), tracked: !!props.fieldMeta },
     { label: 'Paramètres récupérés', value: `${r.results.length} résultat(s)`, key: `${FIELD_PREFIX}.bilanBio.results`, updatedAt: metaFor(`${FIELD_PREFIX}.bilanBio.results`), tracked: !!props.fieldMeta },
-    ...r.results.slice(0, 6).map(res => ({
-      label: res.parameterName || 'Paramètre',
-      value: [res.value, res.parameterUnit].filter(Boolean).join(' '),
-      key: `${FIELD_PREFIX}.bilanBio.results`,
-      updatedAt: metaFor(`${FIELD_PREFIX}.bilanBio.results`),
-      tracked: !!props.fieldMeta,
-    })),
+    { label: 'Résultats', value: bioPreviewTableHtml(r.results), rich: true, key: `${FIELD_PREFIX}.bilanBio.results`, updatedAt: metaFor(`${FIELD_PREFIX}.bilanBio.results`), tracked: !!props.fieldMeta },
   ]
+})
+
+const highlightedExamKey = ref('')
+let highlightTimer: number | undefined
+
+function onImagerieEdit(key: string) {
+  const examKey = key.split('.').pop() ?? ''
+  highlightedExamKey.value = examKey
+  void openSection('imagerie').then(() => {
+    if (!examKey) return
+    const card = document.querySelector(`.examen-card[data-exam-key="${examKey}"]`)
+    card?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+  })
+  if (highlightTimer) window.clearTimeout(highlightTimer)
+  highlightTimer = window.setTimeout(() => {
+    highlightedExamKey.value = ''
+  }, 2000)
+}
+
+onUnmounted(() => {
+  if (highlightTimer) window.clearTimeout(highlightTimer)
 })
 
 function effectiveExamenType(exam: ExamenImagerie): string {
   return exam.type === '__autre__' ? exam.typeLibre : exam.type
+}
+
+function sortedImagerieTests(list: ExamenImagerie[]): ExamenImagerie[] {
+  return [...list].sort((a, b) => {
+    if (!a.date && !b.date) return 0
+    if (!a.date) return 1
+    if (!b.date) return -1
+    return b.date.localeCompare(a.date)
+  })
 }
 
 function addExamen(list: ExamenImagerie[]) {
@@ -259,8 +269,9 @@ function addExamen(list: ExamenImagerie[]) {
   })
 }
 
-function removeExamen(list: ExamenImagerie[], idx: number) {
-  list.splice(idx, 1)
+function removeExamen(list: ExamenImagerie[], exam: ExamenImagerie) {
+  const idx = list.findIndex(e => e._key === exam._key)
+  if (idx !== -1) list.splice(idx, 1)
 }
 
 function rangeValue(bilanBio: { dateFrom: string; dateTo: string }): [string, string] | null {
@@ -295,8 +306,18 @@ function clearBio(bilanBio: { dateFrom: string; dateTo: string; results: BilanBi
   bilanBio.results = []
 }
 
-function removeBio(results: BilanBioResult[], idx: number) {
-  results.splice(idx, 1)
+function bioMatrixGroups(results: BilanBioResult[]): MatrixGroup[] {
+  return buildMatrix(results).matrixGroups
+}
+
+function onBioMatrixDelete(results: BilanBioResult[], row: MatrixRow) {
+  removeBioByParameter(results, row.parameterId)
+}
+
+function removeBioByParameter(results: BilanBioResult[], parameterId: number) {
+  for (let i = results.length - 1; i >= 0; i--) {
+    if (results[i].parameterId === parameterId) results.splice(i, 1)
+  }
 }
 
 function bioGroupsOf(results: BilanBioResult[]): { examName: string; results: BilanBioResult[] }[] {
@@ -323,28 +344,87 @@ function bioGroupsOf(results: BilanBioResult[]): { examName: string; results: Bi
 }
 
 function bioDate(r: BilanBioResult): string {
-  return r.requestDate || r.filledAt?.slice(0, 10) || ''
+  const date = r.requestDate || r.filledAt?.slice(0, 10) || ''
+  return date ? formatDate(date) : ''
 }
 
-function formatReferenceValues(ref: Record<string, unknown> | null | undefined): string {
-  if (!ref || typeof ref !== 'object') return ''
-  const r = ref as {
-    min?: number
-    max?: number
-    min_h?: number
-    max_h?: number
-    min_f?: number
-    max_f?: number
-    options?: unknown
-    normal_value?: unknown
+function bioPreviewTableHtml(results: BilanBioResult[]): string {
+  const groups = bioGroupsOf(results)
+  const parts: string[] = []
+  for (const group of groups) {
+    const dates = Array.from(new Set(group.results.map(r => bioDate(r)).filter(Boolean))).sort()
+    if (!dates.length) continue
+    const paramNames = Array.from(new Set(group.results.map(r => r.parameterName || 'Paramètre')))
+    const rowsHtml = paramNames.map(name => {
+      const cellsHtml = dates.map(date => {
+        const matching = group.results.filter(r => (r.parameterName || 'Paramètre') === name && bioDate(r) === date)
+        const text = matching.map(v => [v.value, v.parameterUnit].filter(Boolean).join(' ')).filter(Boolean).join(' / ')
+        const abnormal = matching.some(v => v.isNormal === false)
+        return `<td style="${BIO_PREVIEW_STYLE.td}${abnormal ? `;${BIO_PREVIEW_STYLE.tdAbnormal}` : ''}">${escapeHtml(text)}</td>`
+      }).join('')
+      return `<tr><td style="${BIO_PREVIEW_STYLE.tdName}">${escapeHtml(name)}</td>${cellsHtml}</tr>`
+    }).join('')
+    const headersHtml = dates.map(d => `<th style="${BIO_PREVIEW_STYLE.th}">${escapeHtml(d)}</th>`).join('')
+    parts.push(
+      `<div style="${BIO_PREVIEW_STYLE.group}">${escapeHtml(group.examName)}</div>` +
+      `<table style="${BIO_PREVIEW_STYLE.table}"><thead><tr><th style="${BIO_PREVIEW_STYLE.th}">Paramètre</th>${headersHtml}</tr></thead><tbody>${rowsHtml}</tbody></table>`,
+    )
   }
-  if (Array.isArray(r.options)) return (r.options as string[]).join(' / ')
-  if (r.min != null && r.max != null) return `${r.min} – ${r.max}`
-  if (r.min_h != null && r.max_h != null) return `H: ${r.min_h} – ${r.max_h}`
-  if (r.min_f != null && r.max_f != null) return `F: ${r.min_f} – ${r.max_f}`
-  if (r.normal_value != null) return String(r.normal_value)
-  return ''
+  return parts.join('')
 }
+
+const BIO_PREVIEW_STYLE = {
+  th: 'border:1px solid #e4e7ed;padding:4px 8px;font-size:12px;font-weight:600;background:#f5f7fa;text-align:left;white-space:nowrap',
+  td: 'border:1px solid #e4e7ed;padding:4px 8px;font-size:12px;text-align:left',
+  tdName: 'border:1px solid #e4e7ed;padding:4px 8px;font-size:12px;font-weight:600;text-align:left;white-space:nowrap',
+  tdAbnormal: 'color:#f56c6c;font-weight:700',
+  group: 'font-size:12px;font-weight:600;color:#1a5276;margin:8px 0 2px',
+  table: 'border-collapse:collapse;width:100%;margin-bottom:4px',
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+const imageriePrefillRunning = ref(false)
+
+/** Pré-remplit les examens d'imagerie réalisés depuis les demandes du patient. */
+async function prefillImagerie() {
+  if (props.readonly || !props.patientId || props.data.imagerieTests.length > 0 || imageriePrefillRunning.value) return
+  imageriePrefillRunning.value = true
+  try {
+    const requests = (await ipcInvoke<ExamRequestDto[]>('exam-request:list', { patientId: props.patientId })) ?? []
+    const knownTypes = EXAMEN_TYPES as readonly string[]
+    const prefilled: ExamenImagerie[] = requests
+      .filter(r => r.type === 'imagerie' && r.statut === 'realise')
+      .map(r => {
+        const known = knownTypes.includes(r.examenLabel ?? '')
+        return {
+          _key: crypto.randomUUID(),
+          date: r.plannedDate ?? '',
+          type: known ? (r.examenLabel ?? '') : '__autre__',
+          typeLibre: known ? '' : (r.examenLabel ?? ''),
+          resultat: '',
+        }
+      })
+    if (prefilled.length === 0) return
+    // eslint-disable-next-line vue/no-mutating-props -- pré-remplissage volontaire de l'objet réactif partagé pour déclencher l'autosave parent
+    props.data.imagerieTests.push(...prefilled)
+    emit('change')
+  } catch (e) {
+    ElMessage.warning((e as Error).message)
+  } finally {
+    imageriePrefillRunning.value = false
+  }
+}
+
+onMounted(() => {
+  void prefillImagerie()
+})
 </script>
 
 <style scoped lang="scss">
@@ -359,6 +439,10 @@ function formatReferenceValues(ref: Record<string, unknown> | null | undefined):
   &:hover {
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   }
+}
+
+.examen-card--flash {
+  box-shadow: 0 0 0 2px var(--el-color-primary);
 }
 
 .examen-card__header {
@@ -379,50 +463,11 @@ function formatReferenceValues(ref: Record<string, unknown> | null | undefined):
   color: var(--el-text-color-primary);
 }
 
-.bio-table-wrap {
-  overflow-x: auto;
-  margin: 8px 0;
-}
-
-.bio-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-
-  th,
-  td {
-    border: 1px solid var(--el-border-color-lighter);
-    padding: 6px 8px;
-    text-align: left;
-  }
-
-  th {
-    background: var(--el-fill-color-light);
-    font-weight: 600;
-  }
-}
-
-.bio-table__empty {
-  color: var(--el-text-color-secondary);
-  font-style: italic;
-  text-align: center;
-  padding: 12px;
-}
-
-.bio-table__abnormal {
-  font-weight: 600;
-  color: var(--el-color-danger);
-}
-
-.bio-table__group-row td {
-  background: var(--el-color-primary-light-9);
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.bio-table__actions {
-  text-align: right;
-  white-space: nowrap;
+.bio-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 30px;
 }
 
 .bio-hint {

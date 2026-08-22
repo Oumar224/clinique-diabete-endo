@@ -2,8 +2,9 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
+import { computed, nextTick } from 'vue'
 import ExamensView from '../ExamensView.vue'
+import { formatDateTime } from '@/utils/date'
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks — available before any vi.mock() call
@@ -67,6 +68,15 @@ vi.mock('@/composables/usePatientContext', () => ({
     setActivePatient: vi.fn(),
     clearPatient: vi.fn(),
   })),
+}))
+
+vi.mock('@/components/patients/RichTextEditor.vue', () => ({
+  default: {
+    name: 'RichTextEditor',
+    template: '<div class="rich-editor-mock" />',
+    props: ['modelValue', 'readonly', 'rows', 'placeholder'],
+    emits: ['update:modelValue', 'change'],
+  },
 }))
 
 vi.mock('@/composables/useSpecialties', () => ({
@@ -141,12 +151,61 @@ vi.mock('@/composables/useExamRequests', async () => {
           return false
         }
       },
+      realize: async (id: number, resultat?: string) => {
+        try {
+          return await mockIpcInvoke('exam-request:realize', { id, resultat })
+        } catch (e: any) {
+          error.value = e.message
+          return false
+        }
+      },
+      listAttachments: async (examRequestId: number) => {
+        return await mockIpcInvoke('exam-request-attachments:list', { examRequestId })
+      },
+      createAttachment: async (payload: any) => {
+        return await mockIpcInvoke('exam-request-attachments:create', payload)
+      },
+      deleteAttachment: async (id: number) => {
+        return await mockIpcInvoke('exam-request-attachments:delete', { id })
+      },
     })),
   }
 })
 
+vi.mock('@/components/patients/ExamValidationDialog.vue', () => ({
+  default: {
+    name: 'ExamValidationDialog',
+    template: '<div v-if="visible" class="exam-validation-dialog-mock" />',
+    props: ['visible', 'examRequestId', 'examIds'],
+    emits: ['update:visible', 'validated'],
+  },
+}))
+
+vi.mock('@/components/patients/AvisResultDialog.vue', () => ({
+  default: {
+    name: 'AvisResultDialog',
+    template: '<div v-if="visible" class="avis-result-dialog-mock" />',
+    props: ['visible', 'examRequestId', 'title'],
+    emits: ['update:visible', 'realized'],
+  },
+}))
+
+vi.mock('@/components/patients/ExamRequestDetailDialog.vue', () => ({
+  default: {
+    name: 'ExamRequestDetailDialog',
+    template: '<div v-if="visible" class="exam-detail-dialog-mock" />',
+    props: ['visible', 'request'],
+    emits: ['update:visible'],
+  },
+}))
+
 // ---------------------------------------------------------------------------
 // Stubs for Element Plus components used in ExamensView
+//
+// The el-table stub renders one .el-table__row per item and wraps the default
+// slot (the el-table-column stubs) in a RowSlotProvider that provides the row
+// via provide/inject. Each el-table-column stub then re-exposes that row as a
+// scoped slot so the real column templates (#default="{ row }") render.
 // ---------------------------------------------------------------------------
 const stubs = {
   'el-alert': {
@@ -169,7 +228,7 @@ const stubs = {
   },
   'el-select': {
     template: '<select class="el-select" :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><slot /></select>',
-    props: ['modelValue', 'placeholder', 'filterable', 'style', 'disabled'],
+    props: ['modelValue', 'placeholder', 'filterable', 'style', 'disabled', 'clearable'],
     emits: ['update:modelValue'],
   },
   'el-option': {
@@ -198,9 +257,6 @@ const stubs = {
       attrType() { return this.type === 'primary' ? 'submit' : 'button' },
     },
     emits: ['click'],
-  },
-  'el-button-group': {
-    template: '<div class="el-button-group"><slot /></div>',
   },
   'el-tag': {
     template: '<span class="el-tag" :class="`el-tag--${type}`"><slot /></span>',
@@ -232,9 +288,45 @@ const stubs = {
     props: ['span'],
   },
   'el-date-picker': {
-    template: '<input class="el-date-picker" :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)" />',
+    template: '<input class="el-date-picker" :value="displayValue" @change="$emit(\'update:modelValue\', $event.target.value)" />',
     props: ['modelValue', 'type', 'placeholder', 'valueFormat', 'style'],
     emits: ['update:modelValue'],
+    computed: {
+      displayValue() {
+        return Array.isArray(this.modelValue) ? this.modelValue.join(' → ') : this.modelValue
+      },
+    },
+  },
+  'el-table': {
+    name: 'ElTableStub',
+    components: {
+      RowSlotProvider: {
+        name: 'RowSlotProvider',
+        props: ['row'],
+        provide() { return { tableRow: computed(() => this.row) } },
+        template: '<slot />',
+      },
+    },
+    template: [
+      '<div class="el-table">',
+      '  <div v-for="(item, idx) in (data || [])" :key="item.id ?? idx" class="el-table__row" @click="$emit(\'row-click\', item)">',
+      '    <RowSlotProvider :row="item"><slot /></RowSlotProvider>',
+      '  </div>',
+      '</div>',
+    ].join(''),
+    props: ['data', 'size', 'emptyText'],
+    emits: ['row-click'],
+  },
+  'el-table-column': {
+    name: 'ElTableColumnStub',
+    inject: ['tableRow'],
+    template: '<div class="el-table-column"><slot :row="tableRow" /></div>',
+    props: ['label', 'prop', 'width', 'minWidth', 'fixed'],
+  },
+  'el-popconfirm': {
+    template: '<span class="el-popconfirm"><slot name="reference" /><button class="el-popconfirm__confirm" @click="$emit(\'confirm\')">OK</button></span>',
+    props: ['title', 'confirmButtonText', 'cancelButtonText'],
+    emits: ['confirm', 'cancel'],
   },
 }
 
@@ -255,6 +347,13 @@ function dateAt(daysOffset: number, hour: number): string {
   const hh = String(d.getHours()).padStart(2, '0')
   // Return ISO-like string in local timezone so the component parses it correctly
   return `${y}-${m}-${day}T${hh}:00:00.000`
+}
+
+function todayStr(): string {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
 }
 
 function makeRequest(overrides: Record<string, unknown> = {}) {
@@ -293,6 +392,12 @@ function setupRequestsMock(requests?: any[]) {
   })
 }
 
+function mountView(requests?: any[]) {
+  setupRequestsMock(requests)
+  const wrapper = mount(ExamensView, { global: { stubs } })
+  return wrapper
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -307,7 +412,7 @@ describe('ExamensView', () => {
 
   describe('affichage initial', () => {
     it('affiche le conteneur principal', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+      const wrapper = mountView()
       await nextTick()
       await waitForData()
 
@@ -315,49 +420,48 @@ describe('ExamensView', () => {
     })
 
     it('affiche le titre "Demande d\'examens"', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+      const wrapper = mountView()
       await nextTick()
       await waitForData()
 
       expect(wrapper.text()).toContain("Demande d'examens")
     })
 
-    it('affiche l\'en-tête du formulaire avec "Nouvelle demande"', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('affiche le bouton "+ Nouvelle demande"', async () => {
+      const wrapper = mountView()
       await nextTick()
       await waitForData()
 
-      const header = wrapper.find('.examens-view__form-header')
-      expect(header.exists()).toBe(true)
-      expect(header.text()).toContain('Nouvelle demande')
+      const buttons = wrapper.findAll('.el-button')
+      expect(buttons.some(b => b.text().includes('Nouvelle demande'))).toBe(true)
     })
 
-    it('affiche les boutons de navigation hebdomadaire', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('affiche le bouton "Actualiser"', async () => {
+      const wrapper = mountView()
       await nextTick()
       await waitForData()
 
-      const header = wrapper.find('.examens-calendar__header')
-      expect(header.exists()).toBe(true)
-      const buttons = header.findAll('.el-button')
-      expect(buttons.length).toBeGreaterThanOrEqual(3)
+      const buttons = wrapper.findAll('.el-button')
+      expect(buttons.some(b => b.text().trim() === 'Actualiser')).toBe(true)
     })
 
-    it('affiche la grille du calendrier', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('affiche la rangée de filtres (période, type, statut)', async () => {
+      const wrapper = mountView()
       await nextTick()
       await waitForData()
 
-      expect(wrapper.find('.examens-calendar__grid').exists()).toBe(true)
+      expect(wrapper.find('.examens-view__filters').exists()).toBe(true)
+      expect(wrapper.find('.el-date-picker').exists()).toBe(true)
+      const selects = wrapper.findAll('.el-select')
+      expect(selects.length).toBeGreaterThanOrEqual(2)
     })
 
-    it('affiche 7 colonnes de jour', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('affiche la table des demandes', async () => {
+      const wrapper = mountView()
       await nextTick()
       await waitForData()
 
-      const dayColumns = wrapper.findAll('.examens-calendar__date-header')
-      expect(dayColumns).toHaveLength(7)
+      expect(wrapper.find('.examens-view__table').exists()).toBe(true)
     })
   })
 
@@ -365,7 +469,7 @@ describe('ExamensView', () => {
 
   describe('comportement onMounted', () => {
     it('récupère les demandes pour le patient actif au montage', async () => {
-      mount(ExamensView, { global: { stubs } })
+      mountView()
       await nextTick()
       await waitForData()
 
@@ -373,426 +477,294 @@ describe('ExamensView', () => {
     })
   })
 
-  // ─── Grille avec créneaux horaires ─────────────────────────────────
+  // ─── Table avec demandes ───────────────────────────────────────────
 
-  describe('grille avec créneaux horaires', () => {
-    it('affiche 9 étiquettes horaires dans chaque colonne de jour', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+  describe('table avec demandes', () => {
+    it('affiche une ligne par demande', async () => {
+      const wrapper = mountView(defaultMockRequests())
       await nextTick()
       await waitForData()
 
-      const hourLabels = wrapper.findAll('.examens-calendar__date-hour')
-      expect(hourLabels).toHaveLength(63)
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(3)
     })
 
-    it('affiche les libellés d\'heure au format HH:00', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('affiche le libellé du type pour chaque ligne', async () => {
+      const wrapper = mountView(defaultMockRequests())
       await nextTick()
       await waitForData()
 
-      const hourLabels = wrapper.findAll('.examens-calendar__date-hour')
-      const texts = hourLabels.map(l => l.text())
-      expect(texts).toContain('06:00')
-      expect(texts).toContain('08:00')
-      expect(texts).toContain('10:00')
-      expect(texts).toContain('12:00')
-      expect(texts).toContain('14:00')
-      expect(texts).toContain('16:00')
-      expect(texts).toContain('18:00')
-      expect(texts).toContain('20:00')
-      expect(texts).toContain('22:00')
+      const rows = wrapper.findAll('.el-table__row')
+      expect(rows[0].text()).toContain('Imagerie')
+      expect(rows[1].text()).toContain('Laboratoire')
+      expect(rows[2].text()).toContain('Avis spécialisé')
     })
 
-    it('affiche 9 cellules horaires par colonne de jour', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('affiche le badge de statut avec le libellé et la couleur corrects', async () => {
+      const wrapper = mountView(defaultMockRequests())
       await nextTick()
       await waitForData()
 
-      const hourCells = wrapper.findAll('.examens-calendar__cell')
-      expect(hourCells).toHaveLength(63)
+      const rows = wrapper.findAll('.el-table__row')
+      expect(rows[0].text()).toContain('En attente')
+      expect(rows[1].text()).toContain('En cours')
+      expect(rows[2].text()).toContain('Réalisé')
+
+      const tags = wrapper.findAll('.el-tag')
+      const statutTags = tags.filter(t => ['En attente', 'En cours', 'Réalisé', 'Annulé'].includes(t.text()))
+      const realiseTag = statutTags.find(t => t.text() === 'Réalisé')
+      expect(realiseTag!.classes()).toContain('el-tag--success')
+      const attenteTag = statutTags.find(t => t.text() === 'En attente')
+      expect(attenteTag!.classes()).toContain('el-tag--warning')
+      const coursTag = statutTags.find(t => t.text() === 'En cours')
+      expect(coursTag!.classes()).toContain('el-tag--primary')
     })
 
-    it('colonne du jour courant porte la classe --today', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('affiche les tags de type avec des couleurs distinctes', async () => {
+      const wrapper = mountView(defaultMockRequests())
       await nextTick()
       await waitForData()
 
-      const todayColumns = wrapper.findAll('.examens-calendar__date-header--today')
-      expect(todayColumns.length).toBe(1)
+      const tags = wrapper.findAll('.el-tag')
+      const typeTags = tags.filter(t => ['Imagerie', 'Laboratoire', 'Avis spécialisé'].includes(t.text()))
+      const imagerieTag = typeTags.find(t => t.text() === 'Imagerie')
+      expect(imagerieTag!.classes()).toContain('el-tag--primary')
+      const laboTag = typeTags.find(t => t.text() === 'Laboratoire')
+      expect(laboTag!.classes()).toContain('el-tag--success')
+      const avisTag = typeTags.find(t => t.text() === 'Avis spécialisé')
+      expect(avisTag!.classes()).toContain('el-tag--warning')
     })
 
-    it('en-tête du jour courant porte la classe --today', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('affiche le libellé de l\'examen / spécialité', async () => {
+      const wrapper = mountView(defaultMockRequests())
       await nextTick()
       await waitForData()
 
-      const todayHeaders = wrapper.findAll('.examens-calendar__date-header--today')
-      expect(todayHeaders.length).toBe(1)
+      const rows = wrapper.findAll('.el-table__row')
+      expect(rows[0].text()).toContain('Radiographie thoracique')
+      expect(rows[2].text()).toContain('Endocrinologie')
     })
 
-    it('la cellule de l\'heure courante porte la classe --now', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('affiche le prescripteur', async () => {
+      const wrapper = mountView(defaultMockRequests())
       await nextTick()
       await waitForData()
 
-      const nowCells = wrapper.findAll('.examens-calendar__cell--now')
-      expect(nowCells.length).toBe(1)
+      const rows = wrapper.findAll('.el-table__row')
+      expect(rows[0].text()).toContain('Dr. Diallo')
+      expect(rows[1].text()).toContain('Dr. Camara')
     })
 
-    it('le libellé de l\'heure courante porte la classe --now', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('affiche "—" dans la colonne Réalisation quand non réalisé', async () => {
+      const wrapper = mountView(defaultMockRequests())
       await nextTick()
       await waitForData()
 
-      const nowLabels = wrapper.findAll('.examens-calendar__date-hour--now')
-      expect(nowLabels.length).toBe(1)
-    })
-  })
-
-  // ─── Navigation hebdomadaire ───────────────────────────────────────
-
-  describe('navigation hebdomadaire', () => {
-    it('affiche le libellé de semaine au format "JJ/MM — JJ/MM"', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      const label = wrapper.find('.examens-calendar__week-label')
-      expect(label.exists()).toBe(true)
-      expect(label.text()).toMatch(/\d{2}\/\d{2} — \d{2}\/\d{2}/)
+      const rows = wrapper.findAll('.el-table__row')
+      expect(rows[0].text()).toContain('—')
     })
 
-    it('le bouton précédent change la semaine affichée', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      const navButtons = wrapper.findAll('.examens-calendar__header .el-button')
-      const labelEl = navButtons[1]
-      const labelBefore = labelEl.text()
-
-      await navButtons[0].trigger('click')
-      await nextTick()
-
-      expect(labelEl.text()).not.toBe(labelBefore)
-    })
-
-    it('le bouton suivant change la semaine affichée', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      const navButtons = wrapper.findAll('.examens-calendar__header .el-button')
-      const labelEl = navButtons[1]
-      const labelBefore = labelEl.text()
-
-      await navButtons[2].trigger('click')
-      await nextTick()
-
-      expect(labelEl.text()).not.toBe(labelBefore)
-    })
-
-    it('le bouton "Aujourd\'hui" réinitialise la semaine après navigation', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      const navButtons = wrapper.findAll('.examens-calendar__header .el-button')
-      const labelEl = navButtons[1]
-      const labelOriginal = labelEl.text()
-
-      await navButtons[0].trigger('click')
-      await nextTick()
-      const afterPrev = labelEl.text()
-      expect(afterPrev).not.toBe(labelOriginal)
-
-      await navButtons[3].trigger('click')
-      await nextTick()
-      const afterToday = labelEl.text()
-      expect(afterToday).toBe(labelOriginal)
-    })
-  })
-
-  // ─── Cartes de demande dans les créneaux ───────────────────────────
-
-  describe('cartes de demande dans les créneaux', () => {
-    it('affiche les cartes dans les cellules horaires correspondant à leur createdAt', async () => {
+    it('affiche la date de réalisation quand réalisé', async () => {
       const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      const cards = wrapper.findAll('.examens-calendar__card')
-      expect(cards.length).toBe(3)
-    })
-
-    it('chaque carte affiche le libellé du type', async () => {
-      const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      const cards = wrapper.findAll('.examens-calendar__card')
-      const cardTexts = cards.map(c => c.text())
-      expect(cardTexts.some(t => t.includes('Imagerie'))).toBe(true)
-      expect(cardTexts.some(t => t.includes('Laboratoire'))).toBe(true)
-      expect(cardTexts.some(t => t.includes('Avis'))).toBe(true)
-    })
-
-    it('les badges de statut affichent le libellé et la classe de couleur corrects', async () => {
-      const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      const badges = wrapper.findAll('.examens-calendar__statut-badge')
-      expect(badges).toHaveLength(3)
-
-      // Yesterday's request (realise/success) comes first in the grid
-      const texts = badges.map(b => b.text())
-      expect(texts).toContain('Réalisé')
-      expect(texts).toContain('En attente')
-      expect(texts).toContain('En cours')
-
-      // Check each badge has the right color class
-      const successBadges = badges.filter(b => b.text().includes('Réalisé'))
-      expect(successBadges[0].classes()).toContain('el-tag--success')
-      const warningBadges = badges.filter(b => b.text().includes('En attente'))
-      expect(warningBadges[0].classes()).toContain('el-tag--warning')
-      const primaryBadges = badges.filter(b => b.text().includes('En cours'))
-      expect(primaryBadges[0].classes()).toContain('el-tag--primary')
-    })
-
-    it('la carte imagerie porte la classe --imagerie', async () => {
-      const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      const imagerieCards = wrapper.findAll('.examens-calendar__card--imagerie')
-      expect(imagerieCards.length).toBe(1)
-    })
-
-    it('la carte laboratoire porte la classe --laboratoire', async () => {
-      const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      const laboratoireCards = wrapper.findAll('.examens-calendar__card--laboratoire')
-      expect(laboratoireCards.length).toBe(1)
-    })
-
-    it('la carte avis porte la classe --avis', async () => {
-      const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      const avisCards = wrapper.findAll('.examens-calendar__card--avis')
-      expect(avisCards.length).toBe(1)
-    })
-
-    it('chaque carte affiche le point coloré avec la classe appropriée', async () => {
-      const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      expect(wrapper.findAll('.examens-calendar__type-dot--imagerie').length).toBe(1)
-      expect(wrapper.findAll('.examens-calendar__type-dot--laboratoire').length).toBe(1)
-      expect(wrapper.findAll('.examens-calendar__type-dot--avis').length).toBe(1)
-    })
-  })
-
-  // ─── Cellules vides ────────────────────────────────────────────────
-
-  describe('cellules vides', () => {
-    it('affiche "Nouveau" dans les cellules sans demande', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      const emptyCells = wrapper.findAll('.examens-calendar__empty-cell')
-      expect(emptyCells.length).toBe(63)
-      emptyCells.forEach(cell => {
-        expect(cell.find('.examens-calendar__empty-text').exists()).toBe(true)
-        expect(cell.text()).toBe('Nouveau')
+      requests[2] = makeRequest({
+        id: 3,
+        type: 'avis' as const,
+        statut: 'realise' as const,
+        realizedAt: dateAt(-1, 14),
       })
-    })
-
-    it('les cellules avec demandes n\'affichent pas le texte "Nouveau"', async () => {
-      const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
+      const wrapper = mountView(requests)
       await nextTick()
       await waitForData()
 
-      const emptyCells = wrapper.findAll('.examens-calendar__empty-cell')
-      // 2 requests on day 0 hour 10 slot, 1 request on day 2 hour 14 slot
-      expect(emptyCells.length).toBe(61)
+      const rows = wrapper.findAll('.el-table__row')
+      const realizeRow = rows.find(r => r.text().includes('Réalisé'))
+      // La colonne "Réalisation" affiche la date de réalisation (pas de "—")
+      expect(realizeRow!.text()).toContain(formatDateTime(dateAt(-1, 14)))
+    })
+
+    it('affiche la date et l\'heure planifiées quand renseignées', async () => {
+      const requests = defaultMockRequests()
+      requests[1] = makeRequest({
+        id: 2,
+        type: 'laboratoire' as const,
+        statut: 'en_cours' as const,
+        plannedDate: '2026-07-15',
+        plannedHour: 10,
+      })
+      const wrapper = mountView(requests)
+      await nextTick()
+      await waitForData()
+
+      const rows = wrapper.findAll('.el-table__row')
+      expect(rows[1].text()).toContain('15/07/2026')
+      expect(rows[1].text()).toContain('10:00')
     })
   })
 
-  // ─── Dialogue d'édition ────────────────────────────────────────────
+  // ─── Filtres ───────────────────────────────────────────────────────
 
-  describe('dialogue d\'édition', () => {
-    it('le clic sur une carte ouvre le dialogue d\'édition', async () => {
-      const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
+  describe('filtres client-side', () => {
+    it('filtre par type', async () => {
+      const wrapper = mountView(defaultMockRequests())
       await nextTick()
       await waitForData()
 
-      expect(wrapper.find('.el-dialog').exists()).toBe(false)
+      wrapper.vm.typeFilter = 'imagerie'
+      await nextTick()
 
-      await wrapper.find('.examens-calendar__card').trigger('click')
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(1)
+      expect(wrapper.find('.el-table__row').text()).toContain('Imagerie')
+    })
+
+    it('filtre par statut', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      wrapper.vm.statutFilter = 'en_cours'
+      await nextTick()
+
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(1)
+      expect(wrapper.find('.el-table__row').text()).toContain('En cours')
+    })
+
+    it('filtre par période de création (createdAt)', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      wrapper.vm.dateRange = [todayStr(), todayStr()]
+      await nextTick()
+
+      // Deux demandes créées aujourd'hui, une hier
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(2)
+    })
+
+    it('combine les filtres type + statut', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      wrapper.vm.typeFilter = 'laboratoire'
+      wrapper.vm.statutFilter = 'en_cours'
+      await nextTick()
+
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(1)
+    })
+
+    it('effacer les filtres restaure toutes les lignes', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      wrapper.vm.typeFilter = 'imagerie'
+      await nextTick()
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(1)
+
+      wrapper.vm.typeFilter = ''
+      await nextTick()
+      expect(wrapper.findAll('.el-table__row')).toHaveLength(3)
+    })
+  })
+
+  // ─── Actions de ligne ──────────────────────────────────────────────
+
+  describe('actions de ligne', () => {
+    it('affiche le bouton "Réaliser" uniquement pour les demandes non réalisées / non annulées', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      const realizeBtns = wrapper.findAll('.examens-view__realize-btn')
+      expect(realizeBtns).toHaveLength(2)
+    })
+
+    it('le clic sur une ligne ouvre le dialogue de détail', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      expect(wrapper.find('.exam-detail-dialog-mock').exists()).toBe(false)
+
+      await wrapper.find('.el-table__row').trigger('click')
+      await nextTick()
+
+      expect(wrapper.find('.exam-detail-dialog-mock').exists()).toBe(true)
+    })
+
+    it('"Réaliser" sur une demande laboratoire ouvre le dialogue de validation', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      const rows = wrapper.findAll('.el-table__row')
+      const labRow = rows[1]
+      await labRow.find('.examens-view__realize-btn').trigger('click')
+      await nextTick()
+
+      expect(wrapper.find('.exam-validation-dialog-mock').exists()).toBe(true)
+      expect(wrapper.vm.validationRequestId).toBe(2)
+      expect(wrapper.vm.validationExamIds).toEqual([])
+    })
+
+    it('"Réaliser" sur une demande imagerie ouvre le dialogue de compte-rendu', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      const rows = wrapper.findAll('.el-table__row')
+      await rows[0].find('.examens-view__realize-btn').trigger('click')
+      await nextTick()
+
+      expect(wrapper.find('.avis-result-dialog-mock').exists()).toBe(true)
+      expect(wrapper.vm.avisRequestId).toBe(1)
+    })
+
+    it('"Réaliser" sur une demande avis ouvre le dialogue de compte-rendu', async () => {
+      const requests = defaultMockRequests()
+      requests[2] = makeRequest({ id: 3, type: 'avis' as const, statut: 'en_attente' as const })
+      const wrapper = mountView(requests)
+      await nextTick()
+      await waitForData()
+
+      const rows = wrapper.findAll('.el-table__row')
+      await rows[2].find('.examens-view__realize-btn').trigger('click')
+      await nextTick()
+
+      expect(wrapper.find('.avis-result-dialog-mock').exists()).toBe(true)
+    })
+
+    it('le bouton "Modifier" ouvre le dialogue d\'édition pré-rempli', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      const rows = wrapper.findAll('.el-table__row')
+      const modifyBtn = rows[0].findAll('.el-button').find(b => b.text().trim() === 'Modifier')
+      await modifyBtn!.trigger('click')
       await nextTick()
 
       expect(wrapper.find('.el-dialog').exists()).toBe(true)
+      expect(wrapper.vm.editForm.type).toBe('imagerie')
+      expect(wrapper.vm.editForm.examenId).toBe(10)
+      expect(wrapper.vm.editRequestId).toBe(1)
     })
 
-    it('le dialogue pré-remplit avec les données de la demande', async () => {
-      const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('le clic sur "Réaliser" / "Modifier" n\'ouvre pas le dialogue de détail', async () => {
+      const wrapper = mountView(defaultMockRequests())
       await nextTick()
       await waitForData()
 
-      await wrapper.find('.examens-calendar__card').trigger('click')
+      const rows = wrapper.findAll('.el-table__row')
+      const modifyBtn = rows[0].findAll('.el-button').find(b => b.text().trim() === 'Modifier')
+      await modifyBtn!.trigger('click')
       await nextTick()
 
-      const dialogBody = wrapper.find('.el-dialog__body')
-      expect(dialogBody.exists()).toBe(true)
-      expect(dialogBody.text()).toContain('Imagerie')
+      expect(wrapper.find('.exam-detail-dialog-mock').exists()).toBe(false)
     })
 
-    it('la sauvegarde appelle updateRequest via IPC et ferme le dialogue', async () => {
-      const requests = defaultMockRequests()
+    it('la confirmation du popconfirm "Supprimer" appelle deleteRequest', async () => {
       mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
-        if (channel === 'exam-request:list') return requests
-        if (channel === 'exam-request:update') return { id: 1, ...requests[0], ...args }
-        if (channel === 'specialties:list') return []
-        if (channel === 'users:list') return []
-        if (channel === 'exam-types:list-all-by-category') return []
-        return []
-      })
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      await wrapper.find('.examens-calendar__card').trigger('click')
-      await nextTick()
-
-      ;(wrapper.vm as any).editForm.statut = 'realise'
-      await nextTick()
-
-      const enregistrerBtn = wrapper.findAll('.el-dialog__footer .el-button').find(
-        (b: any) => b.text().trim() === 'Enregistrer'
-      )
-      expect(enregistrerBtn).toBeDefined()
-      await enregistrerBtn!.trigger('click')
-      await waitForData()
-      await nextTick()
-
-      const updateCalls = mockIpcInvoke.mock.calls.filter(
-        (c: any[]) => c[0] === 'exam-request:update'
-      )
-      expect(updateCalls.length).toBeGreaterThanOrEqual(1)
-      const updateArgs = updateCalls[0][1]
-      expect(updateArgs).toHaveProperty('statut', 'realise')
-      // First card in DOM is yesterday's request (id=3) since it comes first in the grid
-      expect(updateArgs).toHaveProperty('id', 3)
-
-      expect(wrapper.find('.el-dialog').exists()).toBe(false)
-    })
-
-    it('la sauvegarde envoie plannedDate et plannedHour', async () => {
-      const requests = defaultMockRequests()
-      mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
-        if (channel === 'exam-request:list') return requests
-        if (channel === 'exam-request:update') return { id: 3, ...args }
-        if (channel === 'specialties:list') return []
-        if (channel === 'users:list') return []
-        if (channel === 'exam-types:list-all-by-category') return []
-        return []
-      })
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      await wrapper.find('.examens-calendar__card').trigger('click')
-      await nextTick()
-
-      ;(wrapper.vm as any).editForm.plannedDate = '2026-07-15'
-      ;(wrapper.vm as any).editForm.plannedHour = 10
-      await nextTick()
-
-      const enregistrerBtn = wrapper.findAll('.el-dialog__footer .el-button').find(
-        (b: any) => b.text().trim() === 'Enregistrer'
-      )
-      await enregistrerBtn!.trigger('click')
-      await waitForData()
-      await nextTick()
-
-      const updateCalls = mockIpcInvoke.mock.calls.filter(
-        (c: any[]) => c[0] === 'exam-request:update'
-      )
-      const updateArgs = updateCalls[0][1]
-      expect(updateArgs).toHaveProperty('plannedDate', '2026-07-15')
-      expect(updateArgs).toHaveProperty('plannedHour', 10)
-    })
-
-    it('annuler ferme le dialogue sans sauvegarder', async () => {
-      const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      await wrapper.find('.examens-calendar__card').trigger('click')
-      await nextTick()
-      expect(wrapper.find('.el-dialog').exists()).toBe(true)
-
-      const annulerBtn = wrapper.findAll('.el-dialog__footer .el-button').find(
-        (b: any) => b.text().trim() === 'Annuler'
-      )
-      expect(annulerBtn).toBeDefined()
-      await annulerBtn!.trigger('click')
-      await nextTick()
-
-      expect(wrapper.find('.el-dialog').exists()).toBe(false)
-
-      const updateCalls = mockIpcInvoke.mock.calls.filter(
-        (c: any[]) => c[0] === 'exam-request:update'
-      )
-      expect(updateCalls).toHaveLength(0)
-    })
-
-    it('le bouton "Supprimer" appelle deleteRequest via IPC et ferme le dialogue', async () => {
-      const requests = defaultMockRequests()
-      mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
-        if (channel === 'exam-request:list') return requests
+        if (channel === 'exam-request:list') return defaultMockRequests()
         if (channel === 'exam-request:delete') return true
         if (channel === 'specialties:list') return []
         if (channel === 'users:list') return []
@@ -804,174 +776,51 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
-      await wrapper.find('.examens-calendar__card').trigger('click')
-      await nextTick()
-      expect(wrapper.find('.el-dialog').exists()).toBe(true)
-
-      const supprimerBtn = wrapper.findAll('.el-dialog__footer .el-button').find(
-        (b: any) => b.text().trim() === 'Supprimer'
-      )
-      expect(supprimerBtn).toBeDefined()
-      await supprimerBtn!.trigger('click')
-
+      const rows = wrapper.findAll('.el-table__row')
+      await rows[1].find('.el-popconfirm__confirm').trigger('click')
       await waitForData()
       await nextTick()
 
-      const deleteCalls = mockIpcInvoke.mock.calls.filter(
-        (c: any[]) => c[0] === 'exam-request:delete'
-      )
+      const deleteCalls = mockIpcInvoke.mock.calls.filter((c: any[]) => c[0] === 'exam-request:delete')
       expect(deleteCalls.length).toBeGreaterThanOrEqual(1)
-      // First card in DOM is yesterday's request (id=3)
-      expect(deleteCalls[0][1]).toHaveProperty('id', 3)
-
-      expect(wrapper.find('.el-dialog').exists()).toBe(false)
-    })
-
-    it('le bouton "Supprimer" confirme via ElMessageBox avant de supprimer', async () => {
-      const requests = defaultMockRequests()
-      setupRequestsMock(requests)
-
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      await wrapper.find('.examens-calendar__card').trigger('click')
-      await nextTick()
-
-      const supprimerBtn = wrapper.findAll('.el-dialog__footer .el-button').find(
-        (b: any) => b.text().trim() === 'Supprimer'
-      )
-      await supprimerBtn!.trigger('click')
-
-      const { ElMessageBox } = await import('element-plus')
-      expect(ElMessageBox.confirm).toHaveBeenCalled()
+      expect(deleteCalls[0][1]).toHaveProperty('id', 2)
     })
   })
 
-  // ─── Formulaire pliable ────────────────────────────────────────────
+  // ─── Dialogue de création ──────────────────────────────────────────
 
-  describe('formulaire pliable', () => {
-    it('le formulaire commence replié (contenu masqué)', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+  describe('dialogue de création', () => {
+    it('le bouton "+ Nouvelle demande" ouvre le dialogue', async () => {
+      const wrapper = mountView()
       await nextTick()
       await waitForData()
 
-      expect(wrapper.vm.formOpen).toBe(false)
-    })
-
-    it('le clic sur l\'en-tête déplie le formulaire', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      await wrapper.find('.examens-view__form-header').trigger('click')
-      await nextTick()
-
-      expect(wrapper.find('.examens-view__form-body').exists()).toBe(true)
+      expect(wrapper.vm.createDialogVisible).toBe(false)
 
       const buttons = wrapper.findAll('.el-button')
-      const envoyerBtn = buttons.find(b => b.text().trim() === 'Envoyer la demande')
-      expect(envoyerBtn).toBeDefined()
+      await buttons.find(b => b.text().includes('Nouvelle demande'))!.trigger('click')
+      await nextTick()
+
+      expect(wrapper.vm.createDialogVisible).toBe(true)
+      expect(wrapper.find('.el-dialog').exists()).toBe(true)
     })
 
-    it('le second clic replie le formulaire', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+    it('affiche trois radios de type dans le dialogue', async () => {
+      const wrapper = mountView()
       await nextTick()
       await waitForData()
 
-      await wrapper.find('.examens-view__form-header').trigger('click')
-      await nextTick()
-      expect(wrapper.vm.formOpen).toBe(true)
-
-      await wrapper.find('.examens-view__form-header').trigger('click')
-      await nextTick()
-      expect(wrapper.vm.formOpen).toBe(false)
-    })
-
-    it('affiche le sélecteur de prescripteur quand le formulaire est déplié', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      await wrapper.find('.examens-view__form-header').trigger('click')
-      await nextTick()
-
-      const selects = wrapper.findAll('.el-select')
-      expect(selects.length).toBeGreaterThanOrEqual(1)
-    })
-
-    it('affiche trois radios de type de demande quand le formulaire est déplié', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      await wrapper.find('.examens-view__form-header').trigger('click')
+      wrapper.vm.createDialogVisible = true
       await nextTick()
 
       const radios = wrapper.findAll('.el-radio')
       expect(radios.length).toBe(3)
-    })
-
-    it('affiche les options Imagerie, Laboratoire et Avis spécialisé', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      await wrapper.find('.examens-view__form-header').trigger('click')
-
       expect(wrapper.text()).toContain('Imagerie')
-      expect(wrapper.text()).toContain('Radio, Scanner, IRM')
-      expect(wrapper.text()).toContain('Examen de laboratoire')
+      expect(wrapper.text()).toContain('Laboratoire')
       expect(wrapper.text()).toContain('Avis spécialisé')
     })
-  })
 
-  // ─── Création rapide depuis une cellule ────────────────────────────
-
-  describe('création rapide depuis une cellule', () => {
-    it('le clic sur une cellule vide ouvre le formulaire et pré-remplit la date et l\'heure', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      expect(wrapper.vm.formOpen).toBe(false)
-
-      await wrapper.find('.examens-calendar__empty-cell').trigger('click')
-      await nextTick()
-
-      expect(wrapper.vm.formOpen).toBe(true)
-
-      expect(wrapper.vm.form.plannedDate).not.toBeNull()
-      expect(wrapper.vm.form.plannedHour).not.toBeNull()
-    })
-
-    it('pré-remplit plannedDate au format YYYY-MM-DD', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      await wrapper.find('.examens-calendar__empty-cell').trigger('click')
-      await nextTick()
-
-      expect(wrapper.vm.form.plannedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    })
-
-    it('pré-remplit plannedHour avec une heure valide (6, 8, 10, etc.)', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
-      await nextTick()
-      await waitForData()
-
-      await wrapper.find('.examens-calendar__empty-cell').trigger('click')
-      await nextTick()
-
-      expect([6, 8, 10, 12, 14, 16, 18, 20, 22]).toContain(wrapper.vm.form.plannedHour)
-    })
-  })
-
-  // ─── Soumission du formulaire ──────────────────────────────────────
-
-  describe('soumission du formulaire', () => {
-    it('appelle createRequest via IPC avec les champs obligatoires', async () => {
+    it('appelle createRequest via IPC avec les champs obligatoires (imagerie)', async () => {
       mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
         if (channel === 'exam-request:list') return []
         if (channel === 'exam-request:create') return { id: 10, patientId: 42, type: 'imagerie', statut: 'en_attente' }
@@ -985,6 +834,8 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
+      wrapper.vm.createDialogVisible = true
+      await nextTick()
       wrapper.vm.form.type = 'imagerie'
       await nextTick()
       wrapper.vm.form.prescripteur = 2
@@ -996,9 +847,7 @@ describe('ExamensView', () => {
       await waitForData()
       await nextTick()
 
-      const createCalls = mockIpcInvoke.mock.calls.filter(
-        (c: any[]) => c[0] === 'exam-request:create'
-      )
+      const createCalls = mockIpcInvoke.mock.calls.filter((c: any[]) => c[0] === 'exam-request:create')
       expect(createCalls.length).toBeGreaterThanOrEqual(1)
       const createArgs = createCalls[0][1]
       expect(createArgs).toHaveProperty('patientId', 42)
@@ -1022,6 +871,8 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
+      wrapper.vm.createDialogVisible = true
+      await nextTick()
       wrapper.vm.form.type = 'imagerie'
       await nextTick()
       wrapper.vm.form.prescripteur = 2
@@ -1035,15 +886,13 @@ describe('ExamensView', () => {
       await waitForData()
       await nextTick()
 
-      const createCalls = mockIpcInvoke.mock.calls.filter(
-        (c: any[]) => c[0] === 'exam-request:create'
-      )
+      const createCalls = mockIpcInvoke.mock.calls.filter((c: any[]) => c[0] === 'exam-request:create')
       const createArgs = createCalls[0][1]
       expect(createArgs).toHaveProperty('plannedDate', '2026-07-15')
       expect(createArgs).toHaveProperty('plannedHour', 10)
     })
 
-    it('envoie les champs specialtyId pour le type avis', async () => {
+    it('envoie specialtyId pour le type avis', async () => {
       mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
         if (channel === 'exam-request:list') return []
         if (channel === 'exam-request:create') return { id: 11, patientId: 42, type: 'avis', statut: 'en_attente' }
@@ -1057,6 +906,8 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
+      wrapper.vm.createDialogVisible = true
+      await nextTick()
       wrapper.vm.form.type = 'avis'
       await nextTick()
       wrapper.vm.form.prescripteur = 2
@@ -1068,9 +919,7 @@ describe('ExamensView', () => {
       await waitForData()
       await nextTick()
 
-      const createCalls = mockIpcInvoke.mock.calls.filter(
-        (c: any[]) => c[0] === 'exam-request:create'
-      )
+      const createCalls = mockIpcInvoke.mock.calls.filter((c: any[]) => c[0] === 'exam-request:create')
       const createArgs = createCalls[0][1]
       expect(createArgs).toHaveProperty('type', 'avis')
       expect(createArgs).toHaveProperty('specialtyId', 1)
@@ -1091,6 +940,8 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
+      wrapper.vm.createDialogVisible = true
+      await nextTick()
       wrapper.vm.form.type = 'laboratoire'
       await nextTick()
       wrapper.vm.form.prescripteur = 2
@@ -1101,16 +952,14 @@ describe('ExamensView', () => {
       await waitForData()
       await nextTick()
 
-      const createCalls = mockIpcInvoke.mock.calls.filter(
-        (c: any[]) => c[0] === 'exam-request:create'
-      )
+      const createCalls = mockIpcInvoke.mock.calls.filter((c: any[]) => c[0] === 'exam-request:create')
       const createArgs = createCalls[0][1]
       expect(createArgs).toHaveProperty('type', 'laboratoire')
       expect(createArgs).toHaveProperty('examIds')
       expect(createArgs.examIds).toEqual([101, 102])
     })
 
-    it('affiche un message de succès après création', async () => {
+    it('ferme le dialogue et affiche un message de succès après création', async () => {
       mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
         if (channel === 'exam-request:list') return []
         if (channel === 'exam-request:create') return { id: 10, patientId: 42, type: 'imagerie', statut: 'en_attente' }
@@ -1124,6 +973,8 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
+      wrapper.vm.createDialogVisible = true
+      await nextTick()
       wrapper.vm.form.type = 'imagerie'
       await nextTick()
       wrapper.vm.form.prescripteur = 2
@@ -1137,6 +988,215 @@ describe('ExamensView', () => {
 
       const { ElMessage } = await import('element-plus')
       expect(ElMessage.success).toHaveBeenCalledWith('Demande envoyée')
+      expect(wrapper.vm.createDialogVisible).toBe(false)
+    })
+  })
+
+  // ─── Dialogue d'édition ────────────────────────────────────────────
+
+  describe('dialogue d\'édition', () => {
+    it('la sauvegarde appelle updateRequest via IPC et ferme le dialogue', async () => {
+      const requests = defaultMockRequests()
+      mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
+        if (channel === 'exam-request:list') return requests
+        if (channel === 'exam-request:update') return { id: 1, ...requests[0], ...args }
+        if (channel === 'specialties:list') return []
+        if (channel === 'users:list') return []
+        if (channel === 'exam-types:list-all-by-category') return []
+        return []
+      })
+
+      const wrapper = mount(ExamensView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+
+      wrapper.vm.onEditRequest(requests[0])
+      await nextTick()
+
+      wrapper.vm.editForm.statut = 'realise'
+      await nextTick()
+
+      const enregistrerBtn = wrapper.findAll('.el-dialog__footer .el-button').find(
+        (b: any) => b.text().trim() === 'Enregistrer'
+      )
+      expect(enregistrerBtn).toBeDefined()
+      await enregistrerBtn!.trigger('click')
+      await waitForData()
+      await nextTick()
+
+      const updateCalls = mockIpcInvoke.mock.calls.filter((c: any[]) => c[0] === 'exam-request:update')
+      expect(updateCalls.length).toBeGreaterThanOrEqual(1)
+      const updateArgs = updateCalls[0][1]
+      expect(updateArgs).toHaveProperty('statut', 'realise')
+      expect(updateArgs).toHaveProperty('id', 1)
+
+      expect(wrapper.find('.el-dialog').exists()).toBe(false)
+    })
+
+    it('la sauvegarde envoie plannedDate et plannedHour', async () => {
+      const requests = defaultMockRequests()
+      mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
+        if (channel === 'exam-request:list') return requests
+        if (channel === 'exam-request:update') return { id: 1, ...args }
+        if (channel === 'specialties:list') return []
+        if (channel === 'users:list') return []
+        if (channel === 'exam-types:list-all-by-category') return []
+        return []
+      })
+
+      const wrapper = mount(ExamensView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+
+      wrapper.vm.onEditRequest(requests[0])
+      await nextTick()
+
+      wrapper.vm.editForm.plannedDate = '2026-07-15'
+      wrapper.vm.editForm.plannedHour = 10
+      await nextTick()
+
+      const enregistrerBtn = wrapper.findAll('.el-dialog__footer .el-button').find(
+        (b: any) => b.text().trim() === 'Enregistrer'
+      )
+      await enregistrerBtn!.trigger('click')
+      await waitForData()
+      await nextTick()
+
+      const updateCalls = mockIpcInvoke.mock.calls.filter((c: any[]) => c[0] === 'exam-request:update')
+      const updateArgs = updateCalls[0][1]
+      expect(updateArgs).toHaveProperty('plannedDate', '2026-07-15')
+      expect(updateArgs).toHaveProperty('plannedHour', 10)
+    })
+
+    it('annuler ferme le dialogue sans sauvegarder', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      wrapper.vm.onEditRequest(defaultMockRequests()[0])
+      await nextTick()
+      expect(wrapper.find('.el-dialog').exists()).toBe(true)
+
+      const annulerBtn = wrapper.findAll('.el-dialog__footer .el-button').find(
+        (b: any) => b.text().trim() === 'Annuler'
+      )
+      expect(annulerBtn).toBeDefined()
+      await annulerBtn!.trigger('click')
+      await nextTick()
+
+      expect(wrapper.find('.el-dialog').exists()).toBe(false)
+
+      const updateCalls = mockIpcInvoke.mock.calls.filter((c: any[]) => c[0] === 'exam-request:update')
+      expect(updateCalls).toHaveLength(0)
+    })
+
+    it('le bouton "Supprimer" appelle deleteRequest via IPC et ferme le dialogue', async () => {
+      const requests = defaultMockRequests()
+      mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
+        if (channel === 'exam-request:list') return requests
+        if (channel === 'exam-request:delete') return true
+        if (channel === 'specialties:list') return []
+        if (channel === 'users:list') return []
+        if (channel === 'exam-types:list-all-by-category') return []
+        return []
+      })
+
+      const wrapper = mount(ExamensView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+
+      wrapper.vm.onEditRequest(requests[0])
+      await nextTick()
+      expect(wrapper.find('.el-dialog').exists()).toBe(true)
+
+      const supprimerBtn = wrapper.findAll('.el-dialog__footer .el-button').find(
+        (b: any) => b.text().trim() === 'Supprimer'
+      )
+      expect(supprimerBtn).toBeDefined()
+      await supprimerBtn!.trigger('click')
+
+      await waitForData()
+      await nextTick()
+
+      const deleteCalls = mockIpcInvoke.mock.calls.filter((c: any[]) => c[0] === 'exam-request:delete')
+      expect(deleteCalls.length).toBeGreaterThanOrEqual(1)
+      expect(deleteCalls[0][1]).toHaveProperty('id', 1)
+
+      expect(wrapper.find('.el-dialog').exists()).toBe(false)
+    })
+
+    it('le bouton "Supprimer" confirme via ElMessageBox avant de supprimer', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      wrapper.vm.onEditRequest(defaultMockRequests()[0])
+      await nextTick()
+
+      const supprimerBtn = wrapper.findAll('.el-dialog__footer .el-button').find(
+        (b: any) => b.text().trim() === 'Supprimer'
+      )
+      await supprimerBtn!.trigger('click')
+
+      const { ElMessageBox } = await import('element-plus')
+      expect(ElMessageBox.confirm).toHaveBeenCalled()
+    })
+  })
+
+  // ─── Validation du motif rich-text ────────────────────────────────
+
+  describe('validation du motif rich-text', () => {
+    async function mountWithType(type: string) {
+      const wrapper = mountView()
+      await nextTick()
+      await waitForData()
+      wrapper.vm.form.type = type
+      await nextTick()
+      return wrapper
+    }
+
+    /** Accède au validateur de la règle « motif » (imagerie / avis). */
+    function getMotifValidator(wrapper: ReturnType<typeof mount>) {
+      const rules = wrapper.vm.formRules as unknown as {
+        motif: Array<{ validator: (rule: null, value: unknown, callback: (error?: Error | string) => void) => void }>
+      }
+      return rules.motif[0].validator
+    }
+
+    async function validateMotif(wrapper: ReturnType<typeof mount>, value: string) {
+      return await new Promise<Error | string | undefined>(resolve => {
+        getMotifValidator(wrapper)(null, value, err => resolve(err))
+      })
+    }
+
+    it('rejette un motif rich-text vide (<p></p>) pour le type imagerie', async () => {
+      const wrapper = await mountWithType('imagerie')
+      expect(await validateMotif(wrapper, '<p></p>')).toBeInstanceOf(Error)
+    })
+
+    it("rejette un motif rich-text composé uniquement d'espaces insécables", async () => {
+      const wrapper = await mountWithType('imagerie')
+      expect(await validateMotif(wrapper, '<p>&nbsp;</p>')).toBeInstanceOf(Error)
+    })
+
+    it('rejette un motif ne contenant que des espaces', async () => {
+      const wrapper = await mountWithType('imagerie')
+      expect(await validateMotif(wrapper, '   ')).toBeInstanceOf(Error)
+    })
+
+    it('accepte un motif texte non vide', async () => {
+      const wrapper = await mountWithType('imagerie')
+      expect(await validateMotif(wrapper, 'Douleur thoracique')).toBeUndefined()
+    })
+
+    it('accepte un motif rich-text non vide', async () => {
+      const wrapper = await mountWithType('imagerie')
+      expect(await validateMotif(wrapper, '<p><strong>Douleur</strong> thoracique</p>')).toBeUndefined()
+    })
+
+    it('rejette un motif rich-text vide pour le type avis', async () => {
+      const wrapper = await mountWithType('avis')
+      expect(await validateMotif(wrapper, '<p></p>')).toBeInstanceOf(Error)
     })
   })
 
@@ -1162,7 +1222,7 @@ describe('ExamensView', () => {
     })
 
     it('l\'alerte d\'erreur est absente quand il n\'y a pas d\'erreur', async () => {
-      const wrapper = mount(ExamensView, { global: { stubs } })
+      const wrapper = mountView()
       await nextTick()
       await waitForData()
 

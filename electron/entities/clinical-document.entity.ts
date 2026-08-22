@@ -8,6 +8,7 @@ export class ClinicalDocumentEntity {
   @SchemaField() id?: string
   @SchemaField() contact_id?: string
   @SchemaField() service_id?: string
+  @SchemaField() site_id?: number
   @SchemaField() document_type_id?: string
   @SchemaField() title?: string
   @SchemaField() status?: string
@@ -23,12 +24,15 @@ export class ClinicalDocumentEntity {
   // Joined fields (populated by SQL JOIN queries)
   document_type_label?: string
   document_type_code?: string
+  site_name?: string
 
   static toDto(entity: ClinicalDocumentEntity): ClinicalDocumentDTO {
     return {
       id: entity.id!,
       contactId: entity.contact_id!,
       serviceId: entity.service_id,
+      siteId: entity.site_id,
+      siteName: entity.site_name,
       documentTypeId: entity.document_type_id!,
       documentTypeLabel: entity.document_type_label,
       documentTypeCode: entity.document_type_code,
@@ -54,6 +58,7 @@ export class ClinicalDocumentEntity {
     e.id = dto.id
     e.contact_id = dto.contactId
     e.service_id = dto.serviceId
+    e.site_id = dto.siteId
     e.document_type_id = dto.documentTypeId
     e.title = dto.title
     e.status = dto.status

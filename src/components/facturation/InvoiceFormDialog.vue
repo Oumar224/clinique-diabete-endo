@@ -50,7 +50,7 @@
       </div>
 
       <el-form-item label="Notes">
-        <el-input v-model="form.notes" type="textarea" :rows="2" />
+        <RichTextEditor v-model="form.notes" :rows="2" />
       </el-form-item>
     </el-form>
 
@@ -68,6 +68,7 @@ import { ElMessage } from 'element-plus'
 import { useCurrency } from '@/currency/useCurrency'
 import type { InvoiceItem } from '@/composables/useInvoices'
 import { getCiviliteLabel } from '@/utils/civilite'
+import RichTextEditor from '@/components/patients/RichTextEditor.vue'
 
 const emit = defineEmits<{ created: [] }>()
 
@@ -148,7 +149,9 @@ async function onPatientDropdown(open: boolean) {
         const result = await window.electronAPI.invoke('patients:list', {}) as { success: boolean; data: any[] }
         patientOptions.value = result.data
       }
-    } catch {}
+    } catch {
+      patientOptions.value = []
+    }
   }
 }
 

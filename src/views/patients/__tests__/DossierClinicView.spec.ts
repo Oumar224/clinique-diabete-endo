@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { ref, nextTick } from 'vue'
+import { nextTick, computed } from 'vue'
 import DossierClinicView from '../DossierClinicView.vue'
 
 // ===========================================================================
@@ -17,6 +17,9 @@ const {
   mockElMessage,
   mockElMessageBox,
   mockSelectDocument,
+  mockOpenPdf,
+  mockSignDocument,
+  mockIpcInvoke,
   state,
 } = vi.hoisted(() => ({
   mockFetchDocumentTypes: vi.fn(),
@@ -27,6 +30,9 @@ const {
   mockElMessage: { success: vi.fn(), warning: vi.fn(), info: vi.fn(), error: vi.fn() },
   mockElMessageBox: { confirm: vi.fn(() => Promise.resolve()), alert: vi.fn(() => Promise.resolve()) },
   mockSelectDocument: vi.fn(),
+  mockOpenPdf: vi.fn(),
+  mockSignDocument: vi.fn(),
+  mockIpcInvoke: vi.fn(),
   state: {
     documents: [] as any[],
     selectedDocument: null as any,
@@ -40,6 +46,10 @@ const {
 // ===========================================================================
 vi.mock('vue-router', () => ({
   useRoute: vi.fn(() => ({ params: { id: '1' } })),
+}))
+
+vi.mock('@/utils/ipc', () => ({
+  ipcInvoke: mockIpcInvoke,
 }))
 
 vi.mock('element-plus', () => ({
@@ -56,13 +66,28 @@ vi.mock('@element-plus/icons-vue', () => ({
   ArrowLeft: { render: () => {} },
   DocumentChecked: { render: () => {} },
   Lock: { render: () => {} },
+  Download: { render: () => {} },
+  Printer: { render: () => {} },
+  Close: { render: () => {} },
+  ZoomIn: { render: () => {} },
+  ZoomOut: { render: () => {} },
 }))
 
-vi.mock('@/composables/usePatientContext', () => ({
-  usePatientContext: vi.fn(() => ({
-    activePatient: { value: { id: 1, nom: 'Doe', prenom: 'John' } },
-  })),
-}))
+vi.mock('@/composables/usePatientContext', async () => {
+  const { ref } = await import('vue')
+  const activePatient = ref({
+    id: 1,
+    nom: 'Doe',
+    prenom: 'John',
+    civilite: 'M',
+    nip: 'NIP-001',
+    site_id: 1,
+  })
+  const age = ref(45)
+  return {
+    usePatientContext: vi.fn(() => ({ activePatient, age })),
+  }
+})
 
 vi.mock('@/composables/useClinicalDocuments', async () => {
   const { ref: vueRef } = await import('vue')
@@ -87,9 +112,9 @@ vi.mock('@/composables/useClinicalDocuments', async () => {
         fetchDocumentsByPatient: mockFetchDocumentsByPatient,
         createDocument: mockCreateDocument,
         importFile: vi.fn(),
-        openPdf: vi.fn(),
+        openPdf: mockOpenPdf,
         updateDocumentData: vi.fn(),
-        signDocument: vi.fn(),
+        signDocument: mockSignDocument,
         deleteDocument: mockDeleteDocument,
         getDocumentType: (typeId: string) => state.documentTypes.find((t: any) => t.id === typeId) ?? null,
         selectDocument: (doc: any) => { selectedDocument.value = doc; mockSelectDocument(doc) },
@@ -128,23 +153,30 @@ function waitForData() {
 // ===========================================================================
 const stubs = {
   'el-table': {
+    name: 'ElTableStub',
+    components: {
+      RowSlotProvider: {
+        name: 'RowSlotProvider',
+        props: ['row'],
+        provide() { return { tableRow: computed(() => this.row) } },
+        template: '<slot />',
+      },
+    },
     template: [
       '<div class="el-table">',
-      '  <div v-for="(item, idx) in (data || [])" :key="idx" class="el-table__row" @click="$emit(\'row-click\', item)">',
-      '    <div class="el-table__cell-doc">',
-      '      <span class="el-table__label">{{ item.documentType?.label || item.title }}</span>',
-      '    </div>',
-      '    <span class="el-table__status">{{ item.status === \'signed\' ? \'Signé\' : \'Brouillon\' }}</span>',
-      '    <span class="el-table__date">{{ item.createdAt }}</span>',
+      '  <div v-for="(item, idx) in (data || [])" :key="item.id ?? idx" class="el-table__row" @click="$emit(\'row-click\', item)">',
+      '    <RowSlotProvider :row="item"><slot /></RowSlotProvider>',
       '  </div>',
       '</div>',
     ].join(''),
-    props: ['data', 'highlightCurrentRow'],
+    props: ['data', 'highlightCurrentRow', 'size', 'emptyText'],
     emits: ['row-click'],
   },
   'el-table-column': {
-    template: '<div class="el-table-column"><slot :row="row" /></div>',
-    props: ['prop', 'label', 'width', 'align'],
+    name: 'ElTableColumnStub',
+    inject: ['tableRow'],
+    template: '<div class="el-table-column" :data-label="label"><slot :row="tableRow" /></div>',
+    props: ['label', 'prop', 'width', 'minWidth', 'align', 'fixed', 'type'],
   },
   'el-button': {
     template:
@@ -324,8 +356,14 @@ describe('DossierClinicView', () => {
     mockFetchDocumentsByPatient.mockResolvedValue(undefined)
     mockListEncountersByPatient.mockResolvedValue([])
     mockDeleteDocument.mockResolvedValue(true)
+    mockSignDocument.mockResolvedValue(true)
     mockCreateDocument.mockResolvedValue(makeDocument())
     mockSelectDocument.mockImplementation((doc: any) => { state.selectedDocument = doc })
+    mockIpcInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'localites:list') return []
+      if (channel === 'sites:list') return [{ id: 1, name: 'Site principal' }]
+      return null
+    })
   })
 
   // -----------------------------------------------------------------------
@@ -681,6 +719,353 @@ describe('DossierClinicView', () => {
       await nextTick()
 
       expect(mockDeleteDocument).not.toHaveBeenCalled()
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Sign / re-sign from the list (écrasement total de la signature)
+  // -----------------------------------------------------------------------
+  describe('sign / re-sign from the list', () => {
+    it('asks for confirmation and signs a draft document', async () => {
+      const doc = makeDocument({
+        id: 'doc-1',
+        documentType: makeDocumentType({ label: 'Compte rendu' }),
+        status: 'draft',
+        source: 'created',
+      })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      await wrapper.vm.handleSignRow(doc)
+
+      expect(mockElMessageBox.confirm).toHaveBeenCalledWith(
+        'Signer et verrouiller "Compte rendu" ?',
+        'Signature',
+        expect.objectContaining({ type: 'warning', confirmButtonText: 'Signer' }),
+      )
+      expect(mockSignDocument).toHaveBeenCalledWith('doc-1', '1')
+      expect(mockFetchDocumentsByPatient).toHaveBeenCalled()
+    })
+
+    it('does not re-sign a signed document (signing is for drafts only)', async () => {
+      const doc = makeDocument({
+        id: 'doc-1',
+        documentType: makeDocumentType({ label: 'Compte rendu' }),
+        status: 'signed',
+        signedAt: '2026-07-03T10:00:00.000Z',
+        signedBy: '1',
+        source: 'created',
+      })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      await wrapper.vm.handleSignRow(doc)
+
+      expect(mockElMessageBox.confirm).not.toHaveBeenCalled()
+      expect(mockSignDocument).not.toHaveBeenCalled()
+    })
+
+    it('does not sign when confirmation is cancelled', async () => {
+      mockElMessageBox.confirm.mockRejectedValueOnce(new Error('cancel'))
+
+      const doc = makeDocument({
+        id: 'doc-1',
+        documentType: makeDocumentType({ label: 'Compte rendu' }),
+        status: 'draft',
+        source: 'created',
+      })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      await wrapper.vm.handleSignRow(doc)
+
+      expect(mockSignDocument).not.toHaveBeenCalled()
+    })
+
+    it('skips signing for imported documents', async () => {
+      const doc = makeDocument({
+        id: 'doc-1',
+        status: 'draft',
+        source: 'imported',
+      })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      await wrapper.vm.handleSignRow(doc)
+
+      expect(mockElMessageBox.confirm).not.toHaveBeenCalled()
+      expect(mockSignDocument).not.toHaveBeenCalled()
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // PDF row (expand) & PDF ouverture
+  // -----------------------------------------------------------------------
+  describe('PDF row & ouverture', () => {
+    it('opens the stored PDF when the document has a pdfPath', async () => {
+      const doc = makeDocument({ id: 'doc-1', pdfPath: '/tmp/doc.pdf' })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      await wrapper.vm.handleOpenPdf(doc)
+
+      expect(mockOpenPdf).toHaveBeenCalledWith('/tmp/doc.pdf')
+    })
+
+    it('does nothing when the document has no pdfPath', async () => {
+      const doc = makeDocument({ id: 'doc-1', pdfPath: null })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      await wrapper.vm.handleOpenPdf(doc)
+
+      expect(mockOpenPdf).not.toHaveBeenCalled()
+    })
+
+    it('row-click on the expand column does not open the document full page', async () => {
+      const doc = makeDocument({ id: 'doc-1' })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      wrapper.vm.onRowClick(doc, { type: 'expand' })
+
+      expect(mockSelectDocument).not.toHaveBeenCalled()
+      expect(wrapper.vm.fullPageMode).toBe(false)
+    })
+
+    it('row-click on a data column opens the document full page', async () => {
+      const doc = makeDocument({ id: 'doc-1' })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      wrapper.vm.onRowClick(doc, { type: 'default', prop: 'title' })
+
+      expect(mockSelectDocument).toHaveBeenCalledWith(doc)
+      expect(wrapper.vm.fullPageMode).toBe(true)
+    })
+
+    it('row-click on a document with a pdfPath opens the in-app preview dialog instead of the full page (WS4)', async () => {
+      const doc = makeDocument({ id: 'doc-1', pdfPath: '/tmp/doc.pdf' })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      await wrapper.find('.el-table__row').trigger('click')
+      await nextTick()
+
+      expect(mockSelectDocument).not.toHaveBeenCalled()
+      expect(wrapper.vm.fullPageMode).toBe(false)
+      // The row is staged for the HtmlPreviewDialog (channel clinical-documents:preview)
+      expect(wrapper.vm.previewDoc).toEqual(doc)
+    })
+
+    it('row-click on a document without a pdfPath keeps the full page behavior', async () => {
+      const doc = makeDocument({ id: 'doc-1', pdfPath: null })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      wrapper.vm.onRowClick(doc, { type: 'default', prop: 'title' })
+
+      expect(mockSelectDocument).toHaveBeenCalledWith(doc)
+      expect(wrapper.vm.fullPageMode).toBe(true)
+      expect(wrapper.vm.previewDoc).toBeNull()
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Compact expand row — PDF/DOC download buttons (WS4)
+  // -----------------------------------------------------------------------
+  describe('compact expand row (pdf actions)', () => {
+    it('renders "Télécharger PDF" and "Télécharger DOC" for documents with a pdfPath', async () => {
+      const doc = makeDocument({ id: 'doc-1', pdfPath: '/tmp/doc.pdf' })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      expect(wrapper.text()).toContain('Télécharger PDF')
+      expect(wrapper.text()).toContain('Télécharger DOC')
+    })
+
+    it('shows an empty state instead of pdf buttons when the document has no pdfPath', async () => {
+      const doc = makeDocument({ id: 'doc-1', pdfPath: null })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      expect(wrapper.text()).toContain('Aucun PDF disponible pour ce document.')
+      expect(wrapper.text()).not.toContain('Télécharger PDF')
+    })
+
+    it('invokes clinical-documents:export-pdf when "Télécharger PDF" is clicked', async () => {
+      const doc = makeDocument({ id: 'doc-1', pdfPath: '/tmp/doc.pdf' })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const pdfBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Télécharger PDF'))
+      expect(pdfBtn).toBeTruthy()
+      await pdfBtn!.trigger('click')
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('clinical-documents:export-pdf', { docId: 'doc-1' })
+    })
+
+    it('invokes clinical-documents:export-doc when "Télécharger DOC" is clicked', async () => {
+      const doc = makeDocument({ id: 'doc-1', pdfPath: '/tmp/doc.pdf' })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const docBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Télécharger DOC'))
+      expect(docBtn).toBeTruthy()
+      await docBtn!.trigger('click')
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('clinical-documents:export-doc', { docId: 'doc-1' })
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Patient header card (compact, from activePatient)
+  // -----------------------------------------------------------------------
+  describe('patient header card', () => {
+    it('renders the patient identity from activePatient', async () => {
+      state.documents = []
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const card = wrapper.find('.dossier-clinic__patient-card')
+      expect(card.exists()).toBe(true)
+      expect(card.text()).toContain('John')
+      expect(card.text()).toContain('Doe')
+    })
+
+    it('renders age, NIP and site from activePatient', async () => {
+      state.documents = []
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const card = wrapper.find('.dossier-clinic__patient-card')
+      expect(card.text()).toContain('Âge : 45 ans')
+      expect(card.text()).toContain('NIP : NIP-001')
+      // sites:list mock returns { id: 1, name: 'Site principal' }
+      expect(card.text()).toContain('Site : Site principal')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // "Site" column
+  // -----------------------------------------------------------------------
+  describe('"Site" column', () => {
+    it('renders row.siteName in the Site column', async () => {
+      state.documents = [
+        makeDocument({ id: 'doc-1', siteName: 'Site principal', documentType: makeDocumentType({ label: 'Compte rendu' }) }),
+        makeDocument({ id: 'doc-2', siteName: null, documentType: makeDocumentType({ label: 'Ordonnance' }) }),
+      ]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const siteCells = wrapper.findAll('.el-table-column[data-label="Site"]')
+      expect(siteCells).toHaveLength(2)
+      expect(siteCells[0].text()).toContain('Site principal')
+      expect(siteCells[1].text()).toContain('—')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // "Créé le" column — date + time
+  // -----------------------------------------------------------------------
+  describe('"Créé le" column', () => {
+    it('renders the creation date with time', async () => {
+      state.documents = [
+        makeDocument({ id: 'doc-1', createdAt: '2026-07-03T10:00:00.000Z' }),
+      ]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const createdCell = wrapper.find('.el-table-column[data-label="Créé le"]')
+      expect(createdCell.exists()).toBe(true)
+      // date + time (HH:MM) — timezone independent regex
+      expect(createdCell.text()).toMatch(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/)
     })
   })
 

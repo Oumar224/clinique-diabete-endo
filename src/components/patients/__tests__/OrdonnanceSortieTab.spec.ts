@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { reactive } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import type { PrescriptionSortie } from '@/types/crh-diabete'
+import { ElMessage } from 'element-plus'
 
 // ─── Mock Element Plus ─────────────────────────────────────────────
 
@@ -24,6 +25,53 @@ vi.mock('@element-plus/icons-vue', () => ({
   Delete: { name: 'Delete', render: () => null },
 }))
 
+// ─── Mock RichTextEditor ──────────────────────────────────────────
+
+vi.mock('@/components/patients/RichTextEditor.vue', () => ({
+  default: {
+    name: 'RichTextEditor',
+    template: '<div class="rich-editor-mock" />',
+    props: ['modelValue', 'readonly', 'rows', 'placeholder'],
+    emits: ['update:modelValue', 'change'],
+  },
+}))
+
+// ─── Mock IPC + composables (pré-remplissage / options d'examens) ──
+
+const { mockIpcInvoke, examTypesState, specialtiesState } = vi.hoisted(() => {
+  const examTypesState = {
+    allTypes: { value: [] as Array<{ id?: number; label: string }> },
+    fetchAllByCategory: vi.fn(),
+  }
+  const specialtiesState = {
+    specialties: { value: [] as Array<{ name: string }> },
+    fetchSpecialties: vi.fn(),
+  }
+  return {
+    mockIpcInvoke: vi.fn(),
+    examTypesState,
+    specialtiesState,
+  }
+})
+
+vi.mock('@/utils/ipc', () => ({
+  ipcInvoke: mockIpcInvoke,
+}))
+
+vi.mock('@/composables/useExamTypes', () => ({
+  useExamTypes: () => ({
+    allTypes: examTypesState.allTypes,
+    fetchAllByCategory: examTypesState.fetchAllByCategory,
+  }),
+}))
+
+vi.mock('@/composables/useSpecialties', () => ({
+  useSpecialties: () => ({
+    specialties: specialtiesState.specialties,
+    fetchSpecialties: specialtiesState.fetchSpecialties,
+  }),
+}))
+
 // ─── EL Stubs ──────────────────────────────────────────────────────
 
 const ElFormStub = {
@@ -37,17 +85,47 @@ const ElFormStub = {
   },
 }
 
+// Version d'el-form qui applique réellement les règles `required` passées via
+// `:rules` (utilisée uniquement par les tests de validation conditionnelle).
+const ElFormValidatingStub = {
+  name: 'ElForm',
+  template: '<form class="el-form" @submit.prevent><slot /></form>',
+  props: ['model', 'rules', 'labelPosition', 'size'],
+  methods: {
+    validate(this: any) {
+      const rules: Record<string, any[]> = this.rules ?? {}
+      const model: Record<string, any> = this.model ?? {}
+      for (const field of Object.keys(rules)) {
+        const fieldRules = rules[field] ?? []
+        const required = fieldRules.some((r: any) => r.required)
+        if (!required) continue
+        const value = model[field]
+        const isEmpty = value === '' || value == null || (Array.isArray(value) && value.length === 0)
+        if (isEmpty) return Promise.reject(new Error(`validation failed: ${field}`))
+      }
+      return Promise.resolve(true)
+    },
+    resetFields: vi.fn(),
+    clearValidate: vi.fn(),
+  },
+}
+
+// Stub inerte : il rend le `<select>` mais ne lie pas la valeur au DOM.
+// Les tests pilotent le v-model via `vm.$emit('update:modelValue', …)`.
+const ElSelectStub = {
+  name: 'ElSelect',
+  template: '<select class="el-select"><slot /></select>',
+  props: ['modelValue', 'filterable', 'placeholder', 'multiple', 'collapseTags', 'collapseTagsTooltip'],
+  emits: ['update:modelValue'],
+}
+
 const EL_STUBS: Record<string, any> = {
   'el-card': {
     template: '<div class="el-card"><slot name="header" /><slot /></div>',
     props: ['shadow'],
   },
   'el-form': ElFormStub,
-  'el-select': {
-    template: '<select class="el-select"><slot /></select>',
-    props: ['modelValue', 'filterable', 'placeholder', 'multiple', 'collapseTags', 'collapseTagsTooltip'],
-    emits: ['update:modelValue'],
-  },
+  'el-select': ElSelectStub,
   'el-option': {
     template: '<option />',
     props: ['label', 'value'],
@@ -81,6 +159,7 @@ const EL_STUBS: Record<string, any> = {
     emits: ['update:modelValue'],
   },
   'el-radio-group': {
+    name: 'ElRadioGroup',
     template: '<div class="el-radio-group"><slot /></div>',
     props: ['modelValue'],
     emits: ['update:modelValue'],
@@ -136,16 +215,26 @@ describe('OrdonnanceSortieTab', () => {
     mockConfirm.mockResolvedValue(true)
   })
 
-  function createWrapper(options: { data?: PrescriptionSortie[]; readonly?: boolean } = {}) {
-    const { data = [], readonly = false } = options
+  function createWrapper(options: {
+    data?: PrescriptionSortie[]
+    readonly?: boolean
+    patientId?: number | null
+    dateEntree?: string
+    provide?: Record<string, unknown>
+    stubs?: Record<string, unknown>
+  } = {}) {
+    const { data = [], readonly = false, patientId, dateEntree, provide, stubs } = options
     const medications = reactive([...data])
     return mount(OrdonnanceSortieTab, {
       props: {
         data: medications,
         readonly,
+        patientId,
+        dateEntree,
       },
       global: {
-        stubs: EL_STUBS,
+        stubs: { ...EL_STUBS, ...stubs },
+        provide,
       },
     })
   }
@@ -177,6 +266,16 @@ describe('OrdonnanceSortieTab', () => {
       const empty = wrapper.find('.el-empty')
       expect(empty.exists()).toBe(true)
       expect(empty.attributes('description')).toBe('Aucune prescription de sortie')
+    })
+
+    it('renders no native textarea elements (replaced by RichTextEditor)', async () => {
+      const wrapper = createWrapper()
+      const nouveauBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Nouveau'))
+      expect(nouveauBtn).toBeDefined()
+      await nouveauBtn!.trigger('click')
+      // Instructions / motif are RichTextEditor fields — a native <textarea>
+      // would let users inject raw HTML bypassing the editor
+      expect(wrapper.find('textarea').exists()).toBe(false)
     })
   })
 
@@ -571,6 +670,531 @@ describe('OrdonnanceSortieTab', () => {
       await editBtn!.trigger('click')
       await flushPromises()
       expect(wrapper.text()).toContain('Modifier la prescription')
+    })
+  })
+
+  // ─── Groupes (partitionnement 4 catégories) ─────────────────────
+
+  describe('groupes de catégories', () => {
+    function groupByTitle(wrapper: ReturnType<typeof createWrapper>, needle: string) {
+      const group = wrapper.findAll('.ordonnance-group').find(g =>
+        g.find('.ordonnance-group__title').text().toLowerCase().includes(needle),
+      )
+      expect(group).toBeDefined()
+      return group!
+    }
+
+    it('affiche les 4 groupes (Médicaments, Soins, Demandes d\'examens, Avis spécialisés)', () => {
+      const med = createPrescription({ _key: 'k-med', medicament: 'Amoxicilline 500 mg' })
+      const soin = createPrescription({ _key: 'k-soin', categorie: 'soins', medicament: 'Pansement quotidien' })
+      const examen = createPrescription({ _key: 'k-examen', categorie: 'examen', examen: 'Scanner cérébral', medicament: '' })
+      const avis = createPrescription({ _key: 'k-avis', categorie: 'avis', specialite: 'Cardiologue', medicament: '' })
+      const wrapper = createWrapper({ data: [med, soin, examen, avis] })
+
+      const groups = wrapper.findAll('.ordonnance-group')
+      expect(groups).toHaveLength(4)
+
+      const titles = groups.map(g => g.find('.ordonnance-group__title').text().toLowerCase())
+      expect(titles[0]).toContain('médicaments')
+      expect(titles[1]).toContain('soins')
+      expect(titles[2]).toContain('demandes d\'examens')
+      expect(titles[3]).toContain('avis spécialisés')
+    })
+
+    it('chaque item apparaît sous son groupe', () => {
+      const med = createPrescription({ _key: 'k-med', medicament: 'Amoxicilline 500 mg' })
+      const soin = createPrescription({ _key: 'k-soin', categorie: 'soins', medicament: 'Pansement quotidien' })
+      const examen = createPrescription({ _key: 'k-examen', categorie: 'examen', examen: 'Scanner cérébral', medicament: '' })
+      const avis = createPrescription({ _key: 'k-avis', categorie: 'avis', specialite: 'Cardiologue', medicament: '' })
+      const wrapper = createWrapper({ data: [med, soin, examen, avis] })
+
+      const titles = (g: ReturnType<typeof createWrapper>) =>
+        g.findAll('.rx-card__medicament').map(c => c.text())
+
+      expect(titles(groupByTitle(wrapper, 'médicaments'))).toEqual(['Amoxicilline 500 mg'])
+      expect(titles(groupByTitle(wrapper, 'soins'))).toEqual(['Pansement quotidien'])
+      expect(titles(groupByTitle(wrapper, 'demandes d\'examens'))).toEqual(['Scanner cérébral'])
+      expect(titles(groupByTitle(wrapper, 'avis spécialisés'))).toEqual(['Cardiologue'])
+    })
+
+    it('un item legacy sans categorie atterrit sous MÉDICAMENTS', () => {
+      const legacy = createPrescription({ _key: 'k-legacy', medicament: 'Ancienne prescription' })
+      const soin = createPrescription({ _key: 'k-soin', categorie: 'soins', medicament: 'Pansement' })
+      const wrapper = createWrapper({ data: [legacy, soin] })
+
+      const medGroup = groupByTitle(wrapper, 'médicaments')
+      expect(medGroup.findAll('.rx-card__medicament').map(c => c.text())).toEqual(['Ancienne prescription'])
+      // le badge du groupe compte l'item legacy
+      expect(medGroup.find('.el-tag').text()).toBe('1')
+      // le résumé compte 1 médicament (l'item legacy) et 1 soin
+      expect(wrapper.find('.ordonnance-summary').text()).toContain('1 médicament(s)')
+      expect(wrapper.find('.ordonnance-summary').text()).toContain('1 soin(s)')
+    })
+  })
+
+  // ─── Bouton "Ajouter" par groupe → catégorie pré-réglée ─────────
+
+  describe('bouton "Ajouter" par groupe (catégorie pré-réglée)', () => {
+    async function openGroupForm(wrapper: ReturnType<typeof createWrapper>, needle: string) {
+      const group = wrapper.findAll('.ordonnance-group').find(g =>
+        g.find('.ordonnance-group__title').text().toLowerCase().includes(needle),
+      )!
+      const addBtn = group.findAll('.el-button').find(b => b.text().includes('Ajouter'))!
+      await addBtn.trigger('click')
+      await flushPromises()
+    }
+
+    async function submitForm(wrapper: ReturnType<typeof createWrapper>) {
+      const submitBtn = wrapper.find('.ordonnance-form-card__actions')
+        .findAll('.el-button').find(b => b.text().includes('Ajouter'))!
+      await submitBtn.trigger('click')
+      await flushPromises()
+    }
+
+    it('groupe SOINS → l\'item soumis porte categorie "soins"', async () => {
+      const wrapper = createWrapper()
+      await openGroupForm(wrapper, 'soins')
+      expect(wrapper.find('.ordonnance-form-card').exists()).toBe(true)
+      await submitForm(wrapper)
+
+      const committed = wrapper.props('data') as PrescriptionSortie[]
+      expect(committed).toHaveLength(1)
+      expect(committed[0].categorie).toBe('soins')
+    })
+
+    it('groupe DEMANDES D\'EXAMENS → l\'item soumis porte categorie "examen"', async () => {
+      const wrapper = createWrapper()
+      await openGroupForm(wrapper, 'demandes d\'examens')
+      await submitForm(wrapper)
+
+      const committed = wrapper.props('data') as PrescriptionSortie[]
+      expect(committed).toHaveLength(1)
+      expect(committed[0].categorie).toBe('examen')
+    })
+
+    it('groupe AVIS SPÉCIALISÉS → l\'item soumis porte categorie "avis"', async () => {
+      const wrapper = createWrapper()
+      await openGroupForm(wrapper, 'avis spécialisés')
+      await submitForm(wrapper)
+
+      const committed = wrapper.props('data') as PrescriptionSortie[]
+      expect(committed).toHaveLength(1)
+      expect(committed[0].categorie).toBe('avis')
+    })
+  })
+
+  // ─── Validation conditionnelle par catégorie ────────────────────
+
+  describe('validation conditionnelle par catégorie', () => {
+    function createValidatingWrapper(options: { data?: PrescriptionSortie[] } = {}) {
+      return createWrapper({ ...options, stubs: { 'el-form': ElFormValidatingStub } })
+    }
+
+    async function openGroupForm(wrapper: ReturnType<typeof createWrapper>, needle: string) {
+      const group = wrapper.findAll('.ordonnance-group').find(g =>
+        g.find('.ordonnance-group__title').text().toLowerCase().includes(needle),
+      )!
+      const addBtn = group.findAll('.el-button').find(b => b.text().includes('Ajouter'))!
+      await addBtn.trigger('click')
+      await flushPromises()
+    }
+
+    async function submitForm(wrapper: ReturnType<typeof createWrapper>) {
+      const submitBtn = wrapper.find('.ordonnance-form-card__actions')
+        .findAll('.el-button').find(b => b.text().includes('Ajouter'))!
+      await submitBtn.trigger('click')
+      await flushPromises()
+    }
+
+    /** Remplit le el-select du champ labelé `fieldLabel` puis renvoie le wrapper. */
+    async function setSelectValue(wrapper: ReturnType<typeof createWrapper>, fieldLabel: string, value: string) {
+      const formItem = wrapper.findAll('.el-form-item').find(i => i.text().includes(fieldLabel))!
+      const select = formItem.findComponent(ElSelectStub)
+      ;(select.vm as any).$emit('update:modelValue', value)
+    }
+
+    it('un examen sans valeur n\'est pas soumis (formulaire reste ouvert)', async () => {
+      const wrapper = createValidatingWrapper()
+      await openGroupForm(wrapper, 'demandes d\'examens')
+      await submitForm(wrapper)
+
+      expect(wrapper.props('data')).toHaveLength(0)
+      expect(wrapper.find('.ordonnance-form-card').exists()).toBe(true)
+    })
+
+    it('un examen avec valeur est accepté → { categorie: "examen", examen, motif }', async () => {
+      const wrapper = createValidatingWrapper()
+      await openGroupForm(wrapper, 'demandes d\'examens')
+
+      await setSelectValue(wrapper, 'Examen', 'IRM cérébrale')
+      await wrapper.findComponent({ name: 'RichTextEditor' }).vm.$emit('update:modelValue', 'Céphalées')
+      await submitForm(wrapper)
+
+      const committed = wrapper.props('data') as PrescriptionSortie[]
+      expect(committed).toHaveLength(1)
+      expect(committed[0]).toMatchObject({ categorie: 'examen', examen: 'IRM cérébrale', motif: 'Céphalées' })
+    })
+
+    it('un avis sans spécialité n\'est pas soumis', async () => {
+      const wrapper = createValidatingWrapper()
+      await openGroupForm(wrapper, 'avis spécialisés')
+      await submitForm(wrapper)
+
+      expect(wrapper.props('data')).toHaveLength(0)
+      expect(wrapper.find('.ordonnance-form-card').exists()).toBe(true)
+    })
+
+    it('un avis avec spécialité est accepté → { categorie: "avis", specialite, motif }', async () => {
+      const wrapper = createValidatingWrapper()
+      await openGroupForm(wrapper, 'avis spécialisés')
+
+      await setSelectValue(wrapper, 'Spécialité', 'Cardiologue')
+      await wrapper.findComponent({ name: 'RichTextEditor' }).vm.$emit('update:modelValue', 'Bilan cardiaque')
+      await submitForm(wrapper)
+
+      const committed = wrapper.props('data') as PrescriptionSortie[]
+      expect(committed).toHaveLength(1)
+      expect(committed[0]).toMatchObject({ categorie: 'avis', specialite: 'Cardiologue', motif: 'Bilan cardiaque' })
+    })
+  })
+
+  // ─── Ajout + édition examen/avis ────────────────────────────────
+
+  describe('ajout + édition d\'un examen et d\'un avis', () => {
+    async function openGroupForm(wrapper: ReturnType<typeof createWrapper>, needle: string) {
+      const group = wrapper.findAll('.ordonnance-group').find(g =>
+        g.find('.ordonnance-group__title').text().toLowerCase().includes(needle),
+      )!
+      const addBtn = group.findAll('.el-button').find(b => b.text().includes('Ajouter'))!
+      await addBtn.trigger('click')
+      await flushPromises()
+    }
+
+    async function submitForm(wrapper: ReturnType<typeof createWrapper>, buttonText: string) {
+      const submitBtn = wrapper.find('.ordonnance-form-card__actions')
+        .findAll('.el-button').find(b => b.text().includes(buttonText))!
+      await submitBtn.trigger('click')
+      await flushPromises()
+    }
+
+    async function setSelectValue(wrapper: ReturnType<typeof createWrapper>, fieldLabel: string, value: string) {
+      const formItem = wrapper.findAll('.el-form-item').find(i => i.text().includes(fieldLabel))!
+      const select = formItem.findComponent(ElSelectStub)
+      ;(select.vm as any).$emit('update:modelValue', value)
+    }
+
+    it('ajoute puis édite un examen : champs conservés et _key préservé', async () => {
+      const wrapper = createWrapper()
+
+      // Ajout
+      await openGroupForm(wrapper, 'demandes d\'examens')
+      await setSelectValue(wrapper, 'Examen', 'IRM cérébrale')
+      await wrapper.findComponent({ name: 'RichTextEditor' }).vm.$emit('update:modelValue', 'Céphalées')
+      await submitForm(wrapper, 'Ajouter')
+
+      const committed = wrapper.props('data') as PrescriptionSortie[]
+      expect(committed).toHaveLength(1)
+      expect(committed[0]).toMatchObject({ categorie: 'examen', examen: 'IRM cérébrale', motif: 'Céphalées' })
+      const examenKey = committed[0]._key
+
+      // Édition : le formulaire est pré-rempli
+      const examenCard = wrapper.findAll('.rx-card').find(c => c.text().includes('IRM cérébrale'))!
+      const editBtn = examenCard.findAll('.el-button').find(b => b.text().includes('Modifier'))!
+      await editBtn.trigger('click')
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      expect(vm.form.categorie).toBe('examen')
+      expect(vm.form.examen).toBe('IRM cérébrale')
+      expect(vm.form.motif).toBe('Céphalées')
+
+      // Modification du motif puis mise à jour
+      await wrapper.findComponent({ name: 'RichTextEditor' }).vm.$emit('update:modelValue', 'Nouveau motif')
+      await submitForm(wrapper, 'Mettre à jour')
+
+      const updated = wrapper.props('data') as PrescriptionSortie[]
+      expect(updated).toHaveLength(1)
+      expect(updated[0]._key).toBe(examenKey)
+      expect(updated[0]).toMatchObject({ categorie: 'examen', examen: 'IRM cérébrale', motif: 'Nouveau motif' })
+    })
+
+    it('ajoute puis édite un avis : spécialité et motif conservés, _key préservé', async () => {
+      const wrapper = createWrapper()
+
+      // Ajout
+      await openGroupForm(wrapper, 'avis spécialisés')
+      await setSelectValue(wrapper, 'Spécialité', 'Cardiologue')
+      await wrapper.findComponent({ name: 'RichTextEditor' }).vm.$emit('update:modelValue', 'Bilan cardiaque')
+      await submitForm(wrapper, 'Ajouter')
+
+      const committed = wrapper.props('data') as PrescriptionSortie[]
+      expect(committed).toHaveLength(1)
+      expect(committed[0]).toMatchObject({ categorie: 'avis', specialite: 'Cardiologue', motif: 'Bilan cardiaque' })
+      const avisKey = committed[0]._key
+
+      // Édition : le formulaire est pré-rempli
+      const avisCard = wrapper.findAll('.rx-card').find(c => c.text().includes('Cardiologue'))!
+      const editBtn = avisCard.findAll('.el-button').find(b => b.text().includes('Modifier'))!
+      await editBtn.trigger('click')
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      expect(vm.form.categorie).toBe('avis')
+      expect(vm.form.specialite).toBe('Cardiologue')
+      expect(vm.form.motif).toBe('Bilan cardiaque')
+
+      // Modification du motif puis mise à jour
+      await wrapper.findComponent({ name: 'RichTextEditor' }).vm.$emit('update:modelValue', 'Nouveau motif avis')
+      await submitForm(wrapper, 'Mettre à jour')
+
+      const updated = wrapper.props('data') as PrescriptionSortie[]
+      expect(updated).toHaveLength(1)
+      expect(updated[0]._key).toBe(avisKey)
+      expect(updated[0]).toMatchObject({ categorie: 'avis', specialite: 'Cardiologue', motif: 'Nouveau motif avis' })
+    })
+  })
+
+  // ─── Pré-remplissage loadDefaults ────────────────────────────────
+
+  describe('pré-remplissage loadDefaults', () => {
+    const LAB_TYPES = [
+      { id: 1, label: 'NFS' },
+      { id: 2, label: 'Ionogramme' },
+    ]
+    const PRESCRIPTIONS = [
+      // actif, prescrit avant dateEntree → inclus
+      { id: 1, patientId: 7, type: 'medicament', medicament: 'Metformine 500 mg', dosage: '500', voie: 'PO', duree: 7, frequence: ['Matin', 'Soir'], statut: 'active', datePrescription: '2025-01-10' },
+      // actif mais prescrit après dateEntree → exclu
+      { id: 2, patientId: 7, type: 'medicament', medicament: 'Furosémide 40 mg', dosage: '40', voie: 'PO', duree: 7, frequence: ['Matin'], statut: 'active', datePrescription: '2026-01-10' },
+      // inactif → exclu
+      { id: 3, patientId: 7, type: 'medicament', medicament: 'Ancien arrêté', dosage: '', voie: '', duree: 7, frequence: [], statut: 'inactive', datePrescription: '2024-01-01' },
+      // soin actif → inclus (pas de filtre de date)
+      { id: 4, patientId: 7, type: 'soins', medicament: 'Pansement quotidien', dosage: '', voie: '', duree: 7, frequence: ['1/jour'], statut: 'active' },
+    ]
+    const REQUESTS = [
+      { id: 1, patientId: 7, type: 'imagerie', examenLabel: 'Scanner cérébral', motif: 'Céphalées', statut: 'en_attente' },
+      { id: 2, patientId: 7, type: 'laboratoire', examIds: [1, 2], motif: 'Bilan biologique', statut: 'en_attente' },
+      { id: 3, patientId: 7, type: 'avis', specialtyName: 'Cardiologie', motif: 'Bilan cardiaque', statut: 'en_attente' },
+      { id: 4, patientId: 7, type: 'imagerie', examenLabel: 'Radio annulée', motif: 'x', statut: 'annule' },
+    ]
+
+    beforeEach(() => {
+      examTypesState.allTypes.value = []
+      specialtiesState.specialties.value = []
+      mockIpcInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'prescription:list') return PRESCRIPTIONS
+        if (channel === 'exam-request:list') return REQUESTS
+        if (channel === 'exam-types:list-all-by-category') return LAB_TYPES
+        if (channel === 'specialties:list') return []
+        return null
+      })
+      examTypesState.fetchAllByCategory.mockImplementation(async (category: string) => {
+        examTypesState.allTypes.value = category === 'laboratoire' ? LAB_TYPES : []
+      })
+      specialtiesState.fetchSpecialties.mockResolvedValue(undefined)
+    })
+
+    it('pré-remplit avec les prescriptions actives et les demandes non annulées', async () => {
+      const wrapper = createWrapper({ patientId: 7, dateEntree: '2025-02-01' })
+      await flushPromises()
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('prescription:list', { patientId: 7 })
+      expect(mockIpcInvoke).toHaveBeenCalledWith('exam-request:list', { patientId: 7 })
+
+      const data = wrapper.props('data') as PrescriptionSortie[]
+      // Metformine (medicament actif avant l'entrée) + Pansement (soin actif)
+      // + Scanner (imagerie) + NFS, Ionogramme (laboratoire) + Cardiologie (avis)
+      expect(data).toHaveLength(5)
+
+      expect(data.some(d => d.categorie === 'medicament' && d.medicament === 'Metformine 500 mg')).toBe(true)
+      // prescrit après la date d'entrée → exclu
+      expect(data.some(d => d.categorie === 'medicament' && d.medicament === 'Furosémide 40 mg')).toBe(false)
+      // statut inactif → exclu
+      expect(data.some(d => d.categorie === 'medicament' && d.medicament === 'Ancien arrêté')).toBe(false)
+      expect(data.some(d => d.categorie === 'soins' && d.medicament === 'Pansement quotidien')).toBe(true)
+
+      const imagerie = data.find(d => d.categorie === 'examen' && d.examen === 'Scanner cérébral')
+      expect(imagerie).toBeDefined()
+      expect(imagerie!.motif).toBe('Céphalées')
+
+      // labels de laboratoire résolus via examIds (id → label)
+      expect(data.some(d => d.categorie === 'examen' && d.examen === 'NFS, Ionogramme')).toBe(true)
+
+      const avis = data.find(d => d.categorie === 'avis')
+      expect(avis).toBeDefined()
+      expect(avis!.specialite).toBe('Cardiologie') // specialtyName prioritaire sur specialite
+
+      // demande annulée → exclue
+      expect(data.some(d => d.examen === 'Radio annulée')).toBe(false)
+    })
+
+    it('un second clic sur "Recharger les éléments par défaut" ne duplique pas', async () => {
+      const wrapper = createWrapper({ patientId: 7, dateEntree: '2025-02-01' })
+      await flushPromises()
+      const before = (wrapper.props('data') as PrescriptionSortie[]).length
+      expect(before).toBe(5)
+
+      const reloadBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Recharger les éléments par défaut'))!
+      await reloadBtn.trigger('click')
+      await flushPromises()
+
+      expect((wrapper.props('data') as PrescriptionSortie[])).toHaveLength(before)
+      // aucun nouveau 'change' pour un rechargement sans nouveauté
+      expect(wrapper.emitted('change')).toHaveLength(1)
+    })
+
+    it('en mode readonly, aucun appel IPC au montage', async () => {
+      const wrapper = createWrapper({ patientId: 7, dateEntree: '2025-02-01', readonly: true })
+      await flushPromises()
+      expect(mockIpcInvoke).not.toHaveBeenCalled()
+    })
+
+    it('sans patientId, pas de pré-remplissage au montage', async () => {
+      const wrapper = createWrapper({ dateEntree: '2025-02-01' })
+      await flushPromises()
+      expect(mockIpcInvoke).not.toHaveBeenCalled()
+    })
+
+    it('émet "change" après le pré-remplissage', async () => {
+      const wrapper = createWrapper({ patientId: 7, dateEntree: '2025-02-01' })
+      await flushPromises()
+
+      expect(wrapper.emitted('change')).toBeDefined()
+      expect(wrapper.emitted('change')!.length).toBe(1)
+    })
+
+    it('bascule le flag vitalSyncInProgress autour de la mutation', async () => {
+      const syncRef = ref(false)
+      let sawTrue = false
+      watch(syncRef, (v) => { if (v) sawTrue = true }, { flush: 'sync' })
+
+      const wrapper = createWrapper({
+        patientId: 7,
+        dateEntree: '2025-02-01',
+        provide: { vitalSyncInProgress: syncRef },
+      })
+      await flushPromises()
+
+      expect((wrapper.props('data') as PrescriptionSortie[])).toHaveLength(5)
+      expect(sawTrue).toBe(true) // le flag est passé à true pendant la mutation
+      expect(syncRef.value).toBe(false) // puis remis à false par le microtask
+    })
+
+    it('une erreur IPC affiche un warning et ne crashe pas', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('IPC KO'))
+      const wrapper = createWrapper({ patientId: 7, dateEntree: '2025-02-01' })
+      await flushPromises()
+
+      expect(ElMessage.warning).toHaveBeenCalledWith('IPC KO')
+      expect(wrapper.props('data')).toHaveLength(0)
+      // le formulaire reste accessible (pas de crash)
+      expect(wrapper.find('.ordonnance-tab').exists()).toBe(true)
+    })
+  })
+
+  // ─── Type de traitement (dureeType) ─────────────────────────────
+
+  describe('type de traitement (dureeType)', () => {
+    async function openGroupForm(wrapper: ReturnType<typeof createWrapper>, needle: string) {
+      const group = wrapper.findAll('.ordonnance-group').find(g =>
+        g.find('.ordonnance-group__title').text().toLowerCase().includes(needle),
+      )!
+      const addBtn = group.findAll('.el-button').find(b => b.text().includes('Ajouter'))!
+      await addBtn.trigger('click')
+      await flushPromises()
+    }
+
+    async function submitForm(wrapper: ReturnType<typeof createWrapper>) {
+      const submitBtn = wrapper.find('.ordonnance-form-card__actions')
+        .findAll('.el-button').find(b => b.text().includes('Ajouter'))!
+      await submitBtn.trigger('click')
+      await flushPromises()
+    }
+
+    async function setDureeType(wrapper: ReturnType<typeof createWrapper>, value: 'courte' | 'longue') {
+      const formItem = wrapper.findAll('.el-form-item').find(i => i.text().includes('Type de traitement'))!
+      const radioGroup = formItem.findComponent({ name: 'ElRadioGroup' })
+      ;(radioGroup.vm as any).$emit('update:modelValue', value)
+    }
+
+    it('affiche le radio "Type de traitement" avec "Courte durée" par défaut', async () => {
+      const wrapper = createWrapper()
+      await openGroupForm(wrapper, 'médicaments')
+
+      const formItem = wrapper.findAll('.el-form-item').find(i => i.text().includes('Type de traitement'))!
+      expect(formItem.text()).toContain('Courte durée')
+      expect(formItem.text()).toContain('Longue durée')
+      expect((wrapper.vm as any).form.dureeType).toBe('courte')
+    })
+
+    it('sélectionner "Longue durée" marque le médicament ; soins et examens restent en "courte"', async () => {
+      const wrapper = createWrapper()
+      await openGroupForm(wrapper, 'médicaments')
+      await setDureeType(wrapper, 'longue')
+      await submitForm(wrapper)
+
+      const data = wrapper.props('data') as PrescriptionSortie[]
+      expect(data).toHaveLength(1)
+      expect(data[0].categorie).toBe('medicament')
+      expect(data[0].dureeType).toBe('longue')
+
+      await openGroupForm(wrapper, 'soins')
+      await submitForm(wrapper)
+      expect((wrapper.props('data') as PrescriptionSortie[])[1].dureeType).toBe('courte')
+
+      await openGroupForm(wrapper, 'demandes d\'examens')
+      await submitForm(wrapper)
+      const finalData = wrapper.props('data') as PrescriptionSortie[]
+      expect(finalData).toHaveLength(3)
+      expect(finalData[2].categorie).toBe('examen')
+      expect(finalData[2].dureeType).toBe('courte')
+    })
+
+    it('pré-remplit le radio avec "Longue durée" lors de l\'édition d\'une prescription longue', async () => {
+      const rx = createPrescription({ dureeType: 'longue' })
+      const wrapper = createWrapper({ data: [rx] })
+
+      const editBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Modifier'))
+      expect(editBtn).toBeDefined()
+      await editBtn!.trigger('click')
+      await flushPromises()
+
+      expect((wrapper.vm as any).form.dureeType).toBe('longue')
+    })
+
+    it('préserve dureeType lors du pré-remplissage loadDefaults (toPrescriptionItem)', async () => {
+      mockIpcInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'prescription:list') {
+          return [
+            { id: 1, patientId: 7, type: 'medicament', medicament: 'Metformine 500 mg', dosage: '500', voie: 'PO', duree: 7, frequence: ['Matin', 'Soir'], statut: 'active', datePrescription: '2025-01-10', dureeType: 'longue' },
+            { id: 2, patientId: 7, type: 'medicament', medicament: 'Paracétamol 500 mg', dosage: '500', voie: 'PO', duree: 7, frequence: ['Matin'], statut: 'active', datePrescription: '2025-01-10' },
+          ]
+        }
+        if (channel === 'exam-request:list') return []
+        return null
+      })
+
+      const wrapper = createWrapper({ patientId: 7, dateEntree: '2025-02-01' })
+      await flushPromises()
+
+      const data = wrapper.props('data') as PrescriptionSortie[]
+      expect(data.find(d => d.medicament === 'Metformine 500 mg')!.dureeType).toBe('longue')
+      expect(data.find(d => d.medicament === 'Paracétamol 500 mg')!.dureeType).toBe('courte')
+    })
+
+    it('affiche le tag "Longue durée" sur la carte quand dureeType est présent, aucun tag sinon', () => {
+      const longue = createPrescription({ _key: 'k-longue', medicament: 'Insuline Glargine', dureeType: 'longue' })
+      const sansType = createPrescription({ _key: 'k-sans', medicament: 'Paracétamol 500 mg' })
+      const wrapper = createWrapper({ data: [longue, sansType] })
+
+      const longueCard = wrapper.findAll('.rx-card').find(c => c.text().includes('Insuline Glargine'))!
+      const longueTag = longueCard.findAll('.el-tag').find(t => t.text() === 'Longue durée')
+      expect(longueTag).toBeDefined()
+      expect(longueTag!.attributes('type')).toBe('warning')
+
+      const sansCard = wrapper.findAll('.rx-card').find(c => c.text().includes('Paracétamol 500 mg'))!
+      expect(sansCard.text()).not.toContain('Longue durée')
+      expect(sansCard.text()).not.toContain('Courte durée')
     })
   })
 })

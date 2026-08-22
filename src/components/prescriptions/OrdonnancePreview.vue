@@ -11,7 +11,23 @@
       <el-button type="primary" :icon="Download" :loading="downloading" @click="downloadPdf">
         Télécharger PDF
       </el-button>
-      <el-button :icon="Printer" @click="printPreview">
+      <div class="toolbar-spacer" />
+      <el-button
+        :icon="ZoomOut"
+        circle
+        title="Zoom arrière"
+        :disabled="!htmlContent || zoom <= MIN_ZOOM"
+        @click="zoomOut"
+      />
+      <span class="zoom-value">{{ Math.round(zoom * 100) }}%</span>
+      <el-button
+        :icon="ZoomIn"
+        circle
+        title="Zoom avant"
+        :disabled="!htmlContent || zoom >= MAX_ZOOM"
+        @click="zoomIn"
+      />
+      <el-button :icon="Printer" :disabled="!htmlContent" @click="printPreview">
         Imprimer
       </el-button>
       <el-button :icon="Close" @click="visible = false">
@@ -19,22 +35,24 @@
       </el-button>
     </div>
 
-    <div class="preview-content" v-loading="loading">
-      <iframe
-        v-if="htmlContent"
-        ref="iframeRef"
-        :srcdoc="htmlContent"
-        class="preview-iframe"
-        frameborder="0"
-      />
+    <div ref="contentRef" class="preview-content" v-loading="loading">
+      <div v-if="htmlContent" class="preview-stage" :style="stageStyle">
+        <iframe
+          ref="iframeRef"
+          :srcdoc="htmlContent"
+          class="preview-iframe"
+          :style="iframeStyle"
+          frameborder="0"
+        />
+      </div>
       <el-empty v-else description="Aucune ordonnance à afficher" />
     </div>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Download, Printer, Close } from '@element-plus/icons-vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { Download, Printer, Close, ZoomIn, ZoomOut } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps<{
@@ -62,6 +80,47 @@ const loading = ref(false)
 const downloading = ref(false)
 const htmlContent = ref<string | null>(null)
 const iframeRef = ref<HTMLIFrameElement | null>(null)
+const contentRef = ref<HTMLElement | null>(null)
+
+const MIN_ZOOM = 0.5
+const MAX_ZOOM = 2
+const ZOOM_STEP = 0.25
+const PAGE_WIDTH = 794
+const PAGE_HEIGHT = 1123
+
+const zoom = ref(1)
+const manualZoom = ref(false)
+
+const stageStyle = computed(() => ({
+  width: `${PAGE_WIDTH * zoom.value}px`,
+  minHeight: `${PAGE_HEIGHT * zoom.value}px`,
+}))
+
+const iframeStyle = computed(() => ({
+  transform: `scale(${zoom.value})`,
+}))
+
+function zoomIn() {
+  manualZoom.value = true
+  zoom.value = Math.min(MAX_ZOOM, Math.round((zoom.value + ZOOM_STEP) * 100) / 100)
+}
+
+function zoomOut() {
+  manualZoom.value = true
+  zoom.value = Math.max(MIN_ZOOM, Math.round((zoom.value - ZOOM_STEP) * 100) / 100)
+}
+
+onMounted(() => window.addEventListener('resize', onWindowResize))
+onBeforeUnmount(() => window.removeEventListener('resize', onWindowResize))
+
+function onWindowResize() {
+  if (manualZoom.value) return
+  const container = contentRef.value
+  if (!container) return
+  const avail = container.clientWidth
+  if (avail <= 0) return
+  zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round((avail / PAGE_WIDTH) * 100) / 100))
+}
 
 function open() {
   visible.value = true
@@ -74,6 +133,9 @@ async function loadPreview() {
   }
 
   loading.value = true
+  htmlContent.value = null
+  manualZoom.value = false
+  zoom.value = 1
   try {
     const safeInline = props.inlinePrescriptions ? JSON.parse(JSON.stringify(props.inlinePrescriptions)) : undefined
     const safeIds = props.prescriptionIds ? [...props.prescriptionIds] : undefined
@@ -126,6 +188,7 @@ function printPreview() {
 
 function handleClosed() {
   htmlContent.value = null
+  manualZoom.value = false
   emit('close')
 }
 
@@ -154,6 +217,18 @@ defineExpose({ open })
   flex-shrink: 0;
 }
 
+.toolbar-spacer {
+  flex: 1;
+}
+
+.zoom-value {
+  min-width: 48px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  user-select: none;
+}
+
 .preview-content {
   flex: 1;
   overflow: auto;
@@ -164,12 +239,16 @@ defineExpose({ open })
   padding: 24px 0;
 }
 
+.preview-stage {
+  flex-shrink: 0;
+}
+
 .preview-iframe {
   width: 794px;
-  min-height: 1123px;
+  height: 1123px;
   background: #ffffff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   border: none;
-  flex-shrink: 0;
+  transform-origin: top center;
 }
 </style>

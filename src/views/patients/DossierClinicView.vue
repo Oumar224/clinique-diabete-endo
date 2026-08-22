@@ -1,5 +1,25 @@
 <template>
   <div class="dossier-clinic-view">
+    <!-- Patient header card (compact, distinct from the global PatientBanner) -->
+    <div v-if="activePatient" class="dossier-clinic__patient-card">
+      <el-avatar :size="44" shape="circle" class="dossier-clinic__patient-avatar">
+        <span>{{ getCiviliteSymbol(activePatient.civilite) }}</span>
+      </el-avatar>
+      <div class="dossier-clinic__patient-identity">
+        <span class="dossier-clinic__patient-name">
+          {{ getCiviliteSymbol(activePatient.civilite) }} {{ activePatient.prenom }} {{ activePatient.nom }}
+        </span>
+        <div class="dossier-clinic__patient-meta">
+          <span class="dossier-clinic__patient-meta-item"><strong>Âge :</strong> {{ age !== null ? `${age} ans` : '—' }}</span>
+          <span class="dossier-clinic__patient-meta-item"><strong>NIP :</strong> {{ activePatient.nip || '—' }}</span>
+          <span class="dossier-clinic__patient-meta-item"><strong>N° SS :</strong> {{ activePatient.nir || '—' }}</span>
+          <span class="dossier-clinic__patient-meta-item"><strong>Site :</strong> {{ siteName }}</span>
+          <span class="dossier-clinic__patient-meta-item"><strong>Téléphone :</strong> {{ activePatient.telephone || '—' }}</span>
+          <span class="dossier-clinic__patient-meta-item"><strong>Localité :</strong> {{ residenceDisplay }}</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Contact bar or no-contact warning (toujours visible) -->
     <div v-if="activeContact" class="dossier-clinic-view__contact-bar">
       <div class="dossier-clinic-view__contact-info">
@@ -8,7 +28,7 @@
         <span class="dossier-clinic-view__contact-sep">|</span>
         <span class="dossier-clinic-view__contact-type">{{ contactTypeLabel }}</span>
         <span class="dossier-clinic-view__contact-sep">|</span>
-        <span class="dossier-clinic-view__contact-date">{{ formatDate(activeContact.start_date) }}</span>
+        <span class="dossier-clinic-view__contact-date">{{ formatDateTime(activeContact.start_date) }}</span>
         <span v-if="activeContact.service_name" class="dossier-clinic-view__contact-sep">|</span>
         <span v-if="activeContact.service_name" class="dossier-clinic-view__contact-service">{{ activeContact.service_name }}</span>
         <span v-if="activeContact.medecin_name" class="dossier-clinic-view__contact-sep">|</span>
@@ -70,9 +90,40 @@
       element-loading-text="Chargement des documents..."
       @row-click="onRowClick"
     >
-      <el-table-column label="Créé le" width="110">
+      <el-table-column type="expand" width="32">
         <template #default="{ row }">
-          {{ formatDate(row.createdAt) }}
+          <div class="dossier-clinic__expanded">
+            <template v-if="row.pdfPath">
+              <iframe
+                :src="'file://' + row.pdfPath"
+                class="dossier-clinic__pdf-viewer"
+              />
+              <div class="dossier-clinic__expanded-actions">
+                <el-button size="small" type="primary" @click.stop="openPreviewDialog(row)">
+                  Ouvrir dans l'app
+                </el-button>
+                <el-button size="small" @click.stop="downloadDocFile('clinical-documents:export-pdf', row)">
+                  Télécharger PDF
+                </el-button>
+                <el-button size="small" @click.stop="downloadDocFile('clinical-documents:export-doc', row)">
+                  Télécharger DOC
+                </el-button>
+                <el-button size="small" text type="info" @click.stop="openPdf(row.pdfPath)">
+                  Ouvrir dans la visionneuse système
+                </el-button>
+              </div>
+            </template>
+            <el-empty
+              v-else
+              description="Aucun PDF disponible pour ce document."
+              :image-size="48"
+            />
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="Créé le" width="130">
+        <template #default="{ row }">
+          {{ formatDateTime(row.createdAt) }}
         </template>
       </el-table-column>
       <el-table-column label="Document" min-width="200">
@@ -87,6 +138,11 @@
           <el-tag v-if="row.source === 'imported'" size="small" type="warning">
             Importé
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="Site" width="110">
+        <template #default="{ row }">
+          {{ row.siteName || '—' }}
         </template>
       </el-table-column>
       <el-table-column label="Statut" width="100" align="center">
@@ -178,6 +234,17 @@
       @import="handleImport"
     />
 
+    <!-- In-app HTML preview dialog -->
+    <HtmlPreviewDialog
+      ref="previewDialogRef"
+      :title="previewDocTitle"
+      channel="clinical-documents:preview"
+      download-channel="clinical-documents:export-pdf"
+      doc-download-channel="clinical-documents:export-doc"
+      :params="previewParams"
+      @close="handlePreviewClose"
+    />
+
     <!-- Loading overlay for initial load -->
     <div v-if="pageLoading" class="dossier-clinic-view__page-loading">
       <el-skeleton :rows="6" animated />
@@ -226,17 +293,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete, User, Upload, View, ArrowLeft, DocumentChecked, Lock } from '@element-plus/icons-vue'
 import { usePatientContext } from '@/composables/usePatientContext'
-import { useClinicalDocuments } from '@/composables/useClinicalDocuments'
+import { useClinicalDocuments, type ClinicalDocumentDTO } from '@/composables/useClinicalDocuments'
 import { useAuth } from '@/composables/useAuth'
 import { useEncounters, type EncounterDto } from '@/composables/useEncounters'
+import { useLocalites } from '@/composables/useLocalites'
+import { getCiviliteSymbol } from '@/utils/civilite'
+import { ipcInvoke } from '@/utils/ipc'
 import ClinicalDocForm from '@/components/patients/ClinicalDocForm.vue'
 import ImportDocumentDialog from '@/components/patients/ImportDocumentDialog.vue'
+import HtmlPreviewDialog from '@/components/common/HtmlPreviewDialog.vue'
 
-const { activePatient } = usePatientContext()
+const { activePatient, age } = usePatientContext()
 const { listEncountersByPatient } = useEncounters()
 const {
   documentTypes,
@@ -255,6 +326,10 @@ const {
   selectDocument,
 } = useClinicalDocuments()
 const { user } = useAuth()
+const { localites, fetchLocalites } = useLocalites()
+const sites = ref<Array<{ id: number; name: string }>>([])
+const previewDoc = ref<ClinicalDocumentDTO | null>(null)
+const previewDialogRef = ref<InstanceType<typeof HtmlPreviewDialog> | null>(null)
 
 const pageLoading = ref(true)
 const activeContact = ref<EncounterDto | null>(null)
@@ -341,16 +416,47 @@ const isReadonly = computed(() => {
   return selectedDocument.value.status === 'signed'
 })
 
+const siteName = computed(() => {
+  if (!activePatient.value?.site_id) return '\u2014'
+  const site = sites.value.find(s => s.id === activePatient.value!.site_id)
+  return site?.name ?? '\u2014'
+})
+
+const residenceDisplay = computed(() => {
+  const p = activePatient.value
+  if (!p?.residence_code) return '\u2014'
+  if (!localites.value) return p.residence_code
+  const leaf = localites.value.find(l => l.code === p.residence_code)
+  if (!leaf) return p.residence_code
+  return leaf.name
+})
+
+const previewDocTitle = computed(() => {
+  if (!previewDoc.value) return 'Aperçu du document'
+  return previewDoc.value.documentType?.label || previewDoc.value.title || 'Aperçu du document'
+})
+
+const previewParams = computed(() => {
+  return previewDoc.value ? { docId: previewDoc.value.id } : {}
+})
+
 const selectedDocType = computed(() => {
   if (!selectedDocument.value) return null
   return getDocumentType(selectedDocument.value.documentTypeId) ?? null
 })
 
-function formatDate(dateStr: string): string {
+function formatDateTime(dateStr: string): string {
   if (!dateStr) return '—'
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return '—'
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+  return d.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }) + ' ' + d.toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 async function loadData() {
@@ -366,7 +472,15 @@ async function loadData() {
   }
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  await fetchLocalites(false)
+  if (activePatient.value?.id) {
+    try {
+      sites.value = await ipcInvoke<Array<{ id: number; name: string }>>('sites:list')
+    } catch { sites.value = [] }
+  }
+  await loadData()
+})
 
 async function handleConfirmType() {
   if (!selectedTypeId.value || !activePatient.value?.id) return
@@ -394,7 +508,7 @@ async function handleConfirmType() {
   }
 }
 
-async function handleImport(data: { file: File; documentTypeId: string; title: string }) {
+async function handleImport(data: { file: File; documentTypeId: string; title: string; siteId?: number }) {
   if (!activePatient.value?.id) return
   if (!activeContact.value) {
     ElMessage.warning('Aucun contact actif. Créez ou réouvrez un contact pour ce patient.')
@@ -407,6 +521,7 @@ async function handleImport(data: { file: File; documentTypeId: string; title: s
     file: data.file,
     documentTypeId: data.documentTypeId,
     title: data.title,
+    siteId: data.siteId,
   })
   if (doc) {
     await fetchDocumentsByPatient(activePatient.value.id)
@@ -419,9 +534,34 @@ async function handleOpenPdf(row: any) {
   }
 }
 
-function onRowClick(row: any) {
+function onRowClick(row: any, column?: { type?: string }) {
+  // Garde-fou conservé (WS4) : un clic sur la colonne "expand" ne doit
+  // déclencher ni l'aperçu PDF in-app, ni le formulaire plein écran.
+  if (column?.type === 'expand') return
+  if (row.pdfPath) {
+    openPreviewDialog(row)
+    return
+  }
   selectDocument(row)
   fullPageMode.value = true
+}
+
+function openPreviewDialog(row: any) {
+  previewDoc.value = row
+  nextTick(() => previewDialogRef.value?.open())
+}
+
+function handlePreviewClose() {
+  previewDoc.value = null
+}
+
+async function downloadDocFile(channel: string, row: any) {
+  try {
+    const data = await ipcInvoke<string>(channel, { docId: row.id })
+    ElMessage.success(`Fichier enregistré : ${data}`)
+  } catch {
+    // ipcInvoke already surfaces the error toast
+  }
 }
 
 async function handleSave(formData: Record<string, any>) {
@@ -489,6 +629,55 @@ function handleBackToList() {
 <style scoped>
 .dossier-clinic-view {
   padding: 8px 0;
+}
+
+.dossier-clinic__patient-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--cd-widget-bg);
+  border: 1px solid var(--cd-gray-200, #e4e7ed);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.dossier-clinic__patient-avatar {
+  flex-shrink: 0;
+  background: var(--el-color-primary, #409eff);
+  font-weight: 600;
+}
+
+.dossier-clinic__patient-avatar span {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.dossier-clinic__patient-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dossier-clinic__patient-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cd-gray-900);
+  line-height: 1.2;
+}
+
+.dossier-clinic__patient-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 13px;
+  color: var(--cd-gray-500);
+}
+
+.dossier-clinic__patient-meta-item {
+  white-space: nowrap;
 }
 
 .dossier-clinic-view__alert {
@@ -569,6 +758,28 @@ function handleBackToList() {
 .dossier-clinic__doc-title {
   font-weight: 600;
   font-size: 13px;
+}
+
+.dossier-clinic__expanded {
+  padding: 8px 16px 8px 24px;
+}
+
+.dossier-clinic__pdf-viewer {
+  display: block;
+  width: 100%;
+  height: 150px;
+  min-height: 150px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: var(--el-fill-color-light);
+}
+
+.dossier-clinic__expanded-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
 }
 
 /* Full page form */

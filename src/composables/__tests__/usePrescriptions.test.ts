@@ -46,6 +46,7 @@ function makePrescription(overrides: Partial<PrescriptionRecord> = {}): Prescrip
     dosage: '850mg',
     voie: 'PO',
     duree: 30,
+    dureeType: 'courte',
     frequence: ['matin'],
     prn: false,
     instructions: null,
@@ -200,6 +201,7 @@ describe('usePrescriptions', () => {
         dosage: '1g',
         voie: 'PO',
         duree: 7,
+        dureeType: 'longue',
         frequence: ['matin', 'soir'],
         prn: false,
         instructions: null,
@@ -210,6 +212,7 @@ describe('usePrescriptions', () => {
       expect(mockIpcInvoke).toHaveBeenCalledWith('prescription:create', expect.objectContaining({
         patientId: 10,
         medicament: 'Doliprane',
+        dureeType: 'longue',
         prescripteurId: 1,
       }))
     })
@@ -263,10 +266,10 @@ describe('usePrescriptions', () => {
       mockIpcInvoke.mockResolvedValueOnce(updateResult)
 
       const ctx = mountComposable()
-      const result = await ctx.updatePrescription(3, { dosage: '500mg' })
+      const result = await ctx.updatePrescription(3, { dosage: '500mg', dureeType: 'longue' })
 
       expect(result).toEqual(updateResult)
-      expect(mockIpcInvoke).toHaveBeenCalledWith('prescription:update', { id: 3, dosage: '500mg' })
+      expect(mockIpcInvoke).toHaveBeenCalledWith('prescription:update', { id: 3, dosage: '500mg', dureeType: 'longue' })
     })
 
     it('returns null on failure', async () => {

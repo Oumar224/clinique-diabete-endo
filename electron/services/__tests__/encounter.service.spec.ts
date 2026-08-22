@@ -412,6 +412,35 @@ describe('EncounterService', () => {
     expect(stay!.service_id).toBe(serviceId)
   })
 
+  it('should create admission movement with created_by when contact_type is hospitalisation', async () => {
+    const service = container.resolve(EncounterService)
+    const patientId = await createTestPatient()
+    const serviceId = await createTestService()
+
+    const created = await service.create({
+      patient_id: patientId,
+      contact_type: 'hospitalisation',
+      start_date: new Date().toISOString(),
+      service_id: serviceId,
+      created_by: 1,
+      origin: 'auto_refere',
+      zone_situation: 'zone_responsabilite',
+      prise_en_charge: 'maladie_naturelle',
+    })
+
+    expect(created.id).toBeDefined()
+
+    const db = (container.resolve(AppDatabaseDatasource)).getInstance()
+    const movement = await db
+      .selectFrom('encounter_movements')
+      .selectAll()
+      .where('encounter_id', '=', created.id!)
+      .executeTakeFirst()
+    expect(movement).toBeDefined()
+    expect(movement!.step_label).toBe('Admission')
+    expect(movement!.created_by).toBe(1)
+  })
+
   // ─── addMovement ─────────────────────────────────────────────────
 
   it('should add a movement to an encounter and return it', async () => {

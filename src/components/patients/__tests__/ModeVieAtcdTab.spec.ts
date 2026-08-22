@@ -349,6 +349,29 @@ describe('ModeVieAtcdTab', () => {
       // Only commentaireVie
       expect(editors.length).toBe(1)
     })
+
+    it('renders alcoolDetail and cannabisDetail each on their own full-width row (own-line regression)', async () => {
+      const wrapper = createWrapper({
+        data: createDefaultData({ alcool: true, cannabis: true }),
+      })
+      await openSection(wrapper, 2)
+
+      const rows = wrapper.findAll('.el-row')
+      const alcoolRow = rows.find(r => r.text().includes('Détail consommation alcool'))
+      const cannabisRow = rows.find(r => r.text().includes('Détail consommation cannabis'))
+
+      expect(alcoolRow).toBeDefined()
+      expect(cannabisRow).toBeDefined()
+      expect(alcoolRow).not.toBe(cannabisRow)
+
+      expect(alcoolRow!.findAll('.el-col')).toHaveLength(1)
+      expect(alcoolRow!.findAll('.el-form-item')).toHaveLength(1)
+      expect(alcoolRow!.find('.el-form-item label').text()).toBe('Détail consommation alcool')
+
+      expect(cannabisRow!.findAll('.el-col')).toHaveLength(1)
+      expect(cannabisRow!.findAll('.el-form-item')).toHaveLength(1)
+      expect(cannabisRow!.find('.el-form-item label').text()).toBe('Détail consommation cannabis')
+    })
   })
 
   // ─── 4. Other sections rendered ─────────────────────────────────

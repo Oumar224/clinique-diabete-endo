@@ -274,11 +274,18 @@ describe('ClinicalDocForm', () => {
   // ─── Read-only / lock alert ──────────────────────────────────────
 
   describe('readonly state', () => {
-    it('shows lock alert when readonly is true', () => {
+    it('forwards readonly as disabled to the dynamic form renderer', () => {
       const wrapper = createWrapper({ document: signedDocument, docType: documentType, readonly: true })
-      const alert = wrapper.find('.el-alert')
-      expect(alert.exists()).toBe(true)
-      expect(alert.attributes('title')).toContain('Ce document est verrouillé en lecture seule')
+      const renderer = wrapper.findComponent(DynamicFormRendererStub)
+      expect(renderer.exists()).toBe(true)
+      expect(renderer.props('disabled')).toBe(true)
+    })
+
+    it('does not disable the dynamic form renderer when not readonly', () => {
+      const wrapper = createWrapper({ document: draftDocument, docType: documentType, readonly: false })
+      const renderer = wrapper.findComponent(DynamicFormRendererStub)
+      expect(renderer.exists()).toBe(true)
+      expect(renderer.props('disabled')).toBe(false)
     })
 
     it('does not show action buttons when readonly', () => {
@@ -381,6 +388,77 @@ describe('ClinicalDocForm', () => {
 
       expect(mockConfirm).not.toHaveBeenCalled()
       expect(wrapper.emitted('sign')).toBeUndefined()
+    })
+
+    it('shows "Resigner" on the sign button for a signed document', () => {
+      const wrapper = createWrapper({ document: signedDocument, docType: documentType })
+      const buttons = wrapper.findAll('.el-button')
+      const signBtn = buttons.find(b => b.text().includes('Resigner'))
+      expect(signBtn).toBeDefined()
+    })
+
+    it('asks for confirmation and re-signs a signed document, warning the old signature will be overwritten', async () => {
+      const wrapper = createWrapper({ document: signedDocument, docType: documentType })
+
+      const signBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Resigner'))
+      expect(signBtn).toBeDefined()
+      await signBtn!.trigger('click')
+
+      await new Promise(r => setTimeout(r, 0))
+
+      expect(mockConfirm).toHaveBeenCalledWith(
+        'Resigner ce document ? L\'ancienne signature sera écrasée.',
+        'Re-signature',
+        expect.objectContaining({ confirmButtonText: 'Resigner', type: 'warning' }),
+      )
+      expect(wrapper.emitted('save')).toBeDefined()
+      expect(wrapper.emitted('sign')).toBeDefined()
+    })
+
+    it('does not emit sign when re-sign confirmation is cancelled', async () => {
+      mockConfirm.mockRejectedValue(new Error('Cancel'))
+      const wrapper = createWrapper({ document: signedDocument, docType: documentType })
+
+      const signBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Resigner'))
+      await signBtn!.trigger('click')
+
+      await new Promise(r => setTimeout(r, 0))
+
+      expect(wrapper.emitted('sign')).toBeUndefined()
+    })
+
+    it('delegates signing of ORDONNANCE_LIBRE to the dedicated form without a local confirmation', async () => {
+      const ordonnanceDocType: ClinicalDocumentTypeDTO = {
+        ...documentType,
+        id: 'ordinance-type-id',
+        code: 'ORDONNANCE_LIBRE',
+        label: 'Ordonnance libre',
+      }
+      const wrapper = mount(ClinicalDocForm, {
+        props: {
+          document: draftDocument,
+          documentType: ordonnanceDocType,
+          readonly: false,
+        },
+        global: {
+          stubs: {
+            ...EL_STUBS,
+            DynamicFormRenderer: DynamicFormRendererStub,
+            OrdonnanceLibreForm: {
+              template: '<div class="ord-libre-stub" />',
+              emits: ['save', 'sign', 'close'],
+            },
+          },
+        },
+        attachTo: document.body,
+      })
+
+      await wrapper.vm.handleSign()
+
+      await new Promise(r => setTimeout(r, 0))
+
+      expect(mockConfirm).not.toHaveBeenCalled()
+      expect(wrapper.emitted('sign')).toBeDefined()
     })
   })
 

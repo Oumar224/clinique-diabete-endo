@@ -50,6 +50,15 @@ vi.mock('@/composables/useAuth', () => ({
   })),
 }))
 
+vi.mock('@/components/patients/RichTextEditor.vue', () => ({
+  default: {
+    name: 'RichTextEditor',
+    template: '<div class="rich-editor-mock" />',
+    props: ['modelValue', 'readonly', 'rows', 'placeholder'],
+    emits: ['update:modelValue', 'change'],
+  },
+}))
+
 vi.mock('@/composables/usePlanSoins', () => {
   function isInsulin(medicament: string) {
     const drugs = ['Insuline', 'NOVORAPID', 'TOUJEO', 'LANTUS', 'APIDRA', 'HUMALOG', 'LEVEMIR']

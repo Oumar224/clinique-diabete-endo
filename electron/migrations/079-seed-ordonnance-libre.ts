@@ -37,7 +37,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       'Ordonnance Libre',
       'Prescription libre avec génération d''ordonnance médicale',
       '[]',
-      'Prescriptions'
+      'prescriptions'
     )
   `.execute(db)
 

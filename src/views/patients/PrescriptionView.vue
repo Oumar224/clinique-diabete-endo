@@ -79,6 +79,14 @@
                 <el-input-number v-model="form.duree" :min="1" :max="90" />
               </el-form-item>
             </el-col>
+            <el-col :span="8">
+              <el-form-item label="Type de traitement">
+                <el-radio-group v-model="form.dureeType">
+                  <el-radio value="courte">Courte durée</el-radio>
+                  <el-radio value="longue">Longue durée</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
           </el-row>
           <!-- Row: Forme galénique -->
           <el-row :gutter="16">
@@ -115,14 +123,6 @@
               </el-form-item>
             </el-col>
           </el-row>
-          <!-- Row: Allergies -->
-          <el-row :gutter="16">
-            <el-col :span="24">
-              <el-form-item label="Allergies">
-                <el-input v-model="form.allergiesAlertes" type="textarea" :rows="2" placeholder="Allergies, contre-indications connues..." />
-              </el-form-item>
-            </el-col>
-          </el-row>
         </template>
 
         <!-- ── SOIN FIELDS ─────────────────────────────────────────── -->
@@ -154,12 +154,12 @@
           <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="Objectif clinique">
-                <el-input v-model="form.objectifClinique" type="textarea" :rows="2" placeholder="Objectif du traitement..." />
+                <RichTextEditor v-model="form.objectifClinique" :rows="2" placeholder="Objectif du traitement..." />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="Consignes spécifiques">
-                <el-input v-model="form.consignesSpecifiques" type="textarea" :rows="2" placeholder="À faire à jeun, Patient non mobile, À domicile..." />
+                <RichTextEditor v-model="form.consignesSpecifiques" :rows="2" placeholder="À faire à jeun, Patient non mobile, À domicile..." />
               </el-form-item>
             </el-col>
           </el-row>
@@ -184,6 +184,14 @@
             <el-col :span="4">
               <el-form-item label="Durée (jours)" prop="duree">
                 <el-input-number v-model="form.duree" :min="1" :max="90" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="Type de traitement">
+                <el-radio-group v-model="form.dureeType">
+                  <el-radio value="courte">Courte durée</el-radio>
+                  <el-radio value="longue">Longue durée</el-radio>
+                </el-radio-group>
               </el-form-item>
             </el-col>
           </el-row>
@@ -248,7 +256,7 @@
         <el-row :gutter="16">
           <el-col :span="24">
             <el-form-item label="Instructions">
-              <el-input v-model="form.instructions" type="textarea" :rows="2" />
+              <RichTextEditor v-model="form.instructions" :rows="2" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -346,6 +354,13 @@
         <template #default="{ row }">
           <el-tag :type="statutTagType(row.statut)" size="small" effect="plain">
             {{ statutLabel(row.statut) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="Type de traitement" width="130" align="center">
+        <template #default="{ row }">
+          <el-tag :type="dureeTagType(row.dureeType)" size="small" effect="plain">
+            {{ dureeTypeLabel(row.dureeType) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -448,6 +463,14 @@
                 <el-input-number v-model="editForm.duree" :min="1" :max="90" />
               </el-form-item>
             </el-col>
+            <el-col :span="8">
+              <el-form-item label="Type de traitement">
+                <el-radio-group v-model="editForm.dureeType">
+                  <el-radio value="courte">Courte durée</el-radio>
+                  <el-radio value="longue">Longue durée</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
           </el-row>
           <el-row :gutter="16">
             <el-col :span="6">
@@ -482,13 +505,6 @@
               </el-form-item>
             </el-col>
           </el-row>
-          <el-row :gutter="16">
-            <el-col :span="24">
-              <el-form-item label="Allergies">
-                <el-input v-model="editForm.allergiesAlertes" type="textarea" :rows="2" />
-              </el-form-item>
-            </el-col>
-          </el-row>
         </template>
 
         <!-- ── SOIN edit fields ─────────────────────────────────────── -->
@@ -520,12 +536,12 @@
           <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="Objectif clinique">
-                <el-input v-model="editForm.objectifClinique" type="textarea" :rows="2" />
+                <RichTextEditor v-model="editForm.objectifClinique" :rows="2" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="Consignes spécifiques">
-                <el-input v-model="editForm.consignesSpecifiques" type="textarea" :rows="2" />
+                <RichTextEditor v-model="editForm.consignesSpecifiques" :rows="2" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -550,6 +566,14 @@
             <el-col :span="4">
               <el-form-item label="Durée (jours)" prop="duree">
                 <el-input-number v-model="editForm.duree" :min="1" :max="90" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="Type de traitement">
+                <el-radio-group v-model="editForm.dureeType">
+                  <el-radio value="courte">Courte durée</el-radio>
+                  <el-radio value="longue">Longue durée</el-radio>
+                </el-radio-group>
               </el-form-item>
             </el-col>
           </el-row>
@@ -598,7 +622,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="Instructions">
-          <el-input v-model="editForm.instructions" type="textarea" :rows="2" />
+          <RichTextEditor v-model="editForm.instructions" :rows="2" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -640,6 +664,10 @@
           <div class="prescription-detail__item">
             <span class="prescription-detail__label">Durée du traitement</span>
             <span class="prescription-detail__value">{{ selectedPrescription?.duree }} jours</span>
+          </div>
+          <div class="prescription-detail__item">
+            <span class="prescription-detail__label">Type de traitement</span>
+            <span class="prescription-detail__value">{{ dureeTypeLabel(selectedPrescription?.dureeType) }}</span>
           </div>
           <div class="prescription-detail__item">
             <span class="prescription-detail__label">Fréquence</span>
@@ -685,10 +713,6 @@
                 {{ selectedPrescription.renouvellement ? `Oui (${selectedPrescription.nbRenouvellements || 1}×)` : 'Non' }}
               </span>
             </div>
-            <div class="prescription-detail__item">
-              <span class="prescription-detail__label">Allergies / Contre-indications</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.allergiesAlertes || '—' }}</span>
-            </div>
           </div>
         </template>
 
@@ -702,11 +726,13 @@
             </div>
             <div class="prescription-detail__item">
               <span class="prescription-detail__label">Objectif clinique</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.objectifClinique || '—' }}</span>
+              <span v-if="!isRichTextEmpty(selectedPrescription?.objectifClinique)" class="prescription-detail__value" v-html="selectedPrescription.objectifClinique" />
+              <span v-else class="prescription-detail__value">—</span>
             </div>
             <div class="prescription-detail__item">
               <span class="prescription-detail__label">Consignes spécifiques</span>
-              <span class="prescription-detail__value">{{ selectedPrescription.consignesSpecifiques || '—' }}</span>
+              <span v-if="!isRichTextEmpty(selectedPrescription?.consignesSpecifiques)" class="prescription-detail__value" v-html="selectedPrescription.consignesSpecifiques" />
+              <span v-else class="prescription-detail__value">—</span>
             </div>
             <div class="prescription-detail__item">
               <span class="prescription-detail__label">Dispositifs médicaux</span>
@@ -743,11 +769,11 @@
           </div>
         </div>
 
-        <template v-if="selectedPrescription?.instructions">
+        <template v-if="!isRichTextEmpty(selectedPrescription?.instructions)">
           <el-divider />
           <div class="prescription-detail__section">
             <h4 class="prescription-detail__section-title">Instructions</h4>
-            <p class="prescription-detail__instructions">{{ selectedPrescription.instructions }}</p>
+            <div class="prescription-detail__instructions" v-html="selectedPrescription?.instructions"></div>
           </div>
         </template>
       </div>
@@ -795,6 +821,8 @@ import {
 } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
 import { usePrescriptions, type PrescriptionRecord } from '@/composables/usePrescriptions'
+import RichTextEditor from '@/components/patients/RichTextEditor.vue'
+import { isRichTextEmpty } from '@/utils/rich-text'
 
 
 const route = useRoute()
@@ -875,6 +903,7 @@ function createPrescriptionForm() {
     unite: '',
     voie: '',
     duree: 7,
+    dureeType: 'courte' as 'courte' | 'longue',
     prn: false,
     frequence: [] as string[],
     frequenceType: '',
@@ -885,7 +914,6 @@ function createPrescriptionForm() {
     quantiteTotale: '',
     renouvellement: false,
     nbRenouvellements: 0,
-    allergiesAlertes: '',
     // Soin-specific
     nbSeances: 1,
     objectifClinique: '',
@@ -966,6 +994,7 @@ function buildApiPayload(formData: typeof form | typeof editForm) {
     dosage: combinedDosage,
     voie: formData.voie,
     duree: formData.duree,
+    dureeType: formData.dureeType ?? 'courte',
     frequence: formData.frequence,
     frequenceType: formData.frequenceType,
     prn: formData.prn,
@@ -978,7 +1007,6 @@ function buildApiPayload(formData: typeof form | typeof editForm) {
       : undefined,
     renouvellement: formData.type === 'medicament' ? formData.renouvellement : undefined,
     nbRenouvellements: formData.type === 'medicament' ? formData.nbRenouvellements : undefined,
-    allergiesAlertes: formData.allergiesAlertes || undefined,
     // Soin-specific
     nbSeances: formData.type === 'soins' ? formData.nbSeances : undefined,
     objectifClinique: formData.objectifClinique || undefined,
@@ -1090,6 +1118,7 @@ function onEdit(row: PrescriptionRecord) {
   editForm.medicament = row.medicament
   editForm.voie = row.voie
   editForm.duree = row.duree
+  editForm.dureeType = (row as any).dureeType ?? 'courte'
   editForm.frequence = [...row.frequence]
   editForm.frequenceType = (row as any).frequenceType || ''
   editForm.prn = row.prn
@@ -1104,7 +1133,6 @@ function onEdit(row: PrescriptionRecord) {
   editForm.quantiteTotale = (row as any).quantiteTotale || ''
   editForm.renouvellement = (row as any).renouvellement || false
   editForm.nbRenouvellements = (row as any).nbRenouvellements || 0
-  editForm.allergiesAlertes = (row as any).allergiesAlertes || ''
 
   // Soin-specific
   editForm.nbSeances = (row as any).nbSeances || 1
@@ -1180,6 +1208,18 @@ function frequencyTypeLabel(prescription?: PrescriptionRecord | null): string {
   if (ft === 'fixed-times') return 'Heures fixes'
   if (ft === 'interval') return 'Intervalle'
   return '—'
+}
+
+function dureeTypeLabel(type?: string): string {
+  if (type === 'longue') return 'Longue durée'
+  if (type === 'courte') return 'Courte durée'
+  return '—'
+}
+
+function dureeTagType(type?: string) {
+  if (type === 'longue') return 'warning'
+  if (type === 'courte') return 'success'
+  return 'info'
 }
 
 function statutTagType(statut?: string) {

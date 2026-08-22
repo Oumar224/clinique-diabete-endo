@@ -243,7 +243,7 @@
             <el-row v-if="props.linkVitalCheck" :gutter="16">
               <el-col :span="4">
                 <el-form-item label="Date">
-                  <el-date-picker v-model="vitalDate" type="date" value-format="YYYY-MM-DD" style="width:100%" :disabled="!!vitalEditingKey" :disabled-date="disableFutureDates" />
+                  <el-date-picker v-model="vitalDate" type="date" value-format="YYYY-MM-DD" format="DD/MM/YYYY" style="width:100%" :disabled="!!vitalEditingKey" :disabled-date="disableFutureDates" />
                 </el-form-item>
               </el-col>
               <el-col :span="4">

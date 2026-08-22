@@ -19,7 +19,7 @@ describe("entity-type-map", () => {
         "encounter", "encounter_movement", "stay", "stay_movement",
         "config_tarif", "patient_acte", "care_unit", "clinical_document_type",
         "clinical_document", "clinical_document_signature", "exam_category",
-        "exam_type", "exam_request",
+        "exam_type", "exam_request", "document_attachment", "exam_request_attachment",
       ]
       expect(Object.keys(ENTITY_TYPE_MAP)).toHaveLength(expectedKeys.length)
       for (const key of expectedKeys) {

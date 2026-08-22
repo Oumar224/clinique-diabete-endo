@@ -130,6 +130,7 @@ export class ExamResultService {
       .set({
         statut: 'realise',
         validated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        realized_at: new Date().toISOString(),
         updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       })
       .where('id', '=', examRequestId)

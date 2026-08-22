@@ -10,6 +10,7 @@ import { PrescriptionEntity } from './prescription.entity'
 import { DispositifEntity } from './dispositif.entity'
 import { TrustedPersonEntity } from './trusted-person.entity'
 import { PatientAttachmentEntity } from './patient-attachment.entity'
+import { DocumentAttachmentEntity } from './document-attachment.entity'
 import { UserAttachmentEntity } from './user-attachment.entity'
 import { AttachmentTypeEntity } from './attachment-type.entity'
 import { FormDraftEntity } from './form-draft.entity'
@@ -49,6 +50,7 @@ import { ClinicalDocumentSignatureEntity } from './clinical-document-signature.e
 import { ExamCategoryEntity } from './exam-category.entity'
 import { ExamTypeEntity } from './exam-type.entity'
 import { ExamRequestEntity } from './exam-request.entity'
+import { ExamRequestAttachmentEntity } from './exam-request-attachment.entity'
 import { ExamParameterEntity } from './exam-parameter.entity'
 import { ExamResultEntity } from './exam-result.entity'
 import type { Entity } from './entity'
@@ -84,6 +86,7 @@ export interface DB {
   localites: LocaliteEntity
   user_attachments: UserAttachmentEntity
   patient_attachments: PatientAttachmentEntity
+  document_attachments: DocumentAttachmentEntity
   attachment_types: AttachmentTypeEntity
   form_drafts: FormDraftEntity
   plan_soins: PlanSoinsEntity
@@ -116,6 +119,7 @@ export interface DB {
   lab_exam_categories: ExamCategoryEntity
   lab_exams: ExamTypeEntity
   exam_requests: ExamRequestEntity
+  exam_request_attachments: ExamRequestAttachmentEntity
   exam_parameters: ExamParameterEntity
   exam_results: ExamResultEntity
 }
@@ -149,6 +153,7 @@ export const ENTITIES: Entity[] = [
   UserFavoriteServiceEntity,
   AttachmentTypeEntity,
   PatientAttachmentEntity,
+  DocumentAttachmentEntity,
   UserAttachmentEntity,
   FormDraftEntity,
   TrustedPersonEntity,
@@ -174,6 +179,7 @@ export const ENTITIES: Entity[] = [
   ExamCategoryEntity,
   ExamTypeEntity,
   ExamRequestEntity,
+  ExamRequestAttachmentEntity,
   ExamParameterEntity,
   ExamResultEntity,
 ]

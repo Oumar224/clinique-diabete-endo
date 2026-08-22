@@ -23,6 +23,7 @@ export interface EncounterDto {
   sinistre_info?: string | null
   notes?: string | null
   care_unit_id?: number | null
+  care_unit_name?: string | null
   status: 'active' | 'closed'
   created_by?: number | null
   created_at?: string

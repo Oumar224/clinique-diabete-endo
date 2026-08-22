@@ -14,6 +14,7 @@
       empty-text="Aucun contact enregistré"
       :row-class-name="tableRowClassName"
       @expand-change="onExpandChange"
+      @row-click="onRowClick"
     >
       <el-table-column type="expand" width="32">
         <template #default="{ row }">
@@ -79,7 +80,7 @@
       </el-table-column>
       <el-table-column label="Actions" width="80" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="row.status !== 'closed'" text size="small" @click="emit('edit-contact', row)">
+          <el-button v-if="row.status !== 'closed'" text size="small" @click.stop="emit('edit-contact', row)">
             <el-icon><Edit /></el-icon>
           </el-button>
           <el-popconfirm
@@ -90,7 +91,7 @@
             @confirm="emit('delete-contact', row.id!)"
           >
             <template #reference>
-              <el-button text size="small" type="danger">
+              <el-button text size="small" type="danger" @click.stop>
                 <el-icon><Delete /></el-icon>
               </el-button>
             </template>
@@ -116,6 +117,7 @@ const emit = defineEmits<{
   'new-contact': []
   'edit-contact': [encounter: EncounterDto]
   'delete-contact': [id: number]
+  'view-contact': [encounter: EncounterDto]
 }>()
 const { getEncounterMovements } = useEncounters()
 
@@ -149,6 +151,12 @@ async function onExpandChange(row: EncounterDto, expanded: boolean) {
   } finally {
     loadingMovements[row.id] = false
   }
+}
+
+function onRowClick(row: EncounterDto, _column: unknown, event: Event) {
+  const target = event.target as HTMLElement
+  if (target.closest('.el-table__expand-icon')) return
+  emit('view-contact', row)
 }
 
 function formatDateTime(dateStr: string): string {

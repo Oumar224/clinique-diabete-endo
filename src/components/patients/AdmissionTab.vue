@@ -16,6 +16,7 @@
                 v-model="draft.dateEntree"
                 type="date"
                 value-format="YYYY-MM-DD"
+                format="DD/MM/YYYY"
                 style="width: 100%"
                 :disabled="readonly"
               />
@@ -123,6 +124,7 @@ import FormPreview from '@/components/common/FormPreview.vue'
 import type { FormPreviewField } from '@/components/common/FormPreview.vue'
 import { ipcInvoke } from '@/utils/ipc'
 import { isRichTextEmpty } from '@/utils/rich-text'
+import { formatDate } from '@/utils/date'
 import RichTextEditor from '@/components/patients/RichTextEditor.vue'
 
 interface DoctorOption {
@@ -167,7 +169,7 @@ async function openSection(key: string) {
 const doctors = ref<DoctorOption[]>([])
 
 const sejourPreviewFields = computed<FormPreviewField[]>(() => [
-  { label: "Date d'entrée", value: props.data.dateEntree, key: `${FIELD_PREFIX}.dateEntree`, updatedAt: metaFor(`${FIELD_PREFIX}.dateEntree`), tracked: !!props.fieldMeta },
+  { label: "Date d'entrée", value: props.data.dateEntree ? formatDate(props.data.dateEntree) : '', key: `${FIELD_PREFIX}.dateEntree`, updatedAt: metaFor(`${FIELD_PREFIX}.dateEntree`), tracked: !!props.fieldMeta },
   { label: "Service d'accueil", value: props.data.serviceAccueil, key: `${FIELD_PREFIX}.serviceAccueil`, updatedAt: metaFor(`${FIELD_PREFIX}.serviceAccueil`), tracked: !!props.fieldMeta },
 ])
 

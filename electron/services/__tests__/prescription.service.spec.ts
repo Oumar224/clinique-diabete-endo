@@ -86,6 +86,58 @@ describe('PrescriptionService', () => {
     expect(result.prescription.patient_id).toBe(patientId)
   })
 
+  it('should default duree_type to courte when not provided', async () => {
+    const service = container.resolve(PrescriptionService)
+    const patientId = await createTestPatient()
+    const userId = await createTestUser()
+
+    const entity = PrescriptionEntity.fromDto({
+      patientId,
+      medicament: 'Paracétamol',
+      dosage: '500mg',
+      voie: 'PO',
+      duree: 7,
+      frequence: ['Matin'],
+      statut: 'active',
+      type: 'medicament',
+      prescripteurId: userId,
+    })
+
+    const result = await service.create(entity)
+    expect(result.prescription.duree_type).toBe('courte')
+  })
+
+  it('should persist duree_type=longue on create and round-trip through list/get', async () => {
+    const service = container.resolve(PrescriptionService)
+    const patientId = await createTestPatient()
+    const userId = await createTestUser()
+
+    const entity = PrescriptionEntity.fromDto({
+      patientId,
+      medicament: 'Metformine',
+      dosage: '850mg',
+      voie: 'PO',
+      duree: 60,
+      dureeType: 'longue',
+      frequence: ['Matin'],
+      statut: 'active',
+      type: 'medicament',
+      prescripteurId: userId,
+    })
+
+    const result = await service.create(entity)
+    expect(result.prescription.duree_type).toBe('longue')
+
+    const listed = await service.listByPatient(patientId)
+    expect(listed[0].duree_type).toBe('longue')
+
+    const found = await service.getById(result.prescription.id!)
+    expect(found!.duree_type).toBe('longue')
+
+    const dto = PrescriptionEntity.toDto(found!)
+    expect(dto.dureeType).toBe('longue')
+  })
+
   it('should reject create with invalid patient_id', async () => {
     const service = container.resolve(PrescriptionService)
     const userId = await createTestUser()
@@ -331,6 +383,43 @@ describe('PrescriptionService', () => {
 
     const result = await service.update(updatedEntity)
     expect(result.prescription.medicament).toBe('Paracétamol UPDATED')
+  })
+
+  it('should update duree_type and preserve it when not provided', async () => {
+    const service = container.resolve(PrescriptionService)
+    const patientId = await createTestPatient()
+    const userId = await createTestUser()
+
+    const created = await service.create(PrescriptionEntity.fromDto({
+      patientId,
+      medicament: 'DureeTypeMed',
+      dosage: '100mg',
+      voie: 'PO',
+      duree: 5,
+      frequence: ['Matin'],
+      statut: 'active',
+      type: 'medicament',
+      prescripteurId: userId,
+    }))
+
+    expect(created.prescription.duree_type).toBe('courte')
+
+    const switched = await service.update(PrescriptionEntity.fromDto({
+      ...PrescriptionEntity.toDto(created.prescription),
+      id: created.prescription.id,
+      patientId,
+      dureeType: 'longue',
+      prescripteurId: userId,
+    }))
+    expect(switched.prescription.duree_type).toBe('longue')
+
+    const partial = new PrescriptionEntity()
+    partial.id = created.prescription.id
+    partial.patient_id = patientId
+    partial.medicament = 'DureeTypeMed 2'
+    partial.prescripteur_id = userId
+    const partialResult = await service.update(partial)
+    expect(partialResult.prescription.duree_type).toBe('longue')
   })
 
   it('should throw when updating without id', async () => {
@@ -849,6 +938,17 @@ describe('PrescriptionService', () => {
   it('should create without prescripteur_id but with items (hits createdBy ?? 0)', async () => {
     const service = container.resolve(PrescriptionService)
     const patientId = await createTestPatient()
+    const db = container.resolve(AppDatabaseDatasource).getInstance()
+
+    // A plan_soins row for the patient+date must already exist: without it
+    // findOrCreatePlanSoins inserts created_by=0, which violates the FK on
+    // user(id). Previously this row came from the 031/032 demo seeds.
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    await db
+      .insertInto('plan_soins')
+      .values({ patient_id: patientId, date: today, created_by: 1 })
+      .executeTakeFirst()
 
     const entity = PrescriptionEntity.fromDto({
       patientId,

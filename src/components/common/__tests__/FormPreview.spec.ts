@@ -202,4 +202,100 @@ describe('FormPreview', () => {
     })
     expect(wrapper.find('.form-preview__edit').exists()).toBe(false)
   })
+
+  // ─── Zoom controls (A− / A+) ─────────────────────────────────────
+
+  const FIELDS = [{ label: 'Durée', value: 3 }]
+
+  function zoomBtn(wrapper: ReturnType<typeof mountPreview>, ariaLabel: string) {
+    const btn = wrapper.findAll('.form-preview__zoom-btn')
+      .find(b => b.attributes('aria-label') === ariaLabel)
+    expect(btn, `zoom button "${ariaLabel}" should exist`).toBeTruthy()
+    return btn!
+  }
+
+  function zoomStyleValue(wrapper: ReturnType<typeof mountPreview>): string {
+    // jsdom/Vue normalize the non-standard `zoom` CSS property to
+    // `-webkit-zoom` in the style attribute (e.g. "-webkit-zoom: 1.125;").
+    return wrapper.find('.form-preview__zoom').attributes('style') ?? ''
+  }
+
+  it('renders zoom controls (A−, percentage, A+) with the default 100 %', () => {
+    const wrapper = mountPreview({ fields: FIELDS })
+    const zoomOut = wrapper.find('[aria-label="Zoom arrière"]')
+    const zoomIn = wrapper.find('[aria-label="Zoom avant"]')
+    expect(zoomOut.exists()).toBe(true)
+    expect(zoomOut.text()).toContain('A−')
+    expect(zoomIn.exists()).toBe(true)
+    expect(zoomIn.text()).toContain('A+')
+    expect(wrapper.find('.form-preview__zoom-value').text()).toBe('100 %')
+    expect(zoomStyleValue(wrapper)).toContain('zoom: 1;')
+  })
+
+  it('increases zoom by one step (0.125) on "Zoom avant" and updates the zoomed wrapper', async () => {
+    const wrapper = mountPreview({ fields: FIELDS })
+    await zoomBtn(wrapper, 'Zoom avant').trigger('click')
+    expect(zoomStyleValue(wrapper)).toContain('zoom: 1.125;')
+    // The indicator shows the rounded whole percentage (Math.round): 112.5 → 113
+    expect(wrapper.find('.form-preview__zoom-value').text()).toBe('113 %')
+  })
+
+  it('decreases zoom by one step (0.125) on "Zoom arrière"', async () => {
+    const wrapper = mountPreview({ fields: FIELDS })
+    await zoomBtn(wrapper, 'Zoom arrière').trigger('click')
+    expect(zoomStyleValue(wrapper)).toContain('zoom: 0.875;')
+    expect(wrapper.find('.form-preview__zoom-value').text()).toBe('88 %')
+  })
+
+  it('clamps at MAX_ZOOM (150 %): "Zoom avant" becomes disabled and extra clicks are no-ops', async () => {
+    const wrapper = mountPreview({ fields: FIELDS })
+    const zoomIn = zoomBtn(wrapper, 'Zoom avant')
+    // 1 → 1.125 → 1.25 → 1.375 → 1.5 (4 clicks)
+    for (let i = 0; i < 4; i++) await zoomIn.trigger('click')
+    expect(zoomStyleValue(wrapper)).toContain('zoom: 1.5;')
+    expect(wrapper.find('.form-preview__zoom-value').text()).toBe('150 %')
+    expect(zoomIn.attributes('disabled')).toBeDefined()
+    // "Zoom arrière" stays enabled at the upper bound
+    expect(zoomBtn(wrapper, 'Zoom arrière').attributes('disabled')).toBeUndefined()
+    // Extra click at the bound is a no-op (also clamped inside zoomIn)
+    await zoomIn.trigger('click')
+    expect(zoomStyleValue(wrapper)).toContain('zoom: 1.5;')
+  })
+
+  it('clamps at MIN_ZOOM (75 %): "Zoom arrière" becomes disabled and extra clicks are no-ops', async () => {
+    const wrapper = mountPreview({ fields: FIELDS })
+    const zoomOut = zoomBtn(wrapper, 'Zoom arrière')
+    // 1 → 0.875 → 0.75 (2 clicks)
+    for (let i = 0; i < 2; i++) await zoomOut.trigger('click')
+    expect(zoomStyleValue(wrapper)).toContain('zoom: 0.75;')
+    expect(wrapper.find('.form-preview__zoom-value').text()).toBe('75 %')
+    expect(zoomOut.attributes('disabled')).toBeDefined()
+    expect(zoomBtn(wrapper, 'Zoom avant').attributes('disabled')).toBeUndefined()
+    await zoomOut.trigger('click')
+    expect(zoomStyleValue(wrapper)).toContain('zoom: 0.75;')
+  })
+
+  it('does not emit edit when the zoom buttons are clicked', async () => {
+    const wrapper = mountPreview({ fields: FIELDS })
+    await zoomBtn(wrapper, 'Zoom avant').trigger('click')
+    await zoomBtn(wrapper, 'Zoom arrière').trigger('click')
+    expect(wrapper.emitted('edit')).toBeUndefined()
+  })
+
+  it('affiche un pourcentage arrondi à l\'entier pour une étape non entière', async () => {
+    const wrapper = mountPreview({ fields: FIELDS })
+    // zoom = 1 + 0.125 = 1.125 → Math.round(112.5) = 113, jamais "112.5 %"
+    await zoomBtn(wrapper, 'Zoom avant').trigger('click')
+    expect(wrapper.find('.form-preview__zoom-value').text()).toBe('113 %')
+  })
+
+  it('les contrôles zoom portent des aria-labels accessibles', () => {
+    const wrapper = mountPreview({ fields: FIELDS })
+    const zoomIn = wrapper.find('button.form-preview__zoom-btn[aria-label="Zoom avant"]')
+    const zoomOut = wrapper.find('button.form-preview__zoom-btn[aria-label="Zoom arrière"]')
+    expect(zoomIn.exists()).toBe(true)
+    expect(zoomIn.attributes('aria-label')).toBe('Zoom avant')
+    expect(zoomOut.exists()).toBe(true)
+    expect(zoomOut.attributes('aria-label')).toBe('Zoom arrière')
+  })
 })

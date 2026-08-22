@@ -69,11 +69,25 @@ vi.mock('@/utils/constants', () => ({
   INTERVAL_OPTIONS: [4, 6, 8, 12, 24],
 }))
 
+vi.mock('@/components/patients/RichTextEditor.vue', () => ({
+  default: {
+    name: 'RichTextEditor',
+    template: '<div class="rich-editor-mock" />',
+    props: ['modelValue', 'readonly', 'rows', 'placeholder'],
+    emits: ['update:modelValue', 'change'],
+  },
+}))
+
 // ===========================================================================
 // Helpers
 // ===========================================================================
 function waitForData() {
   return new Promise(resolve => setTimeout(resolve, 0))
+}
+
+// handleSign waits ~100ms before emitting 'sign'
+function waitForSign() {
+  return new Promise(resolve => setTimeout(resolve, 150))
 }
 
 // ===========================================================================
@@ -488,6 +502,88 @@ describe('OrdonnanceLibreForm', () => {
 
       expect(wrapper.find('.ordonnance-libre-form__preview-empty').exists()).toBe(true)
       expect(wrapper.text()).toContain('Aucune prescription sélectionnée ou ajoutée')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Sign / re-sign
+  // -----------------------------------------------------------------------
+  describe('sign / re-sign', () => {
+    it('shows "Signer" label and confirms before signing a draft document', async () => {
+      mockFetchAvailablePrescriptions.mockResolvedValue([])
+      const wrapper = mount(OrdonnanceLibreForm, {
+        props: defaultProps,
+        global: { stubs },
+      })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const signBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Signer'))
+      expect(signBtn).toBeDefined()
+      await signBtn!.trigger('click')
+      await waitForSign()
+      await nextTick()
+
+      expect(mockElMessageBox.confirm).toHaveBeenCalledWith(
+        'Êtes-vous sûr de vouloir signer et verrouiller ce document ? Cette action est irréversible.',
+        'Confirmation de signature',
+        expect.objectContaining({ type: 'warning', confirmButtonText: 'Signer' }),
+      )
+      expect(wrapper.emitted('save')).toBeDefined()
+      expect(wrapper.emitted('sign')).toBeDefined()
+    })
+
+    it('shows "Resigner" label and warns the old signature will be overwritten for a signed document', async () => {
+      mockFetchAvailablePrescriptions.mockResolvedValue([])
+      const wrapper = mount(OrdonnanceLibreForm, {
+        props: {
+          ...defaultProps,
+          document: { ...defaultProps.document, status: 'signed' },
+        },
+        global: { stubs },
+      })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const signBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Resigner'))
+      expect(signBtn).toBeDefined()
+      await signBtn!.trigger('click')
+      await waitForSign()
+      await nextTick()
+
+      expect(mockElMessageBox.confirm).toHaveBeenCalledWith(
+        'Resigner ce document ? L\'ancienne signature sera écrasée.',
+        'Re-signature',
+        expect.objectContaining({ type: 'warning', confirmButtonText: 'Resigner' }),
+      )
+      expect(wrapper.emitted('sign')).toBeDefined()
+    })
+
+    it('does not emit sign when confirmation is cancelled', async () => {
+      mockFetchAvailablePrescriptions.mockResolvedValue([])
+      mockElMessageBox.confirm.mockRejectedValueOnce(new Error('cancel'))
+      const wrapper = mount(OrdonnanceLibreForm, {
+        props: {
+          ...defaultProps,
+          document: { ...defaultProps.document, status: 'signed' },
+        },
+        global: { stubs },
+      })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const signBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Resigner'))
+      await signBtn!.trigger('click')
+      await waitForSign()
+      await nextTick()
+
+      expect(wrapper.emitted('sign')).toBeUndefined()
     })
   })
 })

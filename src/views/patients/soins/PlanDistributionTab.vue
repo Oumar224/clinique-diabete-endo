@@ -193,7 +193,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="Instructions">
-          <el-input v-model="prescriptionForm.instructions" type="textarea" :rows="2" />
+          <RichTextEditor v-model="prescriptionForm.instructions" :rows="2" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -256,9 +256,9 @@
               <span class="plan-distribution__detail-label">Date prescription</span>
               <span class="plan-distribution__detail-value">{{ formatDateTime(detailPrescription.createdAt) }}</span>
             </div>
-            <div v-if="detailPrescription.instructions" class="plan-distribution__detail-row">
+            <div v-if="!isRichTextEmpty(detailPrescription.instructions)" class="plan-distribution__detail-row">
               <span class="plan-distribution__detail-label">Instructions</span>
-              <span class="plan-distribution__detail-value">{{ detailPrescription.instructions }}</span>
+              <span class="plan-distribution__detail-value" v-html="detailPrescription.instructions"></span>
             </div>
             <div class="plan-distribution__detail-row">
               <span class="plan-distribution__detail-label">Durée</span>
@@ -293,6 +293,8 @@ import { usePrescriptions, type PrescriptionRecord } from '@/composables/usePres
 import { useAuth } from '@/composables/useAuth'
 import { FREQUENCE_OPTIONS } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
+import { isRichTextEmpty } from '@/utils/rich-text'
+import RichTextEditor from '@/components/patients/RichTextEditor.vue'
 import type { SoinItem, StatutSoin, BlocHoraire, VoieAdministration } from '@/types/soins'
 
 const route = useRoute()
@@ -383,11 +385,10 @@ const currentHour = computed(() => {
 })
 
 function formatDateHeader(d: Date): string {
-  return d.toLocaleDateString('fr-FR', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-  })
+  const weekday = d.toLocaleDateString('fr-FR', { weekday: 'short' })
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  return `${weekday} ${dd}/${mm}`
 }
 
 function isCurrentTimeSlot(dayIdx: number, hour: number): boolean {
@@ -891,6 +892,7 @@ async function onShowDetail(soin: SoinItem) {
       const p = await getPrescription(soin.prescriptionId)
       detailPrescription.value = p
     } catch {
+      detailPrescription.value = null
     }
   }
 }
@@ -986,6 +988,7 @@ async function onShowDetail(soin: SoinItem) {
   font-weight: 600;
   text-align: left;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .plan-distribution__date-hours-row {

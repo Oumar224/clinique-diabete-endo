@@ -109,7 +109,7 @@
       <el-row :gutter="24">
         <el-col :span="24">
           <el-form-item label="Notes">
-            <el-input v-model="form.notes" type="textarea" :rows="2" placeholder="Observations..." />
+            <RichTextEditor v-model="form.notes" :rows="2" placeholder="Observations..." />
           </el-form-item>
         </el-col>
       </el-row>
@@ -134,6 +134,7 @@ import { ipcInvoke } from '@/utils/ipc'
 import { createAppointment, updateAppointment, type AppointmentDto } from '@/composables/useAppointments'
 import { useMedicalStaff, formatMedecinName } from '@/composables/useMedicalStaff'
 import type { UserDto } from '@/composables/useUsers'
+import RichTextEditor from '@/components/patients/RichTextEditor.vue'
 
 interface ServiceSuggestion {
   value: string

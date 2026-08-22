@@ -1,4 +1,4 @@
-import { type Kysely, type Migration, type MigrationProvider, Migrator, sql } from 'kysely'
+import { type Kysely, type Migration, type MigrationProvider, type MigrationResult, type MigrationResultSet, Migrator, sql } from 'kysely'
 import * as InitialSchema from '../migrations/001-initial-schema'
 import * as FixUserSchema from '../migrations/002-fix-user-schema'
 import * as AddSettings from '../migrations/003-add-settings'
@@ -78,115 +78,194 @@ import * as CreateExamResults from '../migrations/081-create-exam-results'
 import * as AddValidatedAtToExamRequests from '../migrations/082-add-validated-at-to-exam-requests'
 import * as RemoveContactCategory from '../migrations/085-contact-category-remove'
 import * as CloseExpiredActiveEncounters from '../migrations/086-close-expired-active-encounters'
+import * as AddServiceCareUnitToAppointments from '../migrations/087-add-service-care-unit-to-appointments'
+import * as SeedCrcDiabete from '../migrations/088-seed-crc-diabete'
+import * as AddContactTypesToDocumentTypes from '../migrations/089-add-contact-types-to-document-types'
+import * as CreateDocumentAttachments from '../migrations/090-create-document-attachments'
+import * as AddPrescriptionDureeType from '../migrations/091-add-prescription-duree-type'
+import * as AddClinicalDocumentSite from '../migrations/092-add-clinical-document-site'
+import * as AddExamRequestResultatRealized from '../migrations/093-add-exam-request-resultat-realized'
+import * as CreateExamRequestAttachments from '../migrations/094-create-exam-request-attachments'
+
+export const MIGRATIONS: Record<string, Migration> = {
+  '001-initial-schema': InitialSchema,
+  '002-fix-user-schema': FixUserSchema,
+  '003-add-settings': AddSettings,
+  '004-invoice': InvoiceSchema,
+  '005-settings-tables': SettingsTables,
+  '006-settings-extensions': SettingsExtensions,
+  '007-user-medical-units': UserMedicalUnits,
+  '008-email-config': EmailConfig,
+  '009-fonctions': Fonctions,
+  '010-localites': Localites,
+  '011-remove-medical-unit-fields': RemoveMedicalUnitFields,
+  '012-add-infirmier-role': AddInfirmierRole,
+  '013-user-attachments': UserAttachments,
+  '014-patient-photo-nip': PatientPhotoNip,
+  '015-patient-attachments': PatientAttachments,
+  '016-patient-residence-birthplace': PatientResidenceBirthplace,
+  '017-add-region-type': AddRegionType,
+  '018-add-patient-region': AddPatientRegion,
+  '019-patient-trusted-person': PatientTrustedPerson,
+  '020-trusted-person-residence-code': TrustedPersonResidenceCode,
+  '021-civilite-allow-empty': CiviliteAllowEmpty,
+  '022-patient-site': PatientSite,
+  '023-patient-attachment-category': PatientAttachmentCategory,
+  '024-unique-trusted-person-patient': UniqueTrustedPersonPatient,
+  '025-attachment-types': AttachmentTypes,
+  '026-remove-mutuelle': RemoveMutuelle,
+  '027-add-assurance-mutuelle': AddAssuranceMutuelle,
+  '028-form-drafts': FormDrafts,
+  '029-patient-consentement-etude': PatientConsentementEtude,
+  '030-user-attachment-type': UserAttachmentType,
+  '031-patient-care': PatientCare,
+  '032-seed-plan-soins': SeedPlanSoins,
+  '033-prescriptions': Prescriptions,
+  '034-seed-week-plan-soins': SeedWeekPlanSoins,
+  '035-seed-vital-signs-range': SeedVitalSignsRange,
+  '042-vital-signs-new-columns': VitalSignsNewColumns,
+  '043-vital-signs-items': VitalSignsItems,
+  '044-lab-exam-tables': LabExamTables,
+  '045-conservateurs-tables': ConservateurTables,
+  '046-service-hierarchy': ServiceHierarchy,
+  '047-service-hierarchy-v2': ServiceHierarchyV2,
+  '048-seed-fonctions': SeedFonctions,
+  '049-seed-localites': SeedLocalites,
+  '050-create-encounters': CreateEncounters,
+  '051-create-stays': CreateStays,
+  '052-restructure-tarifs': RestructureTarifs,
+  '053-patient-clinical-documents': PatientClinicalDocuments,
+  '054-create-care-units': CreateCareUnits,
+  '055-restructure-services': RestructureServices,
+  '056-add-acte-declenche-to-doc-types': AddActeDeclencheToDocTypes,
+  '057-contact-origins': ContactOrigins,
+  '058-insurances': Insurances,
+  '059-contact-categories': ContactCategories,
+  '060-prescription-frequence-type': PrescriptionFrequenceType,
+  '061-encounter-new-fields': EncounterNewFields,
+  '062-add-care-unit-to-encounters': AddCareUnitToEncounters,
+  '062-prescription-type': PrescriptionType,
+  '063-voie-type-dispositif-type': VoieTypeDispositifType,
+  '064-seed-crh-diabete': SeedCrhDiabete,
+  '065-add-prescription-type': AddPrescriptionType,
+  '066-fix-encounter-constraints': FixEncounterConstraints,
+  '067-cleanup-orphaned-plan-items': CleanupOrphanedPlanItems,
+  '068-fix-document-types': FixDocumentTypes,
+  '069-exam-categories-types': ExamCategoriesTypes,
+  '070-add-care-unit-to-encounters-fix': AddCareUnitToEncountersFix,
+  '071-create-exam-requests': CreateExamRequests,
+  '072-seed-lab-exam-data': SeedLabExamData,
+  '073-seed-dispositif-voie-data': SeedDispositifVoieData,
+  '074-add-exam-request-specialite': AddExamRequestSpecialite,
+  '075-add-exam-request-specialty-id': AddExamRequestSpecialtyId,
+  '076-add-exam-request-planned-hour-date': AddExamRequestPlannedHourDate,
+  '077-encounter-movements-new-fields': EncounterMovementsNewFields,
+  '078-patient-clinical-documents-source': PatientClinicalDocumentsSource,
+  '079-seed-ordonnance-libre': SeedOrdonnanceLibre,
+  '080-create-exam-parameters': CreateExamParameters,
+  '081-create-exam-results': CreateExamResults,
+  '082-add-validated-at-to-exam-requests': AddValidatedAtToExamRequests,
+  '085-contact-category-remove': RemoveContactCategory,
+  '086-close-expired-active-encounters': CloseExpiredActiveEncounters,
+  '087-add-service-care-unit-to-appointments': AddServiceCareUnitToAppointments,
+  '088-seed-crc-diabete': SeedCrcDiabete,
+  '089-add-contact-types-to-document-types': AddContactTypesToDocumentTypes,
+  '090-create-document-attachments': CreateDocumentAttachments,
+  '091-add-prescription-duree-type': AddPrescriptionDureeType,
+  '092-add-clinical-document-site': AddClinicalDocumentSite,
+  '093-add-exam-request-resultat-realized': AddExamRequestResultatRealized,
+  '094-create-exam-request-attachments': CreateExamRequestAttachments,
+}
 
 class StaticMigrationProvider implements MigrationProvider {
   async getMigrations(): Promise<Record<string, Migration>> {
-    return {
-      '001-initial-schema': InitialSchema,
-      '002-fix-user-schema': FixUserSchema,
-      '003-add-settings': AddSettings,
-      '004-invoice': InvoiceSchema,
-      '005-settings-tables': SettingsTables,
-      '006-settings-extensions': SettingsExtensions,
-      '007-user-medical-units': UserMedicalUnits,
-      '008-email-config': EmailConfig,
-      '009-fonctions': Fonctions,
-      '010-localites': Localites,
-      '011-remove-medical-unit-fields': RemoveMedicalUnitFields,
-      '012-add-infirmier-role': AddInfirmierRole,
-      '013-user-attachments': UserAttachments,
-      '014-patient-photo-nip': PatientPhotoNip,
-      '015-patient-attachments': PatientAttachments,
-      '016-patient-residence-birthplace': PatientResidenceBirthplace,
-      '017-add-region-type': AddRegionType,
-      '018-add-patient-region': AddPatientRegion,
-      '019-patient-trusted-person': PatientTrustedPerson,
-      '020-trusted-person-residence-code': TrustedPersonResidenceCode,
-      '021-civilite-allow-empty': CiviliteAllowEmpty,
-      '022-patient-site': PatientSite,
-      '023-patient-attachment-category': PatientAttachmentCategory,
-      '024-unique-trusted-person-patient': UniqueTrustedPersonPatient,
-      '025-attachment-types': AttachmentTypes,
-      '026-remove-mutuelle': RemoveMutuelle,
-      '027-add-assurance-mutuelle': AddAssuranceMutuelle,
-      '028-form-drafts': FormDrafts,
-      '029-patient-consentement-etude': PatientConsentementEtude,
-      '030-user-attachment-type': UserAttachmentType,
-      '031-patient-care': PatientCare,
-      '032-seed-plan-soins': SeedPlanSoins,
-      '033-prescriptions': Prescriptions,
-      '034-seed-week-plan-soins': SeedWeekPlanSoins,
-      '035-seed-vital-signs-range': SeedVitalSignsRange,
-      '042-vital-signs-new-columns': VitalSignsNewColumns,
-      '043-vital-signs-items': VitalSignsItems,
-      '044-lab-exam-tables': LabExamTables,
-      '045-conservateurs-tables': ConservateurTables,
-      '046-service-hierarchy': ServiceHierarchy,
-      '047-service-hierarchy-v2': ServiceHierarchyV2,
-      '048-seed-fonctions': SeedFonctions,
-      '049-seed-localites': SeedLocalites,
-      '050-create-encounters': CreateEncounters,
-      '051-create-stays': CreateStays,
-      '052-restructure-tarifs': RestructureTarifs,
-      '053-patient-clinical-documents': PatientClinicalDocuments,
-      '054-create-care-units': CreateCareUnits,
-      '055-restructure-services': RestructureServices,
-      '056-add-acte-declenche-to-doc-types': AddActeDeclencheToDocTypes,
-      '057-contact-origins': ContactOrigins,
-      '058-insurances': Insurances,
-      '059-contact-categories': ContactCategories,
-      '060-prescription-frequence-type': PrescriptionFrequenceType,
-      '061-encounter-new-fields': EncounterNewFields,
-      '062-add-care-unit-to-encounters': AddCareUnitToEncounters,
-      '062-prescription-type': PrescriptionType,
-      '063-voie-type-dispositif-type': VoieTypeDispositifType,
-      '064-seed-crh-diabete': SeedCrhDiabete,
-      '065-add-prescription-type': AddPrescriptionType,
-      '066-fix-encounter-constraints': FixEncounterConstraints,
-      '067-cleanup-orphaned-plan-items': CleanupOrphanedPlanItems,
-      '068-fix-document-types': FixDocumentTypes,
-      '069-exam-categories-types': ExamCategoriesTypes,
-      '070-add-care-unit-to-encounters-fix': AddCareUnitToEncountersFix,
-      '071-create-exam-requests': CreateExamRequests,
-      '072-seed-lab-exam-data': SeedLabExamData,
-      '073-seed-dispositif-voie-data': SeedDispositifVoieData,
-      '074-add-exam-request-specialite': AddExamRequestSpecialite,
-      '075-add-exam-request-specialty-id': AddExamRequestSpecialtyId,
-      '076-add-exam-request-planned-hour-date': AddExamRequestPlannedHourDate,
-      '077-encounter-movements-new-fields': EncounterMovementsNewFields,
-      '078-patient-clinical-documents-source': PatientClinicalDocumentsSource,
-      '079-seed-ordonnance-libre': SeedOrdonnanceLibre,
-      '080-create-exam-parameters': CreateExamParameters,
-      '081-create-exam-results': CreateExamResults,
-      '082-add-validated-at-to-exam-requests': AddValidatedAtToExamRequests,
-      '085-contact-category-remove': RemoveContactCategory,
-      '086-close-expired-active-encounters': CloseExpiredActiveEncounters,
-    }
+    return MIGRATIONS
   }
+}
+
+/**
+ * Result of a successful migration run.
+ *
+ * CONTRACT: `runMigrations()` / `runMigrationsTo()` THROW on any failure
+ * (see `runMigrator`), so the returned status always has `success === true`
+ * and `failed === []`. `applied` counts the migrations applied in this run
+ * (0 when the DB is already up to date). The `success`/`failed` fields are
+ * kept for callers and tests that read them; do not branch on them expecting
+ * a non-throwing error path — failures surface as thrown errors.
+ */
+export interface MigrationRunStatus {
+  success: boolean
+  applied: number
+  failed: string[]
 }
 
 export class MigrationService {
   private migrator: Migrator
   private db: Kysely<unknown>
 
-  constructor(db: Kysely<unknown>) {
+  constructor(db: Kysely<unknown>, provider?: MigrationProvider) {
     this.db = db
     this.migrator = new Migrator({
       db,
-      provider: new StaticMigrationProvider(),
+      provider: provider ?? new StaticMigrationProvider(),
     })
   }
 
-  async runMigrations(): Promise<void> {
-    const { error, results } = await this.migrator.migrateToLatest()
-    if (error) {
-      console.error('[CDE] Migration failed, continuing:', error)
-      // Don't throw — let the app continue with partial migrations
+  async runMigrations(): Promise<MigrationRunStatus> {
+    return this.runMigrator(() => this.migrator.migrateToLatest())
+  }
+
+  /**
+   * Migrates to an arbitrary target migration.
+   *
+   * WARNING: if the target is already executed, Kysely rolls back the
+   * migrations after it by running their `down()` (DROP/DELETE...). Never use
+   * this method in production with a target lower than the latest migration.
+   */
+  async runMigrationsTo(target: string): Promise<MigrationRunStatus> {
+    return this.runMigrator(() => this.migrator.migrateTo(target))
+  }
+
+  private async runMigrator(run: () => Promise<MigrationResultSet>): Promise<MigrationRunStatus> {
+    let error: unknown
+    let results: MigrationResult[] | undefined
+    try {
+      const result = await run()
+      error = result.error
+      results = result.results
+    } catch (err) {
+      error = err
     }
+
+    const failed = (results ?? []).filter(r => r.status === 'Error')
+    // If `run()` threw — or returned an error without a result set — Kysely
+    // could not even determine which migrations to execute (e.g. "corrupted
+    // migrations"). Synthesize a failure entry so the status reports it and
+    // the [CDE] MIGRATION FAILED warn below is emitted.
+    if (error != null && results === undefined && failed.length === 0) {
+      failed.push({ migrationName: 'unknown', direction: 'Up', status: 'Error' })
+    }
+    for (const r of failed) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn(`[CDE] MIGRATION FAILED: ${r.migrationName}: ${message}`)
+    }
+
     if (results) {
       for (const r of results) {
         console.log(`[CDE] Migration "${r.migrationName}": ${r.direction} - ${r.status}`)
       }
+    }
+
+    if (failed.length > 0 || error != null) {
+      const message = error instanceof Error ? error.message : String(error)
+      const names = failed.map(r => r.migrationName).join(', ') || 'unknown'
+      throw new Error(`[CDE] Migration failed: ${names}${message ? ` — ${message}` : ''}`)
+    }
+
+    return {
+      success: true,
+      applied: (results ?? []).filter(r => r.status === 'Success').length,
+      failed: [],
     }
   }
 

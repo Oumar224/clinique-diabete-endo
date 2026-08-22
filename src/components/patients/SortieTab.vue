@@ -3,7 +3,7 @@
     <StagedCollapsibleSection
       :ref="setSectionRef('clotureAdmin')"
       title="Clôture Administrative"
-      :keys="['dateSortie', 'destinationSortie']"
+      :keys="['dateSortie', 'destinationSortie', 'infoPatientFamille', 'produitsSanguins', 'bmrBhre']"
       :model-value="data"
       @save="emit('change')"
     >
@@ -11,7 +11,7 @@
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="Date de sortie" data-history-path="sortie.dateSortie">
-              <el-date-picker v-model="draft.dateSortie" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+              <el-date-picker v-model="draft.dateSortie" type="date" value-format="YYYY-MM-DD" format="DD/MM/YYYY" style="width:100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -21,6 +21,23 @@
                 <el-option label="Autre site AP-HP" value="Autre site AP-HP" />
                 <el-option label="HAD" value="HAD" />
               </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item label="Information du patient / famille" data-history-path="sortie.infoPatientFamille">
+              <el-checkbox v-model="draft.infoPatientFamille">Oui</el-checkbox>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="Administration de produits sanguins" data-history-path="sortie.produitsSanguins">
+              <el-checkbox v-model="draft.produitsSanguins">Oui</el-checkbox>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="Porteur / Contact BMR ou BHRe" data-history-path="sortie.bmrBhre">
+              <el-checkbox v-model="draft.bmrBhre">Oui</el-checkbox>
             </el-form-item>
           </el-col>
         </el-row>
@@ -89,7 +106,7 @@
           <el-row :gutter="16">
             <el-col :span="5">
               <el-form-item label="Date du RDV">
-                <el-date-picker v-model="rdv.date" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+                <el-date-picker v-model="rdv.date" type="date" value-format="YYYY-MM-DD" format="DD/MM/YYYY" style="width:100%" />
               </el-form-item>
             </el-col>
             <el-col :span="4">
@@ -127,6 +144,7 @@ import FormPreview from '@/components/common/FormPreview.vue'
 import type { FormPreviewField } from '@/components/common/FormPreview.vue'
 import RichTextEditor from '@/components/patients/RichTextEditor.vue'
 import { htmlToPlainText } from '@/utils/rich-text'
+import { formatDate } from '@/utils/date'
 
 const FIELD_PREFIX = 'sortie'
 
@@ -161,8 +179,11 @@ async function openSection(key: string) {
 }
 
 const clotureAdminPreviewFields = computed<FormPreviewField[]>(() => [
-  { label: 'Date de sortie', value: props.data.dateSortie, key: `${FIELD_PREFIX}.dateSortie`, updatedAt: metaFor(`${FIELD_PREFIX}.dateSortie`), tracked: !!props.fieldMeta },
+  { label: 'Date de sortie', value: props.data.dateSortie ? formatDate(props.data.dateSortie) : '', key: `${FIELD_PREFIX}.dateSortie`, updatedAt: metaFor(`${FIELD_PREFIX}.dateSortie`), tracked: !!props.fieldMeta },
   { label: 'Destination de sortie', value: props.data.destinationSortie, key: `${FIELD_PREFIX}.destinationSortie`, updatedAt: metaFor(`${FIELD_PREFIX}.destinationSortie`), tracked: !!props.fieldMeta },
+  { label: 'Information du patient / famille', value: props.data.infoPatientFamille ? 'Oui' : null, key: `${FIELD_PREFIX}.infoPatientFamille`, updatedAt: metaFor(`${FIELD_PREFIX}.infoPatientFamille`), tracked: !!props.fieldMeta },
+  { label: 'Administration de produits sanguins', value: props.data.produitsSanguins ? 'Oui' : null, key: `${FIELD_PREFIX}.produitsSanguins`, updatedAt: metaFor(`${FIELD_PREFIX}.produitsSanguins`), tracked: !!props.fieldMeta },
+  { label: 'Porteur / Contact BMR ou BHRe', value: props.data.bmrBhre ? 'Oui' : null, key: `${FIELD_PREFIX}.bmrBhre`, updatedAt: metaFor(`${FIELD_PREFIX}.bmrBhre`), tracked: !!props.fieldMeta },
 ])
 
 const clotureMedicalePreviewFields = computed<FormPreviewField[]>(() => [

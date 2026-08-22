@@ -11,7 +11,7 @@
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="Date du diagnostic" data-history-path="ficheDiabete.dateDiagnostic">
-              <el-date-picker v-model="draft.dateDiagnostic" type="month" value-format="YYYY-MM" placeholder="MM/AAAA" style="width:100%" />
+              <el-date-picker v-model="draft.dateDiagnostic" type="month" value-format="YYYY-MM" format="MM/YYYY" placeholder="MM/AAAA" style="width:100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -85,7 +85,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="Date de l'examen" data-history-path="ficheDiabete.hba1cDate">
-              <el-date-picker v-model="draft.hba1cDate" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+              <el-date-picker v-model="draft.hba1cDate" type="date" value-format="YYYY-MM-DD" format="DD/MM/YYYY" style="width:100%" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -175,6 +175,10 @@
             <el-form-item label="Amputation" data-history-path="ficheDiabete.amputation">
               <el-checkbox v-model="draft.amputation">Oui</el-checkbox>
             </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="24">
             <el-form-item v-if="draft.amputation" label="Détail amputation">
               <RichTextEditor v-model="draft.amputationDetail" :rows="2" placeholder="Amputation Transmétatarsienne gauche le 08/12/2025" />
             </el-form-item>
@@ -193,6 +197,10 @@
             <el-form-item label="AOMI" data-history-path="ficheDiabete.aomi">
               <el-checkbox v-model="draft.aomi">Oui</el-checkbox>
             </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="24">
             <el-form-item v-if="draft.aomi" label="Description ischémie critique">
               <RichTextEditor v-model="draft.ischemicCritique" :rows="2" placeholder="Description de l'ischémie critique..." />
             </el-form-item>
@@ -221,6 +229,7 @@ import StagedCollapsibleSection from '@/components/common/StagedCollapsibleSecti
 import FormPreview from '@/components/common/FormPreview.vue'
 import type { FormPreviewField } from '@/components/common/FormPreview.vue'
 import { isRichTextEmpty } from '@/utils/rich-text'
+import { formatDate } from '@/utils/date'
 
 const FIELD_PREFIX = 'ficheDiabete'
 
@@ -276,10 +285,16 @@ function stadeOf(dfg: number | null): string {
   return calcStadeIR(dfg)
 }
 
+function formatMonth(ym: string): string {
+  const parts = ym.split('-')
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return ym
+  return `${parts[1]}/${parts[0]}`
+}
+
 const historiquePreviewFields = computed<FormPreviewField[]>(() => {
   const d = props.data
   return [
-    { label: 'Date du diagnostic', value: d.dateDiagnostic, key: `${FIELD_PREFIX}.dateDiagnostic`, updatedAt: metaFor(`${FIELD_PREFIX}.dateDiagnostic`), tracked: !!props.fieldMeta },
+    { label: 'Date du diagnostic', value: formatMonth(d.dateDiagnostic), key: `${FIELD_PREFIX}.dateDiagnostic`, updatedAt: metaFor(`${FIELD_PREFIX}.dateDiagnostic`), tracked: !!props.fieldMeta },
     { label: 'Durée d\'évolution', value: dureeOf(d.dateDiagnostic) !== '—' ? dureeOf(d.dateDiagnostic) : null, key: `${FIELD_PREFIX}.dateDiagnostic`, updatedAt: metaFor(`${FIELD_PREFIX}.dateDiagnostic`), tracked: !!props.fieldMeta },
   ]
 })
@@ -297,7 +312,7 @@ const bilanPreviewFields = computed<FormPreviewField[]>(() => {
   const d = props.data
   return [
     { label: 'HbA1c (%)', value: d.hba1c, key: `${FIELD_PREFIX}.hba1c`, updatedAt: metaFor(`${FIELD_PREFIX}.hba1c`), tracked: !!props.fieldMeta },
-    { label: 'Date de l\'examen', value: d.hba1cDate, key: `${FIELD_PREFIX}.hba1cDate`, updatedAt: metaFor(`${FIELD_PREFIX}.hba1cDate`), tracked: !!props.fieldMeta },
+    { label: 'Date de l\'examen', value: d.hba1cDate ? formatDate(d.hba1cDate) : '', key: `${FIELD_PREFIX}.hba1cDate`, updatedAt: metaFor(`${FIELD_PREFIX}.hba1cDate`), tracked: !!props.fieldMeta },
     { label: 'HDL (mmol/L)', value: d.hdl, key: `${FIELD_PREFIX}.hdl`, updatedAt: metaFor(`${FIELD_PREFIX}.hdl`), tracked: !!props.fieldMeta },
     { label: 'LDL (mmol/L)', value: d.ldl, key: `${FIELD_PREFIX}.ldl`, updatedAt: metaFor(`${FIELD_PREFIX}.ldl`), tracked: !!props.fieldMeta },
     { label: 'Triglycérides (mmol/L)', value: d.triglycerides, key: `${FIELD_PREFIX}.triglycerides`, updatedAt: metaFor(`${FIELD_PREFIX}.triglycerides`), tracked: !!props.fieldMeta },

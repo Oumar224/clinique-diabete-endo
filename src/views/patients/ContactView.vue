@@ -6,6 +6,7 @@
         @new-contact="openContactDialog"
         @edit-contact="onEditContact"
         @delete-contact="onDeleteContact"
+        @view-contact="onViewContact"
       />
     </el-card>
 
@@ -24,6 +25,8 @@
       :encounter="editingEncounter"
       @saved="onContactSaved"
     />
+
+    <ContactDetailDialog ref="contactDetailRef" />
   </div>
 </template>
 
@@ -37,6 +40,7 @@ import { useEncounters } from '@/composables/useEncounters'
 import type { EncounterDto } from '@/composables/useEncounters'
 import EncountersTable from '@/components/patients/EncountersTable.vue'
 import ContactFormDialog from '@/components/patients/ContactFormDialog.vue'
+import ContactDetailDialog from '@/components/patients/ContactDetailDialog.vue'
 import EncounterMovements from '@/components/patients/EncounterMovements.vue'
 
 const route = useRoute()
@@ -60,10 +64,15 @@ const encounters = ref<EncounterDto[]>([])
 const contactDialogVisible = ref(false)
 const editingEncounter = ref<EncounterDto | null>(null)
 const activeEncounterId = ref<number | null>(null)
+const contactDetailRef = ref<InstanceType<typeof ContactDetailDialog> | null>(null)
 
 function openContactDialog() {
   editingEncounter.value = null
   contactDialogVisible.value = true
+}
+
+function onViewContact(encounter: EncounterDto) {
+  contactDetailRef.value?.open(encounter)
 }
 
 function onEditContact(encounter: EncounterDto) {

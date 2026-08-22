@@ -53,7 +53,7 @@
           <template #default="{ row }">{{ row.motif || '—' }}</template>
         </el-table-column>
         <el-table-column label="Notes" min-width="120">
-          <template #default="{ row }">{{ row.notes || '—' }}</template>
+          <template #default="{ row }">{{ htmlToPlainText(row.notes) || '—' }}</template>
         </el-table-column>
         <el-table-column label="Action" width="100" fixed="right">
           <template #default="{ row }">
@@ -94,7 +94,7 @@
             <el-input v-model="form.motif" placeholder="Motif du mouvement" />
           </el-form-item>
           <el-form-item label="Notes">
-            <el-input v-model="form.notes" type="textarea" :rows="2" />
+            <RichTextEditor v-model="form.notes" :rows="2" />
           </el-form-item>
         </el-form>
         <template #footer>
@@ -113,7 +113,10 @@
             <el-descriptions-item label="Date/heure d'entrée">{{ formatDateTime(selectedMovement.entered_at) }}</el-descriptions-item>
             <el-descriptions-item label="Date/heure de sortie">{{ selectedMovement.exited_at ? formatDateTime(selectedMovement.exited_at) : 'En cours' }}</el-descriptions-item>
             <el-descriptions-item label="Motif">{{ selectedMovement.motif || '—' }}</el-descriptions-item>
-            <el-descriptions-item label="Notes">{{ selectedMovement.notes || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="Notes">
+              <span v-if="!isRichTextEmpty(selectedMovement.notes)" v-html="selectedMovement.notes" />
+              <span v-else>—</span>
+            </el-descriptions-item>
             <el-descriptions-item label="Créé par">{{ selectedMovement.created_by ?? '—' }}</el-descriptions-item>
             <el-descriptions-item label="Date de création">{{ selectedMovement.created_at ? formatDateTime(selectedMovement.created_at) : '—' }}</el-descriptions-item>
           </el-descriptions>
@@ -131,6 +134,8 @@ import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { useEncounters, type EncounterDto, type EncounterMovementDto } from '@/composables/useEncounters'
+import RichTextEditor from '@/components/patients/RichTextEditor.vue'
+import { htmlToPlainText, isRichTextEmpty } from '@/utils/rich-text'
 import { ipcInvoke } from '@/utils/ipc'
 import { emit as busEmit } from '@/utils/eventBus'
 

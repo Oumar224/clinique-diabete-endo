@@ -51,6 +51,8 @@ interface RawClinicalDocumentDTO {
   formData: string | null
   source?: string
   pdfPath?: string | null
+  siteId?: number | null
+  siteName?: string | null
   signedAt: string | null
   signedBy: string | null
   createdBy: string
@@ -68,6 +70,8 @@ export interface ClinicalDocumentDTO {
   formData: Record<string, any>
   source?: string
   pdfPath?: string | null
+  siteId?: number
+  siteName?: string
   signedAt?: string
   signedBy?: string
   createdBy: string
@@ -101,6 +105,8 @@ function normalizeDocument(
     formData: parseFormData(raw.formData),
     source: raw.source ?? 'created',
     pdfPath: raw.pdfPath ?? null,
+    siteId: raw.siteId ?? undefined,
+    siteName: raw.siteName ?? undefined,
     signedAt: raw.signedAt ?? undefined,
     signedBy: raw.signedBy ?? undefined,
     createdBy: raw.createdBy,
@@ -254,6 +260,7 @@ export function useClinicalDocuments() {
   }
 
   async function signDocument(id: string, userId: string): Promise<boolean> {
+    const wasSigned = documents.value.find(d => d.id === id)?.status === 'signed'
     try {
       const raw = await ipcInvoke<RawClinicalDocumentDTO>('clinical-documents:sign', { id, userId })
       const normalized = normalizeDocument(raw, documentTypes.value)
@@ -264,7 +271,7 @@ export function useClinicalDocuments() {
       if (selectedDocument.value?.id === id) {
         selectedDocument.value = { ...selectedDocument.value, ...normalized, status: 'signed' }
       }
-      ElMessage.success('Document signé et verrouillé')
+      ElMessage.success(wasSigned ? 'Document re-signé — l\'ancienne signature a été écrasée' : 'Document signé')
       return true
     } catch (e) {
       const msg = (e as Error).message
@@ -329,6 +336,7 @@ export function useClinicalDocuments() {
     file: File
     documentTypeId?: string
     title?: string
+    siteId?: number
   }): Promise<ClinicalDocumentDTO | null> {
     try {
       // Convert the File to base64 so it can be sent over IPC as JSON
@@ -340,6 +348,7 @@ export function useClinicalDocuments() {
         fileName: params.file.name,
         documentTypeId: params.documentTypeId,
         title: params.title,
+        siteId: params.siteId,
       })
       if (!raw) return null
       const normalized = normalizeDocument(raw, documentTypes.value)

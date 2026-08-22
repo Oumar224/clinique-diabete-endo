@@ -135,7 +135,7 @@
             <span>Examens Compl.</span>
           </span>
         </template>
-        <ExamensComplementairesTab :data="formData.examensComplementaires" :patient-id="activePatient?.id" @change="onFieldChange" />
+        <ExamensComplementairesTab :data="formData.examensComplementaires" :patient-id="activePatient?.id" :readonly="readonly" @change="onFieldChange" />
       </el-tab-pane>
       <el-tab-pane name="evolution">
         <template #label>
@@ -144,10 +144,15 @@
               <path d="M1 7L4 4L7 7L10 4L13 7" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M1 10L4 7L7 10L10 7L13 10" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 2"/>
             </svg>
-            <span>Évolution</span>
+            <span>Évolution et avis</span>
           </span>
         </template>
-        <EvolutionMedicaleTab :data="formData.evolutionMedicale" @change="onFieldChange" />
+        <EvolutionMedicaleTab
+          :data="formData.evolutionMedicale"
+          :patient-id="activePatient?.id ?? null"
+          :readonly="readonly"
+          @change="onFieldChange"
+        />
       </el-tab-pane>
       <el-tab-pane name="ordonnance">
         <template #label>
@@ -164,7 +169,13 @@
             <span>Ordonnance</span>
           </span>
         </template>
-        <OrdonnanceSortieTab :data="formData.ordonnanceSortie" :readonly="readonly" @change="onFieldChange" />
+        <OrdonnanceSortieTab
+          :data="formData.ordonnanceSortie"
+          :readonly="readonly"
+          :patient-id="activePatient?.id ?? null"
+          :date-entree="formData.admission.dateEntree"
+          @change="onFieldChange"
+        />
       </el-tab-pane>
       <el-tab-pane name="sortie">
         <template #label>
@@ -178,6 +189,23 @@
           </span>
         </template>
         <SortieTab :data="formData.sortie" @change="onFieldChange" />
+      </el-tab-pane>
+      <el-tab-pane name="annexe">
+        <template #label>
+          <span class="tab-label">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <rect x="1.5" y="2" width="11" height="10" rx="1.5" stroke="currentColor" stroke-width="0.8"/>
+              <circle cx="4.8" cy="5.2" r="1.2" stroke="currentColor" stroke-width="0.8"/>
+              <path d="M2.5 11L5.5 8L7.5 9.5L9.5 7.5L11.5 10" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Annexe</span>
+          </span>
+        </template>
+        <AnnexeTab
+          :document-id="annexeDocumentId"
+          :readonly="readonly"
+          @change="onFieldChange"
+        />
       </el-tab-pane>
     </el-tabs>
 
@@ -227,7 +255,7 @@
           size="default"
           @click="handleSign"
         >
-          Signer et Verrouiller
+          {{ resigning ? 'Resigner' : 'Signer' }}
         </el-button>
       </div>
     </div>
@@ -270,6 +298,7 @@ import ExamensComplementairesTab from './ExamensComplementairesTab.vue'
 import EvolutionMedicaleTab from './EvolutionMedicaleTab.vue'
 import OrdonnanceSortieTab from './OrdonnanceSortieTab.vue'
 import SortieTab from './SortieTab.vue'
+import AnnexeTab from './AnnexeTab.vue'
 import ParameterHistoryDialog from './ParameterHistoryDialog.vue'
 import HtmlPreviewDialog from '@/components/common/HtmlPreviewDialog.vue'
 import { fetchParameterHistory, type ParameterHistoryEntry } from '@/composables/useParameterHistory'
@@ -282,6 +311,7 @@ const props = defineProps<{
   contactDisplay: string
   documentId?: string | null
   documentCreatedAt?: string | null
+  resigning?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -297,6 +327,8 @@ const { activePatient } = usePatientContext()
 const { exportCrcDiabetePdf } = useExport()
 const { user } = useAuth()
 const { updatePatient } = usePatients()
+
+const annexeDocumentId = computed<string | null>(() => props.documentId || null)
 
 const formData = ref<CrcDiabeteFormData>(createDefaultFormData())
 
@@ -359,15 +391,63 @@ const pdfLoading = ref(false)
 const draftStatus = ref('')
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 
+// Payload of the last `save` emit. An incoming `modelValue` snapshot that is
+// identical to it is round-trip feedback of our own save — the live form must
+// win so a stale echo never regresses an in-flight (staged or direct) edit.
+let lastEmittedSnapshot: Record<string, any> | null = null
+
+// Content of the last `modelValue` snapshot merged into `formData`. The deep
+// props watcher can re-fire on internal `formData` writes (Vue tracks the
+// deep reads it performs during traversal). Re-merging from an UNCHANGED
+// snapshot is a no-op that only risks wiping newer in-flight edits, so it is
+// skipped: the props→formData sync is idempotent.
+let lastMergedInput: Record<string, any> | null = null
+
 watch(() => props.modelValue, (val) => {
   if (val && Object.keys(val).length > 0) {
+    if (lastMergedInput && jsonEquals(val, lastMergedInput)) return
     mergeFormData(val)
+    lastMergedInput = val
   }
 }, { immediate: true, deep: true })
 
 onUnmounted(() => {
   if (saveTimer) clearTimeout(saveTimer)
 })
+
+function jsonEquals(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+function mergeObjectSection(
+  key: string,
+  incoming: Record<string, any>,
+  live: Record<string, any>,
+  defaults: Record<string, any>,
+): Record<string, any> {
+  const base = { ...(defaults[key] as Record<string, any>), ...incoming }
+  const baseline = lastEmittedSnapshot?.[key]
+  if (baseline == null) return base
+  const out: Record<string, any> = { ...base }
+  for (const [path, liveVal] of Object.entries(live)) {
+    const incomingVal = incoming[path]
+    // Incoming value is only feedback of our own save (identical to what we
+    // last emitted) → keep the live, possibly newer, value.
+    if (incomingVal === undefined || jsonEquals(incomingVal, baseline[path])) {
+      out[path] = liveVal
+    }
+  }
+  return out
+}
+
+function mergeArraySection(key: string, incoming: unknown, live: unknown): unknown {
+  if (!Array.isArray(incoming)) return Array.isArray(live) ? live : []
+  const baseline = lastEmittedSnapshot?.[key]
+  if (Array.isArray(live) && baseline != null && jsonEquals(incoming, baseline)) {
+    return live
+  }
+  return incoming
+}
 
 function mergeFormData(val: Record<string, any>) {
   const defaults = createDefaultFormData()
@@ -376,9 +456,14 @@ function mergeFormData(val: Record<string, any>) {
     if (val[key] && typeof val[key] === 'object') {
       // Préserver les tableaux tels quels (les spread en objet brisent .push())
       if (Array.isArray(defaults[key])) {
-        (formData.value as any)[key] = Array.isArray(val[key]) ? val[key] : defaults[key]
+        (formData.value as any)[key] = mergeArraySection(key as string, val[key], formData.value[key])
       } else {
-        (formData.value as any)[key] = { ...defaults[key], ...val[key] }
+        (formData.value as any)[key] = mergeObjectSection(
+          key as string,
+          val[key],
+          (formData.value as any)[key] ?? {},
+          defaults,
+        )
       }
     }
   }
@@ -413,6 +498,19 @@ function mergeFormData(val: Record<string, any>) {
   delete exams.ecgRepos
   delete exams.echographieCardiaque
   delete exams.actesInterventionnels
+  // Événements réglementaires déplacés vers sortie
+  const evolutionLegacy = formData.value.evolutionMedicale as unknown as Record<string, unknown>
+  const sortieLegacy = formData.value.sortie as unknown as Record<string, unknown>
+  // The guard reads the RAW incoming sortie, not the merged one: the merge
+  // always fills the boolean defaults (false), so checking the merged object
+  // would make the carry-over dead code and silently drop legacy réglementaires.
+  const incomingSortie = (val.sortie ?? {}) as Record<string, unknown>
+  for (const key of ['infoPatientFamille', 'produitsSanguins', 'bmrBhre']) {
+    if (typeof evolutionLegacy[key] === 'boolean' && typeof incomingSortie[key] !== 'boolean') {
+      sortieLegacy[key] = evolutionLegacy[key]
+    }
+    delete evolutionLegacy[key]
+  }
 }
 
 function flattenFormData(data: CrcDiabeteFormData): Record<string, any> {
@@ -425,11 +523,11 @@ const patientAge = computed(() => {
 })
 
 const statusType = computed(() => {
-  return props.readonly ? 'success' : 'warning'
+  return props.resigning ? 'success' : 'warning'
 })
 
 const statusLabel = computed(() => {
-  return props.readonly ? 'Signé' : 'Brouillon'
+  return props.resigning ? 'Signé' : 'Brouillon'
 })
 
 const showAllergyAlert = computed(() => {
@@ -500,30 +598,35 @@ function onFieldChange() {
 
 function handleAutoSave() {
   draftStatus.value = 'Sauvegarde...'
-  emit('save', flattenFormData(formData.value))
+  lastEmittedSnapshot = flattenFormData(formData.value)
+  emit('save', lastEmittedSnapshot)
   setTimeout(() => { draftStatus.value = 'Brouillon enregistré'; setTimeout(() => { draftStatus.value = '' }, 2000) }, 300)
 }
 
 async function handleSaveDraft() {
   saving.value = true
   draftStatus.value = 'Sauvegarde...'
-  emit('save', flattenFormData(formData.value))
+  lastEmittedSnapshot = flattenFormData(formData.value)
+  emit('save', lastEmittedSnapshot)
   setTimeout(() => { draftStatus.value = 'Brouillon enregistré'; saving.value = false; setTimeout(() => { draftStatus.value = '' }, 2000) }, 300)
 }
 
 async function handleSign() {
   try {
     await ElMessageBox.confirm(
-      'Êtes-vous sûr de vouloir signer et verrouiller ce document ? Cette action est irréversible.',
-      'Confirmation de signature',
-      { confirmButtonText: 'Signer', cancelButtonText: 'Annuler', type: 'warning' },
+      props.resigning
+        ? 'Resigner ce document ? L\'ancienne signature sera écrasée.'
+        : 'Êtes-vous sûr de vouloir signer et verrouiller ce document ? Cette action est irréversible.',
+      props.resigning ? 'Re-signature' : 'Confirmation de signature',
+      { confirmButtonText: props.resigning ? 'Resigner' : 'Signer', cancelButtonText: 'Annuler', type: 'warning' },
     )
   } catch {
     return
   }
   if (saveTimer) clearTimeout(saveTimer)
   signing.value = true
-  emit('save', flattenFormData(formData.value))
+  lastEmittedSnapshot = flattenFormData(formData.value)
+  emit('save', lastEmittedSnapshot)
   await nextTick()
   emit('sign')
   signing.value = false
@@ -715,6 +818,31 @@ function handlePreview() {
     flex-shrink: 0;
     opacity: 0.6;
   }
+}
+
+:deep(.form-preview) {
+  padding: 6px 14px 10px;
+  margin-top: 6px;
+}
+
+:deep(.form-preview__header) {
+  display: none;
+}
+
+:deep(.form-preview__row) {
+  font-size: 14px;
+}
+
+:deep(.form-preview__label) {
+  font-size: 13px;
+}
+
+:deep(.form-preview--compact .form-preview__row) {
+  font-size: 13px;
+}
+
+:deep(.form-preview--compact .form-preview__label) {
+  font-size: 12px;
 }
 
 .crc-form__footer {

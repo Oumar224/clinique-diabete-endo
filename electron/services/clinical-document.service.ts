@@ -13,6 +13,7 @@ import { entityEventBus } from '../automerge/event-bus'
 export interface CreateDocumentParams {
   contactId: string
   serviceId?: string | null
+  siteId?: number | null
   documentTypeId: string
   createdBy: string
 }
@@ -191,7 +192,7 @@ export class ClinicalDocumentService {
       .execute()
   }
 
-  private async getDocumentTypeById(id: string): Promise<ClinicalDocumentTypeDTO | null> {
+  async getDocumentTypeById(id: string): Promise<ClinicalDocumentTypeDTO | null> {
     const row = await this.db
       .selectFrom('clinical_document_types')
       .leftJoin('medical_acts', 'medical_acts.id', 'clinical_document_types.acte_id_declenche')
@@ -232,16 +233,21 @@ export class ClinicalDocumentService {
         'clinical_document_types.id',
         'patient_clinical_documents.document_type_id',
       )
+      .leftJoin('sites', 'sites.id', 'patient_clinical_documents.site_id')
       .select([
         'patient_clinical_documents.id',
         'patient_clinical_documents.contact_id',
         'patient_clinical_documents.service_id',
+        'patient_clinical_documents.site_id',
         'patient_clinical_documents.document_type_id',
         'clinical_document_types.label as document_type_label',
         'clinical_document_types.code as document_type_code',
+        'sites.name as site_name',
         'patient_clinical_documents.title',
         'patient_clinical_documents.status',
         'patient_clinical_documents.form_data',
+        'patient_clinical_documents.source',
+        'patient_clinical_documents.pdf_path',
         'patient_clinical_documents.signed_at',
         'patient_clinical_documents.signed_by',
         'patient_clinical_documents.created_by',
@@ -280,16 +286,21 @@ export class ClinicalDocumentService {
         'encounters.id',
         'patient_clinical_documents.contact_id',
       )
+      .leftJoin('sites', 'sites.id', 'patient_clinical_documents.site_id')
       .select([
         'patient_clinical_documents.id',
         'patient_clinical_documents.contact_id',
         'patient_clinical_documents.service_id',
+        'patient_clinical_documents.site_id',
         'patient_clinical_documents.document_type_id',
         'clinical_document_types.label as document_type_label',
         'clinical_document_types.code as document_type_code',
+        'sites.name as site_name',
         'patient_clinical_documents.title',
         'patient_clinical_documents.status',
         'patient_clinical_documents.form_data',
+        'patient_clinical_documents.source',
+        'patient_clinical_documents.pdf_path',
         'patient_clinical_documents.signed_at',
         'patient_clinical_documents.signed_by',
         'patient_clinical_documents.created_by',
@@ -313,16 +324,21 @@ export class ClinicalDocumentService {
         'clinical_document_types.id',
         'patient_clinical_documents.document_type_id',
       )
+      .leftJoin('sites', 'sites.id', 'patient_clinical_documents.site_id')
       .select([
         'patient_clinical_documents.id',
         'patient_clinical_documents.contact_id',
         'patient_clinical_documents.service_id',
+        'patient_clinical_documents.site_id',
         'patient_clinical_documents.document_type_id',
         'clinical_document_types.label as document_type_label',
         'clinical_document_types.code as document_type_code',
+        'sites.name as site_name',
         'patient_clinical_documents.title',
         'patient_clinical_documents.status',
         'patient_clinical_documents.form_data',
+        'patient_clinical_documents.source',
+        'patient_clinical_documents.pdf_path',
         'patient_clinical_documents.signed_at',
         'patient_clinical_documents.signed_by',
         'patient_clinical_documents.created_by',
@@ -378,12 +394,15 @@ export class ClinicalDocumentService {
 
     const title = docType ? docType.label : 'Document'
 
+    const siteId = await this.resolveSiteId(params.createdBy, params.siteId)
+
     await this.db
       .insertInto('patient_clinical_documents')
       .values({
         id,
         contact_id: params.contactId,
         service_id: serviceId ?? undefined,
+        site_id: siteId ?? undefined,
         document_type_id: params.documentTypeId,
         title,
         status: 'draft',
@@ -405,6 +424,7 @@ export class ClinicalDocumentService {
   async importPdf(params: {
     contactId: string
     serviceId?: string | null
+    siteId?: number | null
     createdBy: string
     pdfPath: string
     title?: string
@@ -415,12 +435,15 @@ export class ClinicalDocumentService {
 
     const title = params.title || `Document importé (${new Date().toLocaleDateString('fr-FR')})`
 
+    const siteId = await this.resolveSiteId(params.createdBy, params.siteId)
+
     await this.db
       .insertInto('patient_clinical_documents')
       .values({
         id,
         contact_id: params.contactId,
         service_id: params.serviceId ?? undefined,
+        site_id: siteId ?? undefined,
         document_type_id: params.documentTypeId || '',
         title,
         status: 'draft',
@@ -526,7 +549,6 @@ export class ClinicalDocumentService {
   async signDocument(id: string, userId: string): Promise<ClinicalDocumentDTO> {
     const doc = await this.getDocumentById(id)
     if (!doc) throw new Error('Document introuvable')
-    if (doc.status === 'signed') throw new Error('Le document est déjà signé')
 
     const now = new Date().toISOString()
 
@@ -551,6 +573,11 @@ export class ClinicalDocumentService {
           updated_at: signedAt,
         })
         .where('id', '=', id)
+        .execute()
+
+      await trx
+        .deleteFrom('clinical_document_signatures')
+        .where('document_id', '=', id)
         .execute()
 
       await trx
@@ -666,6 +693,26 @@ export class ClinicalDocumentService {
     return signed
   }
 
+  // ─── Set PDF Path (after PDF generation) ─────────────────────────
+
+  async setDocumentPdfPath(id: string, pdfPath: string): Promise<ClinicalDocumentDTO> {
+    const now = new Date().toISOString()
+
+    await this.db
+      .updateTable('patient_clinical_documents')
+      .set({
+        pdf_path: pdfPath,
+        updated_at: now,
+      })
+      .where('id', '=', id)
+      .execute()
+
+    const updated = await this.getDocumentById(id)
+    if (!updated) throw new Error('Document introuvable après mise à jour du PDF')
+    entityEventBus.emitEntityChange({ entityType: 'clinical_document', action: 'updated', id, entity: updated, source: 'local', timestamp: Date.now() })
+    return updated
+  }
+
   // ─── Delete Document ────────────────────────────────────────────
 
   async deleteDocument(id: string): Promise<void> {
@@ -737,11 +784,25 @@ export class ClinicalDocumentService {
       .executeTakeFirst()
 
     if (!doc) return false
-    if (doc.status === 'signed') return false
+    if (doc.status === 'signed') return true
     if (!doc.contact_id) return false
 
     const expired = await this.isContactExpired(doc.contact_id)
     return !expired
+  }
+
+  // ─── Site Resolution ────────────────────────────────────────────
+
+  private async resolveSiteId(createdBy: string, siteId?: number | null): Promise<number | null> {
+    if (siteId != null) return siteId
+    const row = await this.db
+      .selectFrom('user_sites')
+      .select('site_id')
+      .where('user_id', '=', Number(createdBy))
+      .orderBy('site_id', 'asc')
+      .limit(1)
+      .executeTakeFirst()
+    return row?.site_id ?? null
   }
 }
 

@@ -354,6 +354,143 @@ describe('useExamRequests', () => {
     })
   })
 
+  // ─── realize ─────────────────────────────────────────────────────
+
+  describe('realize', () => {
+    it('marks a request as realized via exam-request:realize', async () => {
+      mockIpcInvoke.mockResolvedValue(undefined)
+      const { realize } = useExamRequests()
+
+      const result = await realize(5, 'Compte-rendu d\'imagerie')
+
+      expect(result).toBe(true)
+      expect(mockIpcInvoke).toHaveBeenCalledWith('exam-request:realize', {
+        id: 5,
+        resultat: 'Compte-rendu d\'imagerie',
+      })
+    })
+
+    it('sends resultat undefined when not provided', async () => {
+      mockIpcInvoke.mockResolvedValue(undefined)
+      const { realize } = useExamRequests()
+
+      const result = await realize(5)
+
+      expect(result).toBe(true)
+      expect(mockIpcInvoke).toHaveBeenCalledWith('exam-request:realize', {
+        id: 5,
+        resultat: undefined,
+      })
+    })
+
+    it('returns false on failure and sets error', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur réalisation'))
+      const { realize, error } = useExamRequests()
+
+      const result = await realize(999)
+
+      expect(result).toBe(false)
+      expect(error.value).toBe('Erreur réalisation')
+    })
+  })
+
+  // ─── Attachments ─────────────────────────────────────────────────
+
+  describe('attachments', () => {
+    const attachment = {
+      id: 1,
+      examRequestId: 5,
+      displayName: 'CR.pdf',
+      fileName: 'CR.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 2048,
+      fileData: 'data:application/pdf;base64,xxx',
+      createdAt: '2026-08-19 10:00:00',
+    }
+
+    it('lists attachments for a request', async () => {
+      mockIpcInvoke.mockResolvedValue([attachment])
+      const { listAttachments, attachments } = useExamRequests()
+
+      const result = await listAttachments(5)
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('exam-request-attachments:list', { examRequestId: 5 })
+      expect(result).toEqual([attachment])
+      expect(attachments.value).toEqual([attachment])
+    })
+
+    it('returns empty array on failure', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur liste'))
+      const { listAttachments, attachments } = useExamRequests()
+
+      const result = await listAttachments(5)
+
+      expect(result).toEqual([])
+      expect(attachments.value).toEqual([])
+    })
+
+    it('creates an attachment with base64 fileData', async () => {
+      mockIpcInvoke.mockResolvedValue(attachment)
+      const { createAttachment } = useExamRequests()
+
+      const result = await createAttachment({
+        examRequestId: 5,
+        displayName: 'CR.pdf',
+        fileName: 'CR.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 2048,
+        fileData: 'data:application/pdf;base64,xxx',
+      })
+
+      expect(result).toEqual(attachment)
+      expect(mockIpcInvoke).toHaveBeenCalledWith('exam-request-attachments:create', {
+        examRequestId: 5,
+        displayName: 'CR.pdf',
+        fileName: 'CR.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 2048,
+        fileData: 'data:application/pdf;base64,xxx',
+      })
+    })
+
+    it('returns null when attachment creation fails', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur création'))
+      const { createAttachment, error } = useExamRequests()
+
+      const result = await createAttachment({
+        examRequestId: 5,
+        displayName: 'CR.pdf',
+        fileName: 'CR.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 2048,
+        fileData: 'data:application/pdf;base64,xxx',
+      })
+
+      expect(result).toBeNull()
+      expect(error.value).toBe('Erreur création')
+    })
+
+    it('deletes an attachment', async () => {
+      mockIpcInvoke.mockResolvedValue(undefined)
+      const { deleteAttachment } = useExamRequests()
+
+      const result = await deleteAttachment(1)
+
+      expect(result).toBe(true)
+      expect(mockIpcInvoke).toHaveBeenCalledWith('exam-request-attachments:delete', { id: 1 })
+    })
+
+    it('returns false when deletion fails', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Erreur suppression'))
+      const { deleteAttachment, error } = useExamRequests()
+
+      const result = await deleteAttachment(1)
+
+      expect(result).toBe(false)
+      expect(error.value).toBe('Erreur suppression')
+    })
+  })
+
   // ─── DTO interface matches backend ───────────────────────────────
 
   describe('DTO interface', () => {
@@ -403,6 +540,20 @@ describe('useExamRequests', () => {
       }
       expect(imagerie.examenId).toBe(10)
       expect(imagerie.examenLabel).toBe('Scanner cérébral')
+    })
+
+    it('includes validatedAt, realizedAt and resultat fields', () => {
+      const realisee: ExamRequestDto = {
+        patientId: 1,
+        type: 'avis',
+        statut: 'realise',
+        validatedAt: '2026-08-19 10:00:00',
+        realizedAt: '2026-08-19 10:05:00',
+        resultat: '<p>Compte-rendu</p>',
+      }
+      expect(realisee.validatedAt).toBe('2026-08-19 10:00:00')
+      expect(realisee.realizedAt).toBe('2026-08-19 10:05:00')
+      expect(realisee.resultat).toBe('<p>Compte-rendu</p>')
     })
   })
 })

@@ -19,6 +19,8 @@ export class ExamRequestEntity {
   @SchemaField() motif?: string 
   @SchemaField() statut?: string
   @SchemaField() validated_at?: string
+  @SchemaField() realized_at?: string
+  @SchemaField() resultat?: string
   @SchemaField() prescripteur_id?: number 
   @SchemaField() created_by?: number 
   @SchemaField() created_at?: string
@@ -40,6 +42,9 @@ export class ExamRequestEntity {
       plannedDate: entity.planned_date ?? undefined,
       motif: entity.motif ?? undefined,
       statut: (entity.statut ?? 'en_attente') as ExamRequestDto['statut'],
+      validatedAt: entity.validated_at ?? undefined,
+      realizedAt: entity.realized_at ?? undefined,
+      resultat: entity.resultat ?? undefined,
       prescripteurId: entity.prescripteur_id ?? undefined,
       createdBy: entity.created_by ?? undefined,
       createdAt: entity.created_at,
@@ -68,6 +73,9 @@ export class ExamRequestEntity {
     e.planned_date = dto.plannedDate ?? undefined
     e.motif = dto.motif ?? undefined
     e.statut = dto.statut
+    if (dto.validatedAt !== undefined) e.validated_at = dto.validatedAt
+    if (dto.realizedAt !== undefined) e.realized_at = dto.realizedAt
+    if (dto.resultat !== undefined) e.resultat = dto.resultat
     if (dto.prescripteurId !== undefined) e.prescripteur_id = dto.prescripteurId
     if (dto.createdBy !== undefined) e.created_by = dto.createdBy
     return e

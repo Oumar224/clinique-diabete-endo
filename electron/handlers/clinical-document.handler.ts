@@ -5,6 +5,7 @@ import { app, dialog, shell } from 'electron'
 import { container } from 'tsyringe'
 import { ClinicalDocumentService } from '../services/clinical-document.service'
 import type { CreateDocumentParams } from '../services/clinical-document.service'
+import { ExportService } from '../services/export.service'
 import { createHandler } from '../utils/create-handler'
 
 export function registerClinicalDocumentHandlers() {
@@ -52,9 +53,13 @@ export function registerClinicalDocumentHandlers() {
     return await container.resolve(ClinicalDocumentService).updateDocumentData(id, formData)
   })
 
-  // ─── Sign (lock) a document ─────────────────────────────────────
+  // ─── Sign a document (re-signable) + generate stored PDF ────────
   createHandler('clinical-documents:sign', async ({ id, userId }: { id: string; userId: string }) => {
-    return await container.resolve(ClinicalDocumentService).signDocument(id, userId)
+    const service = container.resolve(ClinicalDocumentService)
+    const exportService = container.resolve(ExportService)
+    const doc = await service.signDocument(id, userId)
+    const pdfPath = await exportService.generateClinicalDocumentPdf(doc.id!)
+    return await service.setDocumentPdfPath(doc.id!, pdfPath)
   })
 
   // ─── Delete a draft document ────────────────────────────────────
@@ -111,6 +116,7 @@ export function registerClinicalDocumentHandlers() {
   createHandler('clinical-documents:import-pdf', async (params: {
     contactId: string
     createdBy: string
+    siteId?: number | null
   }) => {
     const result = await dialog.showOpenDialog({
       title: 'Importer un PDF',
@@ -147,6 +153,7 @@ export function registerClinicalDocumentHandlers() {
     const doc = await service.importPdf({
       contactId: params.contactId,
       serviceId: encounter ? String(encounter.service_id) : null,
+      siteId: params.siteId ?? null,
       createdBy: params.createdBy,
       pdfPath: destPath,
       title: `PDF: ${fileName}`,
@@ -159,6 +166,7 @@ export function registerClinicalDocumentHandlers() {
   createHandler('clinical-documents:import-file', async (params: {
     contactId: string
     createdBy: string
+    siteId?: number | null
     /** Base64-encoded file content (without data-URL prefix) */
     fileData: string
     /** Original file name including extension (e.g. "scan.pdf") */
@@ -194,6 +202,7 @@ export function registerClinicalDocumentHandlers() {
     const doc = await service.importPdf({
       contactId: params.contactId,
       serviceId: encounter ? String(encounter.service_id) : null,
+      siteId: params.siteId ?? null,
       createdBy: params.createdBy,
       pdfPath: destPath,
       title: params.title,

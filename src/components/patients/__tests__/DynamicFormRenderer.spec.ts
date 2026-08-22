@@ -77,6 +77,17 @@ vi.mock('element-plus', () => ({
   },
 }))
 
+// ─── Mock RichTextEditor (textarea fields render through it) ───────
+
+vi.mock('@/components/patients/RichTextEditor.vue', () => ({
+  default: {
+    name: 'RichTextEditor',
+    template: '<div class="rich-editor-mock" />',
+    props: ['modelValue', 'readonly', 'rows', 'placeholder'],
+    emits: ['update:modelValue', 'change'],
+  },
+}))
+
 import DynamicFormRenderer from '../DynamicFormRenderer.vue'
 
 describe('DynamicFormRenderer', () => {
@@ -112,15 +123,24 @@ describe('DynamicFormRenderer', () => {
       expect(wrapper.text()).toContain('Nom du patient')
     })
 
-    it('renders a textarea when type is textarea', () => {
+    it('renders a RichTextEditor when type is textarea', () => {
       const schema: FormFieldSchema[] = [
         { key: 'notes', type: 'textarea', label: 'Notes', placeholder: 'Entrez vos notes' },
       ]
       const wrapper = createWrapper(schema)
 
-      const textarea = wrapper.find('.el-input')
-      expect(textarea.exists()).toBe(true)
+      const editor = wrapper.findComponent({ name: 'RichTextEditor' })
+      expect(editor.exists()).toBe(true)
       expect(wrapper.text()).toContain('Notes')
+    })
+
+    it('renders no native textarea element for textarea fields', () => {
+      const schema: FormFieldSchema[] = [
+        { key: 'notes', type: 'textarea', label: 'Notes' },
+      ]
+      const wrapper = createWrapper(schema)
+
+      expect(wrapper.find('textarea').exists()).toBe(false)
     })
   })
 

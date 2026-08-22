@@ -11,6 +11,7 @@ export class PrescriptionEntity {
   @SchemaField() dosage?: string
   @SchemaField() voie?: string
   @SchemaField() duree?: number
+  @SchemaField() duree_type?: string
   @SchemaField() frequence?: string
   @SchemaField() frequence_type?: string
   @SchemaField() prn?: number
@@ -31,6 +32,7 @@ export class PrescriptionEntity {
       dosage: entity.dosage,
       voie: entity.voie,
       duree: entity.duree,
+      dureeType: (entity.duree_type ?? 'courte') as 'courte' | 'longue',
       frequence: entity.frequence ? entity.frequence.split(',') : [],
       frequenceType: (entity.frequence_type ?? 'moments') as FrequenceType,
       prn: entity.prn === 1,
@@ -58,6 +60,7 @@ export class PrescriptionEntity {
     e.dosage = dto.dosage
     e.voie = dto.voie
     e.duree = dto.duree
+    e.duree_type = dto.dureeType ?? 'courte'
     e.frequence = dto.frequence?.join(',')
     e.frequence_type = dto.frequenceType ?? 'moments'
     e.prn = dto.prn ? 1 : 0

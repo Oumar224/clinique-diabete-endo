@@ -119,24 +119,22 @@ describe('ParameterHistoryDialog', () => {
       expect(wrapper.find('.el-dialog__title').text()).toContain('Historique — Poids (kg)')
     })
 
-    it('renders one row per entry: document label, formatted date, formatted value, status tag', () => {
+    it('renders one row per entry: document label, formatted date, and formatted value', () => {
       const wrapper = createWrapper()
 
-      // 4 columns × 2 entries
-      expect(wrapper.findAll('.el-table-column__cell')).toHaveLength(8)
+      // 3 columns × 2 entries
+      expect(wrapper.findAll('.el-table-column__cell')).toHaveLength(6)
 
       // Entry 1
       expect(wrapper.text()).toContain('CRH Diabète')
       expect(wrapper.text()).toContain('15/03/2025')
       expect(wrapper.text()).toContain('10:30')
       expect(wrapper.text()).toContain('75')
-      expect(wrapper.text()).toContain('Signé')
 
       // Entry 2
       expect(wrapper.text()).toContain('CRH Diabète (brouillon)')
       expect(wrapper.text()).toContain('10/01/2025')
       expect(wrapper.text()).toContain('70')
-      expect(wrapper.text()).toContain('Brouillon')
     })
 
     it('formats values with the registered meta formatter for the given path', () => {
@@ -185,7 +183,7 @@ describe('ParameterHistoryDialog', () => {
 
       const loadedWrapper = createWrapper({ loading: false })
       expect(loadedWrapper.find('.el-table').exists()).toBe(true)
-      expect(loadedWrapper.findAll('.el-table-column__cell')).toHaveLength(8)
+      expect(loadedWrapper.findAll('.el-table-column__cell')).toHaveLength(6)
     })
   })
 

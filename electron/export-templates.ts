@@ -404,6 +404,13 @@ export interface CrhDiabeteOptions {
   typeLabel?: string
 }
 
+export interface CrhOrdonnanceData {
+  medicaments: Array<{ nom: string; posologie: string; dureeType?: 'courte' | 'longue' }>
+  soins: Array<{ nom: string; posologie: string }>
+  examens: Array<{ label: string; detail?: string }>
+  avis: Array<{ label: string; detail?: string }>
+}
+
 export function generateCrhDiabeteHtml(
   data: any,
   patient: any,
@@ -413,7 +420,10 @@ export function generateCrhDiabeteHtml(
   signedAt?: string,
   signedBy?: string,
   options?: CrhDiabeteOptions,
+  annexeAttachments?: Array<{ id?: number; display_name?: string; file_name?: string; mime_type?: string; file_size?: number; description?: string; file_data?: string }>,
+  ordonnance?: CrhOrdonnanceData,
 ): string {
+  const annexes = annexeAttachments ?? []
   const admission = data.admission || {}
   const modeVieAtcd = data.modeVieAtcd || {}
   const ficheDiabete = data.ficheDiabete || {}
@@ -432,9 +442,22 @@ export function generateCrhDiabeteHtml(
   const glasgow = bilanInitial.glasgow || {}
   const examensComplementaires = data.examensComplementaires || {}
   const evolutionMedicale = data.evolutionMedicale || {}
-  const sortie = data.sortie || {}
+  // Legacy pick-up: old signed documents keep the réglementaires booleans under evolutionMedicale.*
+  const sortie = { ...(data.sortie || {}) }
+  for (const k of ['infoPatientFamille', 'produitsSanguins', 'bmrBhre'] as const) {
+    if (sortie[k] == null && typeof evolutionMedicale[k] === 'boolean') sortie[k] = evolutionMedicale[k]
+  }
 
-  const dateFmt = (d: string) => d ? new Date(d.includes('T') ? d : `${d}T00:00:00`).toLocaleDateString('fr-FR') : '—'
+  const dateFmt = (d: string) => d
+    ? new Date(d.includes('T') ? d : `${d}T00:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : '—'
+  const monthFmt = (d: string) => {
+    if (!d) return '—'
+    // Strict YYYY-MM only: a legacy full-date value (e.g. '2026-01-15') must
+    // pass through unchanged instead of being truncated to MM/YYYY.
+    const m = String(d).match(/^(\d{4})-(\d{2})$/)
+    return m ? `${m[2]}/${m[1]}` : String(d)
+  }
   const dateTimeFmt = (d: string) => d.includes('T')
     ? `${dateFmt(d)} ${new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
     : dateFmt(d)
@@ -491,22 +514,23 @@ export function generateCrhDiabeteHtml(
     return v != null && v !== '' ? s(v) : 'Non renseigné'
   }
 
-  const hasText = (v: any): boolean => {
-    if (v == null) return false
-    const html = String(v)
-    if (/<\s*img\b/i.test(html)) return true
-    return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() !== ''
-  }
-
-  const richHtml = (v: string | null | undefined): string => (hasText(v) ? String(v) : '')
-
   const imagerieTestsHtml = (examensComplementaires.imagerieTests || [])
+    .slice()
+    .sort((a: any, b: any) => {
+      if (!a.date && !b.date) return 0
+      if (!a.date) return 1
+      if (!b.date) return -1
+      return b.date.localeCompare(a.date)
+    })
     .map((e: any) => {
       const type = e.type === '__autre__' ? e.typeLibre : e.type
       const hasContent = e.date || type || e.resultat
       if (!hasContent) return ''
-      const label = ['Imagerie / Test', e.date, type].filter(Boolean).join(' — ')
-      return `<div class="crh-field"><span class="crh-label">${s(label)}</span><span class="crh-value">${e.resultat ? e.resultat : '—'}</span></div>`
+      const label = ['Imagerie / Test', e.date ? dateFmt(e.date) : '', type].filter(Boolean).join(' — ')
+      if (!hasText(e.resultat)) {
+        return `<div class="crh-field"><span class="crh-label">${s(label)}</span><span class="crh-value">—</span></div>`
+      }
+      return `<div class="crh-para"><strong>${s(label)} :</strong><br><div class="crh-rich">${richHtml(e.resultat)}</div></div>`
     })
     .join('')
 
@@ -534,17 +558,19 @@ export function generateCrhDiabeteHtml(
     <tr><th colspan="5" style="text-align:left">${s(exam)}</th></tr>
     ${rows
       .sort((a: any, b: any) => (a.parameterName || '').localeCompare(b.parameterName || '', 'fr', { sensitivity: 'base' }))
-      .map((r: any) => `
+      .map((r: any) => {
+        const bioDate = r.requestDate || r.filledAt ? dateFmt(r.requestDate || r.filledAt) : ''
+        return `
     <tr>
-      <td>${s(r.requestDate || (r.filledAt ? r.filledAt.slice(0, 10) : '') || '')}</td>
+      <td>${s(bioDate)}</td>
       <td>${s(r.parameterName || '')}</td>
       <td style="text-align:right${r.isNormal === false ? ';font-weight:bold;color:#c00' : ''}">${s(r.value || '')}</td>
       <td>${s(r.parameterUnit || '')}</td>
       <td>${s(formatRefs(r.parameterReferenceValues))}</td>
-    </tr>`).join('')}
+    </tr>`}).join('')}
   `).join('')
   const bilanBioHtml = bioResultsList.length
-    ? `<p class="crh-para" style="margin-top:8px;"><strong>Résultat Bio${bilanBioData.dateFrom ? ` (${s(bilanBioData.dateFrom)} → ${s(bilanBioData.dateTo || '')})` : ''} :</strong></p>
+    ? `<p class="crh-para" style="margin-top:8px;"><strong>Résultat Bio${bilanBioData.dateFrom ? ` (${dateFmt(bilanBioData.dateFrom)} → ${dateFmt(bilanBioData.dateTo)})` : ''} :</strong></p>
 <table class="crh-table">
   <thead>
     <tr>
@@ -561,9 +587,9 @@ export function generateCrhDiabeteHtml(
 </table>`
     : ''
 
-  const rdvHtml = (sortie.rdvSuivi || []).sort((a: any, b: any) => a.date?.localeCompare(b.date) || 0).map((r: any) => `
+  const rdvHtml = (sortie.rdvSuivi || []).slice().sort((a: any, b: any) => a.date?.localeCompare(b.date) || 0).map((r: any) => `
     <tr>
-      <td>${s(r.date)} ${r.heure ? s(r.heure) : ''}</td>
+      <td>${dateFmt(r.date)} ${r.heure ? s(r.heure) : ''}</td>
       <td>${s(r.intitule)}</td>
       <td>${s(r.lieuPraticien)}</td>
     </tr>
@@ -635,6 +661,89 @@ const antecedentsRaw = modeVieAtcd.antecedents
   } else if (admission.dateEntree) {
     dureeSejour = 'En cours'
   }
+
+  const annexeItemsHtml = annexes.map((att) => {
+    const isImage = (att.mime_type || '').startsWith('image/')
+    const nameHtml = escapeHtml((att.display_name || '').trim())
+    const description = att.description || ''
+    const isPlain = !/<[a-zA-Z][^>]*>/.test(description)
+    const captionHtml = hasText(description)
+      ? `<div class="annexe-caption crh-rich">${isPlain ? escapeHtml(description) : richHtml(description)}</div>`
+      : ''
+    if (isImage && att.file_data) {
+      return `<div class="annexe-item">${nameHtml ? `<div class="annexe-item-name">${nameHtml}</div>` : ''}<img src="${escapeHtml(att.file_data)}" class="annexe-img" />${captionHtml}</div>`
+    }
+    const metaHtml = [escapeHtml(att.mime_type || ''), att.file_size != null ? formatSize(att.file_size) : ''].filter(Boolean).join(' · ')
+    return `<div class="annexe-item annexe-file">${nameHtml ? `<span class="annexe-file-name">${nameHtml}</span>` : ''}${metaHtml ? `<span class="annexe-file-meta">${metaHtml}</span>` : ''}${captionHtml}</div>`
+  }).join('')
+  const annexeHtml = annexes.length > 0
+    ? `
+<!-- 16. ANNEXE -->
+<div class="crh-section">
+  <div class="crh-section-title">16. ANNEXE</div>
+  <div class="crh-section-content">
+    ${annexeItemsHtml}
+  </div>
+</div>`
+    : ''
+
+  // ── ORDONNANCE (médicaments / soins / demandes d'examens / avis spécialisés) ──
+  const ordonnanceData: Partial<CrhOrdonnanceData> = ordonnance ?? {}
+  const renderOrdonnanceItem = (item: { nom: string; posologie: string }) => {
+    const nom = escapeHtml(item.nom || '')
+    const posologie = escapeHtml(item.posologie || '')
+    if (!nom && !posologie) return ''
+    return `<div style="margin-bottom:2px;"><span style="font-weight:bold;">${nom}</span>${posologie ? ` : ${posologie}` : ''}</div>`
+  }
+  const renderOrdonnanceLabel = (item: { label: string; detail?: string }) => {
+    const label = escapeHtml(item.label || '')
+    const detail = item.detail
+      ? richHtml(item.detail)
+          .replace(/^<p[^>]*>\s*/i, '')
+          .replace(/<\/p>\s*$/i, '')
+          .replace(/<\/p>\s*<p[^>]*>/gi, '<br>')
+      : ''
+    if (!label && !detail) return ''
+    return `<div style="margin-bottom:2px;"><span style="font-weight:bold;">${label}</span>${detail ? ` : ${detail}` : ''}</div>`
+  }
+  const renderOrdonnanceSubgroup = (title: string, items: Array<{ nom: string; posologie: string }>): string => {
+    const itemsHtml = items.map(renderOrdonnanceItem).join('')
+    if (!itemsHtml) return ''
+    return `<div class="crh-ord-subtitle">${escapeHtml(title)}</div>${itemsHtml}`
+  }
+  const ordonnanceMedicaments = ordonnanceData.medicaments ?? []
+  const medicamentsHtml =
+    renderOrdonnanceSubgroup('Traitement de courte dur\u00e9e', ordonnanceMedicaments.filter(m => (m.dureeType ?? 'courte') === 'courte')) +
+    renderOrdonnanceSubgroup('Traitement de longue dur\u00e9e', ordonnanceMedicaments.filter(m => m.dureeType === 'longue'))
+  const ordonnanceBlocks = [
+    { title: 'M\u00c9DICAMENTS', items: medicamentsHtml },
+    { title: 'SOINS', items: (ordonnanceData.soins ?? []).map(renderOrdonnanceItem).join('') },
+    { title: 'DEMANDES D\u2019EXAMENS', items: (ordonnanceData.examens ?? []).map(renderOrdonnanceLabel).join('') },
+    { title: 'AVIS SP\u00c9CIALIS\u00c9S', items: (ordonnanceData.avis ?? []).map(renderOrdonnanceLabel).join('') },
+  ]
+  const ordonnanceBlocksHtml = ordonnanceBlocks
+    .filter(b => b.items !== '')
+    .map(b => `<div style="margin-bottom:8px;"><div style="font-weight:bold;text-transform:uppercase;letter-spacing:0.3px;">${escapeHtml(b.title)}</div><div style="padding-left:16px;">${b.items}</div></div>`)
+    .join('')
+  const ordonnanceHtml = `
+<!-- 14. ORDONNANCE -->
+<div class="crh-section">
+  <div class="crh-section-title">14. ORDONNANCE</div>
+  <div class="crh-section-content">
+    ${ordonnanceBlocksHtml || '<div class="crh-para">Non renseign\u00e9</div>'}
+  </div>
+</div>`
+
+  const evolutionAvisHtml = (evolutionMedicale.avis ?? [])
+    .map((av: any) => {
+      const date = av.date ? dateFmt(av.date) : ''
+      const specialite = escapeHtml(av.specialite || '')
+      const motif = av.motif ? escapeHtml(av.motif) : ''
+      if (!date && !specialite && !motif) return ''
+      const label = [date, specialite].filter(Boolean).join(' — ')
+      return `<div style="margin-bottom:2px;"><span style="font-weight:bold;">${label}</span>${motif ? ` : ${motif}` : ''}</div>`
+    })
+    .join('')
 
   return `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8">
@@ -772,6 +881,12 @@ const antecedentsRaw = modeVieAtcd.antecedents
   .crh-section-content {
     padding-left: 12px;
   }
+  .crh-ord-subtitle {
+    font-size: 9.5pt;
+    font-weight: 700;
+    color: #1a3c6e;
+    margin: 6px 0 4px;
+  }
   .crh-field {
     display: flex;
     margin-bottom: 1px;
@@ -817,6 +932,12 @@ const antecedentsRaw = modeVieAtcd.antecedents
   .crh-para img.is-right, .crh-value img.is-right, .crh-rich img.is-right { float: right; margin: 0 0 6px 12px; max-width: 45%; }
   .crh-para img.is-center, .crh-value img.is-center, .crh-rich img.is-center { display: block; margin: 6px auto; }
   .crh-rich a { color: #2563eb; text-decoration: underline; }
+  .annexe-item { margin-bottom: 12px; }
+  .annexe-img { max-width: 100%; border: 1px solid #ccc; }
+  .annexe-caption { font-size: 11px; color: #555; margin-top: 4px; font-style: italic; }
+  .annexe-file-name { font-weight: 600; display: block; }
+  .annexe-item-name { font-weight: 600; display: block; }
+  .annexe-file-meta { font-size: 11px; color: #555; }
   .crh-table {
     width: 100%;
     border-collapse: collapse;
@@ -932,7 +1053,7 @@ const antecedentsRaw = modeVieAtcd.antecedents
     </span></div>
     <div class="crh-field"><span class="crh-label">Compréhension français</span><span class="crh-value">${modeVieAtcd.comprehensionFrancais ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>'}</span></div>
     <div class="crh-field"><span class="crh-label">Statut juridique</span><span class="crh-value">Non renseigné</span></div>
-    ${hasText(modeVieAtcd.commentaireVie) ? `<div class="crh-field"><span class="crh-label">Commentaire</span><div class="crh-value"><div class="crh-rich">${richHtml(modeVieAtcd.commentaireVie)}</div></div></div>` : ''}
+    ${hasText(modeVieAtcd.commentaireVie) ? `<div class="crh-para"><strong>Commentaire :</strong><br><div class="crh-rich">${richHtml(modeVieAtcd.commentaireVie)}</div></div>` : ''}
   </div>
 </div>
 
@@ -940,9 +1061,9 @@ const antecedentsRaw = modeVieAtcd.antecedents
 <div class="crh-section">
   <div class="crh-section-title">4. TOXIQUES / ADDICTIONS</div>
   <div class="crh-section-content">
-    <div class="crh-field"><span class="crh-label">Tabac</span><div class="crh-value">${na(modeVieAtcd.tabagisme)}${hasText((modeVieAtcd as any).tabagismeDetail) ? `<br><div class="crh-rich" style="font-size:11px;color:#555">${richHtml((modeVieAtcd as any).tabagismeDetail)}</div>` : ''}</div></div>
-    <div class="crh-field"><span class="crh-label">Alcool</span><div class="crh-value">${modeVieAtcd.alcool ? `<span class="badge-yes">Oui</span>${hasText(modeVieAtcd.alcoolDetail) ? ` — <div class="crh-rich" style="display:inline-block;max-width:85%;vertical-align:top">${richHtml(modeVieAtcd.alcoolDetail)}</div>` : ''}` : '<span class="badge-no">Non</span>'}</div></div>
-    <div class="crh-field"><span class="crh-label">Cannabis</span><div class="crh-value">${modeVieAtcd.cannabis ? `<span class="badge-yes">Oui</span>${hasText(modeVieAtcd.cannabisDetail) ? ` — <div class="crh-rich" style="display:inline-block;max-width:85%;vertical-align:top">${richHtml(modeVieAtcd.cannabisDetail)}</div>` : ''}` : '<span class="badge-no">Non</span>'}</div></div>
+    ${hasText((modeVieAtcd as any).tabagismeDetail) ? `<div class="crh-para"><strong>Tabac :</strong><br>${na(modeVieAtcd.tabagisme)}<br><div class="crh-rich">${richHtml((modeVieAtcd as any).tabagismeDetail)}</div></div>` : `<div class="crh-field"><span class="crh-label">Tabac</span><div class="crh-value">${na(modeVieAtcd.tabagisme)}</div></div>`}
+    ${hasText(modeVieAtcd.alcoolDetail) ? `<div class="crh-para"><strong>Alcool :</strong><br>${modeVieAtcd.alcool ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>'}<br><div class="crh-rich">${richHtml(modeVieAtcd.alcoolDetail)}</div></div>` : `<div class="crh-field"><span class="crh-label">Alcool</span><div class="crh-value">${modeVieAtcd.alcool ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>'}</div></div>`}
+    ${hasText(modeVieAtcd.cannabisDetail) ? `<div class="crh-para"><strong>Cannabis :</strong><br>${modeVieAtcd.cannabis ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>'}<br><div class="crh-rich">${richHtml(modeVieAtcd.cannabisDetail)}</div></div>` : `<div class="crh-field"><span class="crh-label">Cannabis</span><div class="crh-value">${modeVieAtcd.cannabis ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>'}</div></div>`}
     <div class="crh-field"><span class="crh-label">Date évaluation</span><span class="crh-value">Non renseigné</span></div>
   </div>
 </div>
@@ -967,16 +1088,16 @@ const antecedentsRaw = modeVieAtcd.antecedents
 <div class="crh-section">
   <div class="crh-section-title">7. DIABÈTE</div>
   <div class="crh-section-content">
-    <div class="crh-field"><span class="crh-label">Date diagnostic</span><span class="crh-value">${s(ficheDiabete.dateDiagnostic || '—')}${ficheDiabete.dateDiagnostic ? ` (évolution : ${dureeDiabete})` : ''}</span></div>
+    <div class="crh-field"><span class="crh-label">Date diagnostic</span><span class="crh-value">${monthFmt(ficheDiabete.dateDiagnostic)}${ficheDiabete.dateDiagnostic ? ` (évolution : ${dureeDiabete})` : ''}</span></div>
     <div class="crh-field"><span class="crh-label">Poids historique</span><span class="crh-value">${poidsHtml}</span></div>
     <div class="crh-field"><span class="crh-label">HbA1c</span><span class="crh-value">${ficheDiabete.hba1c != null ? `${ficheDiabete.hba1c} % ${ficheDiabete.hba1cDate ? `(${dateFmt(ficheDiabete.hba1cDate)})` : ''}` : '—'}</span></div>
     <div class="crh-field"><span class="crh-label">Bilan lipidique</span><span class="crh-value">HDL ${ficheDiabete.hdl != null ? ficheDiabete.hdl + ' mmol/L' : '—'} / LDL ${ficheDiabete.ldl != null ? ficheDiabete.ldl + ' mmol/L' : '—'} / TG ${ficheDiabete.triglycerides != null ? ficheDiabete.triglycerides + ' mmol/L' : '—'}</span></div>
     <div class="crh-field"><span class="crh-label">Fonction rénale</span><span class="crh-value">Créatininémie : ${ficheDiabete.creatininemie != null ? `${ficheDiabete.creatininemie} µmol/L` : '—'}</span></div>
     <div class="crh-field"><span class="crh-label">Rétinopathie</span><span class="crh-value">${s(ficheDiabete.retinopathie || '—')}</span></div>
     <div class="crh-field"><span class="crh-label">Neuropathie</span><span class="crh-value">${ficheDiabete.neuropathie ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>'}</span></div>
-    <div class="crh-field"><span class="crh-label">Grade podologique</span><div class="crh-value">${ficheDiabete.podologiqueGrade != null ? s(ficheDiabete.podologiqueGrade) : '—'}${ficheDiabete.amputation ? `${ficheDiabete.podologiqueGrade != null ? ' — ' : ''}<span class="crh-alert">Amputation${hasText(ficheDiabete.amputationDetail) ? ` : <div class="crh-rich" style="display:inline-block;max-width:85%;vertical-align:top">${richHtml(ficheDiabete.amputationDetail)}</div>` : ''}</span>` : ''}</div></div>
+    <div class="crh-field"><span class="crh-label">Grade podologique</span><div class="crh-value">${ficheDiabete.podologiqueGrade != null ? s(ficheDiabete.podologiqueGrade) : '—'}${ficheDiabete.amputation ? `${ficheDiabete.podologiqueGrade != null ? ' — ' : ''}<span class="crh-alert">Amputation</span>` : ''}</div></div>${hasText(ficheDiabete.amputationDetail) ? `<div class="crh-para"><strong>Amputation :</strong><br><div class="crh-rich">${richHtml(ficheDiabete.amputationDetail)}</div></div>` : ''}
     <div class="crh-field"><span class="crh-label">Insuffisance cardiaque</span><span class="crh-value">${ficheDiabete.insuffisanceCardiaque ? `<span class="badge-yes">Oui</span>${ficheDiabete.ntProBNP != null ? ` (NT-proBNP : ${ficheDiabete.ntProBNP} pg/mL)` : ''}` : '<span class="badge-no">Non</span>'}</span></div>
-    <div class="crh-field"><span class="crh-label">AOMI</span><div class="crh-value">${ficheDiabete.aomi ? `<span class="badge-yes">Oui</span>${hasText(ficheDiabete.ischemicCritique) ? ` — <div class="crh-rich" style="display:inline-block;max-width:85%;vertical-align:top">${richHtml(ficheDiabete.ischemicCritique)}</div>` : ''}` : '<span class="badge-no">Non</span>'}</div></div>
+    ${hasText(ficheDiabete.ischemicCritique) ? `<div class="crh-para"><strong>AOMI :</strong><br>${ficheDiabete.aomi ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>'}<br><div class="crh-rich">${richHtml(ficheDiabete.ischemicCritique)}</div></div>` : `<div class="crh-field"><span class="crh-label">AOMI</span><div class="crh-value">${ficheDiabete.aomi ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>'}</div></div>`}
   </div>
 </div>
 
@@ -1047,14 +1168,12 @@ ${(bilanInitial as any).vitalSignsHistory?.length ? `
   </div>
 </div>
 
-<!-- 11. ÉVOLUTION MÉDICALE -->
+<!-- 11. ÉVOLUTION ET AVIS -->
 <div class="crh-section">
-  <div class="crh-section-title">11. ÉVOLUTION MÉDICALE</div>
+  <div class="crh-section-title">11. ÉVOLUTION ET AVIS</div>
   <div class="crh-section-content">
-    ${evolutionMedicale.infoPatientFamille ? `<p class="crh-para"><span class="badge-yes">✓</span> Information du patient / famille</p>` : ''}
-    ${evolutionMedicale.produitsSanguins ? `<p class="crh-para"><span class="badge-yes">✓</span> Administration de produits sanguins</p>` : ''}
-    ${evolutionMedicale.bmrBhre ? `<p class="crh-para"><span class="crh-alert">⚠</span> Porteur / Contact BMR ou BHRe</p>` : ''}
     ${evolutionMedicale.journalEvolution ? `<p class="crh-para"><strong>Journal d'évolution :</strong></p><div class="crh-rich" style="background:#f7f9fc;padding:8px 10px;border-left:3px solid #1a3c6e;font-size:9.5pt;white-space:pre-wrap;margin:4px 0;">${evolutionMedicale.journalEvolution}</div>` : ''}
+    ${evolutionAvisHtml ? `<div class="crh-ord-subtitle">Avis</div>${evolutionAvisHtml}` : ''}
   </div>
 </div>
 
@@ -1074,12 +1193,17 @@ ${(bilanInitial as any).vitalSignsHistory?.length ? `
   </div>
 </div>
 
-<!-- 14. SORTIE -->
+${ordonnanceHtml}
+
+<!-- 15. SORTIE -->
 <div class="crh-section">
-  <div class="crh-section-title">14. SORTIE</div>
+  <div class="crh-section-title">15. SORTIE</div>
   <div class="crh-section-content">
     <div class="crh-field"><span class="crh-label">Date de sortie</span><span class="crh-value">${dateFmt(sortie.dateSortie)}</span></div>
     <div class="crh-field"><span class="crh-label">Destination</span><span class="crh-value">${na(sortie.destinationSortie)}</span></div>
+    ${sortie.infoPatientFamille ? `<p class="crh-para"><span class="badge-yes">✓</span> Information du patient / famille</p>` : ''}
+    ${sortie.produitsSanguins ? `<p class="crh-para"><span class="badge-yes">✓</span> Administration de produits sanguins</p>` : ''}
+    ${sortie.bmrBhre ? `<p class="crh-para"><span class="crh-alert">⚠</span> Porteur / Contact BMR ou BHRe</p>` : ''}
     ${hasText(sortie.conclusionSortie) ? `<div class="crh-para"><strong>Conclusion / Synthèse de sortie :</strong><br><div class="crh-rich">${richHtml(sortie.conclusionSortie)}</div></div>` : ''}
     ${rdvHtml ? `
     <p class="crh-para" style="margin-top:6px;"><strong>Rendez-vous de suivi :</strong></p>
@@ -1090,6 +1214,7 @@ ${(bilanInitial as any).vitalSignsHistory?.length ? `
   </div>
 </div>
 
+${annexeHtml}
 <!-- SIGNATURES -->
 <div class="signature-block">
   <div class="signature-col">
@@ -1108,12 +1233,195 @@ ${(bilanInitial as any).vitalSignsHistory?.length ? `
 </body></html>`
 }
 
+export function generateClinicalDocumentHtml(params: {
+  title: string
+  formSchema: { key?: string; name?: string; label: string; type: string }[]
+  formData: Record<string, any>
+  patient?: { nom?: string; prenom?: string; date_naissance?: string; nip?: string; adresse?: string; region?: string } | null
+  hospital?: any
+  logo?: string | null
+  signedAt?: string
+  signedByName?: string
+}): string {
+  const { title, formSchema, formData, patient, hospital, signedAt, signedByName } = params
+  const logo = params.logo ?? null
+
+  const dateFmt = (d: string) => d ? new Date(d.includes('T') ? d : `${d.slice(0, 10)}T00:00:00`).toLocaleDateString('fr-FR') : '—'
+  const now = new Date()
+  const printDate = now.toLocaleDateString('fr-FR')
+  const printTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })
+
+  const patientIdentity = patient && (patient.nom || patient.prenom)
+    ? `${(patient.nom || '').toUpperCase()} ${patient.prenom || ''}`.trim()
+    : ''
+
+  const logoHtml = logo
+    ? `<img src="${logo}" style="height:48px;width:auto;margin:0 0 6px;flex-shrink:0;" alt="Logo établissement" />`
+    : ''
+
+  const humanizeKey = (k: string): string =>
+    k
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^./, (c) => c.toUpperCase())
+
+  const lookupOption = (field: any, value: any): string | null => {
+    const options = field?.options
+    if (!Array.isArray(options)) return null
+    const found = options.find((o: any) => String(o.value) === String(value))
+    return found && found.label ? String(found.label) : null
+  }
+
+  const formatValue = (value: any, field: any): string => {
+    if (value == null || value === '') return '—'
+    if (Array.isArray(value)) {
+      if (value.length === 0) return '—'
+      return value
+        .map((v) => lookupOption(field, v) ?? formatValue(v, {}))
+        .join('<br>')
+    }
+    if (typeof value === 'object') {
+      const entries = Object.entries(value).filter(([, v]) => v != null && v !== '' && v !== false)
+      if (entries.length === 0) return '—'
+      return entries
+        .map(([k, v]) => `<strong>${escapeHtml(humanizeKey(k))} :</strong> ${formatValue(v, {})}`)
+        .join('<br>')
+    }
+    if (typeof value === 'boolean') return value ? 'Oui' : 'Non'
+    const optionLabel = lookupOption(field, value)
+    if (optionLabel) return escapeHtml(optionLabel)
+    const str = String(value)
+    if (field.type === 'date' || /^\d{4}-\d{2}-\d{2}/.test(str)) {
+      const d = new Date(str.includes('T') ? str : `${str.slice(0, 10)}T00:00:00`)
+      if (!Number.isNaN(d.getTime())) return escapeHtml(d.toLocaleDateString('fr-FR'))
+    }
+    return escapeHtml(str)
+  }
+
+  const fieldsHtml = formSchema
+    .map((field) => {
+      const fieldKey = field.key ?? field.name ?? ''
+      if (!fieldKey) return ''
+      const valueHtml = formatValue(formData[fieldKey], field)
+      return `<div class="crh-field"><span class="crh-label">${escapeHtml(field.label || humanizeKey(fieldKey))}</span><span class="crh-value">${valueHtml}</span></div>`
+    })
+    .join('')
+
+  return `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 18mm 15mm 22mm 15mm;
+    @bottom-center {
+      content: "Page " counter(page) " / " counter(pages);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 7.5pt;
+      color: #888;
+    }
+  }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    color: #222;
+    line-height: 1.45;
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .crh-page { width: 210mm; min-height: 297mm; padding: 18mm 15mm 22mm; box-sizing: border-box; margin: 0 auto; }
+  @media print { .crh-page { width: auto; min-height: auto; padding: 0; margin: 0; } }
+  .crh-hdr { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .crh-hdr-left { font-size: 9pt; color: #333; flex: 1; }
+  .crh-hdr-left .rep { font-size: 11pt; font-weight: 700; color: #1a3c6e; letter-spacing: 0.5px; }
+  .crh-hdr-left .devise { font-size: 9pt; font-weight: 600; color: #666; }
+  .crh-hdr-left .separator { font-size: 10pt; color: #aaa; margin: 3px 0; }
+  .crh-hdr-left .inst-name { font-size: 12pt; font-weight: 700; color: #1a3c6e; margin-top: 4px; }
+  .crh-hdr-left .inst-detail { font-size: 8.5pt; color: #555; margin-top: 1px; }
+  .crh-hdr-right { font-size: 9pt; color: #222; text-align: right; min-width: 240px; padding-left: 20px; }
+  .crh-hdr-right .pat-name { font-size: 11pt; font-weight: 700; color: #1a3c6e; }
+  .crh-hdr-right .pat-addr { font-size: 8.5pt; color: #555; }
+  .crh-hdr-right .pat-meta { font-size: 8.5pt; color: #444; margin-top: 4px; line-height: 1.5; }
+  .crh-title-block { text-align: center; margin: 12px 0 10px; padding: 6px 0; border-top: 2px solid #1a3c6e; border-bottom: 2px solid #1a3c6e; }
+  .crh-title { font-size: 14pt; font-weight: 700; color: #1a3c6e; letter-spacing: 0.5px; }
+  .crh-subtitle { font-size: 9pt; color: #555; margin-top: 2px; }
+  .crh-section { page-break-inside: avoid; margin-top: 12px; }
+  .crh-section-title { font-size: 10.5pt; font-weight: 700; color: #1a3c6e; border-left: 3px solid #1a3c6e; padding: 2px 0 2px 8px; margin: 0 0 6px; }
+  .crh-section-content { padding-left: 12px; }
+  .crh-field { display: flex; margin-bottom: 4px; font-size: 9.5pt; line-height: 1.5; }
+  .crh-label { font-weight: 600; color: #555; min-width: 180px; flex-shrink: 0; }
+  .crh-value { color: #222; flex: 1; white-space: pre-line; }
+  .signature-block { margin-top: 24px; padding-top: 12px; border-top: 1px solid #ccc; display: flex; justify-content: space-between; }
+  .signature-col { font-size: 9.5pt; line-height: 1.6; }
+  .signature-col strong { color: #1a3c6e; }
+  @media print {
+    body { margin: 0; padding: 0; }
+    .crh-section { page-break-inside: avoid; }
+  }
+</style></head><body>
+
+<div class="crh-page">
+<div class="crh-hdr">
+  <div class="crh-hdr-left">
+    ${logoHtml}
+    <div class="rep">RÉPUBLIQUE DE GUINÉE</div>
+    <div class="devise">Travail — Justice — Solidarité</div>
+    <div class="separator">✶ ✶ ✶</div>
+    <div class="inst-name">${escapeHtml(hospital?.name || 'Établissement de Santé')}</div>
+    ${hospital?.address || hospital?.city ? `<div class="inst-detail">${escapeHtml([hospital.address, hospital.city].filter(Boolean).join(' – '))}</div>` : ''}
+    ${hospital?.phone ? `<div class="inst-detail">Tél : ${escapeHtml(hospital.phone)}</div>` : ''}
+    ${hospital?.email ? `<div class="inst-detail">Email : ${escapeHtml(hospital.email)}</div>` : ''}
+    ${hospital?.regNumber ? `<div class="inst-detail">N° agrément : ${escapeHtml(hospital.regNumber)}</div>` : ''}
+  </div>
+  <div class="crh-hdr-right">
+    ${patientIdentity ? `<div class="pat-name">${escapeHtml(patientIdentity)}</div>` : ''}
+    ${patient?.adresse ? `<div class="pat-addr">${escapeHtml(patient.adresse)}</div>` : ''}
+    ${patient?.date_naissance ? `<div class="pat-meta">Né(e) le : ${dateFmt(patient.date_naissance)}</div>` : ''}
+    ${patient?.nip ? `<div class="pat-meta">IPP : ${escapeHtml(patient.nip)}</div>` : ''}
+  </div>
+</div>
+
+<div class="crh-title-block">
+  <div class="crh-title">${escapeHtml(title)}</div>
+  <div class="crh-subtitle">Édité le ${printDate} à ${printTime}</div>
+</div>
+
+<!-- CONTENU -->
+<div class="crh-section">
+  <div class="crh-section-title">DÉTAILS DU DOCUMENT</div>
+  <div class="crh-section-content">
+    ${fieldsHtml || '<div class="crh-para">Aucune donnée saisie</div>'}
+  </div>
+</div>
+
+<!-- SIGNATURES -->
+<div class="signature-block">
+  <div class="signature-col">
+    <strong>Responsable</strong><br>
+    ${signedByName ? escapeHtml(signedByName) : '&nbsp;'}
+  </div>
+  <div class="signature-col">
+    <strong>Date de signature</strong><br>
+    ${signedAt ? dateFmt(signedAt) : '&nbsp;'}
+  </div>
+  <div class="signature-col">
+    <strong>Signature</strong><br>&nbsp;
+  </div>
+</div>
+
+</div>
+</body></html>`
+}
+
 export function generateOrdonnanceHtml(params: {
   clinique: { logoUrl: string | null }
   medecin: { nom: string; prenom?: string; specialite: string; numeroOrdre: string }
   structure: { nom: string; ville: string; adresse: string; telephone: string; numeroAgrement: string }
   patient: { civilite: string; nom: string; prenom: string; numeroDossier: string; pieceIdentite?: string; dateNaissance: string; age: number; poids?: number; taille?: number; traitementChronique?: boolean }
-  prescriptions: Array<{ nomMedicament: string; posologie: string; reglesConditionnelles?: string[] }>
+  prescriptions: Array<{ nomMedicament: string; posologie: string; reglesConditionnelles?: string[]; dureeType?: 'courte' | 'longue' }>
   dispositifsMedicaux: Array<{ nom: string; quantiteFrequence: string }>
   dateEmission: string
   heureEmission: string
@@ -1145,20 +1453,29 @@ export function generateOrdonnanceHtml(params: {
     p.nomMedicament.toLowerCase().includes('insuline')
   )
 
-  // ── Prescriptions HTML ──
-  const prescriptionsHtml = prescriptions.length > 0
-    ? prescriptions.map(p => {
-        const nameHtml = escapeHtml(p.nomMedicament.toUpperCase())
-        const posologieHtml = escapeHtml(p.posologie)
-        const reglesHtml = p.reglesConditionnelles && p.reglesConditionnelles.length > 0
-          ? `<div style="font-weight:bold;margin-top:2px;">**** ${p.reglesConditionnelles.map(r => escapeHtml(r)).join(' \u2014 ')}</div>`
-          : ''
-        return `
+  // ── Prescriptions HTML (grouped by duration type) ──
+  const renderPrescriptionItem = (p: { nomMedicament: string; posologie: string; reglesConditionnelles?: string[] }) => {
+    const nameHtml = escapeHtml(p.nomMedicament.toUpperCase())
+    const posologieHtml = escapeHtml(p.posologie)
+    const reglesHtml = p.reglesConditionnelles && p.reglesConditionnelles.length > 0
+      ? `<div style="font-weight:bold;margin-top:2px;">**** ${p.reglesConditionnelles.map(r => richHtml(r)).join(' \u2014 ')}</div>`
+      : ''
+    return `
       <div style="margin-bottom:10px;">
         <div><span style="font-weight:bold;">${nameHtml}</span> : ${posologieHtml}</div>
         ${reglesHtml}
       </div>`
-      }).join('')
+  }
+
+  const renderPrescriptionSection = (title: string, items: Array<{ nomMedicament: string; posologie: string; reglesConditionnelles?: string[]; dureeType?: 'courte' | 'longue' }>) => items.length > 0
+    ? `<div style="font-weight:bold;margin:10px 0 4px;text-transform:uppercase;letter-spacing:0.3px;">${escapeHtml(title)}</div><div style="padding-left:20px;">${items.map(renderPrescriptionItem).join('')}</div>`
+    : ''
+
+  const courteDuree = prescriptions.filter(p => (p.dureeType ?? 'courte') === 'courte')
+  const longueDuree = prescriptions.filter(p => (p.dureeType ?? 'courte') === 'longue')
+
+  const prescriptionsHtml = prescriptions.length > 0
+    ? `${renderPrescriptionSection('Traitement de courte dur\u00e9e', courteDuree)}${renderPrescriptionSection('Traitement de longue dur\u00e9e', longueDuree)}`
     : '<div style="font-style:italic;color:#999;">Aucun m\u00e9dicament prescrit</div>'
 
   // ── Dispositifs médicaux HTML ──
@@ -1376,12 +1693,30 @@ function calculateAge(dateStr: string): number {
   return age
 }
 
+function hasText(v: any): boolean {
+  if (v == null) return false
+  const html = String(v)
+  if (/<\s*img\b/i.test(html)) return true
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() !== ''
+}
+
+function richHtml(v: string | null | undefined): string {
+  return hasText(v) ? String(v) : ''
+}
+
 function escapeHtml(str: string): string {
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+}
+
+function formatSize(bytes: number | null | undefined): string {
+  if (bytes == null) return ''
+  if (bytes < 1024) return `${bytes} o`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
 }
 
 function getUserDisplayName(user: any): string {

@@ -59,6 +59,27 @@ export interface PatientResultFilters {
   dateTo?: string
 }
 
+/**
+ * Entrée minimale acceptée par `buildMatrix` : un sous-ensemble structurel de
+ * `ExamResultDto` compatible avec les DTO persistés côté formulaire
+ * (`BilanBioResult`), dont `parameterReferenceValues` peut être
+ * `Record<string, unknown> | null` et `parameterInputType` une simple string.
+ */
+export interface MatrixInputResult {
+  id?: number
+  examRequestId?: number
+  parameterId?: number
+  value?: string
+  isNormal?: boolean
+  filledAt?: string
+  createdAt?: string
+  parameterName?: string
+  parameterUnit?: string
+  parameterInputType?: string
+  parameterReferenceValues?: Record<string, unknown> | null
+  examName?: string
+}
+
 export interface MatrixDateColumn {
   key: string
   label: string
@@ -153,7 +174,7 @@ export function useExamResults() {
    * `dateColumns` (clés `YYYY-MM-DD` locales, triées décroissantes) n'est pas
    * consommé par la vue : conservé pour garder le contrat de retour stable.
    */
-  function buildMatrix(rawResults: ExamResultDto[]): { dateColumns: MatrixDateColumn[]; matrixGroups: MatrixGroup[] } {
+  function buildMatrix(rawResults: MatrixInputResult[]): { dateColumns: MatrixDateColumn[]; matrixGroups: MatrixGroup[] } {
     const dateMap = new Map<string, { status: string; statusLabel: string }>()
     const paramMap = new Map<number, { name: string; unit: string; inputType: string; refValues: ExamParameterReferenceValues }>()
     const valueMap = new Map<string, { value: string; isNormal: boolean | undefined }>()

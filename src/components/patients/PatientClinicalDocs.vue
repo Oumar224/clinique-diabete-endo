@@ -132,7 +132,6 @@ const currentPatientId = computed(() => activePatient.value?.id?.toString() ?? n
 // Computed: is the form readonly?
 const isReadonly = computed(() => {
   if (!selectedDocument.value) return false
-  if (selectedDocument.value.status === 'signed') return true
   if (isContactExpired.value) return true
   return false
 })
@@ -146,7 +145,7 @@ const selectedDocType = computed(() => {
 // ─── Import dialog ─────────────────────────────────────────────────────────
 const showImportDialog = ref(false)
 
-async function handleImport(data: { file: File; documentTypeId: string; title: string }) {
+async function handleImport(data: { file: File; documentTypeId: string; title: string; siteId?: number }) {
   if (!props.contactId) {
     ElMessage.warning('Aucun contact sélectionné')
     return
@@ -158,6 +157,7 @@ async function handleImport(data: { file: File; documentTypeId: string; title: s
     file: data.file,
     documentTypeId: data.documentTypeId,
     title: data.title,
+    siteId: data.siteId,
   })
   if (result) {
     showImportDialog.value = false

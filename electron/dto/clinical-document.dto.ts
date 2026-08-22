@@ -4,6 +4,8 @@ export interface ClinicalDocumentDTO {
   id?: string
   contactId?: string
   serviceId?: string
+  siteId?: number
+  siteName?: string
   documentTypeId?: string
   documentTypeLabel?: string
   documentTypeCode?: string

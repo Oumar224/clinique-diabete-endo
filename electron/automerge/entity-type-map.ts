@@ -28,6 +28,8 @@ import { UserMedicalUnitEntity } from '../entities/user-medical-unit.entity'
 import { UserFavoriteServiceEntity } from '../entities/user-favorite-service.entity'
 import { AttachmentTypeEntity } from '../entities/attachment-type.entity'
 import { PatientAttachmentEntity } from '../entities/patient-attachment.entity'
+import { DocumentAttachmentEntity } from '../entities/document-attachment.entity'
+import { ExamRequestAttachmentEntity } from '../entities/exam-request-attachment.entity'
 import { UserAttachmentEntity } from '../entities/user-attachment.entity'
 import { FormDraftEntity } from '../entities/form-draft.entity'
 import { TrustedPersonEntity } from '../entities/trusted-person.entity'
@@ -79,6 +81,8 @@ import { UserMedicalUnitConverter } from './converters/user-medical-unit.convert
 import { UserFavoriteServiceConverter } from './converters/user-favorite-service.converter'
 import { AttachmentTypeConverter } from './converters/attachment-type.converter'
 import { PatientAttachmentConverter } from './converters/patient-attachment.converter'
+import { DocumentAttachmentConverter } from './converters/document-attachment.converter'
+import { ExamRequestAttachmentConverter } from './converters/exam-request-attachment.converter'
 import { UserAttachmentConverter } from './converters/user-attachment.converter'
 import { FormDraftConverter } from './converters/form-draft.converter'
 import { TrustedPersonConverter } from './converters/trusted-person.converter'
@@ -148,6 +152,7 @@ export const ENTITY_TYPE_MAP: Record<string, EntityRegistration> = {
   user_favorite_service: reg('user_favorite_service', 'user_favorite_services', UserFavoriteServiceEntity, UserFavoriteServiceConverter),
   attachment_type: reg('attachment_type', 'attachment_types', AttachmentTypeEntity, AttachmentTypeConverter),
   patient_attachment: reg('patient_attachment', 'patient_attachments', PatientAttachmentEntity, PatientAttachmentConverter),
+  document_attachment: reg('document_attachment', 'document_attachments', DocumentAttachmentEntity, DocumentAttachmentConverter),
   user_attachment: reg('user_attachment', 'user_attachments', UserAttachmentEntity, UserAttachmentConverter),
   form_draft: reg('form_draft', 'form_drafts', FormDraftEntity, FormDraftConverter),
   trusted_person: reg('trusted_person', 'trusted_persons', TrustedPersonEntity, TrustedPersonConverter),
@@ -174,6 +179,7 @@ export const ENTITY_TYPE_MAP: Record<string, EntityRegistration> = {
   exam_category: reg('exam_category', 'exam_categories', ExamCategoryEntity, ExamCategoryConverter),
   exam_type: reg('exam_type', 'exam_types', ExamTypeEntity, ExamTypeConverter),
   exam_request: reg('exam_request', 'exam_requests', ExamRequestEntity, ExamRequestConverter),
+  exam_request_attachment: reg('exam_request_attachment', 'exam_request_attachments', ExamRequestAttachmentEntity, ExamRequestAttachmentConverter),
 }
 
 const TABLE_TO_TYPE = new Map(

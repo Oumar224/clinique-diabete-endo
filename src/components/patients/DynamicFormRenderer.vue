@@ -28,12 +28,12 @@
             />
 
             <!-- Textarea -->
-            <el-input
+            <RichTextEditor
               v-else-if="field.type === 'textarea'"
               v-model="localFormData[field.key]"
-              type="textarea"
               :rows="3"
               :placeholder="field.placeholder"
+              :readonly="disabled"
             />
 
             <!-- Number -->
@@ -130,6 +130,11 @@
 import { ref, watch, computed } from 'vue'
 import { ElForm } from 'element-plus'
 import type { FormFieldSchema, FormFieldValidator } from '@/composables/useClinicalDocuments'
+import RichTextEditor from '@/components/patients/RichTextEditor.vue'
+import { isRichTextEmpty } from '@/utils/rich-text'
+
+/** Callback of async-validator rules (element-plus form validation). */
+type ValidatorCallback = (error?: Error) => void
 
 const props = defineProps<{
   schema: FormFieldSchema[]
@@ -178,7 +183,19 @@ const visibleSchema = computed(() => {
 function buildRules(field: FormFieldSchema): any[] {
   const rules: any[] = []
   if (field.required) {
-    rules.push({ required: true, message: `${field.label} est requis`, trigger: 'blur' })
+    if (field.type === 'textarea') {
+      rules.push({
+        required: true,
+        message: `${field.label} est requis`,
+        trigger: 'blur',
+        validator: (_rule: any, value: any, callback: ValidatorCallback) => {
+          if (isRichTextEmpty(value)) callback(new Error(`${field.label} est requis`))
+          else callback()
+        },
+      })
+    } else {
+      rules.push({ required: true, message: `${field.label} est requis`, trigger: 'blur' })
+    }
   }
   if (field.validators) {
     for (const v of field.validators) {
@@ -201,7 +218,7 @@ function buildValidatorRule(v: FormFieldValidator, _field: FormFieldSchema): any
       return { pattern: new RegExp(v.params), message: 'Format invalide', trigger: 'blur' }
     case 'custom':
       return {
-        validator: (_rule: any, value: any, callback: Function) => {
+        validator: (_rule: any, value: any, callback: ValidatorCallback) => {
           if (typeof v.params === 'function') {
             const result = v.params(value)
             if (result !== true) {

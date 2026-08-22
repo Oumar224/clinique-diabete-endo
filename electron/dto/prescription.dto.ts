@@ -7,6 +7,7 @@ export interface PrescriptionDto {
   dosage?: string
   voie?: string
   duree?: number
+  dureeType?: 'courte' | 'longue'
   frequence?: string[] // array from comma-separated
   frequenceType?: FrequenceType
   prn?: boolean

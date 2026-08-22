@@ -72,6 +72,7 @@
         v-if="documentType.code === 'CRH_DIABETE'"
         v-model="localFormData"
         :readonly="readonly"
+        :resigning="document.status === 'signed'"
         :contact-id="document.contactId"
         :contact-display="contactDisplay"
         :document-id="document.id"
@@ -86,6 +87,7 @@
         v-else-if="documentType.code === 'CRC_DIABETE'"
         v-model="localFormData"
         :readonly="readonly"
+        :resigning="document.status === 'signed'"
         :contact-id="document.contactId"
         :contact-display="contactDisplay"
         :document-id="document.id"
@@ -109,16 +111,6 @@
 
       <!-- Other document types: dynamic form renderer -->
       <template v-else>
-        <!-- Locked alert -->
-        <el-alert
-          v-if="readonly"
-          title="Ce document est verrouillé en lecture seule."
-          type="warning"
-          show-icon
-          :closable="false"
-          class="doc-form__alert"
-        />
-
         <!-- Document header -->
         <div class="doc-form__header">
           <div class="doc-form__header-left">
@@ -170,13 +162,12 @@
             Enregistrer Brouillon
           </el-button>
           <el-button
-            v-if="document.status === 'draft'"
             type="primary"
             :loading="signing"
             :disabled="saving || signing"
             @click="handleSign"
           >
-            Signer et Verrouiller
+            {{ document.status === 'signed' ? 'Resigner' : 'Signer' }}
           </el-button>
         </div>
       </template>
@@ -273,8 +264,8 @@ async function handleSaveDraft() {
 async function handleSign() {
   if (!props.document) return
 
-  // For CRH/CRC Diabète, signing is handled by the dedicated form
-  if (props.documentType?.code === 'CRH_DIABETE' || props.documentType?.code === 'CRC_DIABETE') {
+  // For CRH/CRC Diabète and Ordonnance Libre, signing is handled by the dedicated form
+  if (['CRH_DIABETE', 'CRC_DIABETE', 'ORDONNANCE_LIBRE'].includes(props.documentType?.code ?? '')) {
     emit('sign')
     return
   }
@@ -287,11 +278,14 @@ async function handleSign() {
   }
 
   try {
+    const resigning = props.document?.status === 'signed'
     await ElMessageBox.confirm(
-      'Êtes-vous sûr de vouloir signer et verrouiller ce document ? Cette action est irréversible.',
-      'Confirmation de signature',
+      resigning
+        ? 'Resigner ce document ? L\'ancienne signature sera écrasée.'
+        : 'Êtes-vous sûr de vouloir signer ce document ?',
+      resigning ? 'Re-signature' : 'Confirmation de signature',
       {
-        confirmButtonText: 'Signer',
+        confirmButtonText: resigning ? 'Resigner' : 'Signer',
         cancelButtonText: 'Annuler',
         type: 'warning',
       },
@@ -326,10 +320,6 @@ function formatDateTime(dateStr: string): string {
   height: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.doc-form__alert {
-  margin-bottom: 16px;
 }
 
 .doc-form__header {

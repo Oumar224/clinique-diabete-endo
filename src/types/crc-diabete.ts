@@ -163,11 +163,16 @@ export interface ExamensComplementairesData {
   bilanBio: BilanBio
 }
 
+export interface EvolutionAvisItem {
+  _key: string
+  date: string
+  specialite: string
+  motif: string
+}
+
 export interface EvolutionMedicaleData {
-  infoPatientFamille: boolean
-  produitsSanguins: boolean
-  bmrBhre: boolean
   journalEvolution: string
+  avis?: EvolutionAvisItem[]
 }
 
 export interface RdvSuivi {
@@ -178,13 +183,17 @@ export interface RdvSuivi {
   lieuPraticien: string
 }
 
+export type PrescriptionSortieCategorie = 'medicament' | 'soins' | 'examen' | 'avis'
+
 export interface PrescriptionSortie {
   _key: string
+  categorie?: PrescriptionSortieCategorie
   medicament: string
   dosage: string
   unite: string
   voie: string
   duree: number
+  dureeType?: 'courte' | 'longue'
   frequence: string[]
   frequenceType: string
   instructions: string
@@ -192,11 +201,17 @@ export interface PrescriptionSortie {
   momentPrises: string[]
   renouvellement: boolean
   nbRenouvellements: number
+  examen?: string
+  specialite?: string
+  motif?: string
 }
 
 export interface SortieData {
   dateSortie: string
   destinationSortie: string
+  infoPatientFamille: boolean
+  produitsSanguins: boolean
+  bmrBhre: boolean
   conclusionSortie: string
   rdvSuivi: RdvSuivi[]
 }
@@ -297,15 +312,16 @@ export function createDefaultFormData(): CrcDiabeteFormData {
       bilanBio: { dateFrom: '', dateTo: '', results: [] },
     },
     evolutionMedicale: {
-      infoPatientFamille: false,
-      produitsSanguins: false,
-      bmrBhre: false,
       journalEvolution: '',
+      avis: [],
     },
     ordonnanceSortie: [],
     sortie: {
       dateSortie: '',
       destinationSortie: '',
+      infoPatientFamille: false,
+      produitsSanguins: false,
+      bmrBhre: false,
       conclusionSortie: '',
       rdvSuivi: [],
     },

@@ -72,9 +72,9 @@
         </table>
       </div>
 
-      <div v-if="invoice.notes" class="print-notes">
+      <div v-if="!isRichTextEmpty(invoice.notes)" class="print-notes">
         <strong>Notes :</strong>
-        <p>{{ invoice.notes }}</p>
+        <p v-html="invoice.notes"></p>
       </div>
 
       <div class="print-footer">
@@ -94,6 +94,7 @@ import { ref } from 'vue'
 import { Printer } from '@element-plus/icons-vue'
 import { useCurrency } from '@/currency/useCurrency'
 import type { Invoice } from '@/composables/useInvoices'
+import { isRichTextEmpty } from '@/utils/rich-text'
 
 const { formatCurrency } = useCurrency()
 

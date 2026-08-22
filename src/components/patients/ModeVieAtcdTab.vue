@@ -34,7 +34,9 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="11">
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="24">
             <el-form-item label="Commentaire de mode de vie">
               <RichTextEditor v-model="draft.commentaireVie" :rows="1" placeholder="A à sa charge son neveu autiste..." />
             </el-form-item>
@@ -173,14 +175,16 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item v-if="draft.alcool" label="Détail consommation alcool">
+        <el-row v-if="draft.alcool" :gutter="16">
+          <el-col :span="24">
+            <el-form-item label="Détail consommation alcool">
               <RichTextEditor v-model="draft.alcoolDetail" :rows="2" placeholder="3 canettes de bière/jour (2L)" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item v-if="draft.cannabis" label="Détail consommation cannabis">
+        </el-row>
+        <el-row v-if="draft.cannabis" :gutter="16">
+          <el-col :span="24">
+            <el-form-item label="Détail consommation cannabis">
               <RichTextEditor v-model="draft.cannabisDetail" :rows="2" placeholder="2 joints par jour, avis addictologique du 03/09/2021" />
             </el-form-item>
           </el-col>

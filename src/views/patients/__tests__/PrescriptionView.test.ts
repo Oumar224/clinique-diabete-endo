@@ -84,6 +84,15 @@ vi.mock('@/composables/useAuth', () => ({
   })),
 }))
 
+vi.mock('@/components/patients/RichTextEditor.vue', () => ({
+  default: {
+    name: 'RichTextEditor',
+    template: '<div class="rich-editor-mock" />',
+    props: ['modelValue', 'readonly', 'rows', 'placeholder'],
+    emits: ['update:modelValue', 'change'],
+  },
+}))
+
 // ---------------------------------------------------------------------------
 // Flush micro-tasks and Vue updates after async data fetching
 // ---------------------------------------------------------------------------
@@ -266,6 +275,7 @@ function makePrescription(overrides: Record<string, unknown> = {}) {
     dosage: '500 mg',
     voie: 'PO',
     duree: 30,
+    dureeType: 'courte',
     frequence: ['Matin', 'Midi', 'Soir'],
     frequenceType: 'moments',
     prn: false,
@@ -285,7 +295,6 @@ function makePrescription(overrides: Record<string, unknown> = {}) {
     quantiteTotale: null,
     renouvellement: false,
     nbRenouvellements: null,
-    allergiesAlertes: null,
     // ── Soin-specific fields ──
     categorieSoin: null,
     nbSeances: null,
@@ -380,6 +389,25 @@ describe('PrescriptionView', () => {
       expect(mockCreatePrescription).toHaveBeenCalled()
       const callArgs = mockCreatePrescription.mock.calls[0][1]
       expect(callArgs.dosage).toBe('500 mg')
+    })
+
+    it('renders no native textarea elements (replaced by RichTextEditor)', async () => {
+      mockGetPrescriptions.mockResolvedValue([])
+
+      const wrapper = mount(PrescriptionView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      // Open the create form
+      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouvelle prescription')
+      await newBtn!.trigger('click')
+      await nextTick()
+
+      // Instructions / objectifClinique / consignesSpecifiques are
+      // RichTextEditor fields — a native <textarea> would allow raw HTML
+      expect(wrapper.find('textarea').exists()).toBe(false)
     })
   })
 
@@ -891,11 +919,14 @@ describe('PrescriptionView', () => {
       const wrapper = await openCreateForm()
 
       const radioGroups = wrapper.findAll('.el-radio-group')
-      expect(radioGroups.length).toBeGreaterThanOrEqual(2)
+      expect(radioGroups.length).toBeGreaterThanOrEqual(3)
 
-      // Second radio group is the frequency type group
-      const freqRadioGroup = radioGroups[1]
-      const radios = freqRadioGroup.findAll('.el-radio')
+      // Frequency type group is the one containing "Moments de la journée"
+      const freqRadioGroup = radioGroups.find(g =>
+        g.text().includes('Moments de la journ\u00e9e'),
+      )
+      expect(freqRadioGroup).toBeDefined()
+      const radios = freqRadioGroup!.findAll('.el-radio')
       expect(radios.length).toBe(3)
       expect(radios[0].text()).toContain('Moments de la journ\u00e9e')
       expect(radios[1].text()).toContain('Heures fixes')
@@ -1118,7 +1149,9 @@ describe('PrescriptionView', () => {
       // Default is medicament, so these should be visible
       expect(wrapper.text()).toContain('Forme galénique')
       expect(wrapper.text()).toContain('Consignes de prise')
-      expect(wrapper.text()).toContain('Allergies')
+
+      // Allergies field was removed from the prescription form
+      expect(wrapper.text()).not.toContain('Allergies')
 
       // Soin-specific fields should NOT be visible
       expect(wrapper.text()).not.toContain('Nb séances')
@@ -1282,6 +1315,127 @@ describe('PrescriptionView', () => {
       expect(callArgs.nbSeances).toBe(10)
       expect(callArgs.objectifClinique).toBe('Améliorer la mobilité')
       expect(callArgs.professionnelCible).toBe('Kinésithérapeute')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // NEW: type de traitement (courte / longue durée)
+  // -----------------------------------------------------------------------
+  describe('type de traitement', () => {
+    async function openCreateForm() {
+      mockGetPrescriptions.mockResolvedValue([])
+      mockGetPlanSoins.mockResolvedValue(null)
+      mockCreatePrescription.mockResolvedValue({ prescription: makePrescription(), itemsGenerated: 3 })
+
+      const wrapper = mount(PrescriptionView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouvelle prescription')
+      await newBtn!.trigger('click')
+      await nextTick()
+
+      return wrapper
+    }
+
+    it('defaults to \u00ab Courte dur\u00e9e \u00bb in the create form', async () => {
+      const wrapper = await openCreateForm()
+
+      expect(wrapper.vm.form.dureeType).toBe('courte')
+      expect(wrapper.text()).toContain('Courte dur\u00e9e')
+      expect(wrapper.text()).toContain('Longue dur\u00e9e')
+    })
+
+    it('sends dureeType courte by default on create', async () => {
+      const wrapper = await openCreateForm()
+
+      wrapper.vm.form.medicament = 'Metformine 500 mg'
+      wrapper.vm.form.dosage = '500'
+      wrapper.vm.form.unite = 'mg'
+      wrapper.vm.form.voie = 'PO'
+      wrapper.vm.form.frequence = ['Matin']
+
+      await nextTick()
+
+      const prescrireBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Prescrire')
+      await prescrireBtn!.trigger('click')
+      await waitForData()
+      await nextTick()
+
+      expect(mockCreatePrescription).toHaveBeenCalled()
+      const callArgs = mockCreatePrescription.mock.calls[0][1]
+      expect(callArgs.dureeType).toBe('courte')
+    })
+
+    it('sends dureeType longue when selected', async () => {
+      const wrapper = await openCreateForm()
+
+      wrapper.vm.form.medicament = 'Metformine 500 mg'
+      wrapper.vm.form.dosage = '500'
+      wrapper.vm.form.unite = 'mg'
+      wrapper.vm.form.voie = 'PO'
+      wrapper.vm.form.dureeType = 'longue'
+      wrapper.vm.form.frequence = ['Matin']
+
+      await nextTick()
+
+      const prescrireBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Prescrire')
+      await prescrireBtn!.trigger('click')
+      await waitForData()
+      await nextTick()
+
+      expect(mockCreatePrescription).toHaveBeenCalled()
+      const callArgs = mockCreatePrescription.mock.calls[0][1]
+      expect(callArgs.dureeType).toBe('longue')
+    })
+
+    it('shows type de traitement in the detail dialog', async () => {
+      const prescription = makePrescription({ dureeType: 'longue' })
+      mockGetPrescriptions.mockResolvedValueOnce([prescription])
+      mockGetPlanSoins.mockResolvedValue(null)
+
+      const wrapper = mount(PrescriptionView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const row = wrapper.find('.el-table__row')
+      await row.trigger('click')
+      await nextTick()
+
+      const dialog = wrapper.findAll('.el-dialog').find(d => d.text().includes('Supprimer'))
+      expect(dialog).not.toBeNull()
+      expect(dialog!.text()).toContain('Type de traitement')
+      expect(dialog!.text()).toContain('Longue dur\u00e9e')
+    })
+
+    it('prefills the edit dialog with the row dureeType', async () => {
+      const prescription = makePrescription({ dureeType: 'longue', medicament: 'Ramipril 5 mg' })
+      mockGetPrescriptions.mockResolvedValueOnce([prescription])
+
+      const wrapper = mount(PrescriptionView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const row = wrapper.find('.el-table__row')
+      await row.trigger('click')
+      await nextTick()
+
+      const detail = wrapper.findAll('.el-dialog').find(d => d.text().includes('Supprimer'))
+      const modifierBtn = detail!.findAll('button.el-button').find(b => b.text().trim() === 'Modifier')
+      await modifierBtn!.trigger('click')
+      await nextTick()
+
+      expect(wrapper.vm.editForm.dureeType).toBe('longue')
+
+      const editDialog = wrapper.findAll('.el-dialog').find(d => d.text().includes('Enregistrer'))
+      expect(editDialog).not.toBeNull()
+      expect(editDialog!.text()).toContain('Longue dur\u00e9e')
     })
   })
 

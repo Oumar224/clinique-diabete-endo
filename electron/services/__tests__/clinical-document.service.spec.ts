@@ -61,10 +61,13 @@ describe('ClinicalDocumentService', () => {
         id                TEXT PRIMARY KEY,
         contact_id        TEXT NOT NULL REFERENCES encounters(id),
         service_id        TEXT REFERENCES services(id),
+        site_id           INTEGER REFERENCES sites(id),
         document_type_id  TEXT NOT NULL REFERENCES clinical_document_types(id),
         title             TEXT,
         status            TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','signed')),
         form_data         TEXT,
+        source            TEXT,
+        pdf_path          TEXT,
         signed_at         TEXT,
         signed_by         TEXT REFERENCES user(id),
         created_by        TEXT NOT NULL REFERENCES user(id),
@@ -400,12 +403,11 @@ describe('ClinicalDocumentService', () => {
       expect(parsed.diagnosis).toBe('Angine de poitrine')
     })
 
-    it('rejects update on a signed document', async () => {
+    it('allows update on a signed document', async () => {
       const doc = await createSignedDoc()
 
-      await expect(
-        service.updateDocumentData(doc.id, { reason: 'changed' }),
-      ).rejects.toThrow('Impossible de modifier un document signé')
+      const updated = await service.updateDocumentData(doc.id, { reason: 'changed' })
+      expect(JSON.parse(updated.formData!).reason).toBe('changed')
     })
 
     it('rejects update on a document linked to an expired contact', async () => {
@@ -510,12 +512,31 @@ describe('ClinicalDocumentService', () => {
       expect(sig.rows[0].signature_hash).toHaveLength(64) // sha256 hex
     })
 
-    it('rejects signing an already signed document', async () => {
+    it('allows re-signing and overwrites the previous signature', async () => {
       const signed = await createSignedDoc()
+      const db = datasource.getInstance()
+      const firstSignedAt = signed.signedAt
+      await new Promise(r => setTimeout(r, 10))
 
-      await expect(
-        service.signDocument(signed.id, userId),
-      ).rejects.toThrow('Le document est déjà signé')
+      const reSigned = await service.signDocument(signed.id, userId)
+
+      expect(reSigned.status).toBe('signed')
+      expect(reSigned.signedAt).toBeDefined()
+      expect(reSigned.signedAt).not.toBe(firstSignedAt)
+
+      // Écrasement total: exactement une signature conservée pour le document
+      const sig = await sql<{ id: string }>`SELECT id FROM clinical_document_signatures WHERE document_id = ${signed.id}`.execute(db)
+      expect(sig.rows).toHaveLength(1)
+    })
+
+    it('returns the document with an updated pdf_path after setDocumentPdfPath', async () => {
+      const doc = await createDraftDoc(CONSULTATION_TYPE_ID)
+
+      const updated = await service.setDocumentPdfPath(doc.id, '/tmp/clinical-doc.pdf')
+
+      expect(updated.pdfPath).toBe('/tmp/clinical-doc.pdf')
+      const reloaded = await service.getDocumentById(doc.id)
+      expect(reloaded?.pdfPath).toBe('/tmp/clinical-doc.pdf')
     })
   })
 
@@ -782,10 +803,10 @@ describe('ClinicalDocumentService', () => {
       expect(canModify).toBe(true)
     })
 
-    it('returns false for a signed document', async () => {
+    it('returns true for a signed document', async () => {
       const doc = await createSignedDoc()
       const canModify = await service.canModifyDocument(doc.id)
-      expect(canModify).toBe(false)
+      expect(canModify).toBe(true)
     })
 
     it('returns false for a draft document with an expired contact', async () => {
@@ -921,6 +942,114 @@ describe('ClinicalDocumentService', () => {
           createdBy: 'non-existent-user',
         })
       ).rejects.toThrow()
+    })
+  })
+
+  // ─── Site resolution (default site for a user) ───────────────────
+
+  describe('site resolution', () => {
+    it('persists an explicitly provided siteId on the document', async () => {
+      const db = datasource.getInstance()
+      const site = await db
+        .insertInto('sites')
+        .values({ name: `Site A ${Date.now()}`, is_active: 1 })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      const doc = await service.createDocument({
+        contactId: String(encounterId),
+        documentTypeId: CONSULTATION_TYPE_ID,
+        createdBy: userId,
+        siteId: site.id!,
+      })
+
+      expect(doc.siteId).toBe(site.id)
+    })
+
+    it('defaults site_id to the creator\'s first user_sites entry when not provided', async () => {
+      const db = datasource.getInstance()
+      const siteA = await db
+        .insertInto('sites')
+        .values({ name: `Site Alpha ${Date.now()}`, is_active: 1 })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+      const siteB = await db
+        .insertInto('sites')
+        .values({ name: `Site Beta ${Date.now()}`, is_active: 1 })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      // Two sites — resolution must pick the lowest site_id (ordered asc)
+      await db
+        .insertInto('user_sites')
+        .values([
+          { user_id: Number(userId), site_id: siteB.id! },
+          { user_id: Number(userId), site_id: siteA.id! },
+        ])
+        .execute()
+
+      const doc = await service.createDocument({
+        contactId: String(encounterId),
+        documentTypeId: CONSULTATION_TYPE_ID,
+        createdBy: userId,
+      })
+
+      expect(doc.siteId).toBe(siteA.id)
+    })
+
+    it('leaves site_id null when the user has no assigned site', async () => {
+      const doc = await createDraftDoc()
+      expect(doc.siteId).toBeNull()
+    })
+
+    it('explicit siteId wins over the user_sites default', async () => {
+      const db = datasource.getInstance()
+      const siteA = await db
+        .insertInto('sites')
+        .values({ name: `Site Alpha ${Date.now()}`, is_active: 1 })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+      const siteB = await db
+        .insertInto('sites')
+        .values({ name: `Site Beta ${Date.now()}`, is_active: 1 })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      await db
+        .insertInto('user_sites')
+        .values({ user_id: Number(userId), site_id: siteA.id! })
+        .execute()
+
+      const doc = await service.createDocument({
+        contactId: String(encounterId),
+        documentTypeId: CONSULTATION_TYPE_ID,
+        createdBy: userId,
+        siteId: siteB.id!,
+      })
+
+      expect(doc.siteId).toBe(siteB.id)
+    })
+
+    it('joins the site name into getDocumentsByContact results', async () => {
+      const db = datasource.getInstance()
+      const site = await db
+        .insertInto('sites')
+        .values({ name: `Site Principal ${Date.now()}`, is_active: 1 })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      const doc = await service.createDocument({
+        contactId: String(encounterId),
+        documentTypeId: CONSULTATION_TYPE_ID,
+        createdBy: userId,
+        siteId: site.id!,
+      })
+
+      const docs = await service.getDocumentsByContact(String(encounterId))
+      expect(docs).toHaveLength(1)
+      expect(docs[0].id).toBe(doc.id)
+      expect(docs[0].siteId).toBe(site.id)
+      expect(docs[0].siteName).toBe(site.name)
     })
   })
 })

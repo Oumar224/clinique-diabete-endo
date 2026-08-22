@@ -221,7 +221,7 @@
       <el-row :gutter="24">
         <el-col :span="24">
           <el-form-item label="Notes">
-            <el-input v-model="form.notes" type="textarea" :rows="3" placeholder="Observations..." />
+            <RichTextEditor v-model="form.notes" :rows="3" placeholder="Observations..." />
           </el-form-item>
         </el-col>
       </el-row>
@@ -258,6 +258,7 @@ import {
 import { useMedicalStaff, formatMedecinName } from '@/composables/useMedicalStaff'
 import { roleLabel } from '@/composables/useUsers'
 import type { UserDto } from '@/composables/useUsers'
+import RichTextEditor from '@/components/patients/RichTextEditor.vue'
 
 interface ServiceSuggestion {
   value: string

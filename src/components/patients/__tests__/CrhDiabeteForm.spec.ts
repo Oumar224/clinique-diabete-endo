@@ -95,7 +95,7 @@ vi.mock('@element-plus/icons-vue', () => ({
 
 const ChildTabStub = {
   template: '<div class="child-tab-stub" />',
-  props: ['data', 'readonly'],
+  props: ['data', 'readonly', 'documentId'],
   emits: ['change'],
 }
 
@@ -130,6 +130,7 @@ const EL_STUBS: Record<string, any> = {
   EvolutionMedicaleTab: ChildTabStub,
   OrdonnanceSortieTab: ChildTabStub,
   SortieTab: ChildTabStub,
+  AnnexeTab: ChildTabStub,
   ParameterHistoryDialog: {
     // Renders the dialog payload when open so the form tests can assert the
     // title and the entries fetched via IPC (the real dialog is stubbed).
@@ -459,6 +460,61 @@ describe('CrhDiabeteForm – mergeFormData', () => {
     })
   })
 
+  // ─── migration évolutionMedicale → sortie ──────────────────────
+
+  describe('migration évolutionMedicale → sortie', () => {
+    it('carries evolutionMedicale.infoPatientFamille=true to sortie.infoPatientFamille and deletes the legacy key', async () => {
+      const wrapper = createWrapper({
+        evolutionMedicale: { infoPatientFamille: true },
+      })
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      expect(vm.formData.sortie.infoPatientFamille).toBe(true)
+      expect(vm.formData.evolutionMedicale.infoPatientFamille).toBeUndefined()
+    })
+
+    it('does not override an existing sortie.infoPatientFamille', async () => {
+      const wrapper = createWrapper({
+        evolutionMedicale: { infoPatientFamille: true },
+        sortie: { infoPatientFamille: false },
+      })
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      expect(vm.formData.sortie.infoPatientFamille).toBe(false)
+      expect(vm.formData.evolutionMedicale.infoPatientFamille).toBeUndefined()
+    })
+
+    it('deletes legacy keys even when false', async () => {
+      const wrapper = createWrapper({
+        evolutionMedicale: { produitsSanguins: false, bmrBhre: false },
+      })
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      expect(vm.formData.evolutionMedicale.produitsSanguins).toBeUndefined()
+      expect(vm.formData.evolutionMedicale.bmrBhre).toBeUndefined()
+      // the (default) sortie booleans stay false
+      expect(vm.formData.sortie.produitsSanguins).toBe(false)
+      expect(vm.formData.sortie.bmrBhre).toBe(false)
+    })
+
+    it('leaves evolutionMedicale.journalEvolution untouched', async () => {
+      const wrapper = createWrapper({
+        evolutionMedicale: {
+          infoPatientFamille: true,
+          journalEvolution: '<p>Patient stable</p>',
+        },
+      })
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      expect(vm.formData.evolutionMedicale.journalEvolution).toBe('<p>Patient stable</p>')
+      expect(vm.formData.sortie.infoPatientFamille).toBe(true)
+    })
+  })
+
   // ─── showAllergyAlert — array-based check ─────────────────────
 
   describe('showAllergyAlert', () => {
@@ -704,6 +760,11 @@ describe('CrhDiabeteForm – mergeFormData', () => {
       expect(wrapper.text()).toContain('Test Patient')
     })
 
+    it('renders the "Évolution et avis" tab label', () => {
+      const wrapper = createWrapper()
+      expect(wrapper.text()).toContain('Évolution et avis')
+    })
+
     it('shows "Brouillon" status tag when not readonly', () => {
       const wrapper = createWrapper()
       expect(wrapper.text()).toContain('Brouillon')
@@ -714,6 +775,7 @@ describe('CrhDiabeteForm – mergeFormData', () => {
         props: {
           modelValue: {},
           readonly: true,
+          resigning: true,
           contactId: '1',
           contactDisplay: 'Test Patient',
         },
@@ -922,6 +984,61 @@ describe('CrhDiabeteForm – mergeFormData', () => {
       expect(vm.fieldMeta['admission.dateEntree']).toBe('2026-01-01T10:00:00.000Z')
       expect(vm.fieldMeta['modeVieAtcd.tabagisme']).toBe('2026-02-01T09:30:00.000Z')
       expect(Object.keys(vm.fieldMeta)).toHaveLength(2)
+    })
+  })
+
+  // ─── Re-signature (resigning prop) ───────────────────────────────
+
+  describe('re-signature (resigning prop)', () => {
+    function resigningWrapper() {
+      return mount(CrhDiabeteForm, {
+        props: {
+          modelValue: {},
+          readonly: false,
+          resigning: true,
+          contactId: '1',
+          contactDisplay: 'Test Patient',
+        },
+        global: {
+          stubs: EL_STUBS,
+        },
+      })
+    }
+
+    it('shows "Resigner" label on the sign button when resigning is true', async () => {
+      const wrapper = resigningWrapper()
+      await flushPromises()
+
+      const signBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Resigner'))
+      expect(signBtn).toBeDefined()
+    })
+
+    it('asks confirmation warning the old signature will be overwritten and emits sign', async () => {
+      const wrapper = resigningWrapper()
+      await flushPromises()
+
+      const signBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Resigner'))
+      await signBtn!.trigger('click')
+      await flushPromises()
+
+      expect(mockConfirm).toHaveBeenCalledWith(
+        'Resigner ce document ? L\'ancienne signature sera écrasée.',
+        'Re-signature',
+        expect.objectContaining({ confirmButtonText: 'Resigner', type: 'warning' }),
+      )
+      expect(wrapper.emitted('sign')).toBeDefined()
+    })
+
+    it('does not emit sign when re-sign confirmation is cancelled', async () => {
+      mockConfirm.mockRejectedValue(new Error('Cancel'))
+      const wrapper = resigningWrapper()
+      await flushPromises()
+
+      const signBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Resigner'))
+      await signBtn!.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.emitted('sign')).toBeUndefined()
     })
   })
 })

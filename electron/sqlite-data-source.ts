@@ -6,6 +6,7 @@ import { NodeSqliteDialect } from './driver/node-sqlite-dialect'
 import type { DB } from './entities/database'
 import { IAppDataSource } from './data-source'
 import { MigrationService } from './services/migration.service'
+import { repairCriticalSchema } from './services/schema-repair'
 import { SeedService } from './services/seed.service'
 import { AutomergeSyncService } from './automerge/automerge-sync.service'
 import { EntityRegistry } from './automerge/entity-registry'
@@ -28,12 +29,34 @@ export class AppDatabaseDatasource implements IAppDataSource<Kysely<DB>> {
     // on existing databases where tables may be partially created
     await sql`PRAGMA foreign_keys = OFF`.execute(this.instance)
 
+    const migrationService = new MigrationService(this.instance as never)
     try {
-      const migrationService = new MigrationService(this.instance as never)
       await migrationService.runMigrations()
     } catch (error) {
-      console.error('[CDE] Migration failed, continuing:', error)
+      // Migrations run WITHOUT a transaction (SqliteAdapter.supportsTransactionalDdl
+      // is false), so a failed chain can leave partial migrations committed and
+      // recorded. Never boot into that state silently.
+      console.error('[CDE] Migration failed:', error)
+
+      // Recovery pass: patch critical columns so the retry has a chance to
+      // succeed (e.g. a later migration in the chain can now find the columns
+      // it depends on, as with patient_clinical_documents.source/pdf_path).
+      await repairCriticalSchema(this.instance)
+
+      try {
+        await migrationService.runMigrations()
+        console.log('[CDE] Migration retry succeeded after schema repair')
+      } catch (retryError) {
+        // Do NOT proceed into seed()/normal boot with a broken schema. The
+        // throw propagates to the caller (main.ts), which logs it, shows an
+        // error dialog, and quits the app instead of booting into a broken DB.
+        const message = retryError instanceof Error ? retryError.message : String(retryError)
+        throw new Error(`[CDE] Migration failed after schema repair and retry — refusing to start with a broken schema: ${message}`)
+      }
     }
+
+    // Ensure critical columns exist (recovery for failed/partial migrations)
+    await repairCriticalSchema(this.instance)
 
     // Ensure critical settings tables exist (recovery for failed migrations)
     await this.ensureSettingsTables()

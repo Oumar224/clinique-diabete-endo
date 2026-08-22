@@ -59,4 +59,16 @@ export function registerExportHandlers(): void {
   createHandler('export:prescription-pdf', async (params: { patientId: number; prescriptionIds?: number[]; inlinePrescriptions?: Array<{ medicament: string; dosage: string; unite: string; voie: string; duree: number; frequenceType: string; frequence: string[]; prn: boolean; instructions: string }> }) => {
     return await exportService.exportOrdonnancePdf(params)
   })
+
+  createHandler('clinical-documents:preview', async ({ docId }: { docId: string }) => {
+    return await exportService.previewClinicalDocumentHtml(docId)
+  })
+
+  createHandler('clinical-documents:export-pdf', async ({ docId }: { docId: string }) => {
+    return await exportService.exportClinicalDocumentPdf(docId)
+  })
+
+  createHandler('clinical-documents:export-doc', async ({ docId }: { docId: string }) => {
+    return await exportService.exportClinicalDocumentDoc(docId)
+  })
 }

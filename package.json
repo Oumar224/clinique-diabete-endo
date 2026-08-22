@@ -1,6 +1,6 @@
 {
   "name": "cde",
-  "version": "1.1.7",
+  "version": "1.1.13",
   "description": "CDE — Clinique Diabète & Endocrinologie : gestion clinique interne",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "@automerge/automerge": "^3.2.6",
+    "@automerge/automerge-repo": "^2.6.0-subduction.15",
+    "@automerge/automerge-repo-network-websocket": "^2.6.0-subduction.15",
     "@element-plus/icons-vue": "^2.3.0",
     "@iconify-json/bi": "^1.1.0",
     "@iconify-json/carbon": "^1.1.0",
@@ -36,9 +38,11 @@
     "@tiptap/vue-3": "^3.29.0",
     "bcryptjs": "^3.0.3",
     "chart.js": "^4.5.1",
+    "dotenv": "^17.4.2",
     "electron-updater": "^6.8.3",
     "element-plus": "^2.8.0",
     "exceljs": "^4.4.0",
+    "jose": "^6.2.9",
     "kysely": "^0.28.0",
     "nodemailer": "^8.0.11",
     "png-to-ico": "^3.0.1",

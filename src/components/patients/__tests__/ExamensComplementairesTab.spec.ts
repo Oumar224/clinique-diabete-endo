@@ -14,9 +14,20 @@ vi.mock('@/utils/ipc', () => ({
   ipcInvoke: mockIpcInvoke,
 }))
 
+/**
+ * Horodatage UTC sans suffixe désignant l'heure LOCALE `hour` de la date
+ * donnée — miroir de `dateAt()` du spec ResultatsBioView : `buildMatrix`
+ * reparse en UTC puis relit en local, donc la clé de jour est stable quel que
+ * soit le fuseau du runner.
+ */
+function localIso(y: number, m: number, d: number, h: number): string {
+  const dt = new Date(y, m - 1, d, h, 0, 0)
+  return dt.toISOString().slice(0, 19).replace('T', ' ')
+}
+
 const SAMPLE_BIO_RESULTS = [
-  { parameterName: 'HbA1c', parameterUnit: '%', value: '7.2', isNormal: false, requestDate: '2026-01-10' },
-  { parameterName: 'Glycémie', parameterUnit: 'g/L', value: '1.1', isNormal: true, requestDate: '2026-01-10' },
+  { id: 1001, parameterId: 1001, parameterName: 'HbA1c', parameterUnit: '%', value: '7.2', isNormal: false, requestDate: '2026-01-10', filledAt: localIso(2026, 1, 10, 8), parameterInputType: 'numeric', parameterReferenceValues: { min_h: 4, max_h: 6 } },
+  { id: 1002, parameterId: 1002, parameterName: 'Glycémie', parameterUnit: 'g/L', value: '1.1', isNormal: true, requestDate: '2026-01-10', filledAt: localIso(2026, 1, 10, 8), parameterInputType: 'numeric', parameterReferenceValues: { min_h: 0.7, max_h: 1.1 } },
 ]
 
 // ─── Mock RichTextEditor ──────────────────────────────────────────
@@ -139,11 +150,12 @@ describe('ExamensComplementairesTab', () => {
     data?: ExamensComplementairesData
     patientId?: number | null
     fieldMeta?: Record<string, string>
+    readonly?: boolean
   } = {}) {
-    const { data = createDefaultData(), patientId, fieldMeta } = options
+    const { data = createDefaultData(), patientId, fieldMeta, readonly } = options
 
     return mount(ExamensComplementairesTab, {
-      props: { data, patientId, fieldMeta },
+      props: { data, patientId, fieldMeta, readonly },
       global: {
         stubs: EL_STUBS,
       },
@@ -276,6 +288,59 @@ describe('ExamensComplementairesTab', () => {
     expect(data.imagerieTests).toHaveLength(0)
   })
 
+  // ─── 4bis. Sort by date desc (display-only) ────────────────────
+
+  it('displays imagerie cards sorted by date desc (empties last) without reordering data', async () => {
+    const data = createDefaultData({
+      imagerieTests: [
+        { _key: 'k1', date: '2026-01-05', type: 'Scanner', typeLibre: '', resultat: 'Normal' },
+        { _key: 'k2', date: '2026-02-01', type: 'IRM', typeLibre: '', resultat: 'Aucune' },
+        { _key: 'k3', date: '', type: 'ECG de repos', typeLibre: '', resultat: '' },
+      ],
+    })
+    const wrapper = createWrapper({ data })
+    await openSection(wrapper, 0)
+
+    const cards = wrapper.findAll('.examen-card')
+    expect(cards).toHaveLength(3)
+    expect(cards[0].find('input').attributes('value')).toBe('2026-02-01')
+    expect(cards[1].find('input').attributes('value')).toBe('2026-01-05')
+    expect(cards[2].find('input').attributes('value')).toBe('')
+
+    // committed data keeps the INSERTION order (sorting is display-only)
+    await clickEnregistrer(wrapper, 0)
+    expect(data.imagerieTests.map(e => e._key)).toEqual(['k1', 'k2', 'k3'])
+
+    // the FormPreview rows follow the same sorted order with DD/MM/YYYY labels
+    // (the empty-date exam has no resultat value → its row is hidden)
+    const labels = wrapper.findAll('.form-preview')[0]
+      .findAll('.form-preview__label').map(el => el.text())
+    expect(labels).toEqual(['01/02/2026 · IRM', '05/01/2026 · Scanner'])
+  })
+
+  it('removes the correct card when deleting after a sort reorder', async () => {
+    const data = createDefaultData({
+      imagerieTests: [
+        { _key: 'k1', date: '2026-01-05', type: 'Scanner', typeLibre: '', resultat: 'Normal' },
+        { _key: 'k2', date: '2026-02-01', type: 'IRM', typeLibre: '', resultat: 'Aucune' },
+      ],
+    })
+    const wrapper = createWrapper({ data })
+    await openSection(wrapper, 0)
+
+    const cards = wrapper.findAll('.examen-card')
+    expect(cards[0].find('input').attributes('value')).toBe('2026-02-01')
+
+    // delete the FIRST displayed card (the IRM one, k2 in data)
+    await cards[0].find('.el-button').trigger('click')
+
+    expect(wrapper.findAll('.examen-card')).toHaveLength(1)
+    expect(wrapper.findAll('.examen-card')[0].find('input').attributes('value')).toBe('2026-01-05')
+
+    await clickEnregistrer(wrapper, 0)
+    expect(data.imagerieTests.map(e => e._key)).toEqual(['k1'])
+  })
+
   // ─── 5. Fetch disabled without patientId ───────────────────────
 
   it('disables « Récupérer les résultats » when patientId is not provided', async () => {
@@ -316,16 +381,16 @@ describe('ExamensComplementairesTab', () => {
     expect(data.bilanBio.results).toHaveLength(0)
 
     // 1 group header row (results carry no examName → fallback group) + 2 parameter rows
-    const rows = wrapper.findAll('tbody tr')
-    expect(rows).toHaveLength(3)
+    expect(wrapper.findAll('.rb__group-header')).toHaveLength(1)
+    expect(wrapper.findAll('.rb__analyses-name')).toHaveLength(2)
     expect(wrapper.text()).toContain('Examen non précisé')
     expect(wrapper.text()).toContain('HbA1c')
     expect(wrapper.text()).toContain('7.2')
     expect(wrapper.text()).toContain('Glycémie')
     expect(wrapper.text()).toContain('1.1')
-    expect(wrapper.text()).toContain('2026-01-10')
+    expect(wrapper.text()).toContain('10/01/2026')
 
-    const abnormalCell = wrapper.find('.bio-table__abnormal')
+    const abnormalCell = wrapper.find('.rb__cell--abnormal .rb__cell-value')
     expect(abnormalCell.exists()).toBe(true)
     expect(abnormalCell.text()).toBe('7.2')
 
@@ -350,14 +415,15 @@ describe('ExamensComplementairesTab', () => {
     const wrapper = createWrapper({ data })
     await openSection(wrapper, 1)
     // 1 group header row + 1 parameter row
-    expect(wrapper.findAll('tbody tr')).toHaveLength(2)
+    expect(wrapper.findAll('.rb__group-header')).toHaveLength(1)
+    expect(wrapper.findAll('.rb__analyses-name')).toHaveLength(1)
 
     const clearBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Effacer'))
     expect(clearBtn).toBeDefined()
     await clearBtn!.trigger('click')
 
     // cleared in the draft; data is untouched until Enregistrer
-    expect(wrapper.find('.bio-table__empty').exists()).toBe(true)
+    expect(wrapper.find('.rb__empty-row').exists()).toBe(true)
     expect(data.bilanBio.results).toHaveLength(1)
 
     await clickEnregistrer(wrapper, 1)
@@ -374,9 +440,12 @@ describe('ExamensComplementairesTab', () => {
         dateFrom: '2026-01-01',
         dateTo: '2026-01-31',
         results: [{
+          id: 2001,
+          parameterId: 2001,
           parameterName: 'Créatinine',
           value: '85',
           parameterUnit: 'µmol/L',
+          parameterInputType: 'numeric',
           parameterReferenceValues: { min: 3.5, max: 6.5 },
           requestDate: '2026-01-10',
         }],
@@ -396,9 +465,9 @@ describe('ExamensComplementairesTab', () => {
         dateFrom: '2026-01-01',
         dateTo: '2026-01-31',
         results: [
-          { parameterName: 'HbA1c', parameterUnit: '%', value: '7.2', isNormal: false, requestDate: '2026-01-10', examName: 'Bilan glycémique' },
-          { parameterName: 'Glycémie', parameterUnit: 'g/L', value: '1.1', isNormal: true, requestDate: '2026-01-10', examName: 'Bilan glycémique' },
-          { parameterName: 'Créatinine', parameterUnit: 'µmol/L', value: '85', isNormal: true, requestDate: '2026-01-10', examName: 'Bilan rénal' },
+          { id: 1, parameterId: 3001, parameterName: 'HbA1c', parameterUnit: '%', value: '7.2', isNormal: false, requestDate: '2026-01-10', examName: 'Bilan glycémique' },
+          { id: 2, parameterId: 3002, parameterName: 'Glycémie', parameterUnit: 'g/L', value: '1.1', isNormal: true, requestDate: '2026-01-10', examName: 'Bilan glycémique' },
+          { id: 3, parameterId: 3003, parameterName: 'Créatinine', parameterUnit: 'µmol/L', value: '85', isNormal: true, requestDate: '2026-01-10', examName: 'Bilan rénal' },
         ],
       },
     })
@@ -430,8 +499,8 @@ describe('ExamensComplementairesTab', () => {
         dateFrom: '',
         dateTo: '',
         results: [
-          { parameterName: 'HbA1c', parameterUnit: '%', value: '7.2', requestDate: '2026-01-10' },
-          { parameterName: 'Créatinine', parameterUnit: 'µmol/L', value: '85', requestDate: '2026-01-10', examName: '' },
+          { id: 1, parameterId: 4001, parameterName: 'HbA1c', parameterUnit: '%', value: '7.2', requestDate: '2026-01-10' },
+          { id: 2, parameterId: 4002, parameterName: 'Créatinine', parameterUnit: 'µmol/L', value: '85', requestDate: '2026-01-10', examName: '' },
         ],
       },
     })
@@ -453,27 +522,28 @@ describe('ExamensComplementairesTab', () => {
         dateFrom: '',
         dateTo: '',
         results: [
-          { parameterName: 'HbA1c', parameterUnit: '%', value: '7.2', requestDate: '2026-01-10', examName: 'Bilan glycémique' },
-          { parameterName: 'Créatinine', parameterUnit: 'µmol/L', value: '85', requestDate: '2026-01-10', examName: 'Bilan rénal' },
-          { parameterName: 'Glycémie', parameterUnit: 'g/L', value: '1.1', requestDate: '2026-01-10', examName: 'Bilan glycémique' },
+          { id: 1, parameterId: 5001, parameterName: 'HbA1c', parameterUnit: '%', value: '7.2', requestDate: '2026-01-10', examName: 'Bilan glycémique' },
+          { id: 2, parameterId: 5002, parameterName: 'Créatinine', parameterUnit: 'µmol/L', value: '85', requestDate: '2026-01-10', examName: 'Bilan rénal' },
+          { id: 3, parameterId: 5003, parameterName: 'Glycémie', parameterUnit: 'g/L', value: '1.1', requestDate: '2026-01-10', examName: 'Bilan glycémique' },
         ],
       },
     })
     const wrapper = createWrapper({ data })
     await openSection(wrapper, 1)
 
-    const rows = wrapper.findAll('tbody tr')
-    const creatinineRow = rows.find(r => r.text().includes('Créatinine'))
-    expect(creatinineRow).toBeDefined()
-    const removeBtn = creatinineRow!.find('.el-button')
+    const analyses = wrapper.findAll('.rb__analyses-cell')
+    const creatinineIdx = analyses.findIndex(c => c.text().includes('Créatinine'))
+    expect(creatinineIdx).toBeGreaterThanOrEqual(0)
+    const removeBtn = wrapper.findAll('.rb__delete-cell')[creatinineIdx].find('.el-button')
     expect(removeBtn.exists()).toBe(true)
     await removeBtn.trigger('click')
 
     // removed from the draft; data is untouched until Enregistrer
     expect(data.bilanBio.results).toHaveLength(3)
-    const tableText = wrapper.find('.bio-table-wrap').text()
-    expect(tableText).not.toContain('Créatinine')
-    expect(tableText).toContain('Bilan glycémique')
+    const gridText = wrapper.find('.rb__grid').text()
+    expect(gridText).not.toContain('Créatinine')
+    expect(gridText).not.toContain('Bilan rénal')
+    expect(gridText).toContain('Bilan glycémique')
 
     await clickEnregistrer(wrapper, 1)
     // the flat results array is spliced at the correct index (grouping is display-only)
@@ -539,7 +609,7 @@ describe('ExamensComplementairesTab', () => {
 
       const btn = row!.find('.form-preview__edit')
       expect(btn.exists()).toBe(true)
-      expect(btn.attributes('aria-label')).toBe('Modifier 2026-01-05 · Scanner')
+      expect(btn.attributes('aria-label')).toBe('Modifier 05/01/2026 · Scanner')
     })
 
     it('re-opens the collapsed section and scrolls to it when Modifier is clicked', async () => {
@@ -579,6 +649,74 @@ describe('ExamensComplementairesTab', () => {
         .find(r => r.text().includes('Scanner'))
       expect(row).toBeDefined()
       expect(row!.find('.form-preview__updated').text()).toBe('Non modifié')
+    })
+  })
+
+  // ─── 11. Per-line edit from preview focuses the card ───────────────
+
+  it('opens the section and renders the matching card when Modifier is clicked on a preview row', async () => {
+    const data = createDefaultData({
+      imagerieTests: [
+        { _key: 'k-a', date: '2026-01-05', type: 'Scanner', typeLibre: '', resultat: 'Normal' },
+        { _key: 'k-b', date: '2026-02-01', type: 'IRM', typeLibre: '', resultat: 'Aucune' },
+      ],
+    })
+    const wrapper = createWrapper({ data })
+
+    const row = wrapper.findAll('.form-preview')[0].findAll('.form-preview__row')
+      .find(r => r.text().includes('IRM'))!
+    await row.find('.form-preview__edit').trigger('click')
+    await nextTick()
+
+    const body = sectionBodies(wrapper)[0]
+    expect(body.attributes('style') ?? '').not.toContain('display: none')
+    const cards = wrapper.findAll('.examen-card')
+    expect(cards.some(c => c.attributes('data-exam-key') === 'k-b')).toBe(true)
+    expect(cards.some(c => c.attributes('data-exam-key') === 'k-a')).toBe(true)
+  })
+
+  // ─── 12. Prefill imagerie from realized exam requests ──────────────
+
+  describe('pré-remplissage imagerie (demandes réalisées)', () => {
+    it('pré-remplit les examens d\'imagerie réalisés au montage et émet change', async () => {
+      mockIpcInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'exam-request:list') {
+          return [
+            { id: 1, patientId: 42, type: 'imagerie', statut: 'realise', plannedDate: '2026-07-20', examenLabel: 'Scanner' },
+            { id: 2, patientId: 42, type: 'imagerie', statut: 'en_attente', plannedDate: '2026-07-25', examenLabel: 'IRM' },
+            { id: 3, patientId: 42, type: 'avis', statut: 'realise', plannedDate: '2026-07-21', examenLabel: 'Cardio' },
+            { id: 4, patientId: 42, type: 'imagerie', statut: 'realise', plannedDate: '2026-07-22', examenLabel: 'Échographie rénale' },
+          ]
+        }
+        return []
+      })
+      const data = createDefaultData()
+      const wrapper = createWrapper({ data, patientId: 42 })
+      await flushPromises()
+
+      expect(data.imagerieTests).toHaveLength(2)
+      expect(data.imagerieTests[0]).toMatchObject({ type: 'Scanner', date: '2026-07-20', typeLibre: '', resultat: '' })
+      expect(data.imagerieTests[1]).toMatchObject({ type: '__autre__', date: '2026-07-22', typeLibre: 'Échographie rénale' })
+      expect(wrapper.emitted('change')).toBeTruthy()
+    })
+
+    it('ne pré-remplit pas quand des examens existent déjà', async () => {
+      const data = createDefaultData({
+        imagerieTests: [{ _key: 'k1', date: '', type: '', typeLibre: '', resultat: '' }],
+      })
+      const wrapper = createWrapper({ data, patientId: 42 })
+      await flushPromises()
+
+      expect(data.imagerieTests).toHaveLength(1)
+      expect(wrapper.emitted('change')).toBeFalsy()
+    })
+
+    it('ne pré-remplit pas en lecture seule', async () => {
+      const data = createDefaultData()
+      createWrapper({ data, patientId: 42, readonly: true })
+      await flushPromises()
+
+      expect(data.imagerieTests).toHaveLength(0)
     })
   })
 })

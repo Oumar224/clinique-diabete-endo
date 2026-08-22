@@ -75,6 +75,11 @@ const EL_STUBS: Record<string, any> = {
     props: ['modelValue', 'placeholder'],
     emits: ['update:modelValue'],
   },
+  'el-checkbox': {
+    template: '<label class="el-checkbox"><input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" /><slot /></label>',
+    props: ['modelValue'],
+    emits: ['update:modelValue', 'change'],
+  },
   'el-button': {
     template: '<button class="el-button" :text="text" :type="type" :disabled="disabled" @click="$emit(\'click\', $event)"><slot /></button>',
     props: ['text', 'type', 'size', 'disabled'],
@@ -108,6 +113,9 @@ describe('SortieTab', () => {
     return {
       dateSortie: '2025-01-15',
       destinationSortie: 'Retour domicile',
+      infoPatientFamille: false,
+      produitsSanguins: false,
+      bmrBhre: false,
       conclusionSortie: '',
       rdvSuivi: [],
       ...overrides,
@@ -164,6 +172,72 @@ describe('SortieTab', () => {
       for (const body of sectionBodies(wrapper)) {
         expect(body.attributes('style') ?? '').toContain('display: none')
       }
+    })
+  })
+
+  // ─── Clôture Administrative — événements réglementaires ───────────
+
+  describe('Clôture Administrative – réglementaires', () => {
+    it('renders the 3 réglementaires checkboxes when the section is opened', async () => {
+      const wrapper = createWrapper()
+      await openSection(wrapper, 0)
+      const checkboxes = wrapper.findAll('.el-checkbox')
+      expect(checkboxes).toHaveLength(3)
+      expect(checkboxes.map(c => c.text())).toEqual(['Oui', 'Oui', 'Oui'])
+      const labels = wrapper.findAll('.el-form-item label').map(el => el.text())
+      expect(labels).toContain('Information du patient / famille')
+      expect(labels).toContain('Administration de produits sanguins')
+      expect(labels).toContain('Porteur / Contact BMR ou BHRe')
+      const items = wrapper.findAll('.el-form-item')
+      expect(items.some(i => i.attributes('data-history-path') === 'sortie.infoPatientFamille')).toBe(true)
+      expect(items.some(i => i.attributes('data-history-path') === 'sortie.produitsSanguins')).toBe(true)
+      expect(items.some(i => i.attributes('data-history-path') === 'sortie.bmrBhre')).toBe(true)
+    })
+
+    it('keeps edits in the draft until Enregistrer (checked checkbox → no preview row yet)', async () => {
+      const wrapper = createWrapper()
+      await openSection(wrapper, 0)
+      await wrapper.find('.el-checkbox input').setValue(true)
+      await nextTick()
+      // The value is only in the draft — the preview still reads the committed data
+      const rows = wrapper.findAll('.form-preview__row')
+      const infoRow = rows.find(r => r.text().includes('Information du patient / famille'))
+      expect(infoRow).toBeUndefined()
+    })
+
+    it('commits the draft and shows "Oui" in the preview on Enregistrer', async () => {
+      const wrapper = createWrapper()
+      await openSection(wrapper, 0)
+      await wrapper.find('.el-checkbox input').setValue(true)
+      await nextTick()
+      const saveBtn = sectionBodies(wrapper)[0].findAll('.staged-section__footer .el-button')[0]
+      await saveBtn.trigger('click')
+      await nextTick()
+      const rows = wrapper.findAll('.form-preview__row')
+      const infoRow = rows.find(r => r.text().includes('Information du patient / famille'))
+      expect(infoRow).toBeDefined()
+      expect(infoRow!.text()).toContain('Oui')
+      expect(infoRow!.text()).not.toContain('Non')
+    })
+
+    it('hides preview rows for unchecked réglementaires booleans', () => {
+      const wrapper = createWrapper({
+        data: createDefaultData({
+          infoPatientFamille: true,
+          produitsSanguins: false,
+          bmrBhre: true,
+        }),
+      })
+      const rows = wrapper.findAll('.form-preview__row')
+      const infoRow = rows.find(r => r.text().includes('Information du patient / famille'))
+      expect(infoRow).toBeDefined()
+      expect(infoRow!.text()).toContain('Oui')
+      const bmrRow = rows.find(r => r.text().includes('Porteur / Contact BMR ou BHRe'))
+      expect(bmrRow).toBeDefined()
+      expect(bmrRow!.text()).toContain('Oui')
+      // Unchecked booleans render no row at all
+      const sanguinsRow = rows.find(r => r.text().includes('Administration de produits sanguins'))
+      expect(sanguinsRow).toBeUndefined()
     })
   })
 
@@ -240,6 +314,29 @@ describe('SortieTab', () => {
     })
   })
 
+  // ─── FormPreview ─────────────────────────────────────────────────
+
+  describe('FormPreview', () => {
+    it('shows a formatted DD/MM/YYYY value for "Date de sortie"', () => {
+      const wrapper = createWrapper({
+        data: createDefaultData({ dateSortie: '2025-06-01' }),
+      })
+      const rows = wrapper.findAll('.form-preview__row')
+      const dateRow = rows.find(r => r.text().includes('Date de sortie'))
+      expect(dateRow).toBeDefined()
+      expect(dateRow!.text()).toContain('01/06/2025')
+    })
+
+    it('renders no "Date de sortie" row when dateSortie is empty', () => {
+      const wrapper = createWrapper({
+        data: createDefaultData({ dateSortie: '' }),
+      })
+      const rows = wrapper.findAll('.form-preview__row')
+      const dateRow = rows.find(r => r.text().includes('Date de sortie'))
+      expect(dateRow).toBeUndefined()
+    })
+  })
+
   // ─── Field meta (dernière modification) ───────────────────────────
 
   describe('field meta (dernière modification)', () => {
@@ -304,6 +401,59 @@ describe('SortieTab', () => {
 
       const row = wrapper.findAll('.form-preview__row')
         .find(r => r.text().includes('Date de sortie'))
+      expect(row).toBeDefined()
+      expect(row!.find('.form-preview__updated').text()).toBe('Non modifié')
+    })
+
+    it('renders "Modifié le" with a formatted date and a Modifier button for sortie.infoPatientFamille', () => {
+      const wrapper = createWrapper({
+        data: createDefaultData({ infoPatientFamille: true }),
+        fieldMeta: { 'sortie.infoPatientFamille': '2026-06-15T10:30:00.000Z' },
+      })
+
+      const row = wrapper.findAll('.form-preview__row')
+        .find(r => r.text().includes('Information du patient / famille'))
+      expect(row).toBeDefined()
+
+      expect(row!.find('.form-preview__updated').text())
+        .toMatch(/^Modifié le \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/)
+
+      const btn = row!.find('.form-preview__edit')
+      expect(btn.exists()).toBe(true)
+      expect(btn.attributes('aria-label')).toBe('Modifier Information du patient / famille')
+    })
+
+    it('re-opens the Clôture Administrative section and scrolls to it when Modifier is clicked for infoPatientFamille', async () => {
+      const wrapper = createWrapper({
+        data: createDefaultData({ infoPatientFamille: true }),
+        fieldMeta: { 'sortie.infoPatientFamille': '2026-06-15T10:30:00.000Z' },
+      })
+
+      const body = sectionBodies(wrapper)[0]
+
+      // Prove the section is collapsed BEFORE the click
+      expect(body.attributes('style') ?? '').toContain('display: none')
+
+      // The first preview (Clôture Administrative) holds the infoPatientFamille row
+      const btn = wrapper.findAll('.form-preview')[0]
+        .find('.form-preview__row .form-preview__edit')
+      expect(btn.exists()).toBe(true)
+      await btn.trigger('click')
+      await nextTick()
+
+      // openSection() re-opened the section and scrolled to it
+      expect(body.attributes('style') ?? '').not.toContain('display: none')
+      expect(scrollSpy).toHaveBeenCalled()
+    })
+
+    it('renders "Non modifié" for sortie.infoPatientFamille when fieldMeta is empty', () => {
+      const wrapper = createWrapper({
+        data: createDefaultData({ infoPatientFamille: true }),
+        fieldMeta: {},
+      })
+
+      const row = wrapper.findAll('.form-preview__row')
+        .find(r => r.text().includes('Information du patient / famille'))
       expect(row).toBeDefined()
       expect(row!.find('.form-preview__updated').text()).toBe('Non modifié')
     })

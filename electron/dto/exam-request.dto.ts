@@ -11,6 +11,9 @@ export interface ExamRequestDto {
   plannedDate?: string
   motif?: string
   statut?: 'en_attente' | 'en_cours' | 'realise' | 'annule'
+  validatedAt?: string
+  realizedAt?: string
+  resultat?: string
   prescripteurId?: number
   createdBy?: number
   createdAt?: string

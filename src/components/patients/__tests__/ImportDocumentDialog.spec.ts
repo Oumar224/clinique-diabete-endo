@@ -18,6 +18,23 @@ vi.mock('@element-plus/icons-vue', () => ({
   Delete: { name: 'Delete', template: '<span />' },
 }))
 
+// ─── Mock useSites (WS3: optional site selector) ────────────────────
+// Expose a __setMockSites helper so tests can control the sites ref.
+
+vi.mock('@/composables/useSites', async () => {
+  const { ref } = await import('vue')
+  const sites = ref<Array<{ id?: number; name: string }>>([])
+  return {
+    useSites: () => ({
+      sites,
+      fetchSites: vi.fn(async () => {}),
+    }),
+    __setMockSites: (list: Array<{ id?: number; name: string }>) => {
+      sites.value = list
+    },
+  }
+})
+
 // ─── Stubs for all Element Plus components ─────────────────────────
 
 const EL_STUBS: Record<string, any> = {
@@ -46,7 +63,7 @@ const EL_STUBS: Record<string, any> = {
         <slot />
       </div>
     `,
-    props: ['modelValue', 'placeholder', 'disabled', 'filterable', 'style'],
+    props: ['modelValue', 'placeholder', 'disabled', 'filterable', 'clearable', 'style'],
     emits: ['update:modelValue'],
   },
   'el-option': {
@@ -75,6 +92,10 @@ const EL_STUBS: Record<string, any> = {
 }
 
 import ImportDocumentDialog from '../ImportDocumentDialog.vue'
+
+// Helper exposed by the vi.mock('@/composables/useSites') factory above.
+import * as sitesModule from '@/composables/useSites'
+const __setMockSites = (sitesModule as any).__setMockSites as (list: Array<{ id?: number; name: string }>) => void
 
 // ─── Test fixtures ─────────────────────────────────────────────────
 
@@ -105,6 +126,7 @@ const documentTypes: ClinicalDocumentTypeDTO[] = [
 describe('ImportDocumentDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    __setMockSites([])
     // Mock alert for file validation tests
     vi.spyOn(window, 'alert').mockImplementation(() => {})
   })
@@ -161,6 +183,72 @@ describe('ImportDocumentDialog', () => {
     })
 
 
+  })
+
+  // ─── Optional site selector (WS3) ────────────────────────────────
+
+  describe('optional site selector', () => {
+    it('renders the "Site (optionnel)" field and site options when sites are available', () => {
+      __setMockSites([
+        { id: 1, name: 'Site principal' },
+        { id: 2, name: 'Clinique Nord' },
+      ])
+      const wrapper = createWrapper()
+
+      // Two selects: document type + site
+      expect(wrapper.findAll('.el-select')).toHaveLength(2)
+      expect(wrapper.text()).toContain('Site (optionnel)')
+      expect(wrapper.text()).toContain('Site principal')
+      expect(wrapper.text()).toContain('Clinique Nord')
+    })
+
+    it('does not render any site option when the sites list is empty', () => {
+      const wrapper = createWrapper()
+
+      expect(wrapper.findAll('.el-select')).toHaveLength(2)
+      expect(wrapper.text()).toContain('Site (optionnel)')
+      expect(wrapper.text()).not.toContain('Site principal')
+    })
+
+    it('includes siteId in the emitted import payload when a site is chosen', async () => {
+      __setMockSites([{ id: 1, name: 'Site principal' }])
+      const wrapper = createWrapper()
+
+      const vm = wrapper.vm as any
+      vm.selectedTypeId = CONSULT_TYPE_ID
+      vm.selectedSiteId = 1
+
+      const dropzone = wrapper.find('.import-dialog__dropzone')
+      const file = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+      await dropzone.trigger('drop', { dataTransfer: { files: [file] } })
+      await wrapper.vm.$nextTick()
+
+      const importBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Importer'))
+      await importBtn!.trigger('click')
+
+      expect(wrapper.emitted('import')).toBeDefined()
+      const emitted = wrapper.emitted('import')![0][0] as any
+      expect(emitted.siteId).toBe(1)
+    })
+
+    it('leaves siteId undefined in the payload when no site is chosen', async () => {
+      __setMockSites([{ id: 1, name: 'Site principal' }])
+      const wrapper = createWrapper()
+
+      const vm = wrapper.vm as any
+      vm.selectedTypeId = CONSULT_TYPE_ID
+
+      const dropzone = wrapper.find('.import-dialog__dropzone')
+      const file = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+      await dropzone.trigger('drop', { dataTransfer: { files: [file] } })
+      await wrapper.vm.$nextTick()
+
+      const importBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Importer'))
+      await importBtn!.trigger('click')
+
+      const emitted = wrapper.emitted('import')![0][0] as any
+      expect(emitted.siteId).toBeUndefined()
+    })
   })
 
   // ─── Disabled state ───────────────────────────────────────────────

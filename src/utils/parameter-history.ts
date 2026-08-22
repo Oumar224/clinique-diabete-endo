@@ -99,13 +99,12 @@ export const PARAMETER_META: Record<string, ParameterMeta> = {
   'bilanInitial.examenPhysique.poids': { label: 'Poids (kg)' },
   'bilanInitial.examenPhysique.taille': { label: 'Taille (cm)' },
   'bilanInitial.examenPhysique.imc': { label: 'IMC (kg/m²)', extract: imcExtract },
-  // Évolution
-  'evolutionMedicale.infoPatientFamille': { label: 'Information du patient / famille', format: booleanFormat },
-  'evolutionMedicale.produitsSanguins': { label: 'Administration de produits sanguins', format: booleanFormat },
-  'evolutionMedicale.bmrBhre': { label: 'Porteur / Contact BMR ou BHRe', format: booleanFormat },
   // Sortie
   'sortie.dateSortie': { label: 'Date de sortie', format: dateFormat },
   'sortie.destinationSortie': { label: 'Destination de sortie' },
+  'sortie.infoPatientFamille': { label: 'Information du patient / famille', format: booleanFormat },
+  'sortie.produitsSanguins': { label: 'Administration de produits sanguins', format: booleanFormat },
+  'sortie.bmrBhre': { label: 'Porteur / Contact BMR ou BHRe', format: booleanFormat },
   'sortie.conclusionSortie': { label: 'Conclusion de sortie' },
 }
 

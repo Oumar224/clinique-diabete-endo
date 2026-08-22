@@ -42,6 +42,22 @@
           />
         </el-select>
       </el-form-item>
+      <el-form-item label="Site (optionnel)">
+        <el-select
+          v-model="selectedSiteId"
+          placeholder="Aucun site sélectionné"
+          clearable
+          style="width: 100%"
+          :disabled="disabled"
+        >
+          <el-option
+            v-for="site in selectableSites"
+            :key="site.id"
+            :label="site.name"
+            :value="site.id"
+          />
+        </el-select>
+      </el-form-item>
     </el-form>
 
     <!-- Drop Zone -->
@@ -135,9 +151,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { UploadFilled, Document, Delete } from '@element-plus/icons-vue'
 import type { ClinicalDocumentTypeDTO } from '@/composables/useClinicalDocuments'
+import { useSites } from '@/composables/useSites'
 
 const props = defineProps<{
   visible: boolean
@@ -147,12 +164,15 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
-  import: [data: { file: File; documentTypeId: string; title: string }]
+  import: [data: { file: File; documentTypeId: string; title: string; siteId?: number }]
 }>()
+
+const { sites, fetchSites } = useSites()
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
 const selectedTypeId = ref<string>('')
+const selectedSiteId = ref<number | undefined>(undefined)
 const selectedFile = ref<File | null>(null)
 const previewUrl = ref<string | null>(null)
 const isDragOver = ref(false)
@@ -191,6 +211,14 @@ const fileExtension = computed(() => {
 const canImport = computed(() => {
   return !!selectedFile.value && !!selectedTypeId.value
 })
+
+const selectableSites = computed(() => {
+  // `sites` peut être null lorsque l'IPC `sites:list` renvoie une donnée
+  // vide (ou en environnement de test) : on neutralise avant de filtrer.
+  return (sites.value ?? []).filter((s): s is typeof s & { id: number } => s.id != null)
+})
+
+onMounted(fetchSites)
 
 // ─── Category color (matches ClinicalDocList.vue) ────────────────────────────
 
@@ -335,6 +363,7 @@ function onClosed(): void {
 
 function resetState(): void {
   selectedTypeId.value = ''
+  selectedSiteId.value = undefined
   selectedFile.value = null
   cleanupPreview()
   isDragOver.value = false
@@ -350,6 +379,7 @@ function onImport(): void {
       file: selectedFile.value,
       documentTypeId: selectedTypeId.value,
       title: selectedType?.label || selectedFile.value.name,
+      siteId: selectedSiteId.value,
     })
     emit('update:visible', false)
   } finally {

@@ -429,7 +429,7 @@ describe('AdmissionTab', () => {
       const sejourRows = sejourPreview.findAll('.form-preview__row')
       const dateRow = sejourRows.find(r => r.text().includes("Date d'entrée"))
       expect(dateRow).toBeDefined()
-      expect(dateRow!.text()).toContain('2025-01-15')
+      expect(dateRow!.text()).toContain('15/01/2025')
       expect(sejourPreview.find('.el-empty').exists()).toBe(false)
 
       const motifPreview = previews[1]
@@ -450,7 +450,7 @@ describe('AdmissionTab', () => {
       const rows = wrapper.findAll('.form-preview__row')
       const dateRow = rows.find(r => r.text().includes("Date d'entrée"))
       expect(dateRow).toBeDefined()
-      expect(dateRow!.text()).toContain('2025-06-01')
+      expect(dateRow!.text()).toContain('01/06/2025')
     })
 
     it('does not update the preview before Enregistrer is clicked', async () => {
@@ -461,7 +461,7 @@ describe('AdmissionTab', () => {
       const rows = wrapper.findAll('.form-preview__row')
       const dateRow = rows.find(r => r.text().includes("Date d'entrée"))
       expect(dateRow).toBeDefined()
-      expect(dateRow!.text()).toContain('2025-01-15')
+      expect(dateRow!.text()).toContain('15/01/2025')
     })
 
     it('shows the motif value in the preview once motifHospitalisation is filled', async () => {
@@ -509,7 +509,7 @@ describe('AdmissionTab', () => {
       const after = sejourPreview().findAll('.form-preview__row')
         .filter(r => r.text().includes("Date d'entrée"))
       expect(after).toHaveLength(1)
-      expect(after[0].text()).toContain('2025-06-01')
+      expect(after[0].text()).toContain('01/06/2025')
     })
   })
 

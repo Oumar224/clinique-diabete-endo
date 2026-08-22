@@ -41,6 +41,7 @@ export function useAuth() {
         mustChangePassword.value = !!result.data.mustChangePassword
 
         if (token.value) localStorage.setItem('cde_token', token.value)
+        await startRemoteSync()
         if (result.data.mustChangePassword) {
           router.push('/validate-password')
         } else {
@@ -101,11 +102,28 @@ export function useAuth() {
     }
   }
 
-  function logout() {
+  async function startRemoteSync(): Promise<void> {
+    if (!window.electronAPI || !user.value) return
+    try {
+      await window.electronAPI.invoke('sync:configure-session', { userId: user.value.id, role: user.value.role })
+      await window.electronAPI.invoke('sync:start')
+    } catch (error) {
+      console.warn('[Sync] Remote sync startup failed:', error)
+    }
+  }
+
+  async function logout() {
     user.value = null
     token.value = null
     mustChangePassword.value = false
     localStorage.removeItem('cde_token')
+    if (window.electronAPI) {
+      try {
+        await window.electronAPI.invoke('sync:stop')
+      } catch {
+        // Sync stop is best-effort; never break logout on failure
+      }
+    }
     router.push('/')
   }
 
@@ -123,6 +141,7 @@ export function useAuth() {
           user.value = result.data
           token.value = savedToken
           mustChangePassword.value = result.data.is_validated !== true
+          await startRemoteSync()
           return true
         }
       } catch {
@@ -137,6 +156,7 @@ export function useAuth() {
     try {
       await window.electronAPI.invoke('session:update-activity', { token: token.value })
     } catch {
+      // Activity refresh is best-effort; never break on failure
     }
   }
 

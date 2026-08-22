@@ -14,13 +14,6 @@
           </template>
         </el-table-column>
         <el-table-column prop="documentLabel" label="Document" min-width="170" show-overflow-tooltip />
-        <el-table-column label="Statut" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'signed' ? 'success' : 'warning'" size="small" effect="plain">
-              {{ row.status === 'signed' ? 'Signé' : 'Brouillon' }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column label="Valeur" min-width="140">
           <template #default="{ row }">
             <span class="parameter-history-dialog__value">{{ displayValue(row.value) }}</span>

@@ -28,6 +28,17 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     )
   `.execute(db)
 
+  // Add parent_id to pre-existing lab_exams tables created before the hierarchy
+  // column existed (CREATE TABLE IF NOT EXISTS is a no-op in that case).
+  const labExamColumns = await sql<{ name: string }>`
+    SELECT name FROM pragma_table_info('lab_exams')
+  `.execute(db)
+  const labExamCols = labExamColumns.rows.map(r => r.name)
+
+  if (!labExamCols.includes('parent_id')) {
+    await sql`ALTER TABLE lab_exams ADD COLUMN parent_id INTEGER REFERENCES lab_exams(id)`.execute(db)
+  }
+
   // ─── Categories ──────────────────────────────────────────────
   // Only imagerie and laboratoire (remove avis)
   await sql`DELETE FROM lab_exams`.execute(db)

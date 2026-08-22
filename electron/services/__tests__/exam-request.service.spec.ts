@@ -442,4 +442,199 @@ describe('ExamRequestService', () => {
     expect(result.patient_id).toBe(patientId)
     expect(result.prescripteur_id).toBeNull()
   })
+
+  // ─── Realize (mark as done + store result) ───────────────────────
+
+  it('should realize an exam request (statut = realise, realized_at, resultat)', async () => {
+    const service = container.resolve(ExamRequestService)
+    const patientId = await createTestPatient()
+
+    const created = await service.create(ExamRequestEntity.fromDto({
+      patientId,
+      type: 'laboratoire',
+      statut: 'en_attente',
+      motif: 'Bilan',
+    }))
+
+    const before = new Date()
+    const realized = await service.realize(ExamRequestEntity.fromDto({
+      id: created.id,
+      patientId,
+      type: 'laboratoire',
+      resultat: '<p>Résultat normal</p>',
+    }))
+
+    expect(realized.statut).toBe('realise')
+    expect(realized.resultat).toBe('<p>Résultat normal</p>')
+    expect(realized.realized_at).toBeDefined()
+    const realizedAt = new Date(realized.realized_at!)
+    expect(realizedAt.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000)
+    // DTO exposes the realizedAt as ISO string
+    expect(ExamRequestEntity.toDto(realized).realizedAt).toBe(realized.realized_at)
+  })
+
+  it('should throw on realize when the id is missing', async () => {
+    const service = container.resolve(ExamRequestService)
+    await expect(
+      service.realize(ExamRequestEntity.fromDto({ patientId: 1, type: 'laboratoire' }))
+    ).rejects.toThrow("L'identifiant est requis")
+  })
+
+  it('should throw on realize when the request does not exist', async () => {
+    const service = container.resolve(ExamRequestService)
+    await expect(
+      service.realize(ExamRequestEntity.fromDto({ id: 99999, patientId: 1, type: 'laboratoire' }))
+    ).rejects.toThrow('Demande introuvable')
+  })
+
+  // ─── Attachments ─────────────────────────────────────────────────
+
+  it('should create an attachment with base64 data and list it', async () => {
+    const service = container.resolve(ExamRequestService)
+    const patientId = await createTestPatient()
+    const created = await service.create(ExamRequestEntity.fromDto({
+      patientId,
+      type: 'avis',
+      statut: 'en_attente',
+    }))
+
+    const dto = {
+      exam_request_id: created.id!,
+      display_name: 'CR.pdf',
+      file_name: 'CR.pdf',
+      mime_type: 'application/pdf',
+      file_size: 5,
+      file_data: 'data:application/pdf;base64,aGVsbG8=',
+      description: 'Compte-rendu',
+    }
+    const attachment = await service.createAttachment(dto)
+
+    expect(attachment.id).toBeDefined()
+    expect(attachment.exam_request_id).toBe(created.id)
+    expect(attachment.display_name).toBe('CR.pdf')
+    expect(attachment.mime_type).toBe('application/pdf')
+
+    const list = await service.listAttachments(created.id!)
+    expect(list).toHaveLength(1)
+    expect(list[0].id).toBe(attachment.id)
+    expect(list[0].file_data).toBeUndefined() // list does not return blob data
+  })
+
+  it('should reject an attachment with a non-base64 data URI', async () => {
+    const service = container.resolve(ExamRequestService)
+    const patientId = await createTestPatient()
+    const created = await service.create(ExamRequestEntity.fromDto({
+      patientId,
+      type: 'avis',
+      statut: 'en_attente',
+    }))
+
+    await expect(
+      service.createAttachment({
+        exam_request_id: created.id!,
+        display_name: 'bad.txt',
+        file_name: 'bad.txt',
+        file_data: 'not-a-data-uri',
+      })
+    ).rejects.toThrow('Format de fichier invalide')
+  })
+
+  it('should reject an attachment whose file_size exceeds 10 Mo', async () => {
+    const service = container.resolve(ExamRequestService)
+    const patientId = await createTestPatient()
+    const created = await service.create(ExamRequestEntity.fromDto({
+      patientId,
+      type: 'avis',
+      statut: 'en_attente',
+    }))
+
+    await expect(
+      service.createAttachment({
+        exam_request_id: created.id!,
+        display_name: 'huge.pdf',
+        file_name: 'huge.pdf',
+        file_size: 11 * 1024 * 1024,
+        file_data: 'data:application/pdf;base64,aGVsbG8=',
+      })
+    ).rejects.toThrow('La taille du fichier ne doit pas dépasser 10 Mo')
+  })
+
+  it('should reject an attachment with a decoded payload above 10 Mo', async () => {
+    const service = container.resolve(ExamRequestService)
+    const patientId = await createTestPatient()
+    const created = await service.create(ExamRequestEntity.fromDto({
+      patientId,
+      type: 'avis',
+      statut: 'en_attente',
+    }))
+
+    // 14 Mo of base64 decodes to ~10.5 Mo — above the 10 Mo decoded limit
+    // (decoded size ≈ 3/4 of the base64 length)
+    const huge = 'A'.repeat(14 * 1024 * 1024)
+    await expect(
+      service.createAttachment({
+        exam_request_id: created.id!,
+        display_name: 'huge.pdf',
+        file_name: 'huge.pdf',
+        file_data: `data:application/pdf;base64,${huge}`,
+      })
+    ).rejects.toThrow('La taille du fichier décodé ne doit pas dépasser 10 Mo')
+  })
+
+  it('should reject an attachment for a non-existent exam request', async () => {
+    const service = container.resolve(ExamRequestService)
+    await expect(
+      service.createAttachment({
+        exam_request_id: 99999,
+        display_name: 'x.pdf',
+        file_name: 'x.pdf',
+        file_data: 'data:application/pdf;base64,aGVsbG8=',
+      })
+    ).rejects.toThrow()
+  })
+
+  it('should get an attachment by id and throw when missing', async () => {
+    const service = container.resolve(ExamRequestService)
+    const patientId = await createTestPatient()
+    const created = await service.create(ExamRequestEntity.fromDto({
+      patientId,
+      type: 'avis',
+      statut: 'en_attente',
+    }))
+
+    const attachment = await service.createAttachment({
+      exam_request_id: created.id!,
+      display_name: 'CR.pdf',
+      file_name: 'CR.pdf',
+      file_data: 'data:application/pdf;base64,aGVsbG8=',
+    })
+
+    const found = await service.getAttachmentById(attachment.id!)
+    expect(found.id).toBe(attachment.id)
+    expect(found.display_name).toBe('CR.pdf')
+
+    await expect(service.getAttachmentById(99999)).rejects.toThrow('Pièce jointe introuvable')
+  })
+
+  it('should delete an attachment and reject deleting it twice', async () => {
+    const service = container.resolve(ExamRequestService)
+    const patientId = await createTestPatient()
+    const created = await service.create(ExamRequestEntity.fromDto({
+      patientId,
+      type: 'avis',
+      statut: 'en_attente',
+    }))
+
+    const attachment = await service.createAttachment({
+      exam_request_id: created.id!,
+      display_name: 'CR.pdf',
+      file_name: 'CR.pdf',
+      file_data: 'data:application/pdf;base64,aGVsbG8=',
+    })
+
+    await service.deleteAttachment(attachment.id!)
+    expect(await service.listAttachments(created.id!)).toHaveLength(0)
+
+    await expect(service.deleteAttachment(attachment.id!)).rejects.toThrow('Pièce jointe introuvable')
+  })
 })

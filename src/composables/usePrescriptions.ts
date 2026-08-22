@@ -7,6 +7,7 @@ export interface PrescriptionInput {
   dosage: string
   voie: string
   duree: number
+  dureeType?: 'courte' | 'longue'
   frequence: string[]
   frequenceType?: string
   prn: boolean
@@ -29,7 +30,6 @@ export interface PrescriptionRecord extends PrescriptionInput {
   quantiteTotale?: string
   renouvellement?: boolean
   nbRenouvellements?: number
-  allergiesAlertes?: string
   nbSeances?: number
   objectifClinique?: string
   consignesSpecifiques?: string

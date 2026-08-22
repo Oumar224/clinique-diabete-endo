@@ -2,6 +2,7 @@ import { inject, singleton } from 'tsyringe'
 import { BrowserWindow, dialog, app } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs'
+import crypto from 'crypto'
 import type { Worksheet } from 'exceljs'
 import * as ExcelJS from 'exceljs'
 import { AuthService } from './auth.service'
@@ -10,11 +11,14 @@ import { LogoService } from './logo.service'
 import { PatientExportService } from './patient-export.service'
 import { PatientService } from './patient.service'
 import { ClinicalDocumentService } from './clinical-document.service'
+import { DocumentAttachmentService } from './document-attachment.service'
 import { PrescriptionService } from './prescription.service'
+import { ExamRequestService } from './exam-request.service'
 import { PatientEntity } from '../entities/patient.entity'
 import type { PatientDto } from '../dto/patient.dto'
-import { generateUserListHtml, generateUserProfileHtml, generatePatientProfileHtml, generateCrhDiabeteHtml, generateOrdonnanceHtml } from '../export-templates'
-import type { CrhDiabeteOptions } from '../export-templates'
+import type { PrescriptionEntity } from '../entities/prescription.entity'
+import { generateUserListHtml, generateUserProfileHtml, generatePatientProfileHtml, generateCrhDiabeteHtml, generateClinicalDocumentHtml, generateOrdonnanceHtml } from '../export-templates'
+import type { CrhDiabeteOptions, CrhOrdonnanceData } from '../export-templates'
 import { generateCode128Svg } from '../utils/barcode'
 import * as QRCode from 'qrcode'
 import { roleLabel } from '../utils/role-labels'
@@ -60,6 +64,16 @@ interface ColumnDef {
   width: number
 }
 
+interface AnnexeAttachment {
+  id?: number
+  display_name?: string
+  file_name?: string
+  mime_type?: string
+  file_size?: number
+  description?: string
+  file_data?: string
+}
+
 @singleton()
 export class ExportService {
   constructor(
@@ -70,6 +84,8 @@ export class ExportService {
     @inject(PatientService) private patientService: PatientService,
     @inject(ClinicalDocumentService) private clinicalDocumentService: ClinicalDocumentService,
     @inject(PrescriptionService) private prescriptionService: PrescriptionService,
+    @inject(ExamRequestService) private examRequestService: ExamRequestService,
+    @inject(DocumentAttachmentService, { isOptional: true }) private documentAttachmentService?: DocumentAttachmentService,
   ) {}
 
   async exportUsersListPdf(_filters?: any): Promise<string> {
@@ -388,6 +404,91 @@ export class ExportService {
     return html
   }
 
+  async generateClinicalDocumentPdf(documentId: string): Promise<string> {
+    const { html, isCrh } = await this.buildClinicalDocumentHtml(documentId)
+
+    let buffer: Buffer
+    if (isCrh) {
+      buffer = await this.generatePdf(html, CRH_MARGINS)
+    } else {
+      buffer = await this.generatePdf(html)
+    }
+
+    const importDir = path.join(app.getPath('userData'), 'pdf-imports')
+    if (!fs.existsSync(importDir)) {
+      fs.mkdirSync(importDir, { recursive: true })
+    }
+
+    const filePath = path.join(importDir, `${crypto.randomUUID()}.pdf`)
+    fs.writeFileSync(filePath, buffer)
+    return filePath
+  }
+
+  // ─── Clinical document: HTML preview / PDF / Word export ─────────
+
+  async previewClinicalDocumentHtml(documentId: string): Promise<string> {
+    const { html } = await this.buildClinicalDocumentHtml(documentId)
+    return html
+  }
+
+  async exportClinicalDocumentPdf(documentId: string): Promise<string> {
+    const { html, isCrh } = await this.buildClinicalDocumentHtml(documentId)
+    const buffer = isCrh ? await this.generatePdf(html, CRH_MARGINS) : await this.generatePdf(html)
+    return this.saveFile(buffer, `document-${documentId}.pdf`, [
+      { name: 'PDF', extensions: ['pdf'] },
+    ])
+  }
+
+  async exportClinicalDocumentDoc(documentId: string): Promise<string> {
+    const { html } = await this.buildClinicalDocumentHtml(documentId)
+    // Word opens UTF-8 HTML documents with a BOM; the MIME sniffing then
+    // recognizes the file as HTML (not plain text) and renders it as a
+    // styled document preserving the clinical layout.
+    const buffer = Buffer.from('\uFEFF' + html, 'utf-8')
+    return this.saveFile(buffer, `document-${documentId}.doc`, [
+      { name: 'Word', extensions: ['doc'] },
+    ])
+  }
+
+  private async buildClinicalDocumentHtml(documentId: string): Promise<{ html: string; isCrh: boolean }> {
+    const doc = await this.clinicalDocumentService.getDocumentById(documentId)
+    if (!doc) throw new Error('Document introuvable')
+
+    if (doc.documentTypeCode === 'CRH_DIABETE') {
+      const { html } = await this.buildCrhDiabeteHtml(doc.id!)
+      return { html, isCrh: true }
+    }
+    if (doc.documentTypeCode === 'CRC_DIABETE') {
+      const { html } = await this.buildCrhDiabeteHtml(doc.id!, CRC_DIABETE_OPTIONS)
+      return { html, isCrh: true }
+    }
+
+    const docType = doc.documentTypeId
+      ? await this.clinicalDocumentService.getDocumentTypeById(doc.documentTypeId)
+      : null
+    const formData = doc.formData ? JSON.parse(doc.formData) : {}
+    const pid = await this.clinicalDocumentService.getPatientIdByDocument(doc.contactId!)
+    const { patient, hospital, logo } = await this.patientExportService.enrich(pid)
+
+    let signedByName: string | undefined
+    if (doc.signedBy) {
+      const user = await this.authService.getUserById(Number(doc.signedBy))
+      signedByName = user ? `${user.prenom || ''} ${(user.nom || '').toUpperCase()}`.trim() : undefined
+    }
+
+    const html = generateClinicalDocumentHtml({
+      title: doc.title || docType?.label || 'Document clinique',
+      formSchema: (docType?.formSchema ?? []) as any,
+      formData,
+      patient,
+      hospital: hospital as any,
+      logo,
+      signedAt: doc.signedAt,
+      signedByName,
+    })
+    return { html, isCrh: false }
+  }
+
   private async buildCrhDiabeteHtml(documentId?: string | null, options?: CrhDiabeteOptions, formDataOverride?: Record<string, any>, patientId?: number | null, contactId?: string | number | null): Promise<{ html: string; patient: PatientDto }> {
     if (documentId) {
       const doc = await this.clinicalDocumentService.getDocumentById(documentId)
@@ -414,7 +515,7 @@ export class ExportService {
         signedByName = user ? `${user.prenom || ''} ${(user.nom || '').toUpperCase()}`.trim() : undefined
       }
 
-      const html = generateCrhDiabeteHtml(formData, patient, contact, hospital as any, logo, doc.signedAt ?? undefined, signedByName, options)
+      const html = generateCrhDiabeteHtml(formData, patient, contact, hospital as any, logo, doc.signedAt ?? undefined, signedByName, options, await this.loadAnnexeAttachments(documentId), this.buildOrdonnanceFromFormData(formData) ?? await this.buildOrdonnanceData(pid, formData.admission?.dateEntree))
       return { html, patient }
     }
 
@@ -423,8 +524,142 @@ export class ExportService {
 
     const { patient, hospital, logo } = await this.patientExportService.enrich(patientId)
     const contact = { id: contactId ?? null }
-    const html = generateCrhDiabeteHtml(formDataOverride, patient, contact, hospital as any, logo, undefined, undefined, options)
+    const html = generateCrhDiabeteHtml(formDataOverride, patient, contact, hospital as any, logo, undefined, undefined, options, undefined, this.buildOrdonnanceFromFormData(formDataOverride) ?? await this.buildOrdonnanceData(patientId, formDataOverride.admission?.dateEntree))
     return { html, patient }
+  }
+
+  private async buildOrdonnanceData(patientId: number, dateEntree?: string): Promise<CrhOrdonnanceData> {
+    const [prescriptions, examRequests] = await Promise.all([
+      this.prescriptionService.listByPatient(patientId),
+      this.examRequestService.listByPatient(patientId),
+    ])
+
+    const isActive = (statut: string | undefined) => (statut ?? 'active') === 'active'
+    const toItem = (p: PrescriptionEntity) => ({
+      nom: p.medicament || '',
+      posologie: [p.dosage, p.voie, (p.frequence || '').split(',').filter(Boolean).join(', ')].filter(Boolean).join(' - '),
+      dureeType: (p.duree_type ?? 'courte') as 'courte' | 'longue',
+    })
+
+    const medicaments = prescriptions
+      .filter(p => (p.type || p.prescription_type) === 'medicament' && isActive(p.statut))
+      .filter(p => !dateEntree || !p.date_prescription || p.date_prescription <= dateEntree)
+      .map(toItem)
+
+    const soins = prescriptions
+      .filter(p => (p.type || p.prescription_type) === 'soins' && isActive(p.statut))
+      .map(toItem)
+
+    const labIds = [...new Set(examRequests.flatMap(r => {
+      if (r.type !== 'laboratoire' || !r.exam_ids) return []
+      try { return JSON.parse(r.exam_ids) as number[] } catch { return [] }
+    }))]
+    const typeNames = new Map((await this.examRequestService.findTypeNames(labIds)).map(t => [t.id, t.name]))
+
+    const isRequested = (statut: string | undefined) => (statut ?? 'en_attente') !== 'annule'
+    const examens = examRequests
+      .filter(r => (r.type === 'imagerie' || r.type === 'laboratoire') && isRequested(r.statut))
+      .map(r => {
+        let label = r.examen_label || ''
+        if (r.type === 'laboratoire' && r.exam_ids) {
+          try {
+            label = (JSON.parse(r.exam_ids) as number[]).map(id => typeNames.get(id) || '').filter(Boolean).join(', ')
+          } catch { label = '' }
+        }
+        return { label, detail: r.motif || undefined }
+      })
+      .filter(r => r.label || r.detail)
+
+    const avis: CrhOrdonnanceData['avis'] = examRequests
+      .filter(r => r.type === 'avis' && isRequested(r.statut))
+      .map(r => ({ label: r.specialty_name || r.specialite || 'Avis spécialisé', detail: r.motif || undefined }))
+      .filter(r => r.label || r.detail)
+
+    return { medicaments, soins, examens, avis }
+  }
+
+  /**
+   * Build the CRH/CRC ordonnance data from the form's editable "Ordonnance de sortie" tab.
+   * Returns null when the form has no ordonnanceSortie array (callers fall back to the DB pull).
+   * Each item's fields are all optional except `_key`; unknown categories are treated as 'medicament'
+   * only for the default case, and items without a category default to medicaments.
+   */
+  private buildOrdonnanceFromFormData(formData: Record<string, any>): CrhOrdonnanceData | null {
+    const ordonnanceItems = Array.isArray(formData.ordonnanceSortie) ? formData.ordonnanceSortie : []
+    const evolutionAvis = Array.isArray(formData.evolutionMedicale?.avis)
+      ? formData.evolutionMedicale.avis.filter((a: any) => a && (a.specialite || a.motif))
+      : []
+    if (!Array.isArray(formData.ordonnanceSortie) && evolutionAvis.length === 0) return null
+
+    const toNomPosologie = (item: any): { nom: string; posologie: string; dureeType?: 'courte' | 'longue' } => ({
+      nom: item.medicament || '',
+      posologie: [item.dosage, item.unite, item.voie, Array.isArray(item.frequence) ? item.frequence.filter(Boolean).join(', ') : (item.frequence || '')].filter(Boolean).join(' - '),
+      dureeType: (item.dureeType ?? 'courte') as 'courte' | 'longue',
+    })
+
+    const medicaments = ordonnanceItems
+      .filter((item: any) => (item.categorie ?? 'medicament') === 'medicament')
+      .map(toNomPosologie)
+      .filter((m: { nom: string }) => m.nom)
+
+    const soins = ordonnanceItems
+      .filter((item: any) => item.categorie === 'soins')
+      .map(toNomPosologie)
+      .filter((m: { nom: string }) => m.nom)
+
+    const examens = ordonnanceItems
+      .filter((item: any) => item.categorie === 'examen')
+      .map((item: any) => ({ label: item.examen || '', detail: item.motif || undefined }))
+      .filter((e: { label: string; detail?: string }) => e.label || e.detail)
+
+    const avisFromEvolution: Array<{ label: string; detail?: string }> = []
+    const seenAvis = new Set<string>()
+    for (const a of evolutionAvis) {
+      const key = `${a.specialite || ''}|${a.motif || ''}`
+      if (seenAvis.has(key)) continue
+      seenAvis.add(key)
+      avisFromEvolution.push({ label: a.specialite || 'Avis spécialisé', detail: a.motif || undefined })
+    }
+    // Drop empty avis rows (no specialite AND no motif) even though the rendered label falls back to 'Avis spécialisé'
+    const avis = avisFromEvolution.length > 0
+      ? avisFromEvolution
+      : ordonnanceItems
+          .filter((item: any) => item.categorie === 'avis' && (item.specialite || item.motif))
+          .map((item: any) => ({ label: item.specialite || 'Avis spécialisé', detail: item.motif || undefined }))
+
+    return { medicaments, soins, examens, avis }
+  }
+
+  private async loadAnnexeAttachments(documentId: string): Promise<AnnexeAttachment[]> {
+    if (!this.documentAttachmentService) return []
+    const service = this.documentAttachmentService
+    try {
+      const attachments = await service.listByDocument(documentId)
+      const annexes = await Promise.all(
+        attachments.map(async (att): Promise<AnnexeAttachment | null> => {
+          const annexe: AnnexeAttachment = {
+            id: att.id,
+            display_name: att.display_name,
+            file_name: att.file_name,
+            mime_type: att.mime_type,
+            file_size: att.file_size,
+            description: att.description,
+          }
+          if (!(att.mime_type || '').startsWith('image/')) return annexe
+          try {
+            const full = await service.getById(att.id!)
+            return { ...annexe, file_data: full.file_data }
+          } catch {
+            console.warn(`[CDE] Annexe ${att.id} introuvable pendant l'export — ignorée`)
+            return null
+          }
+        }),
+      )
+      return annexes.filter((a): a is AnnexeAttachment => a !== null)
+    } catch (error) {
+      console.warn(`[CDE] Échec du chargement des annexes du document ${documentId}`, error)
+      return []
+    }
   }
 
   async exportOrdonnancePdf(params: { patientId: number; prescriptionIds?: number[]; inlinePrescriptions?: Array<{ medicament: string; dosage: string; unite: string; voie: string; duree: number; frequenceType: string; frequence: string[]; prn: boolean; instructions: string }> }): Promise<string> {
@@ -457,6 +692,7 @@ export class ExportService {
       nomMedicament: ip.medicament || '',
       posologie: [ip.dosage, ip.unite, ip.voie, Array.isArray(ip.frequence) ? ip.frequence.join(', ') : (ip.frequence || '')].filter(Boolean).join(' - '),
       reglesConditionnelles: ip.instructions ? [ip.instructions] : undefined,
+      dureeType: 'courte' as const,
     }))
 
     let prescriptorUser: any = null
@@ -538,6 +774,7 @@ export class ExportService {
         nomMedicament: p.medicament || '',
         posologie: [p.dosage, p.voie, (p.frequence || '').split(',').filter(Boolean).join(', ')].filter(Boolean).join(' - '),
         reglesConditionnelles: p.instructions ? [p.instructions] : undefined,
+        dureeType: (p.duree_type ?? 'courte') as 'courte' | 'longue',
       })),
       ...inlineMapped,
     ]

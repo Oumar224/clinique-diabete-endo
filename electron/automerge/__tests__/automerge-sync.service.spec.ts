@@ -41,7 +41,7 @@ describe("AutomergeSyncService", { timeout: 30_000 }, () => {
     try {
       if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath)
       fs.rmSync(tempDir, { recursive: true, force: true })
-    } catch {}
+    } catch { /* empty */ }
   })
 
   it("should initialize storage adapter", async () => {
@@ -63,8 +63,8 @@ describe("AutomergeSyncService", { timeout: 30_000 }, () => {
     const docId = 'test-doc-1'
     const data = new Uint8Array(Buffer.from(JSON.stringify({ name: 'test', value: 42 })))
 
-    await storageAdapter.save(docId, data)
-    const loaded = await storageAdapter.load(docId)
+    await storageAdapter.save([docId], data)
+    const loaded = await storageAdapter.load([docId])
 
     expect(loaded).toBeDefined()
     expect(Buffer.from(loaded!).toString()).toBe(JSON.stringify({ name: 'test', value: 42 }))
@@ -75,8 +75,8 @@ describe("AutomergeSyncService", { timeout: 30_000 }, () => {
     await syncService.initialize()
 
     const storageAdapter = container.resolve(AutomergeSqliteStorageAdapter)
-    await storageAdapter.save('doc-a', new Uint8Array(Buffer.from('a')))
-    await storageAdapter.save('doc-b', new Uint8Array(Buffer.from('b')))
+    await storageAdapter.save(['doc-a'], new Uint8Array(Buffer.from('a')))
+    await storageAdapter.save(['doc-b'], new Uint8Array(Buffer.from('b')))
 
     const list = await storageAdapter.list()
     expect(list).toContain('doc-a')
@@ -89,13 +89,13 @@ describe("AutomergeSyncService", { timeout: 30_000 }, () => {
 
     const storageAdapter = container.resolve(AutomergeSqliteStorageAdapter)
     const docId = 'doc-to-remove'
-    await storageAdapter.save(docId, new Uint8Array(Buffer.from('data')))
+    await storageAdapter.save([docId], new Uint8Array(Buffer.from('data')))
 
-    const before = await storageAdapter.load(docId)
+    const before = await storageAdapter.load([docId])
     expect(before).toBeDefined()
 
-    await storageAdapter.remove(docId)
-    const after = await storageAdapter.load(docId)
+    await storageAdapter.remove([docId])
+    const after = await storageAdapter.load([docId])
     expect(after).toBeUndefined()
   })
 
@@ -116,7 +116,7 @@ describe("AutomergeSyncService", { timeout: 30_000 }, () => {
 
     const storageAdapter = container.resolve(AutomergeSqliteStorageAdapter)
     const docId = 'entity-to-delete'
-    await storageAdapter.save(docId, new Uint8Array(Buffer.from('some data')))
+    await storageAdapter.save([docId], new Uint8Array(Buffer.from('some data')))
 
     const deleteEvent: EntityChangeEvent = {
       entityType: 'TestEntity',
@@ -130,7 +130,7 @@ describe("AutomergeSyncService", { timeout: 30_000 }, () => {
     entityEventBus.emitEntityChange(deleteEvent)
 
     await new Promise(r => setTimeout(r, 50))
-    const loaded = await storageAdapter.load(docId)
+    const loaded = await storageAdapter.load([docId])
     expect(loaded).toBeUndefined()
   })
 

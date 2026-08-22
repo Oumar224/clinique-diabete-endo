@@ -241,7 +241,7 @@ describe('FicheDiabeteTab', () => {
 
     const dateRow = rows.find(r => r.text().includes('Date du diagnostic'))
     expect(dateRow).toBeDefined()
-    expect(dateRow!.find('.form-preview__value').text()).toBe('2026-01')
+    expect(dateRow!.find('.form-preview__value').text()).toBe('01/2026')
 
     const dureeRow = rows.find(r => r.text().includes("Durée d'évolution"))
     expect(dureeRow).toBeDefined()
@@ -299,7 +299,7 @@ describe('FicheDiabeteTab', () => {
 
     const values = rows.map(r => `${r.find('.form-preview__label').text()} = ${r.find('.form-preview__value').text()}`)
     expect(values).toContain('HbA1c (%) = 7.2')
-    expect(values).toContain("Date de l'examen = 2026-05-20")
+    expect(values).toContain("Date de l'examen = 20/05/2026")
     expect(values).toContain('HDL (mmol/L) = 1.1')
     expect(values).toContain('LDL (mmol/L) = 2.3')
     expect(values).toContain('Triglycérides (mmol/L) = 1.5')
@@ -362,7 +362,7 @@ describe('FicheDiabeteTab', () => {
 
     const rows = wrapper.findAll('.form-preview')[0].findAll('.form-preview__row')
     const dateRow = rows.find(r => r.text().includes('Date du diagnostic'))
-    expect(dateRow!.find('.form-preview__value').text()).toBe('2024-03')
+    expect(dateRow!.find('.form-preview__value').text()).toBe('03/2024')
   })
 
   it('Annuler discards unsaved changes and closes the section', async () => {
@@ -459,6 +459,38 @@ describe('FicheDiabeteTab', () => {
     await nextTick()
 
     expect(wrapper.text()).toContain('NT-proBNP (pg/mL)')
+  })
+
+  it('renders amputationDetail editor on its own full-width row (own-line regression)', async () => {
+    const wrapper = createWrapper()
+    await openSection(wrapper, 3)
+
+    const amputationCheckbox = wrapper.findAll('.el-checkbox')[1]
+    await amputationCheckbox.find('input').setValue(true)
+    await nextTick()
+
+    const detailRow = wrapper.findAll('.el-row')
+      .find(r => r.text().includes('Détail amputation'))
+    expect(detailRow).toBeDefined()
+    expect(detailRow!.findAll('.el-col')).toHaveLength(1)
+    expect(detailRow!.findAll('.el-form-item')).toHaveLength(1)
+    expect(detailRow!.find('.el-form-item label').text()).toBe('Détail amputation')
+  })
+
+  it('renders ischemicCritique editor on its own full-width row (own-line regression)', async () => {
+    const wrapper = createWrapper()
+    await openSection(wrapper, 3)
+
+    const aomiCheckbox = wrapper.findAll('.el-checkbox')[3]
+    await aomiCheckbox.find('input').setValue(true)
+    await nextTick()
+
+    const detailRow = wrapper.findAll('.el-row')
+      .find(r => r.text().includes('Description ischémie critique'))
+    expect(detailRow).toBeDefined()
+    expect(detailRow!.findAll('.el-col')).toHaveLength(1)
+    expect(detailRow!.findAll('.el-form-item')).toHaveLength(1)
+    expect(detailRow!.find('.el-form-item label').text()).toBe('Description ischémie critique')
   })
 
   // ─── 8. Field meta (dernière modification) ──────────────────────

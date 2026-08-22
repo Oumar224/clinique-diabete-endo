@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { container } from 'tsyringe'
 import { autoUpdater } from 'electron-updater'
@@ -153,6 +153,18 @@ app.whenReady().then(async () => {
     await datasource.initialize()
   } catch (error) {
     console.error('[CDE] Database initialization error:', error)
+
+    // The datasource throws when migrations fail after repair+retry. Never
+    // boot into a broken schema: surface the failure to the user and stop
+    // startup instead of continuing into automergeSync/remoteSync/dispatcher/
+    // createWindow with a singleton bound to a broken DB.
+    const message = error instanceof Error ? error.message : String(error)
+    await dialog.showErrorBox(
+      "Erreur d'initialisation",
+      `La base de données n'a pas pu être initialisée.\n\n${message}\n\nL'application va se fermer.`,
+    )
+    app.quit()
+    return
   }
 
   try {

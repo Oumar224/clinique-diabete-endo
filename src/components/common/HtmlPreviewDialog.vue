@@ -10,6 +10,14 @@
       <el-button type="primary" :icon="Download" :loading="downloading" @click="downloadPdf">
         Télécharger PDF
       </el-button>
+      <el-button
+        v-if="docDownloadChannel"
+        :icon="Download"
+        :loading="downloadingDoc"
+        @click="downloadDoc"
+      >
+        Télécharger DOC
+      </el-button>
       <div class="toolbar-spacer" />
       <el-button
         :icon="ZoomOut"
@@ -58,6 +66,7 @@ const props = withDefaults(defineProps<{
   title: string
   channel: string
   downloadChannel: string
+  docDownloadChannel?: string
   params?: Record<string, any>
 }>(), {
   params: () => ({}),
@@ -70,6 +79,7 @@ const emit = defineEmits<{
 const visible = ref(false)
 const loading = ref(false)
 const downloading = ref(false)
+const downloadingDoc = ref(false)
 const htmlContent = ref<string | null>(null)
 const iframeRef = ref<HTMLIFrameElement | null>(null)
 let loadToken = 0
@@ -151,21 +161,37 @@ async function loadPreview() {
   }
 }
 
-async function downloadPdf() {
+async function downloadFile(channel: string) {
   if (!window.electronAPI) return
 
-  downloading.value = true
   try {
-    const result: any = await window.electronAPI.invoke(props.downloadChannel, safeParams())
+    const result: any = await window.electronAPI.invoke(channel, safeParams())
     if (result?.success) {
       ElMessage.success(`Fichier enregistré : ${result.data}`)
     } else {
       ElMessage.error(result?.message || 'Erreur lors du téléchargement')
     }
   } catch (e: any) {
-    ElMessage.error(e.message || 'Erreur lors du téléchargement du PDF')
+    ElMessage.error(e.message || 'Erreur lors du téléchargement')
+  }
+}
+
+async function downloadPdf() {
+  downloading.value = true
+  try {
+    await downloadFile(props.downloadChannel)
   } finally {
     downloading.value = false
+  }
+}
+
+async function downloadDoc() {
+  if (!props.docDownloadChannel) return
+  downloadingDoc.value = true
+  try {
+    await downloadFile(props.docDownloadChannel)
+  } finally {
+    downloadingDoc.value = false
   }
 }
 
