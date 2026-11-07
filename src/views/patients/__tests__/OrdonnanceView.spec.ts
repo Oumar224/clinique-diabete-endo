@@ -12,12 +12,14 @@ import type { OrdonnanceLibreRecord } from '@/composables/useOrdonnanceLibre'
 const {
   mockFetchOrdonnances,
   mockDeleteOrdonnance,
+  mockCreateFromDocument,
   mockElMessage,
   mockElMessageBox,
   state,
 } = vi.hoisted(() => ({
   mockFetchOrdonnances: vi.fn(),
   mockDeleteOrdonnance: vi.fn(),
+  mockCreateFromDocument: vi.fn(),
   mockElMessage: { success: vi.fn(), warning: vi.fn(), info: vi.fn(), error: vi.fn() },
   mockElMessageBox: { confirm: vi.fn(() => Promise.resolve()), alert: vi.fn(() => Promise.resolve()) },
   state: {
@@ -77,6 +79,17 @@ vi.mock('@/composables/usePatientContext', () => ({
   })),
 }))
 
+vi.mock('@/composables/useDispensations', () => ({
+  useDispensations: vi.fn(() => ({
+    file: { value: [] },
+    fetchFile: vi.fn(),
+    getDelivrance: vi.fn(),
+    createFromDocument: mockCreateFromDocument,
+    servirDelivrance: vi.fn(),
+    annulerDelivrance: vi.fn(),
+  })),
+}))
+
 vi.mock('@/components/prescriptions/OrdonnancePreview', () => ({
   default: {
     template: '<div class="ordonnance-preview" ref="preview" />',
@@ -106,7 +119,7 @@ const stubs = {
   'el-table': {
     template: [
       '<div class="el-table">',
-      '  <div v-if="!data || data.length === 0">',
+      '  <div v-if="!data || data.length === 0" class="el-table__empty">',
       '    <slot name="empty" />',
       '  </div>',
       '  <div v-for="(item, idx) in (data || [])" :key="idx" class="el-table__row">',
@@ -168,6 +181,8 @@ const mockOrdonnances: OrdonnanceLibreRecord[] = [
     updated_at: null,
     medecin_nom: 'Dupont',
     medecin_prenom: 'Jean',
+    hasMedicamentLines: true,
+    dejaTransferee: false,
   },
   {
     id: 2,
@@ -180,6 +195,8 @@ const mockOrdonnances: OrdonnanceLibreRecord[] = [
     updated_at: null,
     medecin_nom: 'Martin',
     medecin_prenom: 'Marie',
+    hasMedicamentLines: false,
+    dejaTransferee: false,
   },
 ]
 
@@ -196,10 +213,10 @@ describe('OrdonnanceView', () => {
   })
 
   // -----------------------------------------------------------------------
-  // Section header
+  // Page head
   // -----------------------------------------------------------------------
-  describe('section header', () => {
-    it('renders section header with ordonnance count', async () => {
+  describe('page head', () => {
+    it('does not render its own page title and keeps the refresh action', async () => {
       mockFetchOrdonnances.mockImplementation(async () => {
         state.ordonnances = mockOrdonnances
         return mockOrdonnances
@@ -211,8 +228,10 @@ describe('OrdonnanceView', () => {
       await waitForData()
       await nextTick()
 
-      expect(wrapper.find('.section-header__label').text()).toBe('Ordonnances')
-      expect(wrapper.find('.section-header__badge').text()).toContain('2')
+      expect(wrapper.find('.cde-page-title').exists()).toBe(false)
+      expect(wrapper.findAll('h1')).toHaveLength(0)
+      expect(wrapper.text()).toContain('Rafraîchir')
+      expect(wrapper.find('.cde-footer').text()).toContain('2 ordonnance(s)')
     })
   })
 
@@ -269,7 +288,7 @@ describe('OrdonnanceView', () => {
       await waitForData()
       await nextTick()
 
-      expect(wrapper.find('.el-empty').exists()).toBe(true)
+      expect(wrapper.find('.cde-empty').exists()).toBe(true)
       expect(wrapper.text()).toContain('Aucune ordonnance pour ce patient')
     })
   })
@@ -397,6 +416,323 @@ describe('OrdonnanceView', () => {
 
       expect((wrapper.vm as any).previewPrescriptionIds).toEqual([])
       expect((wrapper.vm as any).previewInlinePrescriptions).toEqual([])
+    })
+
+    it('sets ordonnanceItems from fd.items for a CRH/CRC generated ordonnance', async () => {
+      const crhRow: OrdonnanceLibreRecord = {
+        id: 50,
+        contact_id: '1',
+        document_type_id: 'type-1',
+        title: 'CRH - 05/09/2026',
+        status: 'draft',
+        form_data: JSON.stringify({
+          source: 'crh',
+          categorie: 'soins',
+          sourceDocumentId: 'doc-abc',
+          items: [{ categorie: 'soins', medicament: 'Pansement quotidien' }],
+        }),
+        created_at: '2026-09-05T10:00:00Z',
+        updated_at: null,
+      }
+      mockFetchOrdonnances.mockResolvedValue([crhRow])
+
+      const wrapper = mount(OrdonnanceView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      await (wrapper.vm as any).viewPdf(crhRow)
+
+      expect((wrapper.vm as any).previewOrdonnanceItems).toEqual([
+        { categorie: 'soins', medicament: 'Pansement quotidien' },
+      ])
+      expect((wrapper.vm as any).previewPrescriptionIds).toEqual([])
+      expect((wrapper.vm as any).previewInlinePrescriptions).toEqual([])
+    })
+
+    it('sets ordonnanceItems from fd.ordonnanceSortie for new-style documents', async () => {
+      const sortieRow: OrdonnanceLibreRecord = {
+        id: 51,
+        contact_id: '1',
+        document_type_id: 'type-1',
+        title: 'Ordonnance Libre',
+        status: 'draft',
+        form_data: JSON.stringify({
+          ordonnanceSortie: [
+            { categorie: 'medicament', medicament: 'Metformine 500 mg', dosage: '500' },
+            { categorie: 'examen', examen: 'NFS' },
+          ],
+        }),
+        created_at: '2026-09-05T10:00:00Z',
+        updated_at: null,
+      }
+      mockFetchOrdonnances.mockResolvedValue([sortieRow])
+
+      const wrapper = mount(OrdonnanceView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      await (wrapper.vm as any).viewPdf(sortieRow)
+
+      expect((wrapper.vm as any).previewOrdonnanceItems).toHaveLength(2)
+      expect((wrapper.vm as any).previewOrdonnanceItems![0].medicament).toBe('Metformine 500 mg')
+      expect((wrapper.vm as any).previewPrescriptionIds).toEqual([])
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Groupe column (getFormGroups)
+  // -----------------------------------------------------------------------
+  describe('groupe column (getFormGroups)', () => {
+    it('returns the CRH categorie label for documents generated from a CRH/CRC group', async () => {
+      const crhRow: OrdonnanceLibreRecord = {
+        id: 60,
+        contact_id: '1',
+        document_type_id: 'type-1',
+        title: 'CRH - 05/09/2026',
+        status: 'draft',
+        form_data: JSON.stringify({ source: 'crh', categorie: 'avis', items: [] }),
+        created_at: null,
+        updated_at: null,
+      }
+      mockFetchOrdonnances.mockResolvedValue([crhRow])
+
+      const wrapper = mount(OrdonnanceView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      expect((wrapper.vm as any).getFormGroups(crhRow)).toBe('Avis spécialisés')
+    })
+
+    it('lists the deduped groups of an ordonnanceSortie document in canonical order', async () => {
+      const sortieRow: OrdonnanceLibreRecord = {
+        id: 61,
+        contact_id: '1',
+        document_type_id: 'type-1',
+        title: 'Ordonnance Libre',
+        status: 'draft',
+        form_data: JSON.stringify({
+          ordonnanceSortie: [
+            { categorie: 'avis', specialite: 'Cardiologue' },
+            { categorie: 'medicament', medicament: 'Metformine 500 mg' },
+            { categorie: 'avis', specialite: 'Dermatologue' },
+          ],
+        }),
+        created_at: null,
+        updated_at: null,
+      }
+      mockFetchOrdonnances.mockResolvedValue([sortieRow])
+
+      const wrapper = mount(OrdonnanceView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      // Ordre canonique : médicaments d'abord, puis avis ; avis dédupliqué
+      expect((wrapper.vm as any).getFormGroups(sortieRow)).toBe("Médicaments, Avis spécialisés")
+    })
+
+    it('returns "Médicaments" for legacy inline/linked documents', async () => {
+      mockFetchOrdonnances.mockResolvedValue([mockOrdonnances[0]])
+
+      const wrapper = mount(OrdonnanceView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      expect((wrapper.vm as any).getFormGroups(mockOrdonnances[0])).toBe('Médicaments')
+    })
+
+    it('returns "—" for documents without form_data or with an empty ordonnanceSortie', async () => {
+      const noFd: OrdonnanceLibreRecord = {
+        id: 62,
+        contact_id: '1',
+        document_type_id: 'type-1',
+        title: 'x',
+        status: 'draft',
+        form_data: null,
+        created_at: null,
+        updated_at: null,
+      }
+      const emptySortie: OrdonnanceLibreRecord = {
+        id: 63,
+        contact_id: '1',
+        document_type_id: 'type-1',
+        title: 'x',
+        status: 'draft',
+        form_data: JSON.stringify({ ordonnanceSortie: [] }),
+        created_at: null,
+        updated_at: null,
+      }
+      mockFetchOrdonnances.mockResolvedValue([noFd, emptySortie])
+
+      const wrapper = mount(OrdonnanceView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      expect((wrapper.vm as any).getFormGroups(noFd)).toBe('—')
+      expect((wrapper.vm as any).getFormGroups(emptySortie)).toBe('—')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Collecteur examens laboratoire (examens[] join)
+  // -----------------------------------------------------------------------
+  describe('collecteur examens laboratoire', () => {
+    it('getFormMeds joint examens[] pour les items laboratoire', async () => {
+      const laboRow: OrdonnanceLibreRecord = {
+        id: 70,
+        contact_id: '1',
+        document_type_id: 'type-1',
+        title: 'Ordonnance Libre',
+        status: 'draft',
+        form_data: JSON.stringify({
+          ordonnanceSortie: [
+            { categorie: 'examen', examenType: 'laboratoire', examen: 'NFS, Ionogramme', examens: ['NFS', 'Ionogramme'] },
+            { categorie: 'examen', examenType: 'imagerie', examen: 'Scanner cérébral', examens: [] },
+          ],
+        }),
+        created_at: null,
+        updated_at: null,
+      }
+      mockFetchOrdonnances.mockResolvedValue([laboRow])
+
+      const wrapper = mount(OrdonnanceView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      expect((wrapper.vm as any).getFormMeds(laboRow)).toEqual(['NFS, Ionogramme', 'Scanner cérébral'])
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Transfert pharmacie
+  // -----------------------------------------------------------------------
+  describe('transfert pharmacie', () => {
+    // Table stub qui rend les vrais templates de cellules (bouton Transférer)
+    // avec la ligne liée via boîte réactive par instance de table.
+    const TransferTableStub = {
+      template: [
+        '<div class="el-table">',
+        '  <div v-if="!data || data.length === 0"><slot name="empty" /></div>',
+        '  <div v-for="(item, idx) in (data || [])" :key="idx" class="el-table__row">',
+        '    {{ setRow(item) }}<slot :row="item" />',
+        '  </div>',
+        '</div>',
+      ].join(''),
+      props: ['data', 'highlightCurrentRow'],
+      emits: ['row-click', 'delete'],
+      data: () => ({ rowBox: { current: null as any } }),
+      provide(this: any) {
+        return { rowBox: this.rowBox }
+      },
+      methods: {
+        setRow(this: any, item: any) {
+          this.rowBox.current = item
+          return ''
+        },
+      },
+    }
+    const TransferColumnStub = {
+      template: '<div class="el-table-column"><slot :row="rowBox ? rowBox.current : null" /></div>',
+      props: ['label', 'width', 'align', 'minWidth'],
+      inject: { rowBox: { from: 'rowBox', default: null } },
+    }
+
+    async function mountWithTransfer(row: OrdonnanceLibreRecord = mockOrdonnances[0]) {
+      mockFetchOrdonnances.mockResolvedValue([{ ...row }])
+      const wrapper = mount(OrdonnanceView, {
+        global: {
+          stubs: { ...stubs, 'el-table': TransferTableStub, 'el-table-column': TransferColumnStub },
+        },
+      })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+      return wrapper
+    }
+
+    function transferButton(wrapper: ReturnType<typeof mount>) {
+      return wrapper.findAll('.el-button').find((b) => b.text() === 'Transférer')
+    }
+
+    it('transfers an ordonnance with medication lines and announces success', async () => {
+      mockCreateFromDocument.mockResolvedValue({
+        delivrance: { id: 5, createdAt: new Date().toISOString() },
+        lignes: [],
+      })
+      const wrapper = await mountWithTransfer()
+
+      const transferBtn = transferButton(wrapper)!
+      expect(transferBtn).toBeDefined()
+      await transferBtn.trigger('click')
+      await nextTick()
+      await waitForData()
+
+      expect(mockCreateFromDocument).toHaveBeenCalledWith('1')
+      expect(mockElMessage.success).toHaveBeenCalledWith('Ordonnance transférée à la pharmacie')
+    })
+
+    it('hides the transfer button and shows a neutral badge for an already transferred ordonnance', async () => {
+      const wrapper = await mountWithTransfer({ ...mockOrdonnances[0], dejaTransferee: true })
+
+      expect(transferButton(wrapper)).toBeUndefined()
+      expect(wrapper.text()).toContain('Transférée à la pharmacie')
+      expect(mockCreateFromDocument).not.toHaveBeenCalled()
+    })
+
+    it('hides the transfer button when the ordonnance has no medication lines', async () => {
+      const wrapper = await mountWithTransfer({ ...mockOrdonnances[0], hasMedicamentLines: false })
+
+      expect(transferButton(wrapper)).toBeUndefined()
+      expect(wrapper.text()).not.toContain('Transférée à la pharmacie')
+      expect(mockCreateFromDocument).not.toHaveBeenCalled()
+    })
+
+    it('does not call the transfer IPC for an ineligible row (defensive guard)', async () => {
+      const wrapper = await mountWithTransfer({ ...mockOrdonnances[0], hasMedicamentLines: false })
+
+      await (wrapper.vm as any).onTransfer({ ...mockOrdonnances[0], hasMedicamentLines: false })
+      await waitForData()
+
+      expect(mockCreateFromDocument).not.toHaveBeenCalled()
+    })
+
+    it('announces an already transferred ordonnance when the transfer races', async () => {
+      mockCreateFromDocument.mockResolvedValue({
+        delivrance: { id: 5, createdAt: new Date(Date.now() - 3600_000).toISOString() },
+        lignes: [],
+        created: false,
+      })
+      const wrapper = await mountWithTransfer()
+      const row = (wrapper.vm as any).ordonnances[0]
+
+      await (wrapper.vm as any).onTransfer(row)
+      await waitForData()
+      await nextTick()
+
+      expect(row.dejaTransferee).toBe(true)
+      expect(mockElMessage.info).toHaveBeenCalledWith('Ordonnance déjà transférée à la pharmacie')
+      expect(mockElMessage.success).not.toHaveBeenCalled()
+      expect(transferButton(wrapper)).toBeUndefined()
+    })
+
+    it('shows an error when the transfer fails', async () => {
+      mockCreateFromDocument.mockRejectedValue(new Error('Stock insuffisant'))
+      const wrapper = await mountWithTransfer()
+
+      const transferBtn = transferButton(wrapper)!
+      await transferBtn.trigger('click')
+      await nextTick()
+      await waitForData()
+
+      expect(mockElMessage.error).toHaveBeenCalledWith('Stock insuffisant')
     })
   })
 })

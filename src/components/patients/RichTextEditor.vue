@@ -164,15 +164,54 @@
       >
         <Icon icon="mdi:format-superscript" />
       </button>
-      <button
-        type="button"
-        :class="{ 'is-active': editor?.isActive('highlight') }"
-        aria-label="Surligner"
-        title="Surligner"
-        @click="editor?.chain().focus().toggleHighlight().run(); emit('change')"
-      >
-        <Icon icon="mdi:format-color-highlight" />
-      </button>
+      <div class="color-picker-wrapper" @mouseleave="showHighlightPicker = false">
+        <button
+          type="button"
+          :class="{ 'is-active': editor?.isActive('highlight') }"
+          aria-label="Couleur de surlignage"
+          title="Couleur de surlignage"
+          @click="showHighlightPicker = !showHighlightPicker"
+        >
+          <span class="color-icon color-icon--stack">
+            <Icon icon="mdi:format-color-highlight" />
+            <span class="color-bar color-bar--wide" :style="{ background: currentHighlightColor() || 'transparent' }" />
+          </span>
+        </button>
+        <div v-if="showHighlightPicker" class="color-dropdown color-dropdown--grid" role="menu" aria-label="Couleurs de surlignage">
+          <button
+            type="button"
+            class="color-none"
+            aria-label="Aucun surlignage"
+            title="Aucun surlignage"
+            @click="removeHighlight"
+          >
+            Aucun
+          </button>
+          <div class="color-grid">
+            <button
+              v-for="c in HIGHLIGHT_COLORS"
+              :key="c.value"
+              type="button"
+              class="color-swatch"
+              :class="{ 'is-selected': isHighlightColorSelected(c.value) }"
+              :style="{ background: c.value }"
+              :title="c.label"
+              :aria-label="c.label"
+              @click="setHighlightColor(c.value)"
+            />
+          </div>
+          <label class="color-custom" title="Couleur personnalisée">
+            <input
+              v-model="customHighlightColor"
+              type="color"
+              class="color-custom-input"
+              aria-label="Couleur de surlignage personnalisée"
+              @change="onCustomHighlightColor"
+            >
+            <span>Personnalisé…</span>
+          </label>
+        </div>
+      </div>
       <div class="color-picker-wrapper" @mouseleave="showColorPicker = false">
         <button
           type="button"
@@ -181,21 +220,43 @@
           @click="showColorPicker = !showColorPicker"
         >
           <span class="color-icon">
-            <span class="color-bar" :style="{ background: editor?.getAttributes('textStyle').color || '#000' }" />
+            <span class="color-bar" :style="{ background: currentTextColor() || '#000' }" />
             A
           </span>
         </button>
-        <div v-if="showColorPicker" class="color-dropdown">
+        <div v-if="showColorPicker" class="color-dropdown color-dropdown--grid" role="menu" aria-label="Couleurs du texte">
           <button
-            v-for="c in presetColors"
-            :key="c.value"
             type="button"
-            class="color-swatch"
-            :style="{ background: c.value }"
-            :title="c.label"
-            :aria-label="c.label"
-            @click="setColor(c.value)"
-          />
+            class="color-none"
+            aria-label="Couleur automatique"
+            title="Automatique (noir)"
+            @click="setColor('')"
+          >
+            Auto
+          </button>
+          <div class="color-grid">
+            <button
+              v-for="c in TEXT_COLORS"
+              :key="c.value"
+              type="button"
+              class="color-swatch"
+              :class="{ 'is-selected': isTextColorSelected(c.value) }"
+              :style="{ background: c.value }"
+              :title="c.label"
+              :aria-label="c.label"
+              @click="setColor(c.value)"
+            />
+          </div>
+          <label class="color-custom" title="Couleur personnalisée">
+            <input
+              v-model="customTextColor"
+              type="color"
+              class="color-custom-input"
+              aria-label="Couleur de texte personnalisée"
+              @change="onCustomTextColor"
+            >
+            <span>Personnalisé…</span>
+          </label>
         </div>
       </div>
 
@@ -548,7 +609,7 @@ const FONT_SIZES: Array<string | number> = [
 
 const FONT_SIZE_MIN = 8
 const FONT_SIZE_MAX = 72
-const DEFAULT_FONT_SIZE = 16
+const DEFAULT_FONT_SIZE = 17
 
 /* ── Valeurs courantes (réactives aux transactions de l'éditeur) ── */
 
@@ -744,23 +805,134 @@ function setLink() {
   emit('change')
 }
 
-/* ── Color ── */
-const showColorPicker = ref(false)
+/* ── Couleurs ──
+ *
+ * Palette avancée partagée par la couleur du texte et la couleur de
+ * surlignage. Toute autre couleur reste possible via l'input natif
+ * `<input type="color">` (« Personnalisé… »).
+ */
+interface ColorPreset {
+  label: string
+  value: string
+}
 
-const presetColors = [
+const COLOR_PALETTE: ColorPreset[] = [
   { label: 'Noir', value: '#000000' },
-  { label: 'Gris', value: '#6b7280' },
-  { label: 'Rouge', value: '#dc2626' },
-  { label: 'Bleu', value: '#2563eb' },
-  { label: 'Vert', value: '#16a34a' },
-  { label: 'Orange', value: '#ea580c' },
-  { label: 'Violet', value: '#9333ea' },
-  { label: 'Marron', value: '#92400e' },
+  { label: 'Gris foncé', value: '#374151' },
+  { label: 'Gris', value: '#6B7280' },
+  { label: 'Gris clair', value: '#9CA3AF' },
+  { label: 'Gris très clair', value: '#D1D5DB' },
+  { label: 'Blanc', value: '#FFFFFF' },
+  { label: 'Bordeaux', value: '#7F1D1D' },
+  { label: 'Rouge foncé', value: '#B91C1C' },
+  { label: 'Rouge', value: '#EF4444' },
+  { label: 'Rouge vif', value: '#FF0000' },
+  { label: 'Rose', value: '#EC4899' },
+  { label: 'Rose clair', value: '#F9A8D4' },
+  { label: 'Marron', value: '#92400E' },
+  { label: 'Orange foncé', value: '#C2410C' },
+  { label: 'Orange', value: '#F97316' },
+  { label: 'Orange clair', value: '#FDBA74' },
+  { label: 'Olive', value: '#713F12' },
+  { label: 'Or', value: '#CA8A04' },
+  { label: 'Jaune', value: '#EAB308' },
+  { label: 'Jaune clair', value: '#FDE047' },
+  { label: 'Jaune pâle', value: '#FEF08A' },
+  { label: 'Vert foncé', value: '#14532D' },
+  { label: 'Vert', value: '#15803D' },
+  { label: 'Vert vif', value: '#22C55E' },
+  { label: 'Vert clair', value: '#86EFAC' },
+  { label: 'Sarcelle foncé', value: '#134E4A' },
+  { label: 'Sarcelle', value: '#0D9488' },
+  { label: 'Cyan', value: '#06B6D4' },
+  { label: 'Bleu marine', value: '#1E3A8A' },
+  { label: 'Bleu foncé', value: '#1D4ED8' },
+  { label: 'Bleu', value: '#2563EB' },
+  { label: 'Bleu clair', value: '#60A5FA' },
+  { label: 'Bleu ciel', value: '#BAE6FD' },
+  { label: 'Indigo', value: '#4F46E5' },
+  { label: 'Violet', value: '#7C3AED' },
+  { label: 'Violet clair', value: '#C4B5FD' },
+  { label: 'Fuchsia', value: '#C026D3' },
 ]
 
+const TEXT_COLORS = COLOR_PALETTE
+const HIGHLIGHT_COLORS = COLOR_PALETTE
+
+const showColorPicker = ref(false)
+const showHighlightPicker = ref(false)
+const customTextColor = ref('#000000')
+const customHighlightColor = ref('#FFFF00')
+
+function colorToHex(color: unknown): string {
+  if (typeof color !== 'string') return ''
+  const v = color.trim().toLowerCase()
+  const short = /^#([0-9a-f]{3})$/.exec(v)
+  if (short) return '#' + short[1].split('').map(ch => ch + ch).join('')
+  if (/^#[0-9a-f]{6}$/.test(v)) return v
+  // Le DOM (et donc getHTML/getAttributes de TipTap) sérialise en rgb(...).
+  const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(?:0|1|0?\.\d+)\s*)?\)$/.exec(v)
+  if (rgb) {
+    const parts = [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])]
+    if (parts.every(n => n >= 0 && n <= 255)) {
+      return '#' + parts.map(n => n.toString(16).padStart(2, '0')).join('')
+    }
+  }
+  return ''
+}
+
+/** Couleur de texte courante (barre du bouton + état sélectionné).
+ * Fonction (et non computed) : la ref `editor` est stable, donc un computed
+ * ne se rafraîchirait pas après les transactions — évalué à chaque rendu. */
+function currentTextColor(): string {
+  return colorToHex(editor.value?.getAttributes('textStyle').color)
+}
+
+/** Couleur de surlignage courante (barre du bouton + état sélectionné). */
+function currentHighlightColor(): string {
+  const attrs = editor.value?.getAttributes('highlight') as Record<string, unknown> | undefined
+  return colorToHex(attrs?.color ?? attrs?.['data-color'])
+}
+
+function isTextColorSelected(value: string): boolean {
+  const hex = colorToHex(value)
+  return hex !== '' && hex === currentTextColor()
+}
+
+function isHighlightColorSelected(value: string): boolean {
+  const hex = colorToHex(value)
+  return hex !== '' && hex === currentHighlightColor()
+}
+
 function setColor(color: string) {
-  editor.value?.chain().focus().setColor(color).run()
+  if (!color) {
+    editor.value?.chain().focus().unsetColor().run()
+  } else {
+    editor.value?.chain().focus().setColor(color).run()
+  }
   showColorPicker.value = false
+  emit('change')
+}
+
+function onCustomTextColor() {
+  customTextColor.value = colorToHex(customTextColor.value) || '#000000'
+  setColor(customTextColor.value)
+}
+
+function setHighlightColor(color: string) {
+  editor.value?.chain().focus().toggleHighlight({ color }).run()
+  showHighlightPicker.value = false
+  emit('change')
+}
+
+function onCustomHighlightColor() {
+  customHighlightColor.value = colorToHex(customHighlightColor.value) || '#FFFF00'
+  setHighlightColor(customHighlightColor.value)
+}
+
+function removeHighlight() {
+  editor.value?.chain().focus().unsetHighlight().run()
+  showHighlightPicker.value = false
   emit('change')
 }
 </script>
@@ -769,16 +941,16 @@ function setColor(color: string) {
 .rich-editor {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--cde-border);
   border-radius: 4px;
   overflow: hidden;
   transition: border-color 0.2s;
-  background: #fff;
+  background: var(--cde-surface);
 }
 
 .rich-editor:focus-within,
 .rich-editor.is-focused {
-  border-color: #409eff;
+  border-color: var(--cde-accent);
 }
 
 /* ── Toolbar ── */
@@ -787,8 +959,8 @@ function setColor(color: string) {
   align-items: center;
   gap: 2px;
   padding: 4px 6px;
-  background: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
+  background: var(--cde-surface-tint);
+  border-bottom: 1px solid var(--cde-border-soft);
   flex-wrap: wrap;
 }
 
@@ -802,7 +974,7 @@ function setColor(color: string) {
   border: 1px solid transparent;
   border-radius: 3px;
   background: transparent;
-  color: #606266;
+  color: var(--cde-muted);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.15s;
@@ -810,14 +982,14 @@ function setColor(color: string) {
 }
 
 .rich-editor__toolbar button:hover {
-  background: #e9ecef;
-  border-color: #dee2e6;
+  background: var(--cde-surface-tint);
+  border-color: var(--cde-border-soft);
 }
 
 .rich-editor__toolbar button.is-active {
-  background: #ecf5ff;
-  border-color: #b3d8ff;
-  color: #409eff;
+  background: var(--cde-accent-tint);
+  border-color: color-mix(in srgb, var(--cde-accent) 20%, transparent);
+  color: var(--cde-accent);
 }
 
 .rich-editor__toolbar button:disabled {
@@ -828,7 +1000,7 @@ function setColor(color: string) {
 .toolbar-separator {
   width: 1px;
   height: 18px;
-  background: #dcdfe6;
+  background: var(--cde-border);
   margin: 0 3px;
 }
 
@@ -865,11 +1037,22 @@ function setColor(color: string) {
   font-weight: 700;
 }
 
+.color-icon--stack {
+  flex-direction: column;
+  gap: 1px;
+}
+
 .color-bar {
   display: block;
   width: 14px;
   height: 3px;
   border-radius: 1px;
+}
+
+.color-bar--wide {
+  width: 18px;
+  height: 4px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
 .color-dropdown {
@@ -880,11 +1063,56 @@ function setColor(color: string) {
   display: flex;
   gap: 4px;
   padding: 6px 8px;
-  background: #fff;
-  border: 1px solid #dcdfe6;
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  margin-top: 4px;
+  /* Pas de margin-top : le moindre espace entre le bouton et le menu
+     déclenche le mouseleave et ferme le menu avant le clic. */
+  margin-top: 0;
+}
+
+.color-dropdown--grid {
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 24px);
+  gap: 4px;
+}
+
+.color-none {
+  align-self: stretch;
+  height: 24px;
+  font-size: 12px;
+  color: var(--cde-muted);
+}
+
+.color-none:hover {
+  color: var(--cde-accent);
+}
+
+.color-custom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--cde-muted);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.color-custom-input {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--cde-border);
+  border-radius: 3px;
+  cursor: pointer;
+  background: var(--cde-surface);
 }
 
 .color-swatch {
@@ -892,14 +1120,20 @@ function setColor(color: string) {
   height: 24px;
   border-radius: 50%;
   border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
   cursor: pointer;
   transition: border-color 0.15s, transform 0.15s;
   padding: 0;
 }
 
 .color-swatch:hover {
-  border-color: #409eff;
+  border-color: var(--cde-accent);
   transform: scale(1.15);
+}
+
+.color-swatch.is-selected {
+  border-color: var(--cde-accent);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--cde-accent);
 }
 
 /* ── Alignement d'image ── */
@@ -921,21 +1155,21 @@ function setColor(color: string) {
   width: 180px;
   height: 26px;
   padding: 0 8px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--cde-border);
   border-radius: 3px;
   font-size: 12px;
   outline: none;
 }
 
 .link-input:focus {
-  border-color: #409eff;
+  border-color: var(--cde-accent);
 }
 
 .link-confirm {
   height: 26px;
   padding: 0 8px;
-  background: #409eff;
-  color: #fff;
+  background: var(--cde-accent);
+  color: var(--cde-surface);
   border: none;
   border-radius: 3px;
   cursor: pointer;
@@ -946,11 +1180,11 @@ function setColor(color: string) {
   height: 26px;
   padding: 0 6px;
   background: transparent;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--cde-border);
   border-radius: 3px;
   cursor: pointer;
   font-size: 12px;
-  color: #909399;
+  color: var(--cde-muted);
 }
 
 /* ── Content area ── */
@@ -962,9 +1196,9 @@ function setColor(color: string) {
 .rich-editor__content :deep(.tiptap) {
   outline: none;
   padding: 8px 10px;
-  font-size: 13px;
+  font-size: 17px;
   line-height: 1.5;
-  color: #303133;
+  color: var(--cde-header-text);
   min-height: 48px;
 }
 
@@ -972,7 +1206,7 @@ function setColor(color: string) {
 .rich-editor__content :deep(.tiptap p.is-editor-empty:first-child::before) {
   content: attr(data-placeholder);
   float: left;
-  color: #adb5bd;
+  color: var(--cde-muted);
   pointer-events: none;
   height: 0;
   font-style: italic;
@@ -999,17 +1233,17 @@ function setColor(color: string) {
 
 /* Blockquote */
 .rich-editor__content :deep(.tiptap blockquote) {
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--cde-accent);
   margin: 4px 0;
   padding: 2px 10px;
-  color: #606266;
-  background: #f5f7fa;
+  color: var(--cde-muted);
+  background: var(--cde-surface-tint);
   border-radius: 0 3px 3px 0;
 }
 
 /* Inline code */
 .rich-editor__content :deep(.tiptap code) {
-  background: #f0f0f0;
+  background: var(--cde-surface-tint);
   border-radius: 3px;
   padding: 1px 4px;
   font-family: 'Courier New', monospace;
@@ -1018,8 +1252,8 @@ function setColor(color: string) {
 
 /* Code block */
 .rich-editor__content :deep(.tiptap pre) {
-  background: #f5f7fa;
-  border: 1px solid #e4e7ed;
+  background: var(--cde-surface-tint);
+  border: 1px solid var(--cde-border-soft);
   border-radius: 4px;
   padding: 6px 10px;
   font-family: 'Courier New', monospace;
@@ -1036,7 +1270,7 @@ function setColor(color: string) {
 
 /* Link in editor */
 .rich-editor__content :deep(.tiptap a.editor-link) {
-  color: #409eff;
+  color: var(--cde-accent);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -1044,7 +1278,7 @@ function setColor(color: string) {
 /* Horizontal rule */
 .rich-editor__content :deep(.tiptap hr) {
   border: none;
-  border-top: 1px solid #dcdfe6;
+  border-top: 1px solid var(--cde-border);
   margin: 12px 0;
 }
 
@@ -1074,7 +1308,7 @@ function setColor(color: string) {
 }
 
 .rich-editor__content :deep(.tiptap img.ProseMirror-selectednode) {
-  outline: 2px solid #409eff;
+  outline: 2px solid var(--cde-accent);
 }
 
 /* ── Input fichier caché ── */
@@ -1084,8 +1318,8 @@ function setColor(color: string) {
 
 /* ── Readonly state ── */
 .rich-editor.is-readonly {
-  border-color: #e4e7ed;
-  background: #f5f7fa;
+  border-color: var(--cde-border-soft);
+  background: var(--cde-surface-tint);
 }
 
 .rich-editor.is-readonly .rich-editor__content :deep(.tiptap) {

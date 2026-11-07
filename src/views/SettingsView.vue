@@ -1,8 +1,17 @@
 <template>
-  <div class="settings">
-    <h1 class="settings__title">Paramètres</h1>
+  <div class="settings cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Paramètres
+        </h1>
+        <p class="cde-page-sub">
+          Référentiels, tarifs et configuration de la clinique
+        </p>
+      </div>
+    </header>
 
-    <el-tabs v-model="activeTab" class="settings__tabs">
+    <el-tabs v-model="activeTab" class="cde-tabs settings__tabs">
       <el-tab-pane name="sites">
         <template #label>
           <span class="tab-label">
@@ -152,29 +161,14 @@ const activeTab = ref('sites')
 </script>
 
 <style scoped>
-.settings__title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--cd-gray-900);
-  margin-bottom: 8px;
-}
-
-.settings__tabs :deep(.el-tabs__header) {
-  margin: 0 !important;
-}
-
-.settings__tabs :deep(.el-tabs__content) {
-  padding: 10px;
-  border: 1px solid var(--cd-tab-border);
-  border-top: none;
-  background: var(--cd-tab-active-bg);
+.settings {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .tab-label {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
 }
 
 .tab-label svg {

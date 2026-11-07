@@ -96,6 +96,13 @@
               <span v-else>—</span>
             </el-descriptions-item>
 
+            <el-descriptions-item label="Temps de travail">
+              {{ profile.temps_travail === 'PARTIEL' ? 'Temps partiel' : 'Temps plein' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="N° sécurité sociale">
+              {{ profile.numero_securite_sociale || '—' }}
+            </el-descriptions-item>
+
             <el-descriptions-item label="Date début contrat">
               {{ profile.date_debut_contrat || '—' }}
             </el-descriptions-item>
@@ -237,12 +244,12 @@ onMounted(() => {
 
 :deep(.profil__descriptions .el-descriptions__label) {
   font-weight: 600;
-  color: var(--cd-gray-600);
-  background: var(--cd-widget-bg);
+  color: var(--cde-header-text);
+  background: var(--cde-header-bg);
   width: 130px;
 }
 
 :deep(.profil__descriptions .el-descriptions__content) {
-  color: #1A2E2D;
+  color: var(--cde-header-text);
 }
 </style>

@@ -64,35 +64,57 @@ defineExpose({
 
 <style scoped>
 .collapsible-section {
-  border: 1px solid var(--cd-gray-200);
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 16px;
+  box-shadow: none;
 }
 .collapsible-section__header {
-  background: linear-gradient(135deg, var(--cd-primary), #2E86C1);
-  color: #fff;
-  padding: 10px 14px;
+  background: var(--cde-header-bg);
+  color: var(--cde-header-text);
+  padding: 7px 14px 7px 15px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   user-select: none;
-  transition: opacity 0.15s;
+  border-bottom: 1px solid var(--cde-border);
+  box-shadow: inset 3px 0 0 var(--cde-accent);
+  transition: background-color 0.15s;
 }
-.collapsible-section__header:hover { opacity: 0.92; }
+.collapsible-section__header:hover { background: var(--cde-surface-tint); }
 .collapsible-section__header-left {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
-.collapsible-section__header-icon { font-size: 16px; }
-.collapsible-section__title { font-size: 13px; font-weight: 600; }
+.collapsible-section__header-icon {
+  font-size: 16px;
+  color: var(--cde-accent);
+}
+.collapsible-section__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cde-header-text);
+}
 .collapsible-section__badge :deep(.el-badge__content) {
-  background: rgba(255, 255, 255, 0.3);
-  border: none;
+  background: var(--cde-accent-tint);
+  color: var(--cde-accent-strong);
+  border: 1px solid var(--cde-border);
+  font-size: 10px;
+  font-weight: 600;
 }
-.collapsible-section__arrow { transition: transform 0.25s ease; font-size: 14px; }
+.collapsible-section__arrow {
+  transition: transform 0.25s ease;
+  font-size: 14px;
+  color: var(--cde-muted);
+}
 .collapsible-section__arrow--open { transform: rotate(180deg); }
-.collapsible-section__body { padding: 14px; background: #fff; }
+.collapsible-section__body {
+  padding: 14px;
+  background: var(--cde-surface);
+}
 </style>

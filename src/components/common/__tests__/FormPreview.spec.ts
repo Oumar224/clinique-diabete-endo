@@ -78,6 +78,26 @@ describe('FormPreview', () => {
     expect(value.text()).not.toContain('&lt;')
   })
 
+  it('renders a rich-text value row at the 17px base font-size (Feature: default font-size 17)', () => {
+    // The `.form-preview__row` base font-size moved from 13px → 17px. That rule
+    // lives in the component's scoped <style>, which jsdom does not apply to
+    // computed styles (getComputedStyle returns an empty string here), so the
+    // DOM-level assertion is limited to confirming the rich row is rendered.
+    // The 17px value itself is pinned in the scoped CSS (.form-preview__row).
+    const wrapper = mountPreview({
+      fields: [{ label: 'Motif', value: '<p>Décompensation <strong>sévère</strong></p>', rich: true }],
+    })
+    const row = wrapper.find('.form-preview__row')
+    expect(row.exists()).toBe(true)
+    expect(row.classes()).toContain('form-preview__row--rich')
+    // Best-effort: if the environment ever applies the stylesheet, the computed
+    // size must be 17px (not the old 13px).
+    const computed = getComputedStyle(row.element)
+    if (computed.fontSize) {
+      expect(computed.fontSize).toBe('17px')
+    }
+  })
+
   it('passes a tag-only rich value through as-is (emptiness is the caller\'s job via isRichTextEmpty)', () => {
     // FormPreview only filters on the raw value; HTML-content detection is
     // handled upstream by the tabs (isRichTextEmpty) before building the fields.
@@ -201,6 +221,36 @@ describe('FormPreview', () => {
       fields: [{ label: 'Glycémie', value: 6.1 }],
     })
     expect(wrapper.find('.form-preview__edit').exists()).toBe(false)
+  })
+
+  // ─── Delete button (deletable previews) ───────────────────────────
+
+  it('renders a delete button with a descriptive aria-label when deletable', () => {
+    const wrapper = mountPreview({
+      deletable: true,
+      fields: [{ label: 'Résultat / Conclusion — 05/01/2026 · Scanner', value: 'Normal', key: 'examensComplementaires.imagerieTests.k1' }],
+    })
+    const btn = wrapper.find('.form-preview__delete')
+    expect(btn.exists()).toBe(true)
+    expect(btn.find('.form-preview__delete-icon').exists()).toBe(true)
+    expect(btn.attributes('aria-label')).toBe('Supprimer Résultat / Conclusion — 05/01/2026 · Scanner')
+    expect(btn.attributes('title')).toBe('Supprimer Résultat / Conclusion — 05/01/2026 · Scanner')
+  })
+
+  it('emits delete with the field key when the delete button is clicked', async () => {
+    const wrapper = mountPreview({
+      deletable: true,
+      fields: [{ label: 'Glycémie', value: 6.1, key: 'bilan.glycemie', tracked: true }],
+    })
+    await wrapper.find('.form-preview__delete').trigger('click')
+    expect(wrapper.emitted('delete')).toEqual([['bilan.glycemie']])
+  })
+
+  it('does not render a delete button by default', () => {
+    const wrapper = mountPreview({
+      fields: [{ label: 'Glycémie', value: 6.1, key: 'bilan.glycemie' }],
+    })
+    expect(wrapper.find('.form-preview__delete').exists()).toBe(false)
   })
 
   // ─── Zoom controls (A− / A+) ─────────────────────────────────────

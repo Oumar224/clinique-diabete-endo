@@ -1,7 +1,11 @@
 import 'reflect-metadata'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockHandle = vi.hoisted(() => vi.fn())
+const mockOpenPath = vi.hoisted(() => vi.fn())
 
 // Mock electron: ipcMain for createHandler, plus stubs for the
 // ExportService import graph (BrowserWindow/dialog/app) and for
@@ -11,7 +15,7 @@ vi.mock('electron', () => ({
   BrowserWindow: class {},
   dialog: { showSaveDialog: vi.fn(), showOpenDialog: vi.fn() },
   app: { getPath: () => '/tmp' },
-  shell: { openPath: vi.fn() },
+  shell: { openPath: mockOpenPath },
 }))
 
 import { container } from 'tsyringe'
@@ -40,11 +44,35 @@ const mockExportService = {
 }
 
 describe('registerClinicalDocumentHandlers', () => {
+  const tempDirs: string[] = []
+
+  function createTempPdf(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cde-open-pdf-'))
+    tempDirs.push(dir)
+    const pdfPath = path.join(dir, 'document.pdf')
+    fs.writeFileSync(pdfPath, '%PDF-1.4 test')
+    return pdfPath
+  }
+
+  function getOpenPdfHandler() {
+    registerClinicalDocumentHandlers()
+    const call = mockHandle.mock.calls.find((c) => c[0] === 'clinical-documents:open-pdf')
+    if (!call) throw new Error('clinical-documents:open-pdf handler not registered')
+    return call[1] as (_event: unknown, params: { pdfPath: string }) => Promise<unknown>
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
+    mockOpenPath.mockResolvedValue('')
     container.clearInstances()
     container.registerInstance(ClinicalDocumentService, mockClinicalDocumentService as unknown as ClinicalDocumentService)
     container.registerInstance(ExportService, mockExportService as unknown as ExportService)
+  })
+
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0)) {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
   })
 
   it('registers the clinical-documents:sign channel', () => {
@@ -82,5 +110,33 @@ describe('registerClinicalDocumentHandlers', () => {
 
     expect(result).toEqual({ success: false, data: null, message: 'PDF generation failed' })
     expect(mockClinicalDocumentService.setDocumentPdfPath).not.toHaveBeenCalled()
+  })
+
+  it('clinical-documents:open-pdf répond sans attendre shell.openPath', { timeout: 1000 }, async () => {
+    const pdfPath = createTempPdf()
+    // Simule ShellExecute qui ne se résout jamais : le handler ne doit pas
+    // attendre cette promesse, sinon la réponse IPC resterait en suspens.
+    mockOpenPath.mockReturnValue(new Promise<string>(() => {}))
+
+    const result = await getOpenPdfHandler()({}, { pdfPath })
+
+    expect(result).toEqual({ success: true, data: { success: true }, message: '' })
+  })
+
+  it('clinical-documents:open-pdf journalise une erreur système mais répond quand même', async () => {
+    const pdfPath = createTempPdf()
+    mockOpenPath.mockResolvedValue('ShellExecute failed')
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    try {
+      const result = await getOpenPdfHandler()({}, { pdfPath })
+
+      expect(result).toEqual({ success: true, data: { success: true }, message: '' })
+      await vi.waitFor(() => {
+        expect(errorSpy).toHaveBeenCalledWith('[clinical-documents:open-pdf] ShellExecute failed')
+      })
+    } finally {
+      errorSpy.mockRestore()
+    }
   })
 })

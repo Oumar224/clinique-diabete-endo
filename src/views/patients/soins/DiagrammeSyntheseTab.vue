@@ -1,27 +1,28 @@
 <template>
-  <div class="diagramme">
-    <div class="diagramme__header">
-      <h3 class="diagramme__title">Diagramme de synthèse</h3>
-      <el-date-picker
-        v-model="dateRange"
-        type="daterange"
-        range-separator="→"
-        start-placeholder="Date début"
-        end-placeholder="Date fin"
-        value-format="YYYY-MM-DD"
-        style="width: 280px"
-        @change="onDateRangeChange"
-      />
+  <div class="diagramme cde">
+    <div class="diagramme__header cde-page-toolbar">
+      <div class="cde-page-actions">
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="→"
+          start-placeholder="Date début"
+          end-placeholder="Date fin"
+          value-format="YYYY-MM-DD"
+          style="width: 280px"
+          @change="onDateRangeChange"
+        />
+      </div>
     </div>
 
-    <el-card>
+    <div class="diagramme__body">
       <el-alert
         v-if="error"
         :title="error"
         type="error"
         show-icon
         closable
-        style="margin-bottom:16px"
+        class="cde-alert cde-alert--danger"
         @close="error = null"
       />
       <el-alert
@@ -30,7 +31,7 @@
         type="info"
         show-icon
         closable
-        style="margin-bottom:16px"
+        class="cde-alert"
         @close="info = null"
       />
 
@@ -55,8 +56,6 @@
           <Line :data="chartData ?? emptyChartData" :options="chartOptions" />
         </div>
 
-        <el-divider />
-
         <div class="diagramme__legend">
           <h4>Légende</h4>
           <div class="diagramme__legend-items">
@@ -69,7 +68,7 @@
               TA systolique (mmHg)
             </span>
             <span class="diagramme__legend-item">
-              <span class="diagramme__legend-dot diagramme__legend-dot--ta" />
+              <span class="diagramme__legend-dot diagramme__legend-dot--ta-d" />
               TA diastolique (mmHg)
             </span>
             <span class="diagramme__legend-item">
@@ -97,32 +96,34 @@
               Poids (kg)
             </span>
             <span class="diagramme__legend-item">
-              <el-tag size="small" type="success">💊</el-tag> Médicament validé
+              <span class="diagramme__legend-dot diagramme__legend-dot--med" /> Médicament validé
             </span>
           </div>
         </div>
 
         <div class="diagramme__meds">
           <h4>Administrations validées</h4>
-          <el-table
-            :data="meds"
-            stripe
-            border
-            size="small"
-            style="width:100%"
-            empty-text="Aucune administration validée sur cette période"
-          >
-            <el-table-column prop="date" label="Date" width="110" sortable />
-            <el-table-column prop="heure" label="Heure" width="70" sortable />
-            <el-table-column prop="medicament" label="Médicament" min-width="180" sortable />
-            <el-table-column prop="dosage" label="Dosage" width="100" />
-            <el-table-column prop="voie" label="Voie" width="100" />
-            <el-table-column prop="validePar" label="Validé par" width="140" sortable />
-            <el-table-column prop="valideA" label="Validé à" width="80" />
-          </el-table>
+          <div class="cde-table-card">
+            <div class="cde-table-wrap">
+              <el-table
+                :data="meds"
+                size="small"
+                style="width:100%"
+                empty-text="Aucune administration validée sur cette période"
+              >
+                <el-table-column prop="date" label="Date" width="110" sortable />
+                <el-table-column prop="heure" label="Heure" width="70" sortable />
+                <el-table-column prop="medicament" label="Médicament" min-width="180" sortable />
+                <el-table-column prop="dosage" label="Dosage" width="100" />
+                <el-table-column prop="voie" label="Voie" width="100" />
+                <el-table-column prop="validePar" label="Validé par" width="140" sortable />
+                <el-table-column prop="valideA" label="Validé à" width="80" />
+              </el-table>
+            </div>
+          </div>
         </div>
       </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -186,7 +187,7 @@ const INDICATOR_CONFIGS: IndicatorConfig[] = [
     label: 'TA systolique (mmHg)',
     unit: 'mmHg',
     yAxisID: 'y1',
-    color: '#1A5276',
+    color: '#0E7C7B',
     min: 60,
     max: 200,
     stepSize: 20,
@@ -452,8 +453,8 @@ const emptyChartData = {
   datasets: [{
     label: 'Aucune donnée',
     data: [],
-    borderColor: '#E0E0E0',
-    backgroundColor: '#F5F5F5',
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
     fill: true,
     tension: 0.4,
     pointRadius: 0,
@@ -540,18 +541,11 @@ const meds = computed(() => {
 </script>
 
 <style scoped>
-.diagramme__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.diagramme__title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--cd-gray-900);
+.diagramme__body {
+  background: var(--cde-bg);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+  padding: 12px 14px 14px;
 }
 .diagramme__loading {
   min-height: 200px;
@@ -559,38 +553,46 @@ const meds = computed(() => {
 .diagramme__chart-wrapper {
   height: 300px;
   position: relative;
+  margin: 8px 0 16px;
 }
 .diagramme__legend {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cde-border-soft);
 }
 .diagramme__legend h4, .diagramme__meds h4 {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   margin-bottom: 8px;
   color: var(--cd-gray-900);
 }
 .diagramme__legend-items {
   display: flex;
-  gap: 24px;
+  flex-wrap: wrap;
+  gap: 8px 20px;
   align-items: center;
 }
 .diagramme__legend-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
-  color: var(--cd-gray-600);
+  font-size: 12px;
+  color: var(--cde-muted);
 }
 .diagramme__legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 .diagramme__legend-dot--temp {
   background: #FF3131;
 }
 .diagramme__legend-dot--ta {
   background: var(--cd-primary);
+}
+.diagramme__legend-dot--ta-d {
+  background: #E67E22;
 }
 .diagramme__legend-dot--fc {
   background: #8E44AD;
@@ -610,10 +612,13 @@ const meds = computed(() => {
 .diagramme__legend-dot--poids {
   background: #F39C12;
 }
+.diagramme__legend-dot--med {
+  background: var(--cd-success);
+}
 .diagramme__indicators {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 </style>

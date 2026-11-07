@@ -1,6 +1,6 @@
 import { container } from 'tsyringe'
 import { createHandler } from '../utils/create-handler'
-import { OrdonnanceLibreService } from '../services/ordonnance-libre.service'
+import { OrdonnanceLibreService, validateCreateFromGroup, type OrdonnanceLibreCategorie } from '../services/ordonnance-libre.service'
 import { ClinicalDocumentService } from '../services/clinical-document.service'
 
 export function registerOrdonnanceLibreHandlers() {
@@ -16,6 +16,27 @@ export function registerOrdonnanceLibreHandlers() {
     if (!id) throw new Error('id requis')
     const service = container.resolve(OrdonnanceLibreService)
     return service.getById(id)
+  })
+
+  createHandler('ordonnance-libre:create-from-group', async (params: {
+    patientId: number
+    contactId: string
+    serviceId?: string | null
+    siteId?: number | null
+    createdBy: string
+    title: string
+    sourceDocumentId: string
+    categorie: OrdonnanceLibreCategorie
+    items: any[]
+  }) => {
+    const { contactId, createdBy, title } = params
+    if (!contactId) throw new Error('contactId requis')
+    if (!createdBy) throw new Error('createdBy requis')
+    if (!title) throw new Error('title requis')
+    // validation partagée handler/service (items non vide + categorie allowlist)
+    validateCreateFromGroup(params)
+    const service = container.resolve(OrdonnanceLibreService)
+    return service.createOrReplaceFromGroup(params)
   })
 
   createHandler('ordonnance-libre:delete', async (params: { id: string }) => {

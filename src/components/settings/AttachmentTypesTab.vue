@@ -1,20 +1,37 @@
 <template>
-  <div class="attachment-types-tab">
-    <div class="attachment-types-tab__section">
-      <h2 class="attachment-types-tab__section-title">Types de pièces jointes</h2>
-
-      <div class="attachment-types-tab__actions">
-        <el-button type="primary" :icon="Plus" @click="openAddDialog">Ajouter</el-button>
+  <div class="attachment-types-tab cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Types de pièces jointes
+        </h1>
+        <p class="cde-page-sub">
+          Catégories disponibles pour les documents patients
+        </p>
       </div>
+    </header>
 
-      <div v-if="loading" class="attachment-types-tab__loading">Chargement...</div>
+    <div class="cde-toolbar">
+      <div class="cde-filters">
+        <span class="cde-toolbar__meta">{{ types.length }} type(s)</span>
+      </div>
+      <div class="cde-toolbar__actions">
+        <el-button type="primary" size="small" :icon="Plus" @click="openAddDialog">
+          Ajouter
+        </el-button>
+      </div>
+    </div>
 
+    <div v-if="loading" class="cde-muted attachment-types-tab__loading">
+      Chargement…
+    </div>
+
+    <div v-else class="cde-table-card">
       <el-table
-        v-else
         :data="types"
         style="width: 100%"
-        border
-        max-height="500"
+        size="small"
+        empty-text=""
       >
         <el-table-column prop="name" label="Nom" min-width="200" />
         <el-table-column label="Actions" width="160" align="center">
@@ -24,8 +41,14 @@
           </template>
         </el-table-column>
       </el-table>
+    </div>
 
-      <el-empty v-if="!loading && types.length === 0" description="Aucun type de pièce jointe" />
+    <div v-if="!loading && types.length === 0" class="cde-empty">
+      Aucun type de pièce jointe.
+    </div>
+
+    <div class="cde-footer">
+      <span class="cde-muted">{{ types.length }} type(s)</span>
     </div>
 
     <!-- Add / Edit Dialog -->
@@ -143,27 +166,3 @@ async function handleDelete(type: AttachmentType) {
   }
 }
 </script>
-
-<style scoped>
-.attachment-types-tab__section {
-  margin-bottom: 28px;
-}
-
-.attachment-types-tab__section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--cd-gray-900);
-  margin-bottom: 12px;
-}
-
-.attachment-types-tab__actions {
-  margin-bottom: 16px;
-}
-
-.attachment-types-tab__loading {
-  font-size: 13px;
-  color: #999;
-  padding: 24px 0;
-  text-align: center;
-}
-</style>

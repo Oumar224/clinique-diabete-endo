@@ -13,6 +13,12 @@ export class InvoiceEntity {
   @SchemaField() montant_restant?: number
   @SchemaField() status?: 'payé' | 'en_attente' | 'annulé' | 'partiel'
   @SchemaField() notes?: string
+  @SchemaField() remise_pct?: number
+  @SchemaField() tva_pct?: number
+  @SchemaField() assurance_id?: number
+  @SchemaField() part_assurance?: number
+  @SchemaField() part_patient?: number
+  @SchemaField() mode_paiement?: string
   @SchemaField() created_by?: number
   @SchemaField() created_at?: string
   @SchemaField() updated_at?: string
@@ -23,6 +29,7 @@ export class InvoiceEntity {
     payments?: InvoicePaymentDto[],
     patientNom?: string,
     patientPrenom?: string,
+    patientNip?: string,
   ): InvoiceDto {
     return {
       id: entity.id,
@@ -30,11 +37,18 @@ export class InvoiceEntity {
       patient_id: entity.patient_id!,
       patient_nom: patientNom,
       patient_prenom: patientPrenom,
+      patient_nip: patientNip,
       date: entity.date!,
       montant_total: entity.montant_total ?? 0,
       montant_restant: entity.montant_restant ?? 0,
       status: entity.status!,
       notes: entity.notes,
+      remise_pct: entity.remise_pct ?? 0,
+      tva_pct: entity.tva_pct ?? 0,
+      assurance_id: entity.assurance_id ?? undefined,
+      part_assurance: entity.part_assurance ?? 0,
+      part_patient: entity.part_patient ?? 0,
+      mode_paiement: entity.mode_paiement ?? undefined,
       created_by: entity.created_by,
       created_at: entity.created_at,
       updated_at: entity.updated_at,
@@ -57,6 +71,12 @@ export class InvoiceEntity {
     e.montant_restant = dto.montant_restant
     e.status = dto.status
     e.notes = dto.notes
+    e.remise_pct = dto.remise_pct
+    e.tva_pct = dto.tva_pct
+    e.assurance_id = dto.assurance_id ?? undefined
+    e.part_assurance = dto.part_assurance
+    e.part_patient = dto.part_patient
+    e.mode_paiement = dto.mode_paiement ?? undefined
     e.created_by = dto.created_by
     return e
   }

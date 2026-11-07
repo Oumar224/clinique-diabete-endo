@@ -6,6 +6,19 @@ export const CONTACT_TYPE_OPTIONS = [
   { value: 'hospitalisation', label: 'Hospitalisation' },
 ]
 
+/** Classement du dossier pour les indicateurs annuels (migration 110). */
+export const CASE_TYPE_OPTIONS = [
+  { value: 'diabete', label: 'Diabète' },
+  { value: 'thyroide_endocrino', label: 'Thyroïde – Endocrinologie' },
+  { value: 'autre', label: 'Autre' },
+] as const
+
+/** Type de séjour hospitalier (migration 110). */
+export const STAY_TYPE_OPTIONS = [
+  { value: 'jour', label: 'Hôpital de jour' },
+  { value: 'complete', label: 'Hospitalisation complète' },
+] as const
+
 export interface ContactFormData {
   contact_type: string
   contact_type_precision: string
@@ -26,6 +39,9 @@ export interface ContactFormData {
   sinistre_info: string
   notes: string
   assurance_id: number | null
+  case_type: 'diabete' | 'thyroide_endocrino' | 'autre' | ''
+  is_new_case: boolean
+  stay_type: 'jour' | 'complete' | ''
   care_unit_id: number | null
 }
 
@@ -88,6 +104,9 @@ export function useContactFormLogic() {
     sinistre_info: '',
     notes: '',
     assurance_id: null,
+    case_type: '',
+    is_new_case: false,
+    stay_type: '',
     care_unit_id: null,
   })
 
@@ -143,6 +162,9 @@ export function useContactFormLogic() {
       sinistre_info: '',
       notes: '',
       assurance_id: null,
+      case_type: '',
+      is_new_case: false,
+      stay_type: '',
       care_unit_id: null,
     }
   }

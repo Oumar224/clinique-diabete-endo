@@ -150,7 +150,7 @@ function formatSize(bytes: number | null | undefined): string {
 .exam-detail__resultat {
   font-size: 13px;
   line-height: 1.6;
-  color: #303133;
+  color: var(--cde-header-text);
   word-break: break-word;
 }
 .exam-detail__motif :deep(img),
@@ -165,14 +165,14 @@ function formatSize(bytes: number | null | undefined): string {
 .exam-detail__section-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--cd-gray-700, #333);
+  color: var(--cde-header-text);
   margin: 0 0 8px;
   padding-bottom: 4px;
-  border-bottom: 1px solid var(--cd-gray-200, #e4e7ed);
+  border-bottom: 1px solid var(--cde-border);
 }
 .exam-detail__status {
   font-size: 12px;
-  color: #999;
+  color: var(--cde-muted);
   padding: 8px 0;
   text-align: center;
 }
@@ -181,22 +181,22 @@ function formatSize(bytes: number | null | undefined): string {
   align-items: center;
   gap: 10px;
   padding: 6px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--cde-border-soft);
 }
 .exam-detail__attachment:last-child {
   border-bottom: none;
 }
 .exam-detail__attachment-icon {
   font-size: 18px;
-  color: var(--cd-gray-500, #95a5a6);
+  color: var(--cde-muted);
 }
 .exam-detail__attachment-name {
   font-size: 13px;
   font-weight: 500;
-  color: #333;
+  color: var(--cde-header-text);
 }
 .exam-detail__attachment-meta {
   font-size: 11px;
-  color: #999;
+  color: var(--cde-muted);
 }
 </style>

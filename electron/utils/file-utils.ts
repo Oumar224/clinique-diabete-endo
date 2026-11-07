@@ -1,11 +1,13 @@
 /**
  * Decode a base64 string (optionally with a data URI prefix) and return the
- * decoded size in bytes.
+ * exact decoded size in bytes.
  *
- * Uses a padding-agnostic approximation (ceil(length * 3 / 4)) which is
- * within 2 bytes of the true size — more than adequate for size-limit checks.
+ * Strips data-URI prefixes and whitespace, then removes base64 padding from
+ * the mathematical decoded length so a file of exactly N bytes is never
+ * over-counted.
  */
 export function getBase64DecodedSize(base64Str: string): number {
-  const raw = base64Str.replace(/^data:[^;]+;base64,/, '')
-  return Math.ceil((raw.length * 3) / 4)
+  const raw = base64Str.replace(/^data:[^;]+;base64,/, '').replace(/\s/g, '')
+  const padding = raw.endsWith('==') ? 2 : raw.endsWith('=') ? 1 : 0
+  return Math.floor((raw.length * 3) / 4) - padding
 }

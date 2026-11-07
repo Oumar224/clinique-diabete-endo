@@ -1,24 +1,16 @@
 <template>
-  <div class="prescription-view">
-    <div class="prescription-view__header">
-      <h3 class="prescription-view__title">Prescription médicale</h3>
-      <el-button type="primary" size="small" :icon="Plus" @click="showForm = true">
+  <div class="prescription-view cde">
+    <PatientPageToolbar>
+      <el-button type="primary" :icon="Plus" @click="showForm = true">
         Nouvelle prescription
       </el-button>
-    </div>
+    </PatientPageToolbar>
 
     <!-- Interaction warning banner -->
     <el-alert
       v-if="interactionWarning"
       :title="interactionWarning"
       type="warning"
-      show-icon
-      :closable="false"
-      class="prescription-view__interaction"
-    />
-    <el-alert
-      title="Vérification limitée — utilisez un référentiel officiel (ex: Thériaque, Vidal) pour confirmer l'absence d'interactions."
-      type="info"
       show-icon
       :closable="false"
       class="prescription-view__interaction"
@@ -50,7 +42,7 @@
           <el-row :gutter="16">
             <el-col :span="8">
               <el-form-item label="Dénomination du médicament" prop="medicament">
-                <el-select v-model="form.medicament" filterable placeholder="Rechercher un médicament..." style="width:100%">
+                <el-select v-model="form.medicament" filterable allow-create placeholder="Rechercher un médicament..." style="width:100%">
                   <el-option v-for="m in medicaments" :key="m" :label="m" :value="m" />
                 </el-select>
               </el-form-item>
@@ -70,7 +62,7 @@
             <el-col :span="4">
               <el-form-item label="Voie" prop="voie">
                 <el-select v-model="form.voie" placeholder="Voie">
-                  <el-option v-for="v in voieOptions" :key="v" :label="v" :value="v" />
+                  <el-option v-for="v in voieOptions" :key="v.code" :label="v.label" :value="v.code" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -146,7 +138,7 @@
             <el-col :span="4">
               <el-form-item label="Voie" prop="voie">
                 <el-select v-model="form.voie" placeholder="Voie">
-                  <el-option v-for="v in voieOptions" :key="v" :label="v" :value="v" />
+                  <el-option v-for="v in voieOptions" :key="v.code" :label="v.label" :value="v.code" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -286,24 +278,31 @@
     />
 
     <!-- Type filter above table -->
-    <div v-if="prescriptions.length > 0" class="prescription-view__type-filter">
-      <el-button
-        v-for="opt in filterOptions"
-        :key="opt.value"
-        size="small"
-        :type="tableTypeFilter === opt.value ? 'primary' : 'default'"
-        :class="tableTypeFilter === opt.value ? `prescription-filter--${opt.value}` : ''"
-        @click="tableTypeFilter = opt.value"
-      >
-        <span v-if="opt.value !== 'all'" class="prescription-filter__icon">{{ opt.value === 'medicament' ? '💊' : '🩹' }}</span>
-        {{ opt.label }}
-      </el-button>
+    <div v-if="prescriptions.length > 0" class="cde-toolbar">
+      <div class="cde-filters">
+        <div class="cde-filter">
+          <span class="cde-filter__label">Type</span>
+          <div class="prescription-view__type-filter">
+            <el-button
+              v-for="opt in filterOptions"
+              :key="opt.value"
+              size="small"
+              :type="tableTypeFilter === opt.value ? 'primary' : 'default'"
+              :aria-pressed="tableTypeFilter === opt.value"
+              @click="tableTypeFilter = opt.value"
+            >
+              {{ opt.label }}
+            </el-button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Prescriptions table -->
+    <div class="cde-table-card">
     <el-table
       :data="filteredPrescriptions"
-      style="width:100%;margin-top:16px"
+      style="width:100%"
       size="small"
       highlight-current-row
       @row-click="onRowClick"
@@ -317,10 +316,9 @@
       <el-table-column label="Type" width="130" align="center">
         <template #default="{ row }">
           <span
-            class="prescription-cell__type-badge"
-            :class="`prescription-cell__type-badge--${row.type}`"
+            class="cde-badge"
+            :class="row.type === 'medicament' ? 'cde-badge--info' : 'cde-badge--success'"
           >
-            <span class="prescription-cell__type-icon">{{ row.type === 'medicament' ? '💊' : '🩹' }}</span>
             {{ typeLabel(row.type) }}
           </span>
         </template>
@@ -329,12 +327,12 @@
         <template #default="{ row }">
           <div class="prescription-cell__row">
             <span
-              class="prescription-type-dot"
-              :class="`prescription-type-dot--${row.type}`"
+              class="cde-dot"
+              :style="{ background: row.type === 'medicament' ? 'var(--cd-info-blue)' : 'var(--cd-success)' }"
             />
             <div class="prescription-cell__info">
               <span class="prescription-cell__medicament">{{ row.medicament }}</span>
-              <span class="prescription-cell__dosage">{{ row.dosage }}</span>
+              <span class="cde-muted">{{ row.dosage }}</span>
               <span
                 class="prescription-cell__type-label"
                 :class="`prescription-cell__type-label--${row.type}`"
@@ -352,16 +350,22 @@
       </el-table-column>
       <el-table-column label="Statut" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="statutTagType(row.statut)" size="small" effect="plain">
+          <span
+            class="cde-badge"
+            :class="tagModifier(statutTagType(row.statut))"
+          >
             {{ statutLabel(row.statut) }}
-          </el-tag>
+          </span>
         </template>
       </el-table-column>
       <el-table-column label="Type de traitement" width="130" align="center">
         <template #default="{ row }">
-          <el-tag :type="dureeTagType(row.dureeType)" size="small" effect="plain">
+          <span
+            class="cde-badge"
+            :class="tagModifier(dureeTagType(row.dureeType))"
+          >
             {{ dureeTypeLabel(row.dureeType) }}
-          </el-tag>
+          </span>
         </template>
       </el-table-column>
       <el-table-column label="Actions" width="150" align="center">
@@ -372,6 +376,7 @@
                 size="small"
                 text
                 type="primary"
+                aria-label="Modifier la prescription"
                 @click.stop="onEdit(row)"
               >
                 <el-icon><Edit /></el-icon>
@@ -388,6 +393,7 @@
                 size="small"
                 text
                 type="danger"
+                aria-label="Arrêter la prescription"
                 :loading="stoppingId === row.id"
                 @click.stop="onStop(row.id)"
               >
@@ -399,6 +405,7 @@
                 size="small"
                 text
                 type="danger"
+                aria-label="Supprimer la prescription"
                 @click.stop="onDelete(row)"
               >
                 <el-icon><Delete /></el-icon>
@@ -407,10 +414,17 @@
           </div>
         </template>
       </el-table-column>
+      <template #empty>
+        <div class="cde-empty">
+          Aucune prescription.
+        </div>
+      </template>
     </el-table>
+    </div>
 
-    <!-- Empty state -->
-    <el-empty v-if="!prescriptionsLoading && prescriptions.length === 0" description="Aucune prescription" />
+    <div class="cde-footer">
+      <span class="cde-muted">{{ filteredPrescriptions.length }} prescription(s)</span>
+    </div>
 
     <!-- ================================================================ -->
     <!-- Edit prescription dialog                                         -->
@@ -434,7 +448,7 @@
           <el-row :gutter="16">
             <el-col :span="8">
               <el-form-item label="Dénomination" prop="medicament">
-                <el-select v-model="editForm.medicament" filterable style="width:100%">
+                <el-select v-model="editForm.medicament" filterable allow-create style="width:100%">
                   <el-option v-for="m in medicaments" :key="m" :label="m" :value="m" />
                 </el-select>
               </el-form-item>
@@ -454,7 +468,7 @@
             <el-col :span="4">
               <el-form-item label="Voie" prop="voie">
                 <el-select v-model="editForm.voie" style="width:100%">
-                  <el-option v-for="v in voieOptions" :key="v" :label="v" :value="v" />
+                  <el-option v-for="v in voieOptions" :key="v.code" :label="v.label" :value="v.code" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -528,7 +542,7 @@
             <el-col :span="4">
               <el-form-item label="Voie" prop="voie">
                 <el-select v-model="editForm.voie" style="width:100%">
-                  <el-option v-for="v in voieOptions" :key="v" :label="v" :value="v" />
+                  <el-option v-for="v in voieOptions" :key="v.code" :label="v.label" :value="v.code" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -811,6 +825,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ipcInvoke } from '@/utils/ipc'
 import { useAuth } from '@/composables/useAuth'
+import { useMedicaments, medicamentShortLabel } from '@/composables/useMedicaments'
 import {
   MOMENTS_OPTIONS,
   FIXED_TIMES_OPTIONS,
@@ -821,7 +836,10 @@ import {
 } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
 import { usePrescriptions, type PrescriptionRecord } from '@/composables/usePrescriptions'
+import { ALLOWED_VOIES, VOIE_OPTIONS, normalizeVoie, VOIE_ERROR_MESSAGE } from '@/constants/voies'
+import type { VoieAdministration } from '@/types/soins'
 import RichTextEditor from '@/components/patients/RichTextEditor.vue'
+import PatientPageToolbar from '@/components/patients/PatientPageToolbar.vue'
 import { isRichTextEmpty } from '@/utils/rich-text'
 
 
@@ -880,16 +898,37 @@ const medicalActs = ref<{ id: number; label: string }[]>([])
 const dispositifTypes = ref<{ id: number; label: string }[]>([])
 const voieTypes = ref<{ id: number; label: string }[]>([])
 
-const medicaments = [
+const FALLBACK_MEDICAMENTS = [
   'Amoxicilline 500 mg', 'Furosémide 40 mg', 'Metformine 500 mg', 'Ramipril 5 mg',
   'Paracétamol 500 mg', 'Ibuprofène 400 mg', 'Warfarine 5 mg', 'Aspirine 100 mg',
   'Atorvastatine 20 mg', 'Oméprazole 20 mg',
 ]
+const { medicaments: catalogueMedicaments, fetchMedicaments } = useMedicaments()
+const medicaments = computed(() =>
+  catalogueMedicaments.value.length > 0
+    ? catalogueMedicaments.value.map(medicamentShortLabel)
+    : FALLBACK_MEDICAMENTS,
+)
 
-const FALLBACK_VOIES = ['IV', 'PO', 'SC', 'IM', 'SL']
+const FALLBACK_VOIES: VoieAdministration[] = [...ALLOWED_VOIES]
 const voieOptions = computed(() => {
-  if (voieTypes.value.length > 0) return voieTypes.value.map(v => v.label)
-  return FALLBACK_VOIES
+  // Filtre le référentiel `voie-types` sur l'allowlist backend : les labels
+  // longs ('PO (Per Os)', …) sont normalisés vers leur code, les valeurs
+  // hors CHECK (IP, Rectale, …) sont écartées pour éviter le 500 sqlite.
+  if (voieTypes.value.length > 0) {
+    const seen = new Set<string>()
+    const mapped: { code: VoieAdministration; label: string }[] = []
+    for (const v of voieTypes.value) {
+      const code = normalizeVoie(v.label)
+      if (!code || seen.has(code)) continue
+      seen.add(code)
+      const display = VOIE_OPTIONS.find(o => o.code === code)?.label ?? `${code} — ${v.label}`
+      mapped.push({ code, label: display })
+    }
+    if (mapped.length > 0) return mapped
+  }
+  // FALLBACK_VOIES comme base quand le référentiel est vide/invalide.
+  return FALLBACK_VOIES.map(code => ({ ...VOIE_OPTIONS.find(o => o.code === code)! }))
 })
 
 const UNITES = ['cp', 'UI', 'mg', 'g', 'mL', 'ampoule', 'sachet', 'cuillère', 'goutte']
@@ -931,20 +970,34 @@ const editForm = reactive({
 })
 
 /* ── Form validation rules ── */
+function voieRule() {
+  return [
+    { required: true, message: 'Sélectionnez la voie d\'administration', trigger: 'change' },
+    {
+      validator: (_rule: unknown, value: unknown, callback: (error?: Error) => void) => {
+        if (!value) { callback(); return }
+        if (!normalizeVoie(value)) callback(new Error(VOIE_ERROR_MESSAGE))
+        else callback()
+      },
+      trigger: 'change',
+    },
+  ]
+}
+
 const createFormRules = computed<FormRules>(() => {
   if (form.type === 'medicament') {
     return {
       medicament: [{ required: true, message: 'Choisissez un médicament', trigger: 'change' }],
       dosage: [{ required: true, message: 'Indiquez la quantité', trigger: 'blur' }],
       unite: [{ required: true, message: 'Sélectionnez l\'unité', trigger: 'change' }],
-      voie: [{ required: true, message: 'Sélectionnez la voie d\'administration', trigger: 'change' }],
+      voie: voieRule(),
       duree: [{ required: true, message: 'Indiquez la durée', trigger: 'blur' }],
       frequence: [{ required: true, message: 'Sélectionnez au moins une fréquence', trigger: 'change' }],
     }
   }
   return {
     medicament: [{ required: true, message: 'Sélectionnez un acte', trigger: 'change' }],
-    voie: [{ required: true, message: 'Sélectionnez la voie d\'administration', trigger: 'change' }],
+    voie: voieRule(),
     duree: [{ required: true, message: 'Indiquez la durée', trigger: 'blur' }],
     frequence: [{ required: true, message: 'Sélectionnez au moins une fréquence', trigger: 'change' }],
   }
@@ -956,14 +1009,14 @@ const editFormRules = computed<FormRules>(() => {
       medicament: [{ required: true, message: 'Choisissez un médicament', trigger: 'change' }],
       dosage: [{ required: true, message: 'Indiquez la quantité', trigger: 'blur' }],
       unite: [{ required: true, message: 'Sélectionnez l\'unité', trigger: 'change' }],
-      voie: [{ required: true, message: 'Sélectionnez la voie d\'administration', trigger: 'change' }],
+      voie: voieRule(),
       duree: [{ required: true, message: 'Indiquez la durée', trigger: 'blur' }],
       frequence: [{ required: true, message: 'Sélectionnez au moins une fréquence', trigger: 'change' }],
     }
   }
   return {
     medicament: [{ required: true, message: 'Sélectionnez un acte', trigger: 'change' }],
-    voie: [{ required: true, message: 'Sélectionnez la voie d\'administration', trigger: 'change' }],
+    voie: voieRule(),
     duree: [{ required: true, message: 'Indiquez la durée', trigger: 'blur' }],
     frequence: [{ required: true, message: 'Sélectionnez au moins une fréquence', trigger: 'change' }],
   }
@@ -988,11 +1041,17 @@ async function loadPrescriptions() {
 
 function buildApiPayload(formData: typeof form | typeof editForm) {
   const combinedDosage = `${formData.dosage} ${formData.unite}`.trim()
+  // Normalise vers l'allowlist backend (trim, uppercase, extraction du code,
+  // VO→PO). Lève une erreur lisible au lieu du 500 'CHECK constraint failed'.
+  const voie = normalizeVoie(formData.voie)
+  if (!voie) {
+    throw new Error(VOIE_ERROR_MESSAGE)
+  }
   return {
     type: formData.type as 'medicament' | 'soins',
     medicament: formData.medicament,
     dosage: combinedDosage,
-    voie: formData.voie,
+    voie: voie as VoieAdministration,
     duree: formData.duree,
     dureeType: formData.dureeType ?? 'courte',
     frequence: formData.frequence,
@@ -1022,6 +1081,12 @@ async function onPrescrire() {
   if (!formRef.value) return
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
+
+  // Garde-fou client pré-payload : message clair au lieu du 500 CHECK.
+  if (!normalizeVoie(form.voie)) {
+    ElMessage.error(VOIE_ERROR_MESSAGE)
+    return
+  }
 
   // Interaction detection (only for medicament type)
   if (form.type === 'medicament') {
@@ -1079,6 +1144,8 @@ async function onPrescrire() {
     const msg = (e as Error).message
     if (msg.includes('introuvable dans patient')) {
       ElMessage.error('Le dossier patient semble inaccessible. Veuillez rafraîchir la page.')
+    } else if (msg.includes('Voie d\'administration invalide') || msg.includes('CHECK constraint')) {
+      ElMessage.error(VOIE_ERROR_MESSAGE)
     } else {
       ElMessage.error(`Erreur de création: ${msg}`)
     }
@@ -1116,7 +1183,8 @@ function onEdit(row: PrescriptionRecord) {
   editForm.dosage = parts.slice(0, -1).join(' ')
   editForm.unite = parts.length > 1 ? parts[parts.length - 1] : ''
   editForm.medicament = row.medicament
-  editForm.voie = row.voie
+  // Normalise les voies legacy ('VO', labels longs) vers l'allowlist backend.
+  editForm.voie = normalizeVoie(row.voie) ?? (row.voie as string)
   editForm.duree = row.duree
   editForm.dureeType = (row as any).dureeType ?? 'courte'
   editForm.frequence = [...row.frequence]
@@ -1150,6 +1218,10 @@ async function onEditSubmit() {
   if (!editingPrescription.value) return
   const valid = await editFormRef.value?.validate().catch(() => false)
   if (!valid) return
+  if (!normalizeVoie(editForm.voie)) {
+    ElMessage.error(VOIE_ERROR_MESSAGE)
+    return
+  }
 
   editing.value = true
   try {
@@ -1164,7 +1236,12 @@ async function onEditSubmit() {
     editingPrescription.value = null
     await loadPrescriptions()
   } catch (e) {
-    ElMessage.error(`Erreur: ${(e as Error).message}`)
+    const msg = (e as Error).message
+    if (msg.includes('Voie d\'administration invalide') || msg.includes('CHECK constraint')) {
+      ElMessage.error(VOIE_ERROR_MESSAGE)
+    } else {
+      ElMessage.error(`Erreur: ${msg}`)
+    }
   }
   editing.value = false
 }
@@ -1228,6 +1305,13 @@ function statutTagType(statut?: string) {
   return 'info'
 }
 
+/** Traduit un type Element Plus (`success`, `warning`…) en modificateur `cde-badge`. */
+function tagModifier(type: string): string {
+  return type === 'success' || type === 'warning' || type === 'danger' || type === 'info'
+    ? `cde-badge--${type}`
+    : 'cde-badge--muted'
+}
+
 function statutLabel(statut?: string) {
   if (statut === 'active') return 'Active'
   if (statut === 'stopped') return 'Arrêtée'
@@ -1273,6 +1357,7 @@ function onDeleteFromDetail() {
 
 onMounted(() => {
   loadPrescriptions()
+  void fetchMedicaments({ actif: true })
   ipcInvoke<{ id: number; label: string }[]>('acts:list', { activeOnly: true }).then(acts => {
     medicalActs.value = acts ?? []
   }).catch(() => {})
@@ -1288,20 +1373,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.prescription-view__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-.prescription-view__title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--cd-gray-900);
-}
-.prescription-view__type-filter {
-  margin-bottom: 16px;
-}
 .prescription-view__interaction {
   margin-bottom: 16px;
 }
@@ -1320,30 +1391,19 @@ onMounted(() => {
   color: var(--cd-gray-500);
 }
 
+
 /* ── Clickable rows ── */
 .prescription-view .el-table__row {
   cursor: pointer;
 }
 
 /* ── Table cell medicament ── */
-.prescription-cell__row {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  flex-wrap: wrap;
-}
 .prescription-cell__medicament {
   font-weight: 600;
   font-size: 13px;
   color: var(--cd-gray-900);
   line-height: 1.4;
 }
-.prescription-cell__dosage {
-  font-size: 12px;
-  color: var(--cd-gray-500);
-  line-height: 1.4;
-}
-
 /* ── Table action buttons ── */
 .prescription-cell__actions {
   display: inline-flex;
@@ -1352,30 +1412,6 @@ onMounted(() => {
 }
 .prescription-cell__actions .el-button {
   margin-left: 0;
-}
-
-/* ── Row color coding by type (desktop pro) ── */
-:deep(.el-table .prescription-row--medicament) {
-  border-left: 5px solid #2980B9;
-  background: linear-gradient(to right, rgba(41, 128, 185, 0.1), rgba(41, 128, 185, 0.02));
-}
-:deep(.el-table .prescription-row--soins) {
-  border-left: 5px solid #27AE60;
-  background: linear-gradient(to right, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.02));
-}
-
-:deep(.el-table .prescription-row--medicament:hover) {
-  background: linear-gradient(to right, rgba(41, 128, 185, 0.18), rgba(41, 128, 185, 0.05));
-}
-:deep(.el-table .prescription-row--soins:hover) {
-  background: linear-gradient(to right, rgba(39, 174, 96, 0.18), rgba(39, 174, 96, 0.05));
-}
-
-:deep(.el-table .prescription-row--medicament.current-row) {
-  background: linear-gradient(to right, rgba(41, 128, 185, 0.22), rgba(41, 128, 185, 0.06));
-}
-:deep(.el-table .prescription-row--soins.current-row) {
-  background: linear-gradient(to right, rgba(39, 174, 96, 0.22), rgba(39, 174, 96, 0.06));
 }
 
 /* ── Detail dialog ── */
@@ -1414,13 +1450,22 @@ onMounted(() => {
 }
 .prescription-detail__grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
+  min-width: 0;
+  max-width: 100%;
+}
+.prescription-detail__grid > * {
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .prescription-detail__grid { grid-template-columns: minmax(0, 1fr); }
 }
 .prescription-detail__item {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 .prescription-detail__label {
   font-size: 12px;
@@ -1482,82 +1527,15 @@ onMounted(() => {
   opacity: 0.7;
 }
 .prescription-cell__type-label--medicament {
-  color: #2980B9;
+  color: var(--cd-info-blue);
 }
 .prescription-cell__type-label--soins {
-  color: #27AE60;
-}
-
-.prescription-type-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-right: 8px;
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.8);
-}
-.prescription-type-dot--medicament {
-  background: linear-gradient(135deg, #3498DB, #2980B9);
-}
-.prescription-type-dot--soins {
-  background: linear-gradient(135deg, #2ECC71, #27AE60);
-}
-
-/* ── Type badge (desktop pro) ── */
-.prescription-cell__type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-}
-.prescription-cell__type-badge--medicament {
-  background: linear-gradient(135deg, #3498DB, #2980B9);
-  color: #fff;
-}
-.prescription-cell__type-badge--soins {
-  background: linear-gradient(135deg, #2ECC71, #27AE60);
-  color: #fff;
-}
-.prescription-cell__type-icon {
-  font-size: 12px;
-  line-height: 1;
+  color: var(--cd-success);
 }
 
 /* ── Type filter styling ── */
 .prescription-view__type-filter {
-  margin-bottom: 16px;
   display: flex;
   gap: 6px;
-}
-.prescription-view__type-filter .el-button {
-  font-weight: 500;
-  font-size: 12px;
-  padding: 6px 14px;
-  border-radius: 16px;
-  transition: all 0.2s ease;
-}
-.prescription-view__type-filter .el-button.el-button--primary {
-  font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-}
-.prescription-filter__icon {
-  font-size: 13px;
-  line-height: 1;
-  margin-right: 2px;
-}
-.prescription-filter--medicament.el-button--primary {
-  background: linear-gradient(135deg, #3498DB, #2980B9);
-  border-color: #2980B9;
-}
-.prescription-filter--soins.el-button--primary {
-  background: linear-gradient(135deg, #2ECC71, #27AE60);
-  border-color: #27AE60;
 }
 </style>

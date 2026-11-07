@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import type { VoieTypeEntity } from '../entities/voie-type.entity'
+import { normalizeVoieOrThrow, VOIE_VALUES_LABEL } from '../constants/voies'
 
 @singleton()
 export class VoieTypeService {
@@ -94,6 +95,18 @@ export class VoieTypeService {
     }
     if (label.trim().length > 100) {
       throw new Error('Le libellé ne peut pas dépasser 100 caractères')
+    }
+    // Durcissement option B : n'autoriser que les codes compatibles avec le
+    // CHECK(voie IN ('PO','SC','IV','IM','SL')) de prescriptions / plan_soins_items.
+    // Les labels longs du seed ('PO (Per Os)') sont normalisés avant comparaison.
+    try {
+      normalizeVoieOrThrow(label)
+    } catch {
+      throw new Error(
+        `Voie "${label.trim()}" invalide. Valeurs attendues: ${VOIE_VALUES_LABEL} ` +
+          `(ou labels équivalents type 'PO (Per Os)'). ` +
+          `Les voies hors nomenclature (ID, IR, Inhalation, Transdermique, Intrathécale, Intra-articulaire, Topic) sont désactivées.`,
+      )
     }
   }
 }

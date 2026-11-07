@@ -5,6 +5,8 @@ import fs from "node:fs"
 import os from "node:os"
 import { container } from "tsyringe"
 import { AppDatabaseDatasource } from "../../sqlite-data-source"
+import type { Kysely } from "kysely"
+import type { DB } from "../../entities/database"
 import { PatientService } from "../patient.service"
 import { PatientEntity } from "../../entities/patient.entity"
 import { EntityRegistry } from "../../automerge/entity-registry"
@@ -105,6 +107,172 @@ describe("PatientService", () => {
     await service.delete(created.id!)
     const found = await service.getById(created.id!)
     expect(found).toBeNull()
+  })
+
+  it("deletes a patient plus all dependent child rows without FK constraint errors", async () => {
+    const service = container.resolve(PatientService)
+    const db = (service as unknown as { db: Kysely<DB> }).db
+
+    // Reference rows required by foreign keys
+    const user = await db.insertInto("user").values({
+      nom: "PatientDelete", prenom: "User",
+      email: "patient-delete@clinique.test",
+      password_hash: "not-used",
+      role: "MEDECIN",
+      is_active: 1,
+    }).returning("id").executeTakeFirstOrThrow()
+
+    const svc = await db.insertInto("services").values({
+      name: `Patient Delete Svc ${Date.now()}`,
+      description: "test",
+      duration: 30,
+      sort_order: 99,
+      is_active: 1,
+    }).returning("id").executeTakeFirstOrThrow()
+
+    const created = await service.create(PatientEntity.fromDto({
+      civilite: 'M', nom: 'Cascade', prenom: 'Delete',
+      date_naissance: '1988-08-08', nir: '1880808123450', telephone: '0688888888',
+    }))
+    const pid = created.id!
+
+    // ─── Encounter tree (NO ACTION FKs must be deleted first) ──
+    const encounter = await db.insertInto("encounters").values({
+      patient_id: pid,
+      contact_type: "consultation",
+      start_date: "2026-01-10",
+      end_date: "2026-01-10",
+      service_id: svc.id,
+      origin: "auto_refere",
+      zone_situation: "zone_responsabilite",
+      prise_en_charge: "maladie_naturelle",
+      status: "active",
+      created_by: user.id,
+    }).returning("id").executeTakeFirstOrThrow()
+
+    await db.insertInto("encounter_movements").values({
+      encounter_id: encounter.id,
+      step_label: "Arrivée",
+      entered_at: "2026-01-10 08:00:00",
+    }).execute()
+
+    const doc = await db.insertInto("patient_clinical_documents").values({
+      id: "patient-delete-doc-1",
+      contact_id: String(encounter.id),
+      document_type_id: "11111111-1111-4111-1111-111111111111",
+      status: "draft",
+      created_by: String(user.id),
+    }).returning("id").executeTakeFirstOrThrow()
+
+    await db.insertInto("clinical_document_signatures").values({
+      id: "patient-delete-sig-1",
+      document_id: doc.id,
+      user_id: String(user.id),
+      signature_hash: "abc123",
+    }).execute()
+
+    await db.insertInto("document_attachments").values({
+      document_id: doc.id,
+      display_name: "a.txt",
+      file_name: "a.txt",
+      file_data: "dGVzdA==",
+      mime_type: "text/plain",
+    }).execute()
+
+    // ─── Stay tree (NO ACTION FKs must be deleted first) ──────
+    const stay = await db.insertInto("stays").values({
+      patient_id: pid,
+      admission_date: "2026-01-10",
+      mode_admission: "programmee",
+      service_id: svc.id,
+      status: "en_cours",
+      created_by: user.id,
+    }).returning("id").executeTakeFirstOrThrow()
+
+    await db.insertInto("stay_movements").values({
+      stay_id: stay.id,
+      movement_type: "admission",
+      moved_at: "2026-01-10 08:00:00",
+    }).execute()
+
+    // ─── Exam request tree (NO ACTION on patient_id AND encounter_id) ──
+    const labCat = await db.insertInto("lab_exam_categories").values({
+      code: "TST",
+      name: "Test Cat",
+      sort_order: 99,
+    }).returning("id").executeTakeFirstOrThrow()
+
+    const exam = await db.insertInto("lab_exams").values({
+      category_id: labCat.id,
+      code: "TST",
+      name: "Test examen",
+      is_active: 1,
+      sort_order: 99,
+    }).returning("id").executeTakeFirstOrThrow()
+
+    const parameter = await db.insertInto("exam_parameters").values({
+      exam_id: exam.id,
+      name: "Glucose",
+      input_type: "numeric",
+      reference_values: "{}",
+      sort_order: 1,
+    }).returning("id").executeTakeFirstOrThrow()
+
+    const examReq = await db.insertInto("exam_requests").values({
+      patient_id: pid,
+      encounter_id: encounter.id,
+      type: "lab",
+      statut: "en_attente",
+      created_by: user.id,
+    }).returning("id").executeTakeFirstOrThrow()
+
+    await db.insertInto("exam_results").values({
+      exam_request_id: examReq.id,
+      parameter_id: parameter.id,
+      value: "0.85",
+    }).execute()
+
+    await db.insertInto("exam_request_attachments").values({
+      exam_request_id: examReq.id,
+      display_name: "r.txt",
+      file_name: "r.txt",
+      file_data: "dGVzdA==",
+    }).execute()
+
+    // ─── Cascade-to-patient table + orphan form draft ─────────
+    await db.insertInto("trusted_persons").values({
+      patient_id: pid,
+      has_trusted: 1,
+      nom: "Tiers de confiance",
+    }).execute()
+
+    await db.insertInto("form_drafts").values({
+      form_type: "encounter",
+      form_data: "{}",
+      patient_id: pid,
+    }).execute()
+
+    // Previously threw "FOREIGN KEY constraint failed"
+    await expect(service.delete(pid)).resolves.toBeDefined()
+
+    // Patient row gone
+    expect(await db.selectFrom("patient").select("id").where("id", "=", pid).executeTakeFirst()).toBeUndefined()
+    // Encounter tree gone
+    expect(await db.selectFrom("encounters").select("id").where("id", "=", encounter.id).executeTakeFirst()).toBeUndefined()
+    expect(await db.selectFrom("encounter_movements").select("id").where("encounter_id", "=", encounter.id).executeTakeFirst()).toBeUndefined()
+    expect(await db.selectFrom("patient_clinical_documents").select("id").where("id", "=", doc.id).executeTakeFirst()).toBeUndefined()
+    expect(await db.selectFrom("clinical_document_signatures").select("id").where("id", "=", "patient-delete-sig-1").executeTakeFirst()).toBeUndefined()
+    expect(await db.selectFrom("document_attachments").select("id").where("document_id", "=", doc.id).executeTakeFirst()).toBeUndefined()
+    // Stay tree gone
+    expect(await db.selectFrom("stays").select("id").where("id", "=", stay.id).executeTakeFirst()).toBeUndefined()
+    expect(await db.selectFrom("stay_movements").select("id").where("stay_id", "=", stay.id).executeTakeFirst()).toBeUndefined()
+    // Exam request tree gone
+    expect(await db.selectFrom("exam_requests").select("id").where("id", "=", examReq.id).executeTakeFirst()).toBeUndefined()
+    expect(await db.selectFrom("exam_results").select("id").where("exam_request_id", "=", examReq.id).executeTakeFirst()).toBeUndefined()
+    expect(await db.selectFrom("exam_request_attachments").select("id").where("exam_request_id", "=", examReq.id).executeTakeFirst()).toBeUndefined()
+    // Cascade table + orphan draft gone
+    expect(await db.selectFrom("trusted_persons").select("id").where("patient_id", "=", pid).executeTakeFirst()).toBeUndefined()
+    expect(await db.selectFrom("form_drafts").select("id").where("patient_id", "=", pid).executeTakeFirst()).toBeUndefined()
   })
 
     it('returns created patient with an id using PatientEntity directly', async () => {

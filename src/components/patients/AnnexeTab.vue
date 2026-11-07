@@ -407,9 +407,9 @@ function formatSize(bytes: number | null): string {
 .annexe-tab {
   margin-top: 16px;
   padding: 16px;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  background: #fafafa;
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+  background: var(--cde-surface-tint);
 }
 .annexe-tab__add {
   display: flex;
@@ -421,7 +421,7 @@ function formatSize(bytes: number | null): string {
 .annexe-tab__loading,
 .annexe-tab__empty {
   font-size: 13px;
-  color: #999;
+  color: var(--cde-muted);
   padding: 12px 0;
   text-align: center;
 }
@@ -430,7 +430,7 @@ function formatSize(bytes: number | null): string {
   align-items: center;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--cde-border-soft);
 }
 .annexe-tab__item:last-child {
   border-bottom: none;
@@ -451,7 +451,7 @@ function formatSize(bytes: number | null): string {
   background: none;
   padding: 0;
   cursor: pointer;
-  color: #666;
+  color: var(--cde-muted);
 }
 .annexe-tab__thumb {
   width: 48px;
@@ -460,9 +460,9 @@ function formatSize(bytes: number | null): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--cde-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--cde-surface);
   padding: 0;
   cursor: zoom-in;
   overflow: hidden;
@@ -474,28 +474,28 @@ function formatSize(bytes: number | null): string {
 }
 .annexe-tab__thumb-placeholder {
   font-size: 22px;
-  color: #c0c4cc;
+  color: var(--cde-muted);
 }
 .annexe-tab__item-name {
   font-size: 13px;
   font-weight: 500;
-  color: #333;
+  color: var(--cde-header-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .annexe-tab__item-meta {
   font-size: 11px;
-  color: #999;
+  color: var(--cde-muted);
 }
 .annexe-tab__item-desc {
   font-size: 12px;
-  color: #666;
+  color: var(--cde-muted);
   margin-top: 2px;
 }
 .annexe-tab__disabled-message {
   font-size: 13px;
-  color: #999;
+  color: var(--cde-muted);
   padding: 12px 0;
   text-align: center;
   font-style: italic;
@@ -515,13 +515,13 @@ function formatSize(bytes: number | null): string {
 }
 .annexe-tab__preview-loading {
   font-size: 13px;
-  color: #999;
+  color: var(--cde-muted);
   padding: 24px 0;
   text-align: center;
 }
 .annexe-tab__preview-desc {
   font-size: 13px;
-  color: #333;
+  color: var(--cde-header-text);
   margin: 0;
 }
 .annexe-tab__preview-file {
@@ -534,17 +534,17 @@ function formatSize(bytes: number | null): string {
 }
 .annexe-tab__preview-file-icon {
   font-size: 40px;
-  color: #909399;
+  color: var(--cde-muted);
 }
 .annexe-tab__preview-file-name {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--cde-header-text);
   overflow-wrap: anywhere;
 }
 .annexe-tab__preview-file-meta {
   font-size: 12px;
-  color: #999;
+  color: var(--cde-muted);
 }
 .annexe-tab__add-body {
   display: flex;
@@ -561,9 +561,9 @@ function formatSize(bytes: number | null): string {
   align-items: center;
   gap: 10px;
   padding: 8px;
-  border: 1px dashed #dcdfe6;
+  border: 1px dashed var(--cde-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--cde-surface);
   min-width: 0;
 }
 .annexe-tab__add-file-thumb {
@@ -579,14 +579,14 @@ function formatSize(bytes: number | null): string {
 .annexe-tab__add-file-name {
   font-size: 13px;
   font-weight: 500;
-  color: #333;
+  color: var(--cde-header-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .annexe-tab__add-file-detail {
   font-size: 11px;
-  color: #999;
+  color: var(--cde-muted);
 }
 .annexe-tab__rich {
   overflow-wrap: anywhere;
@@ -618,15 +618,15 @@ function formatSize(bytes: number | null): string {
   margin-bottom: 2px;
 }
 .annexe-tab__rich :deep(blockquote) {
-  border-left: 3px solid #d1d5db;
+  border-left: 3px solid var(--cde-border);
   margin: 4px 0;
   padding: 2px 8px;
-  color: #4b5563;
+  color: var(--cde-muted);
   font-style: italic;
 }
 .annexe-tab__rich :deep(pre) {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: var(--cde-surface-tint);
+  border: 1px solid var(--cde-border-soft);
   padding: 8px;
   font-family: monospace;
   font-size: 11px;
@@ -634,14 +634,14 @@ function formatSize(bytes: number | null): string {
   margin: 4px 0;
 }
 .annexe-tab__rich :deep(code) {
-  background: #f3f4f6;
+  background: var(--cde-surface-tint);
   font-family: monospace;
   font-size: 11px;
   padding: 1px 3px;
 }
 .annexe-tab__rich :deep(hr) {
   border: none;
-  border-top: 1px solid #d1d5db;
+  border-top: 1px solid var(--cde-border);
   margin: 6px 0;
 }
 .annexe-tab__rich :deep(img) {
@@ -663,7 +663,7 @@ function formatSize(bytes: number | null): string {
   margin: 6px auto;
 }
 .annexe-tab__rich :deep(a) {
-  color: #2563eb;
+  color: var(--cde-accent);
   text-decoration: underline;
 }
 </style>

@@ -1,166 +1,194 @@
 <template>
-  <div class="lt">
-    <div class="lt__header">
-      <el-input
-        v-model="searchQuery"
-        placeholder="Rechercher par nom ou code..."
-        clearable
-        style="width: 280px"
-        @input="onSearch"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      <el-radio-group v-model="filterActive" size="small">
-        <el-radio-button :label="''">Tous</el-radio-button>
-        <el-radio-button :label="'active'">Actifs</el-radio-button>
-      </el-radio-group>
-      <el-button
-        v-if="hasLocalites"
-        :loading="importing"
-        :icon="Refresh"
-        @click="handleImport"
-      >
-        Actualiser
-      </el-button>
-      <el-button
-        v-else
-        :loading="importing"
-        type="primary"
-        :icon="Download"
-        @click="handleImport"
-      >
-        Importer les localités de Guinée
-      </el-button>
-    </div>
+  <div class="lt cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Localités
+        </h1>
+        <p class="cde-page-sub">
+          Régions, préfectures, communes et sous-préfectures
+        </p>
+      </div>
+    </header>
 
     <el-alert
       v-if="error"
+      class="cde-alert cde-alert--danger"
       type="error"
       :title="error"
-      closable
+      :closable="true"
       @close="error = null"
-      style="margin-bottom: 16px"
     />
 
-    <el-table
-      v-loading="loading"
-      :data="paginatedTree"
-      style="width: 100%"
-      border
-      row-key="id"
-      :tree-props="{ children: 'children' }"
-      default-expand-all
-    >
-      <el-table-column label="Nom" min-width="220">
-        <template #default="{ row }">
-          <span>{{ row.name }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="code" label="Code" width="130" />
-      <el-table-column label="Type" width="150" align="center">
-        <template #default="{ row }">
-          <el-tag :type="typeBadgeType(row.type)" size="small" effect="plain">
-            {{ typeLabel(row.type) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="Région" width="160">
-        <template #default="{ row }">
-          <span v-if="row.type === 'region'" style="color: var(--cd-gray-400); font-style: italic;">(capitale)</span>
-          <span v-else>{{ row.region || '—' }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="Statut" width="90" align="center">
-        <template #default="{ row }">
-          <el-switch
-            :model-value="row.is_active"
+    <div class="cde-toolbar">
+      <div class="cde-filters">
+        <div class="cde-filter cde-toolbar__search">
+          <span class="cde-filter__label">Recherche</span>
+          <el-input
+            v-model="searchQuery"
+            placeholder="Nom ou code…"
+            clearable
             size="small"
-            @change="handleToggle(row)"
-          />
-        </template>
-      </el-table-column>
-      <el-table-column label="Actions" width="110" align="center">
-        <template #default="{ row }">
-          <el-button
-            v-if="row.is_active"
-            text
-            type="warning"
-            size="small"
-            @click="handleToggle(row)"
+            @input="onSearch"
           >
-            Désactiver
-          </el-button>
-          <el-button
-            v-else
-            text
-            type="success"
-            size="small"
-            @click="handleToggle(row)"
-          >
-            Activer
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+        </div>
+        <div class="cde-filter">
+          <span class="cde-filter__label">Statut</span>
+          <el-radio-group v-model="filterActive" size="small">
+            <el-radio-button :label="''">Tous</el-radio-button>
+            <el-radio-button :label="'active'">Actifs</el-radio-button>
+          </el-radio-group>
+        </div>
+      </div>
+      <div class="cde-toolbar__actions">
+        <el-button
+          v-if="hasLocalites"
+          :loading="importing"
+          size="small"
+          :icon="Refresh"
+          @click="handleImport"
+        >
+          Actualiser
+        </el-button>
+        <el-button
+          v-else
+          :loading="importing"
+          type="primary"
+          size="small"
+          :icon="Download"
+          @click="handleImport"
+        >
+          Importer les localités de Guinée
+        </el-button>
+      </div>
+    </div>
 
-    <el-empty
-      v-if="!loading && filteredTree.length === 0"
-      description="Aucune localité. Cliquez sur 'Importer' pour charger les données de la Guinée."
-    />
+    <div class="cde-table-card">
+      <el-table
+        v-loading="loading"
+        :data="paginatedTree"
+        style="width: 100%"
+        size="small"
+        row-key="id"
+        :tree-props="{ children: 'children' }"
+        default-expand-all
+        empty-text=""
+      >
+        <el-table-column label="Nom" min-width="220">
+          <template #default="{ row }">
+            {{ row.name }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="code" label="Code" width="130" />
+        <el-table-column label="Type" width="150" align="center">
+          <template #default="{ row }">
+            <span
+              class="cde-badge"
+              :class="'cde-badge--' + typeBadgeVariant(row.type)"
+            >{{ typeLabel(row.type) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Région" width="160">
+          <template #default="{ row }">
+            <span v-if="row.type === 'region'" class="cde-muted lt__capital">(capitale)</span>
+            <span v-else>{{ row.region || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Statut" width="90" align="center">
+          <template #default="{ row }">
+            <el-switch
+              :model-value="row.is_active"
+              size="small"
+              @change="handleToggle(row)"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column label="Actions" width="110" align="center">
+          <template #default="{ row }">
+            <el-button
+              text
+              :type="row.is_active ? 'warning' : 'success'"
+              size="small"
+              @click="handleToggle(row)"
+            >
+              {{ row.is_active ? 'Désactiver' : 'Activer' }}
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
-    <el-row justify="center" style="margin-top: 20px">
+    <div v-if="!loading && filteredTree.length === 0" class="cde-empty">
+      Aucune localité. Cliquez sur « Importer » pour charger les données de la Guinée.
+    </div>
+
+    <div class="cde-footer">
+      <span class="cde-muted">{{ filteredTree.length }} localité(s)</span>
       <el-pagination
         v-model:current-page="paginator.currPage"
         v-model:page-size="paginator.pageSize"
-        background
         layout="sizes, prev, pager, next"
         :page-sizes="[10, 20, 50]"
         :total="filteredTree.length"
       />
-    </el-row>
+    </div>
 
-    <el-divider />
-
-    <div class="lt__custom-import">
-      <h3 class="lt__custom-import-title">Importer un fichier personnalisé</h3>
-      <div class="lt__custom-import-row">
-        <el-input
-          v-model="customCountry"
-          placeholder="Code pays (ex: SN)"
-          style="width: 160px"
-          maxlength="2"
-          :disabled="importingCustom"
-        />
-        <span class="lt__file-info">{{ selectedFileName || 'Aucun fichier sélectionné' }}</span>
-        <el-button
-          :disabled="importingCustom"
-          @click="triggerFilePicker"
-        >
-          Choisir un fichier JSON
-        </el-button>
-        <el-button
-          type="primary"
-          :disabled="!selectedFile || !customCountry"
-          :loading="importingCustom"
-          @click="handleCustomImport"
-        >
-          Importer
-        </el-button>
+    <section class="cde-panel lt__custom-import">
+      <header class="cde-panel__head">
+        <h2 class="cde-panel__title">
+          Importer un fichier personnalisé
+        </h2>
+      </header>
+      <div class="cde-toolbar lt__custom-import-row">
+        <div class="cde-filters">
+          <div class="cde-filter">
+            <span class="cde-filter__label">Code pays</span>
+            <el-input
+              v-model="customCountry"
+              placeholder="SN"
+              size="small"
+              maxlength="2"
+              :disabled="importingCustom"
+            />
+          </div>
+          <span class="cde-toolbar__meta lt__file-info">{{ selectedFileName || 'Aucun fichier sélectionné' }}</span>
+        </div>
+        <div class="cde-toolbar__actions">
+          <el-button
+            size="small"
+            :disabled="importingCustom"
+            @click="triggerFilePicker"
+          >
+            Choisir un fichier JSON
+          </el-button>
+          <el-button
+            type="primary"
+            size="small"
+            :disabled="!selectedFile || !customCountry"
+            :loading="importingCustom"
+            @click="handleCustomImport"
+          >
+            Importer
+          </el-button>
+        </div>
       </div>
-      <input
-        ref="fileInput"
-        type="file"
-        accept=".json"
-        hidden
-        @change="onFileSelected"
-      />
-      <p class="lt__custom-import-hint">
+      <p class="cde-muted lt__custom-import-hint">
         Le fichier JSON doit contenir un tableau de préfectures avec leurs communes/sous-préfectures.
         <a href="#" @click.prevent="showFormatHelp">Voir le format attendu</a>
       </p>
-    </div>
+    </section>
+
+    <input
+      ref="fileInput"
+      type="file"
+      accept=".json"
+      hidden
+      @change="onFileSelected"
+    >
   </div>
 </template>
 
@@ -215,18 +243,18 @@ const paginatedTree = computed(() => {
   return filteredTree.value.slice(start, start + paginator.pageSize)
 })
 
-function typeBadgeType(type: string): 'primary' | 'success' | 'warning' | 'info' {
+function typeBadgeVariant(type: string): 'info' | 'success' | 'warning' | 'muted' {
   switch (type) {
     case 'region':
-      return 'primary'
+      return 'info'
     case 'prefecture':
       return 'success'
     case 'commune':
       return 'warning'
     case 'sous_prefecture':
-      return 'info'
+      return 'muted'
     default:
-      return 'info'
+      return 'muted'
   }
 }
 
@@ -355,45 +383,37 @@ async function handleCustomImport() {
 </script>
 
 <style scoped>
-.lt__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+.lt {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .lt__custom-import {
-  margin-top: 8px;
-}
-
-.lt__custom-import-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--cd-primary);
-  margin-bottom: 12px;
+  margin-top: 4px;
 }
 
 .lt__custom-import-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  padding: 10px 12px 4px;
 }
 
 .lt__file-info {
-  font-size: 13px;
-  color: #6B8A89;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .lt__custom-import-hint {
-  font-size: 12px;
-  color: #8CA5A4;
-  margin-top: 8px;
+  margin: 0;
+  padding: 0 12px 10px;
+  font-size: 11px;
 }
 
 .lt__custom-import-hint a {
-  color: var(--cd-primary);
+  color: var(--cde-accent);
   text-decoration: underline;
+}
+
+.lt__capital {
+  font-style: italic;
 }
 </style>

@@ -213,15 +213,15 @@ function formatSize(bytes: number | null): string {
 .attachments-section {
   margin-top: 16px;
   padding: 16px;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  background: #fafafa;
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+  background: var(--cde-surface-tint);
 }
 .attachments-section__title {
   font-size: 14px;
   font-weight: 600;
   margin: 0 0 12px;
-  color: #333;
+  color: var(--cde-header-text);
 }
 .attachments-section__add {
   display: flex;
@@ -232,13 +232,13 @@ function formatSize(bytes: number | null): string {
 }
 .attachments-section__file-name {
   font-size: 12px;
-  color: #666;
+  color: var(--cde-muted);
   margin-left: 6px;
 }
 .attachments-section__loading,
 .attachments-section__empty {
   font-size: 13px;
-  color: #999;
+  color: var(--cde-muted);
   padding: 12px 0;
   text-align: center;
 }
@@ -247,7 +247,7 @@ function formatSize(bytes: number | null): string {
   align-items: center;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--cde-border-soft);
 }
 .attachments-section__item:last-child {
   border-bottom: none;
@@ -263,21 +263,21 @@ function formatSize(bytes: number | null): string {
 .attachments-section__item-name {
   font-size: 13px;
   font-weight: 500;
-  color: #333;
+  color: var(--cde-header-text);
 }
 .attachments-section__item-type {
   font-size: 11px;
-  color: var(--el-color-primary);
+  color: var(--cde-accent);
   font-weight: 500;
   margin-top: 2px;
 }
 .attachments-section__item-meta {
   font-size: 11px;
-  color: #999;
+  color: var(--cde-muted);
 }
 .attachments-section__disabled-message {
   font-size: 13px;
-  color: #999;
+  color: var(--cde-muted);
   padding: 12px 0;
   text-align: center;
   font-style: italic;

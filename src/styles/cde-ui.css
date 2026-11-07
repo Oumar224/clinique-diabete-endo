@@ -1,0 +1,1244 @@
+/*
+ * CDE — couche de design desktop globale (ex-Comptabilité).
+ * Les tokens sont déclarés sur `:root` ET sur le scope `.cde` afin que les
+ * composants qui ne portent pas la classe `.cde` résolvent quand même
+ * `--cde-*`. La palette clinique (teal désaturé) est la source de vérité ;
+ * les anciens tokens `--cd-*` de src/style.css restent utilisés par le shell.
+ */
+
+:root,
+.cde {
+  /* ── Surfaces ─────────────────────────────────────────── */
+  --cde-surface: #FFFFFF;
+  --cde-surface-tint: #F4F9F9; /* page / section wash */
+  --cde-row-alt: #FBFDFD;      /* zebra optionnelle, très légère */
+  --cde-header-bg: #EAF3F3;    /* table / section header band */
+  --cde-header-text: #0B4F4E;
+
+  /* ── Lignes ───────────────────────────────────────────── */
+  --cde-border: #D6E2E2;
+  --cde-border-soft: #E7EEEE;
+
+  /* ── Accent clinique ──────────────────────────────────── */
+  --cde-accent: #0E7C7B;
+  --cde-accent-strong: #0A5F5E;
+  --cde-accent-tint: #E6F1F1;
+
+  /*
+   * ── Sémantique (texte + fond teinté) ───────────────────
+   * Les valeurs success (#2A7354) et warning (#9C5A00) sont
+   * volontairement très légèrement plus foncées que la palette
+   * brute afin de garantir 4.5:1 sur leur tint respectif.
+   */
+  --cde-success: #2A7354;
+  --cde-success-tint: #E9F5EF;
+  --cde-warning: #9C5A00;
+  --cde-warning-tint: #FBF1E2;
+  --cde-danger: #B42318;
+  --cde-danger-tint: #FBEAE8;
+  --cde-info: #1F6FB2;
+  --cde-info-tint: #EAF2FA;
+  --cde-muted: #5B6B6B;
+  --cde-muted-tint: #F1F4F4;
+  --cde-text: #12211F;
+
+  /* ── Alias de compatibilité ───────────────────────────── */
+  --cde-bg: var(--cde-surface);
+  --cde-hover: var(--cde-surface-tint);
+  --cde-table-max: max(240px, calc(100vh - 430px));
+}
+
+.cde {
+  min-width: 0;
+  max-width: 100%;
+  color: var(--cd-gray-900);
+  font-size: 13px;
+}
+
+/* ── En-tête de page (shell) ─────────────────────────────── */
+
+.cde-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--cde-border);
+}
+
+.cde-page-title {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--cd-gray-900);
+}
+
+.cde-page-sub {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--cde-muted);
+}
+
+.cde-head-actions,
+.cde-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Compact action row for screens whose actions cannot sit on the page-title
+   line (tab content, filter-heavy views). The page title itself lives in the
+   patient page band, so this row carries actions only. */
+.cde-page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.cde-page-toolbar .cde-page-sub {
+  margin: 0;
+}
+
+.cde-page-toolbar .cde-page-actions {
+  margin-left: auto;
+}
+
+.cde-field-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cde-muted);
+}
+
+/* ── Barre de synthèse ───────────────────────────────────── */
+
+.cde-summary {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 12px 0;
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
+  border-top: 2px solid var(--cde-accent);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.cde-summary__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 14px;
+  row-gap: 1px;
+  flex: 1 1 170px;
+  min-width: 0;
+  padding: 7px 14px;
+  border-left: 1px solid var(--cde-border-soft);
+}
+
+.cde-summary__item:first-child {
+  border-left: none;
+}
+
+.cde-summary__break {
+  flex-basis: 100%;
+  height: 0;
+}
+
+.cde-summary__break + .cde-summary__item,
+.cde-summary__break ~ .cde-summary__item {
+  border-top: 1px solid var(--cde-border-soft);
+}
+
+.cde-summary__break + .cde-summary__item {
+  border-left: none;
+}
+
+.cde-summary__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cde-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cde-summary__value {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--cde-header-text);
+}
+
+.cde-summary__value--danger {
+  color: var(--cde-danger);
+}
+
+.cde-summary__sub {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--cde-muted);
+}
+
+/* ── Onglets ─────────────────────────────────────────────── */
+
+/*
+ * Barre d'onglets desktop — une seule source de vérité.
+ *
+ * Tous les écrans qui portent `.cde-tabs` sur leur `<el-tabs>` (Pharmacie,
+ * Comptabilité, Paramètres, Configuration Clinic, Soins) héritent du même
+ * rendu : la BARRE elle-même est un bandeau clinique `--cde-accent-strong`
+ * (#0A5F5E) de 40 px (bordure incluse), collé sous l'en-tête de page, filet
+ * bas de 1 px noir 12 %, opaque, aucun dégradé ni ombre. Les états sont
+ * inversés : inactif = texte blanc translucide sur le bandeau, actif = aplat
+ * blanc `--cde-surface` avec texte teal foncé, coins hauts 4 px et filet
+ * supérieur 2 px `--cde-accent` — l'onglet courant se détache immédiatement.
+ *
+ * Contraste mesuré (WCAG 2.1, sRGB, composition alpha incluse) :
+ *   inactif rgba(255,255,255,.82) / #0A5F5E → #D3E2E2 / #0A5F5E ... 5.61:1
+ *   survol blanc pur / #276E71 (blanc 12 % sur bandeau) ............ 5.61:1
+ *   actif texte #0A5F5E / #FFFFFF ................................. 7.47:1
+ *   badge inactif #0A5F5E / #FFFFFF ............................... 7.47:1
+ *   badge actif #0A5F5E / #E6F1F1 ................................. 6.48:1
+ */
+.cde-tabs {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-top: 0;
+}
+
+/* La barre reste visible quand l'écran défile (scrollport `.dashboard__main`).
+   `top` négatif = padding-top du scrollport (`var(--cd-space-4)`), sinon une
+   bande de contenu reste visible au-dessus de la barre épinglée.
+   Hauteur 40 px exactement, bordure comprise (`border-box`). */
+.cde-tabs .el-tabs__header {
+  position: sticky;
+  top: calc(-1 * var(--cd-space-4));
+  z-index: 6;
+  width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+  margin: 0 !important;
+  background: var(--cde-accent-strong);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: none;
+  align-items: stretch;
+}
+
+/* Element Plus gère le débordement horizontal (flèches + translation du nav).
+   On ne pose donc aucun overflow local qui casserait cette mécanique.
+   Le nav occupe la hauteur utile (39 px = 40 px − filet de 1 px). */
+.cde-tabs .el-tabs__nav-wrap {
+  height: 100%;
+  margin-bottom: 0;
+}
+
+.cde-tabs .el-tabs__nav-wrap::after {
+  display: none !important;
+}
+
+.cde-tabs .el-tabs__nav,
+.cde-tabs .el-tabs__nav-scroll {
+  height: 100%;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.cde-tabs .el-tabs__item {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100% !important;
+  line-height: 1 !important;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 2px solid transparent !important;
+  border-radius: 0 !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  white-space: nowrap;
+  box-shadow: none !important;
+  transition: background-color 100ms ease, color 100ms ease !important;
+  user-select: none;
+}
+
+/* Icône + libellé d'un même onglet : même pas de 8 px que le badge. */
+.cde-tabs .el-tabs__item .tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Survol d'un onglet inactif : voile blanc 12 % sur le bandeau, libellé
+   blanc pur (≥ 4.5:1 sur le voile composé). */
+.cde-tabs .el-tabs__item:not(.is-disabled):hover {
+  color: #FFFFFF !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Onglet actif : aplat blanc, texte teal foncé, coins hauts 4 px, filet
+   supérieur 2 px d'accent, collé au bas du bandeau. Déclaré après `:hover`
+   pour ne jamais être repeint au survol. */
+.cde-tabs .el-tabs__item.is-active,
+.cde-tabs .el-tabs__item.is-active:hover {
+  color: var(--cde-accent-strong) !important;
+  font-weight: 600 !important;
+  background: var(--cde-surface) !important;
+  border-top-color: var(--cde-accent) !important;
+  border-radius: 4px 4px 0 0 !important;
+  box-shadow: none !important;
+}
+
+.cde-tabs .el-tabs__item.is-active::after {
+  display: none !important;
+}
+
+/* Désactivé : simple baisse d'opacité du libellé blanc, aucun aplat. */
+.cde-tabs .el-tabs__item.is-disabled,
+.cde-tabs .el-tabs__item.is-disabled:hover {
+  opacity: 1;
+  color: rgba(255, 255, 255, 0.38) !important;
+  background: transparent !important;
+  cursor: default;
+}
+
+/* Focus clavier : contour net, rentré pour ne pas déborder du bandeau.
+   Blanc sur le bandeau ; teal foncé sur l'onglet actif (fond blanc). */
+.cde-tabs .el-tabs__item:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: -2px;
+}
+
+.cde-tabs .el-tabs__item.is-active:focus-visible {
+  outline-color: var(--cde-accent-strong);
+}
+
+.cde-tabs .el-tabs__active-bar {
+  display: none !important;
+}
+
+/*
+ * Compteur d'onglet (« Alertes 7 ») : pastille blanche pleine, texte teal
+ * foncé — lisible sur le bandeau comme sur l'onglet actif. Même traitement
+ * pour tout compteur posé dans `.cde-tabs`.
+ */
+.cde-tabs__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--cde-accent-strong);
+  background: #FFFFFF;
+}
+
+/* Sur l'onglet actif (aplat blanc), la pastille passe en teinte accent pour
+   rester distincte du fond : #0A5F5E sur #E6F1F1 ≈ 6,48:1. */
+.cde-tabs .el-tabs__item.is-active .cde-tabs__count {
+  color: var(--cde-accent-strong);
+  background: var(--cde-accent-tint);
+}
+
+/*
+ * Séparation barre → contenu : 12 px constants, y compris quand le premier
+ * bloc porte sa propre marge ou le padding haut de `.cde-toolbar`. La carte
+ * de contenu conserve son propre filet de 1 px.
+ */
+.cde-tabs .el-tabs__content {
+  padding: 12px 0 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.cde-tabs .el-tabs__content > .el-tab-pane > :first-child {
+  margin-top: 0 !important;
+}
+
+.cde-tabs .el-tabs__content > .el-tab-pane > .cde-toolbar:first-child {
+  padding-top: 0 !important;
+}
+
+.cde-tabs .el-tab-pane {
+  min-width: 0;
+}
+
+/* ── Barre d'outils et filtres ───────────────────────────── */
+
+.cde-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0 6px;
+}
+
+.cde-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex: 1 1 0;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.cde-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cde-filter__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cde-muted);
+  line-height: 1.2;
+}
+
+.cde-toolbar__search {
+  width: min(320px, 100%);
+  flex: 0 1 300px;
+}
+
+/* Icône de recherche intégrée au champ (pas de bloc « prepend » séparé). */
+.cde-toolbar__search-input .el-input__prefix {
+  color: var(--cde-muted);
+}
+
+/* Garde-fou : si la classe est posée sur un champ enfant de `.cde-filter`
+   (colonne), le `flex-basis` s'appliquerait à la hauteur. */
+.cde-filter > .cde-toolbar__search {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.cde-toolbar__select {
+  width: 148px;
+}
+
+.cde-toolbar__date {
+  width: 142px;
+}
+
+.cde-toolbar__range {
+  width: min(250px, 100%);
+}
+
+.cde-toolbar__meta {
+  font-size: 11px;
+  color: var(--cde-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cde-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ── Tableaux ────────────────────────────────────────────── */
+
+/*
+ * Contrat de défilement — une seule source de vérité.
+ *
+ * - `.cde-table-wrap`, `.cde-table-card` et `.cde-panel` ne dépassent jamais
+ *   leur conteneur : `min-width: 0` + `max-width: 100%` empêchent un tableau
+ *   large d'élargir la page (scroll horizontal de page interdit).
+ * - La carte / le panneau conserve son radius via `overflow: hidden`, qui ne
+ *   sert QUE de masque d'angle : le contenu, lui, défile dans son scrollport
+ *   interne (`.cde-table-wrap`, `.cde-panel__body` ou le tableau enfant).
+ * - `scrollbar-gutter: stable` évite le saut de largeur quand la scrollbar
+ *   verticale apparaît.
+ */
+.cde-table-wrap,
+.cde-table-card,
+.cde-panel,
+.cde-panel__body {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/*
+ * `.cde-table-wrap` ne gère QUE la mise en page (hauteur / scroll) :
+ * couleurs, densité et en-têtes viennent des règles globales `.el-table`
+ * de src/style.css, identiques pour un tableau nu.
+ * C'est le scrollport vertical (sticky header) ET horizontal.
+ */
+.cde-table-wrap {
+  max-height: var(--cde-table-max);
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+}
+
+.cde-table-wrap .el-table {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.cde .el-table__empty-block {
+  min-height: 0;
+  height: auto;
+  justify-content: flex-start;
+  align-items: stretch;
+  text-align: left;
+}
+
+.cde .el-table__empty-text {
+  width: 100%;
+  line-height: 1.4;
+  text-align: left;
+}
+
+/* Carte de tableau partagée (anciens `.table-card` locaux) */
+.cde-table-card {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  overflow: hidden; /* masque de radius uniquement — le scroll est interne */
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+/*
+ * Tableau enfant sans `.cde-table-wrap` (les ~30 écrans existants) :
+ * le `<el-table>` devient son propre scrollport horizontal. Si Element Plus
+ * gère déjà le scroll en interne, cette règle est inerte ; sinon elle évite
+ * le rognage silencieux provoqué par `overflow: clip` sur l'ancêtre.
+ */
+/*
+ * Carte qui n'héberge pas directement un `<el-table>` (grille planning,
+ * calendrier, wrapper maison) : c'est la carte elle-même qui devient le
+ * scrollport horizontal, au lieu de rogner son contenu.
+ */
+.cde-table-card:has(> :not(.el-table)) {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+}
+
+.cde-table-card > .el-table,
+.cde-panel > .el-table,
+.cde-panel__body > .el-table {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+}
+
+/*
+ * Largeur interne des tableaux Element Plus.
+ *
+ * Element Plus calcule `bodyWidth` en JS puis pose cette largeur en style
+ * inline sur les `<table>` internes (en-tête, corps, pied). Quand TOUTES les
+ * colonnes ont une `width` explicite — aucune colonne flex — `bodyWidth`
+ * vaut la somme des colonnes : le tableau s'arrête au milieu de la carte et
+ * laisse le reste vide (cas « Factures du patient »). On force donc les
+ * tables internes à 100 %.
+ *
+ * La garde `:not(.el-table--scrollable-x)` est essentielle : un tableau plus
+ * large que son conteneur (matrices, nombreuses colonnes) doit conserver sa
+ * largeur intrinsèque et défiler horizontalement, pas être écrasé.
+ * `!important` est requis pour battre le style inline posé par EP.
+ * On conserve `table-layout: fixed` (imposé par EP) pour garder l'alignement
+ * en-tête/corps ; l'espace restant est réparti entre les colonnes.
+ */
+.el-table:not(.el-table--scrollable-x) .el-table__header,
+.el-table:not(.el-table--scrollable-x) .el-table__body,
+.el-table:not(.el-table--scrollable-x) .el-table__footer {
+  width: 100% !important;
+  min-width: 100%;
+}
+
+/* Tableaux natifs hors `.history-table` : même contrat de largeur. */
+.cde-table-card > table,
+.cde-table-wrap > table,
+.cde-panel__body > table {
+  width: 100%;
+  table-layout: auto;
+}
+
+/* Panneaux secondaires (analyses) */
+
+.cde-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.cde-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+  overflow: hidden; /* masque de radius uniquement */
+}
+
+/* Scrollport interne d'un panneau (radius préservé, contenu défilant). */
+.cde-panel__body {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+}
+
+.cde-panel__body > .el-table {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.cde-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px 6px 13px;
+  background: var(--cde-header-bg);
+  border-bottom: 1px solid var(--cde-border);
+  box-shadow: inset 3px 0 0 var(--cde-accent);
+}
+
+.cde-panel__title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--cde-header-text);
+}
+
+.cde-panel__meta {
+  font-size: 11px;
+  color: var(--cde-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cde-panel .el-table {
+  --el-table-border-color: var(--cde-border);
+  --el-table-row-hover-bg-color: var(--cde-surface-tint);
+  width: 100%;
+  font-size: 11.5px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.cde-panel .el-table::before,
+.cde-panel .el-table::after,
+.cde-panel .el-table__inner-wrapper::before {
+  display: none;
+}
+
+.cde-panel .el-table th.el-table__cell {
+  height: 26px;
+  padding: 0 12px;
+  background: var(--cde-header-bg) !important;
+  color: var(--cde-header-text) !important;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--cde-border);
+}
+
+.cde-panel .el-table td.el-table__cell {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--cde-border-soft);
+}
+
+.cde-panel .el-table .cell {
+  padding: 0;
+  line-height: 1.3;
+}
+
+.cde-panel .el-table__body tr:last-child td.el-table__cell {
+  border-bottom: 0;
+}
+
+.cde-panel .el-table__empty-text {
+  padding: 0;
+  font-size: 12px;
+  color: var(--cde-muted);
+}
+
+/* ── Cellules, badges, montants ──────────────────────────── */
+
+/*
+ * Element Plus pose une largeur inline sur `.cell` calculée pour un padding
+ * porté par `.cell` lui-même. Dans ce thème, le padding vit sur `td`
+ * (`style.css`) : la largeur inline dépasse donc la boîte de contenu du `td`
+ * de 2 × 12 px et rogne les 12 derniers pixels de chaque colonne (boutons
+ * d'action, montants, badges). On rend la main au layout du tableau.
+ */
+.el-table .cell {
+  width: auto !important;
+  min-width: 0;
+}
+
+.cde-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cde-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cde-nowrap {
+  white-space: nowrap;
+}
+
+/*
+ * Cellule à deux lignes (valeur principale + « Reste », « Remise », date…).
+ * La ligne secondaire est un bloc de 11px : elle ne doit JAMAIS imposer sa
+ * largeur à la colonne (pas de nowrap hérité du `.cell.el-tooltip`).
+ */
+.cde-cell-stack {
+  display: block;
+  min-width: 0;
+  white-space: normal;
+}
+
+/* Texte long d'une cellule : troncature à l'ellipsis, valeur complète en title. */
+.cde-cell-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Colonne Actions : icônes/boutons alignés sans marge flottante parasite. */
+.cde-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.cde-actions .el-button + .el-button {
+  margin-left: 0;
+}
+
+.cde-cell-stack > .cde-muted,
+.cde-cell-stack > .cde-num-sub {
+  display: block;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--cde-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/*
+ * Colonnes numériques : chiffres tabulaires, alignement à droite et surtout
+ * aucun rognage. `max-width: 0` (global `style.css`) et le `overflow: hidden`
+ * des cellules sont neutralisés pour ces cellules : la largeur explicite de
+ * la colonne garantit que le nombre tient, jamais l'ellipsis.
+ */
+.el-table .el-table__cell.is-right,
+.el-table td.el-table__cell:has(.cde-num),
+.el-table td.el-table__cell:has(.cde-amount) {
+  font-variant-numeric: tabular-nums;
+  max-width: none;
+}
+
+.el-table td.el-table__cell:has(.cde-num),
+.el-table td.el-table__cell:has(.cde-amount) {
+  overflow: visible;
+}
+
+.el-table td.el-table__cell:has(.cde-num) > .cell,
+.el-table td.el-table__cell:has(.cde-amount) > .cell {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/*
+ * Colonne Actions figée : un filet vertical de 1px la détache du contenu
+ * qui défile dessous, y compris en-tête.
+ */
+.el-table__body-wrapper tr td.el-table-fixed-column--right,
+.el-table__header-wrapper tr th.el-table-fixed-column--right {
+  border-left: 1px solid var(--cde-border);
+}
+
+.cde-muted {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--cde-muted);
+}
+
+.cde-danger {
+  color: var(--cde-danger);
+}
+
+.cde-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--cde-muted) 20%, transparent);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--cde-muted);
+  background: var(--cde-muted-tint);
+}
+
+.cde-badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cde-badge--success {
+  color: var(--cde-success);
+  background: var(--cde-success-tint);
+  border-color: color-mix(in srgb, var(--cde-success) 20%, transparent);
+}
+
+.cde-badge--warning {
+  color: var(--cde-warning);
+  background: var(--cde-warning-tint);
+  border-color: color-mix(in srgb, var(--cde-warning) 20%, transparent);
+}
+
+.cde-badge--danger {
+  color: var(--cde-danger);
+  background: var(--cde-danger-tint);
+  border-color: color-mix(in srgb, var(--cde-danger) 20%, transparent);
+}
+
+.cde-badge--info {
+  color: var(--cde-info);
+  background: var(--cde-info-tint);
+  border-color: color-mix(in srgb, var(--cde-info) 20%, transparent);
+}
+
+.cde-badge--muted {
+  color: var(--cde-muted);
+  background: var(--cde-muted-tint);
+  border-color: color-mix(in srgb, var(--cde-muted) 20%, transparent);
+}
+
+.cde-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
+/* ── Sections ────────────────────────────────────────────── */
+
+.cde-section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-top: 14px;
+}
+
+.cde-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 12px 7px 13px;
+  background: var(--cde-header-bg);
+  border: 1px solid var(--cde-border);
+  border-bottom: 1px solid var(--cde-border);
+  border-radius: 4px;
+  box-shadow: inset 3px 0 0 var(--cde-accent);
+}
+
+.cde-section-title,
+.cde-section__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--cde-header-text);
+}
+
+.cde-section-meta {
+  font-size: 11px;
+  color: var(--cde-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Pied de tableau ─────────────────────────────────────── */
+
+.cde-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 0 0;
+}
+
+.cde-footer .el-pagination {
+  margin: 0;
+  padding: 0;
+  justify-content: flex-end;
+  font-size: 11px;
+}
+
+.cde-footer .el-pagination .el-pager li,
+.cde-footer .el-pagination button {
+  min-width: 24px;
+  height: 24px;
+  line-height: 24px;
+  font-size: 11px;
+  border-radius: 3px;
+}
+
+.cde-footer .el-pagination .el-pagination__sizes .el-input__wrapper,
+.cde-footer .el-pagination .el-pagination__jump .el-input__wrapper {
+  min-height: 24px;
+}
+
+/* ── États ───────────────────────────────────────────────── */
+
+.cde-empty {
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--cde-muted);
+  text-align: left;
+}
+
+.cde-alert {
+  margin: 10px 0;
+}
+
+.cde-alert.el-alert,
+.cde-alert .el-alert {
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--cde-warning) 30%, transparent);
+  background: var(--cde-warning-tint);
+  padding: 6px 12px;
+}
+
+.cde-alert.el-alert .el-alert__title,
+.cde-alert .el-alert__title {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--cde-warning);
+}
+
+.cde-alert--danger.el-alert {
+  border-color: color-mix(in srgb, var(--cde-danger) 30%, transparent);
+  background: var(--cde-danger-tint);
+}
+
+.cde-alert--danger.el-alert .el-alert__title {
+  color: var(--cde-danger);
+}
+
+/* ── Contrôles compacts ──────────────────────────────────── */
+
+.cde .el-button {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cde .el-button--small {
+  min-height: 24px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.cde .el-button.is-text {
+  min-height: 24px;
+  height: 24px;
+  padding: 0 6px;
+  font-weight: 500;
+}
+
+.cde .el-input__wrapper,
+.cde .el-select .el-input__wrapper,
+.cde .el-input-number .el-input__wrapper,
+.cde .el-date-editor .el-input__wrapper {
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--cd-gray-300) inset !important;
+}
+
+.cde .el-input__wrapper.is-focus,
+.cde .el-select .el-input__wrapper.is-focus,
+.cde .el-date-editor .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--cde-accent) inset !important;
+}
+
+.cde .el-input__inner,
+.cde .el-select .el-input__inner {
+  height: 26px;
+  min-height: 26px;
+  font-size: 12px;
+}
+
+.cde .el-date-editor {
+  --el-date-editor-width: 150px;
+}
+
+.cde .el-radio-group {
+  flex-wrap: nowrap;
+}
+
+.cde .el-radio-button__inner {
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+/* ── Dialogues ───────────────────────────────────────────── */
+
+.cde-dialog {
+  border-radius: 6px !important;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16) !important;
+  overflow: hidden;
+  color: var(--cd-gray-900);
+  font-size: 12.5px;
+}
+
+.cde-dialog .el-dialog__header {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--cde-border);
+}
+
+.cde-dialog .el-dialog__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cd-gray-900);
+}
+
+.cde-dialog .el-dialog__headerbtn {
+  top: 6px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+}
+
+.cde-dialog .el-dialog__body {
+  padding: 14px 16px;
+  font-size: 12.5px;
+  color: var(--cd-gray-900);
+}
+
+.cde-dialog .el-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--cde-border);
+}
+
+.cde-dialog .el-form-item {
+  margin-bottom: 12px;
+}
+
+.cde-dialog .el-form-item__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--cd-gray-500);
+  padding-bottom: 2px;
+}
+
+.cde-dialog .el-input__wrapper,
+.cde-dialog .el-select .el-input__wrapper,
+.cde-dialog .el-input-number .el-input__wrapper,
+.cde-dialog .el-date-editor .el-input__wrapper {
+  min-height: 30px;
+  border-radius: 4px;
+}
+
+.cde-dialog .el-input__inner {
+  height: 28px;
+  min-height: 28px;
+  font-size: 12px;
+}
+
+.cde-dialog .el-button {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.cde-kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+  font-size: 12px;
+}
+
+.cde-kv__label {
+  color: var(--cde-muted);
+}
+
+.cde-kv__value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cde-kv__value--strong {
+  font-weight: 600;
+}
+
+.cde-summary-lines {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+}
+
+.cde-summary-lines .cde-kv + .cde-kv {
+  border-top: 1px solid var(--cde-border-soft);
+  margin-top: 4px;
+  padding-top: 6px;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .cde-panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .cde-summary__break {
+    display: none;
+  }
+
+  .cde-summary__item {
+    flex-basis: calc(50% - 1px);
+  }
+
+  .cde-summary__item:nth-of-type(odd) {
+    border-left: none;
+  }
+
+  .cde-summary__item:nth-of-type(n + 3) {
+    border-top: 1px solid var(--cde-border);
+  }
+}
+
+@media (max-width: 720px) {
+  .cde-summary__item {
+    flex-basis: 100%;
+    border-left: none;
+    border-top: 1px solid var(--cde-border);
+  }
+
+  .cde-summary__item:first-child {
+    border-top: none;
+  }
+}
+
+/* ── Impression ──────────────────────────────────────────── */
+
+@media print {
+  .cde-toolbar__actions,
+  .cde-filters,
+  .cde-footer {
+    display: none !important;
+  }
+
+  .cde-table-wrap,
+  .cde-table-card,
+  .cde-panel,
+  .cde-panel__body,
+  .cde-table-card > .el-table,
+  .cde-panel > .el-table,
+  .cde-panel__body > .el-table {
+    max-height: none;
+    overflow: visible;
+    border: 0;
+  }
+
+  .cde-page-head {
+    border-bottom: 0;
+  }
+}

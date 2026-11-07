@@ -12,6 +12,7 @@ export class InvoiceItemEntity {
   @SchemaField() prix_unitaire?: number
   @SchemaField() montant?: number
   @SchemaField() type?: string
+  @SchemaField() acte_id?: string
   @SchemaField() created_at?: string
 
   static toDto(entity: InvoiceItemEntity): InvoiceItemDto {
@@ -23,6 +24,7 @@ export class InvoiceItemEntity {
       prix_unitaire: entity.prix_unitaire!,
       montant: entity.montant!,
       type: entity.type as InvoiceItemDto['type'],
+      acte_id: entity.acte_id,
     }
   }
 
@@ -39,6 +41,7 @@ export class InvoiceItemEntity {
     e.prix_unitaire = dto.prix_unitaire
     e.montant = dto.montant
     e.type = dto.type
+    e.acte_id = dto.acte_id
     return e
   }
 

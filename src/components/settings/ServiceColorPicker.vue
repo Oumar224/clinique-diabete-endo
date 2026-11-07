@@ -81,7 +81,7 @@ function select(c: string) {
 }
 
 .scp__swatch:focus-visible {
-  box-shadow: 0 0 0 2px var(--cd-primary-light);
+  box-shadow: 0 0 0 2px var(--cde-accent);
 }
 
 .scp__swatch--selected {

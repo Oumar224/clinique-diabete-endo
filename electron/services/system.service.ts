@@ -25,6 +25,12 @@ const USER_TABLES = [
   'act_price_history',
   'session',
   'app_settings',
+  'salaire_config',
+  'salaire_config_rubrique',
+  'salaire_paiement',
+  'depense_categorie',
+  'depense',
+  'vente_pharmacie_paiement',
 ] as const
 
 @singleton()

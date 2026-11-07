@@ -36,7 +36,7 @@ vi.mock('@element-plus/icons-vue', () => {
 })
 
 vi.mock('element-plus', () => ({
-  ElMessage: { success: vi.fn(), warning: vi.fn(), error: vi.fn() },
+  ElMessage: { success: vi.fn(), warning: vi.fn(), error: vi.fn(), info: vi.fn() },
   ElMessageBox: {
     confirm: vi.fn(() => Promise.resolve()),
     alert: vi.fn(),
@@ -196,6 +196,18 @@ vi.mock('@/components/patients/ExamRequestDetailDialog.vue', () => ({
     template: '<div v-if="visible" class="exam-detail-dialog-mock" />',
     props: ['visible', 'request'],
     emits: ['update:visible'],
+  },
+}))
+
+vi.mock('@/components/prescriptions/OrdonnancePreview.vue', () => ({
+  default: {
+    name: 'OrdonnancePreview',
+    template: '<div class="ordonnance-preview-mock" />',
+    props: ['patientId', 'ordonnanceItems', 'prescriptionIds', 'inlinePrescriptions'],
+    emits: ['close'],
+    methods: {
+      open() {},
+    },
   },
 }))
 
@@ -419,12 +431,13 @@ describe('ExamensView', () => {
       expect(wrapper.find('.examens-view').exists()).toBe(true)
     })
 
-    it('affiche le titre "Demande d\'examens"', async () => {
+    it('ne rend pas de titre de page propre (le bandeau du layout le porte)', async () => {
       const wrapper = mountView()
       await nextTick()
       await waitForData()
 
-      expect(wrapper.text()).toContain("Demande d'examens")
+      expect(wrapper.find('.cde-page-title').exists()).toBe(false)
+      expect(wrapper.findAll('h1')).toHaveLength(0)
     })
 
     it('affiche le bouton "+ Nouvelle demande"', async () => {
@@ -509,14 +522,14 @@ describe('ExamensView', () => {
       expect(rows[1].text()).toContain('En cours')
       expect(rows[2].text()).toContain('Réalisé')
 
-      const tags = wrapper.findAll('.el-tag')
-      const statutTags = tags.filter(t => ['En attente', 'En cours', 'Réalisé', 'Annulé'].includes(t.text()))
-      const realiseTag = statutTags.find(t => t.text() === 'Réalisé')
-      expect(realiseTag!.classes()).toContain('el-tag--success')
-      const attenteTag = statutTags.find(t => t.text() === 'En attente')
-      expect(attenteTag!.classes()).toContain('el-tag--warning')
-      const coursTag = statutTags.find(t => t.text() === 'En cours')
-      expect(coursTag!.classes()).toContain('el-tag--primary')
+      const badges = wrapper.findAll('.cde-badge')
+      const statutBadges = badges.filter(b => ['En attente', 'En cours', 'Réalisé', 'Annulé'].includes(b.text()))
+      const realiseBadge = statutBadges.find(b => b.text() === 'Réalisé')
+      expect(realiseBadge!.classes()).toContain('cde-badge--success')
+      const attenteBadge = statutBadges.find(b => b.text() === 'En attente')
+      expect(attenteBadge!.classes()).toContain('cde-badge--warning')
+      const coursBadge = statutBadges.find(b => b.text() === 'En cours')
+      expect(coursBadge!.classes()).toContain('cde-badge--info')
     })
 
     it('affiche les tags de type avec des couleurs distinctes', async () => {
@@ -524,14 +537,14 @@ describe('ExamensView', () => {
       await nextTick()
       await waitForData()
 
-      const tags = wrapper.findAll('.el-tag')
-      const typeTags = tags.filter(t => ['Imagerie', 'Laboratoire', 'Avis spécialisé'].includes(t.text()))
-      const imagerieTag = typeTags.find(t => t.text() === 'Imagerie')
-      expect(imagerieTag!.classes()).toContain('el-tag--primary')
-      const laboTag = typeTags.find(t => t.text() === 'Laboratoire')
-      expect(laboTag!.classes()).toContain('el-tag--success')
-      const avisTag = typeTags.find(t => t.text() === 'Avis spécialisé')
-      expect(avisTag!.classes()).toContain('el-tag--warning')
+      const badges = wrapper.findAll('.cde-badge')
+      const typeBadges = badges.filter(b => ['Imagerie', 'Laboratoire', 'Avis spécialisé'].includes(b.text()))
+      const imagerieBadge = typeBadges.find(b => b.text() === 'Imagerie')
+      expect(imagerieBadge!.classes()).toContain('cde-badge--info')
+      const laboBadge = typeBadges.find(b => b.text() === 'Laboratoire')
+      expect(laboBadge!.classes()).toContain('cde-badge--success')
+      const avisBadge = typeBadges.find(b => b.text() === 'Avis spécialisé')
+      expect(avisBadge!.classes()).toContain('cde-badge--warning')
     })
 
     it('affiche le libellé de l\'examen / spécialité', async () => {
@@ -1248,6 +1261,213 @@ describe('ExamensView', () => {
       await nextTick()
 
       expect(wrapper.find('.el-alert--error').exists()).toBe(false)
+    })
+  })
+
+  // ─── Génération ordonnance par demande ────────────────────────────
+
+  describe('génération ordonnance par demande', () => {
+    const IMAGERIE_TYPES = [
+      { id: 1, label: 'Radiographie', parent_id: null },
+      { id: 10, label: 'Radiographie thoracique', parent_id: 1 },
+    ]
+    const LABO_TYPES = [
+      { id: 100, label: 'Biochimie', parent_id: null },
+      { id: 101, label: 'Glycémie', parent_id: 100 },
+      { id: 102, label: 'HbA1c', parent_id: 100 },
+    ]
+    const ENCOUNTER = { id: 99, patient_id: 42, contact_type: 'hospitalisation', status: 'active' }
+
+    function setupGenerateMock(requests: any[], encounters: any[] = [ENCOUNTER]) {
+      mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
+        if (channel === 'exam-request:list') return requests
+        if (channel === 'exam-types:list-all-by-category') {
+          return args?.category === 'laboratoire' ? LABO_TYPES : IMAGERIE_TYPES
+        }
+        if (channel === 'encounters:list-by-patient') return encounters
+        if (channel === 'ordonnance-libre:list') return []
+        if (channel === 'ordonnance-libre:create-from-group') return { documentId: 'doc-1', replaced: false }
+        if (channel === 'specialties:list') return []
+        if (channel === 'users:list') return []
+        return []
+      })
+    }
+
+    function createCalls() {
+      return mockIpcInvoke.mock.calls.filter((c: any[]) => c[0] === 'ordonnance-libre:create-from-group')
+    }
+
+    it('affiche un bouton "Générer" par ligne de demande', async () => {
+      const wrapper = mountView(defaultMockRequests())
+      await nextTick()
+      await waitForData()
+
+      const rows = wrapper.findAll('.el-table__row')
+      expect(rows).toHaveLength(3)
+      for (const row of rows) {
+        const btn = row.findAll('.el-button').find(b => b.text().trim() === 'Générer')
+        expect(btn).toBeDefined()
+      }
+    })
+
+    it('ouvre l’aperçu PDF de la demande seule via le bouton aperçu', async () => {
+      const requests = [makeRequest({ id: 1, type: 'imagerie' as const, examenId: 10, examenLabel: 'Radiographie thoracique', motif: 'Douleur' })]
+      setupGenerateMock(requests)
+      // vraie ref pour que le template déplie activePatient?.id (le mock
+      // partagé fournit un simple {value} non déplié en template)
+      const vue = await import('vue')
+      const { usePatientContext } = await import('@/composables/usePatientContext')
+      ;(usePatientContext as any).mockReturnValueOnce({
+        activePatient: vue.ref({ id: 42, nom: 'Diallo', prenom: 'Amadou' }),
+        age: { value: null },
+        hasActivePatient: { value: true },
+        setActivePatient: vi.fn(),
+        clearPatient: vi.fn(),
+      })
+      const wrapper = mount(ExamensView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+
+      const preview = wrapper.findComponent({ name: 'OrdonnancePreview' })
+      expect(preview.exists()).toBe(true)
+      const openSpy = vi.spyOn(preview.vm as any, 'open')
+
+      await wrapper.vm.onPreviewOrdonnance(requests[0])
+      await waitForData()
+
+      expect(preview.props('ordonnanceItems')).toHaveLength(1)
+      expect(preview.props('ordonnanceItems')[0]).toMatchObject({
+        categorie: 'examen',
+        examen: 'Radiographie thoracique',
+      })
+      expect(preview.props('patientId')).toBe(42)
+      expect(openSpy).toHaveBeenCalled()
+      // aucun appel de génération : l’aperçu ne crée rien
+      expect(createCalls()).toHaveLength(0)
+    })
+
+    it('génère une ordonnance imagerie avec examen + motif', async () => {
+      const requests = [makeRequest({ id: 1, type: 'imagerie' as const, examenId: 10, examenLabel: 'Radiographie thoracique', motif: '<p>Douleur</p>' })]
+      setupGenerateMock(requests)
+      const wrapper = mount(ExamensView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+
+      await wrapper.vm.onGenerateOrdonnance(requests[0])
+      await waitForData()
+
+      const calls = createCalls()
+      expect(calls).toHaveLength(1)
+      const params = calls[0][1]
+      expect(params).toMatchObject({
+        patientId: 42,
+        contactId: '99',
+        createdBy: '1',
+        sourceDocumentId: 'exam-request-1',
+        categorie: 'examen',
+      })
+      expect(params.items).toHaveLength(1)
+      expect(params.items[0]).toMatchObject({
+        categorie: 'examen',
+        examenType: 'imagerie',
+        examen: 'Radiographie thoracique',
+        motif: '<p>Douleur</p>',
+      })
+      expect(params.title).toMatch(/^Ordonnance - Radiographie thoracique - \d{2}\/\d{2}\/\d{4}$/)
+    })
+
+    it('génère une ordonnance laboratoire en résolvant les libellés via analysesDisponibles', async () => {
+      const requests = [makeRequest({
+        id: 2, type: 'laboratoire' as const, examIds: [101, 102], motif: '',
+        examenLabel: '',
+      })]
+      setupGenerateMock(requests)
+      const wrapper = mount(ExamensView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+
+      await wrapper.vm.onGenerateOrdonnance(requests[0])
+      await waitForData()
+
+      const calls = createCalls()
+      expect(calls).toHaveLength(1)
+      const params = calls[0][1]
+      expect(params.categorie).toBe('examen')
+      expect(params.sourceDocumentId).toBe('exam-request-2')
+      expect(params.items).toHaveLength(1)
+      expect(params.items[0]).toMatchObject({
+        categorie: 'examen',
+        examenType: 'laboratoire',
+        examens: ['Glycémie', 'HbA1c'],
+        examen: 'Glycémie, HbA1c',
+      })
+    })
+
+    it('génère une ordonnance avis avec specialite + motif', async () => {
+      const requests = [makeRequest({
+        id: 3, type: 'avis' as const, specialtyId: 5, specialtyName: 'Endocrinologie', motif: '<p>Avis</p>',
+      })]
+      setupGenerateMock(requests)
+      const wrapper = mount(ExamensView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+
+      await wrapper.vm.onGenerateOrdonnance(requests[0])
+      await waitForData()
+
+      const calls = createCalls()
+      expect(calls).toHaveLength(1)
+      const params = calls[0][1]
+      expect(params.categorie).toBe('avis')
+      expect(params.sourceDocumentId).toBe('exam-request-3')
+      expect(params.items[0]).toMatchObject({
+        categorie: 'avis',
+        specialite: 'Endocrinologie',
+        motif: '<p>Avis</p>',
+      })
+      expect(params.title).toContain('Endocrinologie')
+    })
+
+    it('affiche une erreur claire si aucun séjour actif', async () => {      const requests = [makeRequest({ id: 1 })]
+      setupGenerateMock(requests, [])
+      const wrapper = mount(ExamensView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+
+      await wrapper.vm.onGenerateOrdonnance(requests[0])
+      await waitForData()
+
+      expect(createCalls()).toHaveLength(0)
+      const { ElMessage } = await import('element-plus')
+      expect(ElMessage.error).toHaveBeenCalledWith(
+        expect.stringContaining('Aucun séjour actif'),
+      )
+    })
+
+    it('demande confirmation si une ordonnance existe déjà (remplacement au 2e clic)', async () => {
+      const requests = [makeRequest({ id: 1 })]
+      mockIpcInvoke.mockImplementation(async (channel: string, args?: any) => {
+        if (channel === 'exam-request:list') return requests
+        if (channel === 'exam-types:list-all-by-category') return IMAGERIE_TYPES
+        if (channel === 'encounters:list-by-patient') return [ENCOUNTER]
+        if (channel === 'ordonnance-libre:list') {
+          return [{ id: 7, form_data: JSON.stringify({ source: 'crh', sourceDocumentId: 'exam-request-1', categorie: 'examen' }) }]
+        }
+        if (channel === 'ordonnance-libre:create-from-group') return { documentId: 'doc-2', replaced: true }
+        if (channel === 'specialties:list') return []
+        if (channel === 'users:list') return []
+        return []
+      })
+      const wrapper = mount(ExamensView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+
+      await wrapper.vm.onGenerateOrdonnance(requests[0])
+      await waitForData()
+
+      const { ElMessageBox } = await import('element-plus')
+      expect(ElMessageBox.confirm).toHaveBeenCalled()
+      expect(createCalls()).toHaveLength(1)
     })
   })
 })

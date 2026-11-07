@@ -113,11 +113,18 @@ export function useAuth() {
   }
 
   async function logout() {
+    const currentToken = token.value
     user.value = null
     token.value = null
     mustChangePassword.value = false
     localStorage.removeItem('cde_token')
     if (window.electronAPI) {
+      try {
+        await window.electronAPI.invoke('auth:logout', currentToken ? { token: currentToken } : {})
+      } catch (error) {
+        // Remote revocation is best-effort; local logout must still complete.
+        console.warn('[Auth] Remote logout failed:', error)
+      }
       try {
         await window.electronAPI.invoke('sync:stop')
       } catch {

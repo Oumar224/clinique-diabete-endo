@@ -1,154 +1,188 @@
 <template>
-  <div v-loading="!hasData" class="systab">
-    <!-- Application Info -->
-    <div class="systab__section">
-      <h2 class="systab__section-title">Informations de l'application</h2>
-      <div class="systab__card">
-        <SystemInfoRow label="Version de l'application" :value="systemInfo.app?.app_version" />
-        <SystemInfoRow label="Version d'Electron" :value="systemInfo.app?.electron_version" />
-        <SystemInfoRow label="Version de Node.js" :value="systemInfo.app?.node_version" />
-        <SystemInfoRow label="Version SQLite" :value="systemInfo.app?.sqlite_version" />
-        <SystemInfoRow label="Plateforme" :value="systemInfo.app?.platform" />
-        <SystemInfoRow label="Architecture" :value="systemInfo.app?.platform_arch" />
-        <SystemInfoRow label="Chemin de la base" :value="dbPath" />
-      </div>
-    </div>
-
-    <!-- Statistics -->
-    <div class="systab__section">
-      <h2 class="systab__section-title">Statistiques</h2>
-      <div class="systab__stats-grid">
-        <DatabaseStatsCard
-          :icon="User"
-          :count="getCount('patient')"
-          label="Patients"
-        />
-        <DatabaseStatsCard
-          :icon="Calendar"
-          :count="getCount('appointment')"
-          label="Consultations"
-        />
-        <DatabaseStatsCard
-          :icon="Money"
-          :count="getCount('invoice')"
-          label="Factures"
-        />
-        <DatabaseStatsCard
-          :icon="Tools"
-          :count="getCount('services')"
-          label="Services"
-        />
-      </div>
-      <div class="systab__db-size">
-        Taille de la base : <strong>{{ systemInfo.stats?.db_size_human || '—' }}</strong>
-      </div>
-    </div>
-
-    <!-- Backup & Restore -->
-    <div class="systab__section">
-      <h2 class="systab__section-title">Sauvegarde et restauration</h2>
-      <div class="systab__backup-info">
-        <p>
-          Dernière sauvegarde :
-          <strong>{{ systemInfo.lastBackup ? formatDate(systemInfo.lastBackup) : 'Aucune' }}</strong>
+  <div v-loading="!hasData" class="systab cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Système
+        </h1>
+        <p class="cde-page-sub">
+          Informations techniques, sauvegardes et configuration email
         </p>
       </div>
-      <div class="systab__backup-actions">
-        <el-button
-          type="primary"
-          :icon="Download"
-          :loading="backingUp"
-          @click="handleBackup"
-        >
-          Effectuer une sauvegarde
-        </el-button>
-        <el-button
-          type="warning"
-          :icon="Upload"
-          :loading="restoring"
-          @click="handleRestore"
-        >
-          Restaurer une sauvegarde
-        </el-button>
+    </header>
+
+    <section class="cde-section">
+      <div class="cde-section-head">
+        <h2 class="cde-section-title">
+          Informations de l'application
+        </h2>
       </div>
-    </div>
-
-    <!-- Configuration Email -->
-    <div class="systab__section">
-      <h2 class="systab__section-title">Configuration Email</h2>
-      <div class="systab__card" style="padding: 16px">
-        <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
-          <span style="font-size: 14px; color: var(--cd-gray-600);">Statut :</span>
-          <el-tag v-if="emailConfig?.is_configured" type="success" size="small">Configuré</el-tag>
-          <el-tag v-else type="info" size="small">Non configuré</el-tag>
+      <div class="cde-panel">
+        <div class="cde-summary-lines systab__body">
+          <div class="cde-kv">
+            <span class="cde-kv__label">Version de l'application</span>
+            <span class="cde-kv__value">{{ systemInfo.app?.app_version || '—' }}</span>
+          </div>
+          <div class="cde-kv">
+            <span class="cde-kv__label">Version d'Electron</span>
+            <span class="cde-kv__value">{{ systemInfo.app?.electron_version || '—' }}</span>
+          </div>
+          <div class="cde-kv">
+            <span class="cde-kv__label">Version de Node.js</span>
+            <span class="cde-kv__value">{{ systemInfo.app?.node_version || '—' }}</span>
+          </div>
+          <div class="cde-kv">
+            <span class="cde-kv__label">Version SQLite</span>
+            <span class="cde-kv__value">{{ systemInfo.app?.sqlite_version || '—' }}</span>
+          </div>
+          <div class="cde-kv">
+            <span class="cde-kv__label">Plateforme</span>
+            <span class="cde-kv__value">{{ systemInfo.app?.platform || '—' }}</span>
+          </div>
+          <div class="cde-kv">
+            <span class="cde-kv__label">Architecture</span>
+            <span class="cde-kv__value">{{ systemInfo.app?.platform_arch || '—' }}</span>
+          </div>
+          <div class="cde-kv">
+            <span class="cde-kv__label">Chemin de la base</span>
+            <span class="cde-kv__value">{{ dbPath }}</span>
+          </div>
         </div>
+      </div>
+    </section>
 
-        <el-collapse style="margin-bottom: 16px;">
-          <el-collapse-item title="Instructions" name="instructions">
-            <div style="padding: 8px 0; font-size: 13px; line-height: 1.6;">
-              <p><strong>Gmail :</strong> Utilisez un mot de passe d'application (App Password). Activez d'abord l'authentification à 2 facteurs dans votre compte Google, puis générez un mot de passe d'application.</p>
-              <p style="margin-top: 8px;"><strong>SendGrid :</strong> Créez une clé API SendGrid avec les permissions 'Mail Send'. Utilisez 'apikey' comme nom d'utilisateur et la clé API comme mot de passe.</p>
-              <p style="margin-top: 8px;"><strong>Général :</strong> Contactez votre administrateur réseau pour les paramètres SMTP de votre organisation. Les paramètres courants sont : Serveur&nbsp;: smtp.votredomaine.com, Port&nbsp;: 587 (STARTTLS) ou 465 (SSL).</p>
-            </div>
-          </el-collapse-item>
-        </el-collapse>
+    <section class="cde-section">
+      <div class="cde-section-head">
+        <h2 class="cde-section-title">
+          Statistiques
+        </h2>
+      </div>
+      <section class="cde-summary">
+        <div class="cde-summary__item">
+          <span class="cde-summary__label">Patients</span>
+          <span class="cde-summary__value cde-num">{{ getCount('patient') }}</span>
+        </div>
+        <div class="cde-summary__item">
+          <span class="cde-summary__label">Consultations</span>
+          <span class="cde-summary__value cde-num">{{ getCount('appointment') }}</span>
+        </div>
+        <div class="cde-summary__item">
+          <span class="cde-summary__label">Factures</span>
+          <span class="cde-summary__value cde-num">{{ getCount('invoice') }}</span>
+        </div>
+        <div class="cde-summary__item">
+          <span class="cde-summary__label">Services</span>
+          <span class="cde-summary__value cde-num">{{ getCount('services') }}</span>
+        </div>
+      </section>
+      <div class="cde-footer systab__footer">
+        <span class="cde-muted">Taille de la base : {{ systemInfo.stats?.db_size_human || '—' }}</span>
+      </div>
+    </section>
 
-        <el-form label-position="top" :model="emailForm">
-          <el-row :gutter="16">
-            <el-col :span="12">
+    <section class="cde-section">
+      <div class="cde-section-head">
+        <h2 class="cde-section-title">
+          Sauvegarde et restauration
+        </h2>
+      </div>
+      <div class="cde-panel">
+        <div class="systab__body systab__backup">
+          <p class="cde-muted">
+            Dernière sauvegarde : {{ systemInfo.lastBackup ? formatDate(systemInfo.lastBackup) : 'Aucune' }}
+          </p>
+          <div class="cde-toolbar__actions">
+            <el-button
+              type="primary"
+              size="small"
+              :icon="Download"
+              :loading="backingUp"
+              @click="handleBackup"
+            >
+              Effectuer une sauvegarde
+            </el-button>
+            <el-button
+              type="warning"
+              size="small"
+              :icon="Upload"
+              :loading="restoring"
+              @click="handleRestore"
+            >
+              Restaurer une sauvegarde
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cde-section">
+      <div class="cde-section-head">
+        <h2 class="cde-section-title">
+          Configuration Email
+        </h2>
+        <span
+          class="cde-badge"
+          :class="emailConfig?.is_configured ? 'cde-badge--success' : 'cde-badge--muted'"
+        >{{ emailConfig?.is_configured ? 'Configuré' : 'Non configuré' }}</span>
+      </div>
+      <div class="cde-panel">
+        <div class="systab__body">
+          <el-collapse class="systab__collapse">
+            <el-collapse-item title="Instructions" name="instructions">
+              <div class="cde-muted systab__instructions">
+                <p><strong>Gmail :</strong> Utilisez un mot de passe d'application (App Password). Activez d'abord l'authentification à 2 facteurs dans votre compte Google, puis générez un mot de passe d'application.</p>
+                <p><strong>SendGrid :</strong> Créez une clé API SendGrid avec les permissions « Mail Send ». Utilisez « apikey » comme nom d'utilisateur et la clé API comme mot de passe.</p>
+                <p><strong>Général :</strong> Contactez votre administrateur réseau pour les paramètres SMTP de votre organisation. Paramètres courants : serveur smtp.votredomaine.com, port 587 (STARTTLS) ou 465 (SSL).</p>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+
+          <el-form label-position="top" :model="emailForm" class="systab__form">
+            <div class="systab__form-grid">
               <el-form-item label="SMTP Host">
                 <el-input v-model="emailForm.smtp_host" placeholder="smtp.gmail.com" />
               </el-form-item>
-            </el-col>
-            <el-col :span="12">
               <el-form-item label="SMTP Port">
                 <el-input-number
                   v-model="emailForm.smtp_port"
                   :min="1"
                   :max="65535"
+                  controls-position="right"
                   style="width: 100%"
                 />
               </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="16">
-            <el-col :span="12">
               <el-form-item label="SMTP Utilisateur">
                 <el-input v-model="emailForm.smtp_user" placeholder="utilisateur" />
               </el-form-item>
-            </el-col>
-            <el-col :span="12">
               <el-form-item label="Mot de passe SMTP">
                 <el-input v-model="emailForm.smtp_pass" type="password" show-password placeholder="Mot de passe ou clé API" />
               </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="16">
-            <el-col :span="12">
               <el-form-item label="Email expéditeur">
                 <el-input v-model="emailForm.sender_email" placeholder="noreply@clinique.com" />
               </el-form-item>
-            </el-col>
-            <el-col :span="12">
               <el-form-item label="Nom expéditeur (optionnel)">
                 <el-input v-model="emailForm.sender_name" placeholder="Clinique" />
               </el-form-item>
-            </el-col>
-          </el-row>
-        </el-form>
+            </div>
+          </el-form>
 
-        <div style="display: flex; gap: 12px; margin-top: 8px;">
-          <el-button :loading="testing" @click="handleTestEmail">Tester la configuration</el-button>
-          <el-button type="primary" :loading="saving" @click="handleSaveEmail">Enregistrer</el-button>
+          <div class="cde-toolbar__actions systab__email-actions">
+            <el-button size="small" :loading="testing" @click="handleTestEmail">
+              Tester la configuration
+            </el-button>
+            <el-button type="primary" size="small" :loading="saving" @click="handleSaveEmail">
+              Enregistrer
+            </el-button>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, onMounted, watch } from 'vue'
-import { User, Calendar, Money, Tools, Download, Upload } from '@element-plus/icons-vue'
+import { Download, Upload } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import { useSystemInfo } from '@/composables/useSystemInfo'
 import { useEmailConfig } from '@/composables/useEmailConfig'
@@ -235,53 +269,63 @@ async function handleSaveEmail() {
 </script>
 
 <style scoped>
-.systab__section {
-  margin-bottom: 28px;
-}
-
-.systab__section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--cd-gray-900);
-  margin-bottom: 12px;
-}
-
-.systab__card {
-  background: var(--cd-widget-bg);
-  border-radius: 10px;
-  border: 1px solid var(--cd-gray-200);
-  padding: 4px 16px;
-}
-
-.systab__stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.systab__db-size {
-  font-size: 13px;
-  color: var(--cd-gray-600);
-  margin-top: 8px;
-}
-
-.systab__db-size strong {
-  color: var(--cd-gray-900);
-}
-
-.systab__backup-info {
-  font-size: 14px;
-  color: var(--cd-gray-600);
-  margin-bottom: 12px;
-}
-
-.systab__backup-info strong {
-  color: var(--cd-gray-900);
-}
-
-.systab__backup-actions {
+.systab {
   display: flex;
+  flex-direction: column;
   gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.systab__body {
+  padding: 10px 12px;
+}
+
+.systab__footer {
+  padding: 4px 0 0;
+}
+
+.systab__backup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.systab__backup p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.systab__collapse {
+  margin-bottom: 10px;
+  border-top: 1px solid var(--cde-border);
+  border-bottom: 1px solid var(--cde-border);
+}
+
+.systab__instructions {
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.systab__instructions p {
+  margin: 0 0 6px;
+}
+
+.systab__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+
+.systab__email-actions {
+  margin-top: 4px;
+}
+
+@media (max-width: 760px) {
+  .systab__form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>

@@ -13,6 +13,8 @@ export interface StayDto {
   medecin_id?: number | null
   medecin_name?: string | null
   notes?: string | null
+  /** Type de séjour (migration 110). */
+  type?: 'jour' | 'complete' | null
   status: 'en_cours' | 'cloture' | 'transfere'
   sortie_date?: string | null
   created_by?: number | null

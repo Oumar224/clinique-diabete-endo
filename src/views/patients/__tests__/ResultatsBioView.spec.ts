@@ -124,24 +124,32 @@ function dateAt(daysOffset: number, hour: number): string {
 }
 
 /**
- * Idem `dateAt` : horodatage UTC sans suffixe désignant l'heure LOCALE `hour`
- * à `dayFromMonday` jours après le LUNDI de la semaine courante — toujours
- * dans la semaine affichée par la grille, quel que soit le jour d'exécution.
+ * Clé `YYYY-MM-DD` (heure LOCALE) du jour situé `daysAgo` jours avant
+ * aujourd'hui. `daysAgo = 0` → aujourd'hui, seule ancre de la fenêtre
+ * glissante de la grille.
  */
-function weekDate(dayFromMonday: number, hour: number): string {
-  const now = new Date()
-  const day = now.getDay()
-  const diffToMonday = day === 0 ? -6 : 1 - day
-  const target = new Date(now)
-  target.setDate(now.getDate() + diffToMonday + dayFromMonday)
-  target.setHours(hour, 0, 0, 0)
-  return target.toISOString().slice(0, 19).replace('T', ' ')
+function localKey(daysAgo: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - daysAgo)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/** Libellé `dd/MM` affiché dans l'en-tête, pour le jour situé `daysAgo` jours avant aujourd'hui. */
+function localLabel(daysAgo: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - daysAgo)
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 /**
  * Colonne CSS attendue pour un horodatage UTC backend : miroir de
  * `buildMatrix` (slot = plus grand créneau ≤ heure locale) + formule
  * `4 + di * EXAM_GRID_HOURS.length + hi` de la vue. Indépendant du fuseau.
+ * `dayIndex` suit l'ordre décroissant de la grille : 0 = aujourd'hui
+ * (colonne la plus à gauche), 1 = hier, etc.
  */
 function columnFor(iso: string, dayIndex: number): number {
   const hour = new Date(iso.replace(' ', 'T') + 'Z').getHours()
@@ -201,12 +209,13 @@ describe('ResultatsBioView', () => {
   // ─── Affichage initial ─────────────────────────────────────────────
 
   describe('affichage initial', () => {
-    it('affiche le titre et le champ de recherche', async () => {
+    it('affiche le champ de recherche sans titre de page propre', async () => {
       const wrapper = mountView()
       await nextTick()
       await waitForData()
 
-      expect(wrapper.find('.rb__title').text()).toContain('Résultats Biologiques')
+      expect(wrapper.find('.rb__title').exists()).toBe(false)
+      expect(wrapper.findAll('h1')).toHaveLength(0)
       const search = wrapper.find('.el-input')
       expect(search.exists()).toBe(true)
       expect(search.attributes('placeholder')).toContain('Rechercher une analyse')
@@ -221,6 +230,106 @@ describe('ResultatsBioView', () => {
         'exam-results:list-by-patient',
         expect.objectContaining({ patientId: 42 }),
       )
+    })
+  })
+
+  // ─── Ordre des dates : décroissant, aujourd'hui à gauche ───────────
+
+  describe('ordre des dates (décroissant, aujourd\'hui à gauche)', () => {
+    it('affiche les 7 colonnes du plus récent au plus ancien, aujourd\'hui en tête', async () => {
+      const wrapper = mountView()
+      await nextTick()
+      await waitForData()
+
+      const headers = wrapper.findAll('.rb__date-header')
+      expect(headers).toHaveLength(7)
+
+      // Colonne 0 = aujourd'hui, puis J-1 … J-6 : ordre strictement décroissant.
+      for (let daysAgo = 0; daysAgo < 7; daysAgo++) {
+        expect(headers[daysAgo].text()).toContain(localLabel(daysAgo))
+      }
+
+      // Mise en évidence « aujourd'hui » basée sur la VALEUR de date, pas sur
+      // l'index : elle tombe donc sur la première colonne quand la fenêtre
+      // se termine aujourd'hui.
+      expect(headers[0].classes()).toContain('rb__date-header--today')
+      for (let i = 1; i < headers.length; i++) {
+        expect(headers[i].classes()).not.toContain('rb__date-header--today')
+      }
+    })
+
+    it('charge par défaut la fenêtre qui se termine aujourd\'hui', async () => {
+      mountView()
+      await nextTick()
+      await waitForData()
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith(
+        'exam-results:list-by-patient',
+        expect.objectContaining({ dateFrom: localKey(6), dateTo: localKey(0) }),
+      )
+    })
+
+    it('place le résultat du jour dans la première colonne et un résultat antérieur dans sa colonne', async () => {
+      const todayIso = dateAt(0, 8)
+      const olderIso = dateAt(-2, 10)
+      setupIpcMock([
+        makeResult({ id: 1, examRequestId: 10, parameterId: 100, value: '0.95', filledAt: todayIso }),
+        makeResult({ id: 2, examRequestId: 10, parameterId: 100, value: '1.05', filledAt: olderIso }),
+      ])
+      const wrapper = mountView()
+      await nextTick()
+      await waitForData()
+
+      const valueCells = wrapper
+        .findAll('.rb__cell')
+        .filter(cell => cell.find('.rb__cell-value').exists())
+      expect(valueCells).toHaveLength(2)
+
+      const todayCell = valueCells.find(cell => cell.find('.rb__cell-value').text() === '0.95')!
+      const olderCell = valueCells.find(cell => cell.find('.rb__cell-value').text() === '1.05')!
+
+      // Aucun décalage : la cellule du jour occupe la 1re colonne de données
+      // (index jour 0), l'ancienne celle du jour J-2 (index 2).
+      const todayColumn = columnFor(todayIso, 0)
+      const olderColumn = columnFor(olderIso, 2)
+      expect(todayCell.attributes('style')).toContain(`grid-column: ${todayColumn}`)
+      expect(olderCell.attributes('style')).toContain(`grid-column: ${olderColumn}`)
+      expect(todayColumn).toBeLessThan(olderColumn)
+    })
+
+    it('déplace la fenêtre vers le passé avec › puis revient avec ‹', async () => {
+      const wrapper = mountView()
+      await nextTick()
+      await waitForData()
+
+      // › = vers les dates antérieures (la droite de la grille = passé) :
+      // la fenêtre devient J-7 … J-13, aujourd'hui n'est plus affiché.
+      await wrapper.find('.el-button-group').findAll('.el-button')[2].trigger('click')
+      await nextTick()
+      await waitForData()
+
+      let headers = wrapper.findAll('.rb__date-header')
+      expect(headers).toHaveLength(7)
+      expect(headers[0].text()).toContain(localLabel(7))
+      expect(headers[6].text()).toContain(localLabel(13))
+      expect(wrapper.find('.rb__date-header--today').exists()).toBe(false)
+
+      const listCalls = mockIpcInvoke.mock.calls.filter(
+        ([channel]) => channel === 'exam-results:list-by-patient',
+      )
+      expect(listCalls.at(-1)?.[1]).toEqual(
+        expect.objectContaining({ dateFrom: localKey(13), dateTo: localKey(7) }),
+      )
+
+      // ‹ = vers les dates plus récentes : retour à la fenêtre par défaut,
+      // aujourd'hui de nouveau en première colonne.
+      await wrapper.find('.el-button-group').findAll('.el-button')[0].trigger('click')
+      await nextTick()
+      await waitForData()
+
+      headers = wrapper.findAll('.rb__date-header')
+      expect(headers[0].text()).toContain(localLabel(0))
+      expect(headers[0].classes()).toContain('rb__date-header--today')
     })
   })
 
@@ -559,7 +668,7 @@ describe('ResultatsBioView', () => {
           examRequestId: 10,
           parameterId: 100,
           value: '0.95',
-          filledAt: weekDate(1, 8),
+          filledAt: dateAt(-1, 8),
           examName: 'Bilan lipidique',
         }),
         makeResult({
@@ -567,7 +676,7 @@ describe('ResultatsBioView', () => {
           examRequestId: 10,
           parameterId: 100,
           value: '1.05',
-          filledAt: weekDate(2, 8),
+          filledAt: dateAt(-2, 8),
           examName: 'Bilan lipidique',
         }),
       ])
@@ -597,9 +706,9 @@ describe('ResultatsBioView', () => {
     })
 
     it('place 2 valeurs d\'un même paramètre le même jour dans 2 colonnes-heures distinctes (dateKey|hourSlot)', async () => {
-      const filledAt8 = weekDate(1, 8)
-      const filledAt14 = weekDate(1, 14)
-      const filledAt10 = weekDate(1, 10)
+      const filledAt8 = dateAt(-1, 8)
+      const filledAt14 = dateAt(-1, 14)
+      const filledAt10 = dateAt(-1, 10)
       setupIpcMock([
         makeResult({
           id: 1,
@@ -651,7 +760,7 @@ describe('ResultatsBioView', () => {
       // heures distinctes. Les grid-column ci-dessous dérivent de
       // EXAM_GRID_HOURS (via l'instant UTC réel, indépendant du fuseau du
       // runner) — ne pas les « corriger » à la main.
-      const dayIndex = 1 // mardi : weekDate(1, …)
+      const dayIndex = 1 // hier : 2e colonne (aujourd'hui = index 0, à gauche)
       const [creatinine, glycemia8, glycemia14] = valueCells
       expect(glycemia8.find('.rb__cell-value').text()).toBe('0.95')
       expect(glycemia14.find('.rb__cell-value').text()).toBe('1.05')

@@ -15,25 +15,19 @@ defineProps<{
 <style scoped>
 .sir {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--cd-gray-200);
-}
-
-.sir:last-child {
-  border-bottom: none;
+  gap: 12px;
+  padding: 2px 0;
+  font-size: 12px;
 }
 
 .sir__label {
-  font-size: 14px;
-  color: var(--cd-gray-400);
+  color: var(--cde-muted);
 }
 
 .sir__value {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--cd-gray-900);
   font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 </style>

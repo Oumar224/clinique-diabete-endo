@@ -31,6 +31,13 @@ export function registerPatientCareHandlers() {
     return result
   })
 
+  createHandler('plan-soins:dates', async (params: { patientId: number }) => {
+    const { patientId } = params
+    if (!patientId) throw new Error('patientId requis')
+    const service = container.resolve(PlanSoinsService)
+    return await service.listDatesByPatient(patientId)
+  })
+
   createHandler('plan-soins:valider', async (params: { soinId: number; validePar: string }) => {
     const { soinId, validePar } = params
     const service = container.resolve(PlanSoinsService)
@@ -99,6 +106,13 @@ export function registerPatientCareHandlers() {
     const service = container.resolve(VitalSignsItemService)
     const entities = await service.listByPatientAndDateRange(patientId, startDate, endDate)
     return VitalSignsItemEntity.toDtos(entities)
+  })
+
+  createHandler('vital-signs-items:dates', async (params: { patientId: number }) => {
+    const { patientId } = params
+    if (!patientId) throw new Error('patientId requis')
+    const service = container.resolve(VitalSignsItemService)
+    return await service.listDatesByPatient(patientId)
   })
 
   createHandler('vital-signs-items:save', async (dto: VitalSignsItemDto) => {

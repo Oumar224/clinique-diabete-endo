@@ -1,16 +1,32 @@
 <template>
-  <div class="users">
-    <div class="users__header">
-      <h1 class="users__title">Utilisateurs</h1>
-      <div class="users__actions">
-        <el-input
-          v-model="searchText"
-          placeholder="Rechercher..."
-          clearable
-          style="width: 280px"
-        >
-          <template #prepend><el-icon><Search /></el-icon></template>
-        </el-input>
+  <div class="users cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Utilisateurs
+        </h1>
+      </div>
+      <div class="cde-head-actions">
+        <el-button type="primary" :icon="Plus" @click="userFormRef?.open()">
+          Nouvel utilisateur
+        </el-button>
+      </div>
+    </header>
+
+    <div class="cde-toolbar">
+      <div class="cde-filters">
+        <div class="cde-filter cde-toolbar__search">
+          <span class="cde-filter__label">Recherche</span>
+          <el-input
+            v-model="searchText"
+            placeholder="Rechercher..."
+            clearable
+          >
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+        </div>
+      </div>
+      <div class="cde-toolbar__actions">
         <el-dropdown @command="handleExport">
           <el-button :loading="exportingPdf || exportingExcel">
             Exporter
@@ -31,10 +47,6 @@
         <el-button @click="handlePrint">
           <el-icon><Printer /></el-icon> Imprimer
         </el-button>
-
-        <el-button type="primary" :icon="Plus" @click="userFormRef?.open()">
-          Nouvel utilisateur
-        </el-button>
       </div>
     </div>
 
@@ -50,12 +62,13 @@
     />
     <user-detail-dialog ref="userDetailDialogRef" />
 
+    <div class="cde-table-card">
     <el-table
       :data="filteredList"
       style="width: 100%"
       v-loading="loading"
       @row-click="viewUser"
-      border
+      size="small"
     >
       <el-table-column label="Photo + Nom" width="220">
         <template #default="{ row }">
@@ -81,60 +94,67 @@
       <el-table-column label="Spécialités" width="180">
         <template #default="{ row }">
           <div class="specialties-cell">
-            <el-tag
+            <span
               v-for="spec in (row.specialties || []).slice(0, 2)"
               :key="spec.id"
-              size="small"
+              class="cde-badge cde-badge--muted"
             >
               {{ spec.name }}
-            </el-tag>
-            <el-tag
+            </span>
+            <span
               v-if="(row.specialties?.length || 0) > 2"
-              size="small"
-              type="info"
+              class="cde-badge cde-badge--muted"
             >
               +{{ (row.specialties?.length || 0) - 2 }}
-            </el-tag>
+            </span>
           </div>
         </template>
       </el-table-column>
       <el-table-column label="Contrat" width="140">
         <template #default="{ row }">
           <div class="contract-cell">
-            <el-tag v-if="row.type_contrat" size="small" type="info">
+            <span v-if="row.type_contrat" class="cde-badge cde-badge--muted">
               {{ row.type_contrat }}
-            </el-tag>
-            <el-tag
+            </span>
+            <span
               v-if="row.statut_contrat"
-              :type="row.statut_contrat === 'Actif' ? 'success' : row.statut_contrat === 'Expiré' ? 'danger' : 'warning'"
-              size="small"
+              class="cde-badge"
+              :class="row.statut_contrat === 'Actif' ? 'cde-badge--success' : row.statut_contrat === 'Expiré' ? 'cde-badge--danger' : 'cde-badge--warning'"
             >
               {{ row.statut_contrat }}
-            </el-tag>
+            </span>
           </div>
         </template>
       </el-table-column>
       <el-table-column label="Statut" width="100">
         <template #default="{ row }">
-          <el-tag v-if="row.is_validated" type="success" size="small">Actif</el-tag>
-          <el-tag v-else type="warning" size="small">En attente</el-tag>
+          <span v-if="row.is_validated" class="cde-badge cde-badge--success">Actif</span>
+          <span v-else class="cde-badge cde-badge--warning">En attente</span>
         </template>
       </el-table-column>
       <el-table-column label="Actions" width="120" align="center">
         <template #default="{ row }">
-          <el-button text type="primary" :icon="Edit" size="small" @click.stop="editUser(row)" />
+          <el-button text type="primary" :icon="Edit" size="small" aria-label="Modifier l'utilisateur" @click.stop="editUser(row)" />
           <el-button
             text
             type="danger"
             :icon="Delete"
             size="small"
+            aria-label="Supprimer l'utilisateur"
             @click.stop="deleteUser(row.id!)"
           />
         </template>
       </el-table-column>
+      <template #empty>
+        <div class="cde-empty">
+          Aucun utilisateur.
+        </div>
+      </template>
     </el-table>
+    </div>
 
-    <el-row justify="center" style="margin-top: 20px">
+    <div class="cde-footer">
+      <span class="cde-muted">{{ filteredUsers.length }} utilisateur(s)</span>
       <el-pagination
         @current-change="(v:number)=>paginator.currPage=v"
         :current-page="paginator.currPage"
@@ -143,7 +163,7 @@
         :page-size="paginator.pageSize"
         :page-count="paginator.totalPage"
       />
-    </el-row>
+    </div>
 
     <UserPrintDialog v-model="printDialogVisible" :users="filteredUsers" />
   </div>
@@ -226,23 +246,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.users__header {
+.users {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.users__actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.users__title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--cd-gray-900);
+  flex-direction: column;
+  gap: 10px;
 }
 
 .user-name-cell {
@@ -254,8 +261,9 @@ onMounted(async () => {
 .specialties-cell {
   display: flex;
   gap: 4px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
+
 
 .contract-cell {
   display: flex;

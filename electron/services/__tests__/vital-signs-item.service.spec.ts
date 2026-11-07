@@ -104,4 +104,35 @@ describe('VitalSignsItemService', () => {
     const rows = await service.listByPatientAndDateRange(patientId, '1900-01-01', '2100-01-01')
     expect(rows).toHaveLength(0)
   })
+
+  // ─── listDatesByPatient ──────────────────────────────────────
+
+  async function saveItem(patientId: number, date: string, hour: number) {
+    const entity = new VitalSignsItemEntity()
+    entity.patient_id = patientId
+    entity.date = date
+    entity.hour = hour
+    entity.glycemie = 5.5
+    const service = container.resolve(VitalSignsItemService)
+    return await service.save(entity)
+  }
+
+  it('returns distinct dates most recent first', async () => {
+    const service = container.resolve(VitalSignsItemService)
+    const patientId = await createTestPatient()
+    await saveItem(patientId, '2026-09-01', 8)
+    await saveItem(patientId, '2026-09-10', 8)
+    await saveItem(patientId, '2026-09-10', 14)
+    await saveItem(patientId, '2026-09-05', 8)
+
+    const dates = await service.listDatesByPatient(patientId)
+    expect(dates).toEqual(['2026-09-10', '2026-09-05', '2026-09-01'])
+  })
+
+  it('returns empty array for a patient with no items', async () => {
+    const service = container.resolve(VitalSignsItemService)
+    const patientId = await createTestPatient()
+    const dates = await service.listDatesByPatient(patientId)
+    expect(dates).toEqual([])
+  })
 })

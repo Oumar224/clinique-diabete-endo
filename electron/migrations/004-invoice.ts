@@ -37,7 +37,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     invoice_id INTEGER NOT NULL REFERENCES invoice(id) ON DELETE CASCADE,
     montant REAL NOT NULL,
-    mode_paiement TEXT NOT NULL CHECK(mode_paiement IN ('espèces','carte_bancaire','chèque','virement','autre')),
+    mode_paiement TEXT NOT NULL CHECK(mode_paiement IN ('espèces','carte_bancaire','chèque','virement','mobile_money','assurance','autre')),
     date_paiement TEXT NOT NULL,
     reference TEXT,
     created_by INTEGER REFERENCES user(id),

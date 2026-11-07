@@ -1,8 +1,17 @@
 <template>
-  <div class="clinic-config">
-    <h1 class="clinic-config__title">Configuration Clinic</h1>
+  <div class="clinic-config cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Configuration Clinic
+        </h1>
+        <p class="cde-page-sub">
+          Stockages, actes, assurances et dispositifs médicaux
+        </p>
+      </div>
+    </header>
     <div class="clinic-config__content">
-      <el-tabs v-model="activeTab" type="border-card" class="clinic-config__tabs">
+      <el-tabs v-model="activeTab" class="cde-tabs">
         <el-tab-pane label="Stockages / Conservateurs" name="stockages">
           <StockageTab />
         </el-tab-pane>
@@ -39,23 +48,12 @@ const activeTab = ref('stockages')
 </script>
 
 <style scoped>
-.clinic-config__title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--cd-gray-900);
-  margin-bottom: 12px;
+.clinic-config {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .clinic-config__content {
-  background: var(--cd-white);
-  border: 1px solid var(--cd-gray-200);
-  border-radius: 4px;
-  padding: 16px;
-}
-
-.clinic-config__tabs :deep(.el-tabs__nav) {
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
+  min-width: 0;
 }
 </style>

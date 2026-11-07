@@ -30,6 +30,7 @@ export class StayService {
         'stays.lit',
         'stays.medecin_id',
         'stays.notes',
+        'stays.type',
         'stays.status',
         'stays.sortie_date',
         'stays.created_by',
@@ -60,6 +61,7 @@ export class StayService {
         'stays.lit',
         'stays.medecin_id',
         'stays.notes',
+        'stays.type',
         'stays.status',
         'stays.sortie_date',
         'stays.created_by',
@@ -88,6 +90,7 @@ export class StayService {
           chambre: dto.chambre ?? undefined,
           lit: dto.lit ?? undefined,
           notes: dto.notes ?? undefined,
+          type: dto.type ?? undefined,
           status: 'en_cours',
           created_by: dto.created_by ?? undefined,
         })

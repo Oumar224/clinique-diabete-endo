@@ -28,7 +28,31 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     )
   `.execute(db)
 
-  await sql`INSERT INTO patient_v2 SELECT * FROM patient`.execute(db)
+  // NOTE: this is an EXPLICIT, order-aware mapping, NOT `SELECT *`.
+  //
+  // `patient` (pre-021) and `patient_v2` (this migration) define their
+  // columns in DIFFERENT orders:
+  //   patient  : ..., allergies, automerge_id, created_at, updated_at, photo, nip, lieu_naissance, residence_code, complement_adresse, region, profession
+  //   patient_v2: ..., allergies, photo, nip, lieu_naissance, residence_code, complement_adresse, region, profession, automerge_id, created_at, updated_at
+  //
+  // A positional `INSERT INTO patient_v2 SELECT * FROM patient` silently
+  // scrambles every column from #13 onward (automerge_id -> photo, created_at
+  // -> nip, ... profession -> updated_at). The rewrite below avoids that in the
+  // only two ways that are safe:
+  //   1. It lists the target patient_v2 columns explicitly (column order
+  //      doesn't matter anymore, because values are matched positionally).
+  //   2. The SELECT references each value column BY NAME from `patient`, so it
+  //      reads the correct value into each position regardless of `patient`'s
+  //      physical column order. Both lists use the patient_v2 order, so
+  //      position 13 (patient_v2.photo) receives patient.photo, position 14
+  //      receives patient.nip, ... position 20 receives patient.automerge_id.
+  await sql`
+    INSERT INTO patient_v2
+      (id, civilite, nom, prenom, date_naissance, nir, telephone, email, adresse, mutuelle, medecin_traitant, allergies, photo, nip, lieu_naissance, residence_code, complement_adresse, region, profession, automerge_id, created_at, updated_at)
+    SELECT
+      id, civilite, nom, prenom, date_naissance, nir, telephone, email, adresse, mutuelle, medecin_traitant, allergies, photo, nip, lieu_naissance, residence_code, complement_adresse, region, profession, automerge_id, created_at, updated_at
+    FROM patient
+  `.execute(db)
   await sql`DROP TABLE patient`.execute(db)
   await sql`ALTER TABLE patient_v2 RENAME TO patient`.execute(db)
 

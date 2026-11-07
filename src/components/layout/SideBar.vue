@@ -42,19 +42,39 @@
         </div>
 
         <!-- Pharmacie -->
-        <div class="sidebar__menu-item" :class="{'sidebar__menu-item--active': activeRoute === '/app/pharmacie'}" @click="router.push('/app/pharmacie')">
+        <div v-if="user?.role === 'PHARMACIEN' || user?.role === 'ADMIN'" class="sidebar__menu-item" :class="{'sidebar__menu-item--active': activeRoute === '/app/pharmacie'}" @click="router.push('/app/pharmacie')">
           <span class="sidebar__menu-item-icon">
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="4" y="1.5" width="7" height="5" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M7.5 1V0.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M5.5 6V12.5C5.5 13.0523 5.94772 13.5 6.5 13.5H8.5C9.05228 13.5 9.5 13.0523 9.5 12.5V6" stroke="currentColor" stroke-width="0.9"/><path d="M5 9.5H10" stroke="currentColor" stroke-width="0.9"/></svg>
           </span>
           <span class="sidebar__menu-item-label">Pharmacie</span>
         </div>
 
-        <!-- Facturation -->
-        <div class="sidebar__menu-item" :class="{'sidebar__menu-item--active': activeRoute === '/app/facturation'}" @click="router.push('/app/facturation')">
+        <div v-if="['ADMIN', 'MEDECIN', 'INFIRMIER', 'SECRETAIRE'].includes(user?.role ?? '')" class="sidebar__menu-item sidebar__menu-item--labo" :class="{'sidebar__menu-item--active': activeRoute === '/app/laboratoire'}" @click="router.push('/app/laboratoire')">
+          <span class="sidebar__menu-item-icon">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4.5 1.5H10.5L9.5 13.5H5.5L4.5 1.5Z" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/>
+              <path d="M3.5 1.5H11.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/>
+              <path d="M7.5 1.5V0.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/>
+              <circle cx="7.5" cy="11.5" r="1.5" fill="currentColor" fill-opacity="0.4"/>
+            </svg>
+          </span>
+          <span class="sidebar__menu-item-label">Laboratoire</span>
+        </div>
+
+        <!-- Comptabilité -->
+        <div v-if="['COMPTABLE', 'ADMIN', 'SECRETAIRE', 'MEDECIN'].includes(user?.role ?? '')" class="sidebar__menu-item" :class="{'sidebar__menu-item--active': activeRoute === '/app/comptabilite'}" @click="router.push('/app/comptabilite')">
           <span class="sidebar__menu-item-icon">
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1" y="2" width="13" height="11" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M3.5 5H11.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M3.5 7.5H8.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M3.5 10H6.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>
           </span>
-          <span class="sidebar__menu-item-label">Facturation</span>
+          <span class="sidebar__menu-item-label">Comptabilité</span>
+        </div>
+
+        <!-- Indicateur -->
+        <div v-if="['COMPTABLE', 'ADMIN'].includes(user?.role ?? '')" class="sidebar__menu-item" :class="{'sidebar__menu-item--active': activeRoute === '/app/indicateurs'}" @click="router.push('/app/indicateurs')">
+          <span class="sidebar__menu-item-icon">
+            <TrendCharts />
+          </span>
+          <span class="sidebar__menu-item-label">Indicateur</span>
         </div>
 
         <!-- Patients (dossier pliable) -->
@@ -69,6 +89,18 @@
             <span class="sidebar__folder-label">Patients</span>
           </div>
           <div v-if="patientsExpanded" class="sidebar__folder-children">
+
+            <!-- Liste des patients — point d'entrée toujours visible (hors filtrage) -->
+            <div
+              class="sidebar__menu-item sidebar__menu-item--sub"
+              :class="{'sidebar__menu-item--active': activeRoute === 'patient-list'}"
+              @click="onSubItemClick({ index: 'patient-list', label: 'Liste des patients' })"
+            >
+              <span class="sidebar__menu-item-icon">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="2" width="11" height="11" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4.5 5H10.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 7.5H10.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 10H8" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>
+              </span>
+              <span class="sidebar__menu-item-label">Liste des patients</span>
+            </div>
 
             <div class="sidebar__search">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" class="sidebar__search-icon"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="0.8"/><path d="M7.5 7.5L10.5 10.5" stroke="currentColor" stroke-width="0.8" stroke-linecap="round"/></svg>
@@ -171,6 +203,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { TrendCharts } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
 import { getUserDisplayName } from '@/composables/useUsers'
 import { useSidebar } from '@/composables/useSidebar'
@@ -211,17 +244,15 @@ interface SubmenuItem {
 }
 
 const patientSubmenuItems: SubmenuItem[] = [
-  { index: 'patient-list', label: 'Liste des patients', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="2" width="11" height="11" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4.5 5H10.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 7.5H10.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 10H8" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>' },
-  { index: 'patient-dossier', label: 'Fiche Patient', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 3C2 2.44772 2.44772 2 3 2H6.5L7.5 3H12.5C13.0523 3 13.5 3.44772 13.5 4V12C13.5 12.5523 13.0523 13 12.5 13H3C2.44772 13 2 12.5523 2 12V3Z" fill="#F9E154" stroke="#D4A017" stroke-width="0.9"/><path d="M5 6H10" stroke="#D4A017" stroke-width="0.9" stroke-linecap="round"/><path d="M5 8H8.5" stroke="#D4A017" stroke-width="0.9" stroke-linecap="round"/></svg>' },
+  { index: 'patient-labo', label: 'Résultats Bio', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="1.5" width="11" height="12" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4.5 4.5H10.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 7.5H9" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 10.5H6" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M9 10.5L10 11.5L12 8.5" stroke="#27AE60" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
   { index: 'patient-dossier-clinic', label: 'Dossier Clinic', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1.5" y="1.5" width="12" height="12" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4.5 4.5H10.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 7H9" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 9.5H7.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>' },
 
   { index: 'patient-prescription', label: 'Prescriptions, Soins & Médicaments', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 2H13V13H2V2Z" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4 4.5H11" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4 7H8.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4 9.5H7" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M10.5 7.5L11.5 8.5" stroke="#27AE60" stroke-width="0.9" stroke-linecap="round"/><path d="M11.5 7.5L10.5 8.5" stroke="#27AE60" stroke-width="0.9" stroke-linecap="round"/></svg>' },
   { index: 'patient-ordonnances', label: 'Ordonnances', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 2H13V13H2V2Z" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4.5 4.5H10.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 7H9" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 9.5H7.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>' },
   { index: 'patient-examens', label: 'Demande Examens', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7" cy="7" r="4" stroke="currentColor" stroke-width="0.9"/><path d="M10 10L13.5 13.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>' },
-  { index: 'patient-labo', label: 'Résultats Bio', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="1.5" width="11" height="12" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4.5 4.5H10.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 7.5H9" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M4.5 10.5H6" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M9 10.5L10 11.5L12 8.5" stroke="#27AE60" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
-  { index: 'patient-actes', label: 'Actes, Soins & Médicaments', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="2" width="11" height="11" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M5.5 5V10" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M7.5 5V10" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M9.5 5V10" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>' },
   { index: 'patient-soins', label: 'Administration Soins & Médicaments', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1.5C5.5 1.5 3.5 3.5 3.5 5.5C3.5 8.5 7.5 12.5 7.5 12.5C7.5 12.5 11.5 8.5 11.5 5.5C11.5 3.5 9.5 1.5 7.5 1.5Z" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><circle cx="7.5" cy="5.5" r="1.5" stroke="currentColor" stroke-width="0.9"/></svg>' },
   { index: 'patient-contact', label: 'Contacts', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1.5" y="2.5" width="12" height="11" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M7.5 1V3" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M5 6.5H10V11H5V6.5Z" stroke="currentColor" stroke-width="0.9" stroke-linejoin="round"/></svg>' },
+  { index: 'patient-dossier', label: 'Fiche Patient', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 3C2 2.44772 2.44772 2 3 2H6.5L7.5 3H12.5C13.0523 3 13.5 3.44772 13.5 4V12C13.5 12.5523 13.0523 13 12.5 13H3C2.44772 13 2 12.5523 2 12V3Z" fill="#F9E154" stroke="#D4A017" stroke-width="0.9"/><path d="M5 6H10" stroke="#D4A017" stroke-width="0.9" stroke-linecap="round"/><path d="M5 8H8.5" stroke="#D4A017" stroke-width="0.9" stroke-linecap="round"/></svg>' },
   { index: 'patient-sejour', label: 'Patient & Séjour', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1.5" y="2.5" width="12" height="11" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M7.5 1V3" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M5 6.5H10V11H5V6.5Z" stroke="currentColor" stroke-width="0.9" stroke-linejoin="round"/></svg>' },
   { index: 'patient-rdv', label: 'Rendez-vous', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1.5" y="2.5" width="12" height="11" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M4.5 1V3.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M10.5 1V3.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M3 6.5H12" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>' },
   { index: 'patient-factures', label: 'Factures', svg: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1" y="2" width="13" height="11" rx="1" stroke="currentColor" stroke-width="0.9" fill="currentColor" fill-opacity="0.1"/><path d="M3.5 4.5H11.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M3.5 7H11.5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M3.5 9.5H7" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/></svg>' },
@@ -242,7 +273,7 @@ const noResults = computed(() => {
 
 const PATIENT_ROUTES = new Set([
   'patient-dossier', 'patient-dossier-clinic', 'patient-prescription', 'patient-ordonnances', 'patient-examens', 'patient-labo',
-  'patient-actes', 'patient-soins', 'patient-contact', 'patient-sejour', 'patient-rdv', 'patient-factures',
+  'patient-soins', 'patient-contact', 'patient-sejour', 'patient-rdv', 'patient-factures',
 ])
 
 const isPatientRoute = computed(() =>
@@ -312,9 +343,10 @@ function onRemovePatient(patientId: number) {
   flex-direction: column;
   height: 100vh;
   background: var(--cd-sidebar-bg);
-  border-right: 1px solid var(--cd-gray-300);
+  border-right: 1px solid var(--cd-border);
+  box-shadow: var(--cd-shadow-sm);
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: clip;
   flex-shrink: 0;
   transition: width 0.2s ease;
   user-select: none;
@@ -322,7 +354,7 @@ function onRemovePatient(patientId: number) {
 
 .sidebar--collapsed .sidebar__menu-item {
   justify-content: center;
-  padding: 4px;
+  padding: 8px 4px;
 }
 
 .sidebar--collapsed .sidebar__menu-item-label {
@@ -359,13 +391,15 @@ function onRemovePatient(patientId: number) {
   background: none;
   border: none;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.8);
-  padding: 2px;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border-radius: 2px;
+  border-radius: var(--cd-radius-sm);
+  min-width: 40px;
+  min-height: 40px;
 }
 
 .sidebar__toggle-btn:hover {
@@ -428,7 +462,7 @@ function onRemovePatient(patientId: number) {
 }
 
 .sidebar__nav {
-  overflow-x: hidden;
+  overflow-x: clip;
   padding: 2px 0;
 }
 
@@ -442,14 +476,15 @@ function onRemovePatient(patientId: number) {
 .sidebar__menu-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
+  gap: 10px;
+  padding: 8px 12px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--cd-sidebar-item);
-  border-radius: 2px;
-  min-height: 26px;
-  transition: none;
+  border-radius: var(--cd-radius-sm);
+  min-height: 40px;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .sidebar__menu-item:hover {
@@ -457,10 +492,16 @@ function onRemovePatient(patientId: number) {
   color: var(--cd-primary-dark);
 }
 
+.sidebar__menu-item:focus-visible {
+  outline: 2px solid var(--cd-primary);
+  outline-offset: 2px;
+}
+
 .sidebar__menu-item--active {
-  background: var(--cd-accent-orange) !important;
+  background: var(--cd-primary) !important;
   color: #fff !important;
   font-weight: 700;
+  box-shadow: var(--cd-shadow-sm);
 }
 
 .sidebar__menu-item--active .sidebar__menu-item-icon {
@@ -470,6 +511,11 @@ function onRemovePatient(patientId: number) {
 .sidebar__menu-item--sub {
   padding-left: 30px;
   font-size: 11px;
+}
+
+/* Espace visuel après Pharmacie (remplace l'ancien en-tête de section) */
+.sidebar__menu-item--labo {
+  margin-top: 4px;
 }
 
 .sidebar__menu-item-icon {
@@ -507,13 +553,13 @@ function onRemovePatient(patientId: number) {
 .sidebar__folder-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
+  gap: 8px;
+  padding: 8px 12px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--cd-sidebar-item);
-  border-radius: 2px;
-  min-height: 26px;
+  border-radius: var(--cd-radius-sm);
+  min-height: 40px;
 }
 
 .sidebar__folder-header:hover {
@@ -644,7 +690,7 @@ function onRemovePatient(patientId: number) {
 }
 
 .sidebar__open-patient--active {
-  background: var(--cd-accent-orange) !important;
+  background: var(--cd-primary) !important;
   color: #fff !important;
 }
 

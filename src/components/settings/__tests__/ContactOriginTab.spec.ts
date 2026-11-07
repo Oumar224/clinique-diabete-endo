@@ -150,7 +150,7 @@ describe('ContactOriginTab', () => {
     const wrapper = createWrapper()
     await waitAsync()
 
-    expect(wrapper.find('.el-empty').exists()).toBe(true)
+    expect(wrapper.find('.cde-empty').exists()).toBe(true)
     expect(wrapper.text()).toContain('Aucun mécanisme de contact')
   })
 

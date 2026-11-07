@@ -216,6 +216,14 @@ export function getVitalSignsItemsList(patientId: number, startDate: string, end
   return ipcInvoke<VitalSignsItemRecord[]>('vital-signs-items:list', { patientId, startDate, endDate })
 }
 
+/**
+ * Distinct dates (YYYY-MM-DD) having vital-signs items for the patient,
+ * most recent first. Used to build recorded-dates columns (cf. ResultatsBio).
+ */
+export function getVitalSignsItemsDates(patientId: number): Promise<string[]> {
+  return ipcInvoke<string[]>('vital-signs-items:dates', { patientId })
+}
+
 export function saveVitalSignsItem(patientId: number, data: VitalSignsItemInput): Promise<VitalSignsItemRecord> {
   return ipcInvoke<VitalSignsItemRecord>('vital-signs-items:save', { patientId, ...data })
 }

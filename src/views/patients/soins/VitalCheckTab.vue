@@ -1,42 +1,40 @@
 <template>
-  <div class="vital-check" v-loading="weekLoading">
-    <div v-if="error" class="vital-check__error">
+  <div class="vital-check cde" v-loading="gridLoading">
+    <div v-if="error" class="vital-check__error cde-alert cde-alert--danger">
       <el-alert :title="error" type="error" show-icon :closable="true" @close="error = null" />
     </div>
 
-    <div class="vital-check__header">
-      <h1 class="vital-check__title">Constantes vitales</h1>
-      <div class="vital-check__actions">
-        <el-button-group>
-          <el-button :icon="ArrowLeft" @click="previousWeek" />
-          <el-button class="vital-check__week-label">{{ weekLabel }}</el-button>
-          <el-button :icon="ArrowRight" @click="nextWeek" />
-        </el-button-group>
-        <el-button :icon="Refresh" :loading="weekLoading" @click="onRefresh">
+    <div class="cde-page-toolbar">
+      <div class="cde-page-actions">
+        <span class="vital-check__range-label">{{ rangeLabel }}</span>
+        <el-button :icon="Refresh" :loading="gridLoading" @click="onRefresh">
           Actualiser
         </el-button>
       </div>
     </div>
 
-    <div v-if="!weekLoading" class="vital-check__grid-wrapper">
+    <div class="vital-check__grid-wrapper">
       <div class="vital-check__grid" :style="{ gridTemplateColumns: gridColumns }">
         <!-- HEADER ROW -->
         <div class="vital-check__const-header" style="grid-row: 1; grid-column: 1">Constantes</div>
         <div
-          v-for="(day, di) in weekDays"
+          v-for="(day, di) in displayDays"
           :key="'d-' + di"
           class="vital-check__date-header"
           :class="{ 'vital-check__date-header--today': day.isToday }"
+          :data-date="day.dateKey"
           :style="{ gridRow: 1, gridColumn: `${2 + di * hours.length} / ${2 + (di + 1) * hours.length}` }"
         >
-          <div class="vital-check__date-text">{{ formatDateHeader(day.fullDate) }}</div>
+          <div class="vital-check__date-text">
+            {{ day.weekday }} <span class="vital-check__date-text-date">{{ day.dateLabel }}</span>
+          </div>
           <div class="vital-check__date-hours-row">
             <span
               v-for="hour in hours"
               :key="hour"
               class="vital-check__date-hour"
               :class="{ 'vital-check__date-hour--now': day.isToday && hour === currentHour }"
-              @click="openHourDialog(day.fullDateStr, hour)"
+              @click="openHourDialog(day.dateKey, hour)"
             >
               {{ String(hour).padStart(2, '0') }}:00
             </span>
@@ -51,21 +49,24 @@
             <div v-if="row.unit" class="vital-check__const-unit">{{ row.unit }}</div>
           </div>
           <!-- Day × Hour cells -->
-          <template v-for="(day, di) in weekDays" :key="'d-' + di">
+          <template v-for="(day, di) in displayDays" :key="'d-' + di">
             <div
               v-for="(h, hi) in hours"
               :key="'h-' + hi"
               class="vital-check__cell"
               :class="{ 'vital-check__cell--now': day.isToday && h === currentHour }"
               :style="{ gridRow: ri + 2, gridColumn: 2 + di * hours.length + hi }"
-              @click="openHourDialog(day.fullDateStr, h)"
+              :data-row="row.key"
+              :data-date="day.dateKey"
+              :data-hour="h"
+              @click="openHourDialog(day.dateKey, h)"
             >
               <span
-                v-if="getValue(day.fullDateStr, h, row.key) !== null"
+                v-if="getValue(day.dateKey, h, row.key) !== null"
                 class="vital-check__cell-value"
-                :class="{ 'vital-check__value--alert': isAlertValue(row.key, getValue(day.fullDateStr, h, row.key)) }"
+                :class="{ 'vital-check__value--alert': isAlertValue(row.key, getValue(day.dateKey, h, row.key)) }"
               >
-                {{ formatValue(getValue(day.fullDateStr, h, row.key), row) }}
+                {{ formatValue(getValue(day.dateKey, h, row.key), row) }}
               </span>
             </div>
           </template>
@@ -116,9 +117,15 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive, nextTick, inject, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowLeft, ArrowRight, Refresh } from '@element-plus/icons-vue'
+import { Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getVitalSignsItemsList, saveVitalSignsItem, type VitalSignsItemRecord } from '@/composables/useVitalSigns'
+import {
+  ROLLING_WINDOW_DAYS,
+  buildRollingDays,
+  startOfLocalDay,
+  type RollingDay,
+} from '@/utils/rolling-week'
 
 const route = useRoute()
 
@@ -161,66 +168,25 @@ const CONSTANTS_ROWS: VitalGridRow[] = [
 
 const hours = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
 
-/* ── Week calendar state ── */
+/* ── Fenêtre glissante de 7 jours (convention « Résultats Bio ») ──
+ *
+ * Colonnes du jour le plus récent (index 0, aujourd'hui) vers le plus ancien.
+ * La grille est toujours rendue, même sans constante : toutes les cellules
+ * restent cliquables pour saisir une mesure.
+ */
 
-const currentWeekStart = ref(getWeekStart(new Date()))
+/** Dernier jour (le plus récent) de la fenêtre affichée. */
+const windowEnd = ref(startOfLocalDay(new Date()))
 
-const weekDays = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(currentWeekStart.value)
-    d.setDate(d.getDate() + i)
-    d.setHours(0, 0, 0, 0)
-    const dayNum = String(d.getDate()).padStart(2, '0')
-    const monthNum = String(d.getMonth() + 1).padStart(2, '0')
-    const yearNum = String(d.getFullYear())
-    const fullDateStr = `${yearNum}-${monthNum}-${dayNum}`
-    return {
-      name: '',
-      date: `${dayNum}/${monthNum}`,
-      year: yearNum,
-      fullDate: new Date(d),
-      fullDateStr,
-      isToday: d.getTime() === today.getTime(),
-    }
-  })
+const displayDays = computed<RollingDay[]>(() => buildRollingDays(windowEnd.value))
+
+const rangeLabel = computed(() => {
+  const newest = displayDays.value[0]
+  const oldest = displayDays.value[displayDays.value.length - 1]
+  const fmt = (d: Date) =>
+    `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+  return `${fmt(newest.fullDate)} — ${fmt(oldest.fullDate)} · ${ROLLING_WINDOW_DAYS} jours`
 })
-
-const weekLabel = computed(() => {
-  const start = weekDays.value[0]
-  const end = weekDays.value[6]
-  const fmt = (d: Date) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
-  return `${fmt(start.fullDate)} — ${fmt(end.fullDate)}`
-})
-
-function getWeekStart(d: Date): Date {
-  const date = new Date(d)
-  const day = date.getDay()
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1)
-  date.setDate(diff)
-  date.setHours(0, 0, 0, 0)
-  return date
-}
-
-function previousWeek() {
-  const d = new Date(currentWeekStart.value)
-  d.setDate(d.getDate() - 7)
-  currentWeekStart.value = d
-}
-
-function nextWeek() {
-  const d = new Date(currentWeekStart.value)
-  d.setDate(d.getDate() + 7)
-  currentWeekStart.value = d
-}
-
-function formatDateHeader(d: Date): string {
-  const weekday = d.toLocaleDateString('fr-FR', { weekday: 'short' })
-  const dd = String(d.getDate()).padStart(2, '0')
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  return `${weekday} ${dd}/${mm}`
-}
 
 const currentHour = computed(() => {
   const h = new Date().getHours()
@@ -230,13 +196,13 @@ const currentHour = computed(() => {
 /* ── Grid columns ── */
 
 const gridColumns = computed(() => {
-  return `200px repeat(${weekDays.value.length * hours.length}, minmax(60px, 1fr))`
+  return `200px repeat(${displayDays.value.length * hours.length}, minmax(60px, 1fr))`
 })
 
 /* ── Data fetching ── */
 
 const allItems = ref<Record<string, VitalSignsItemRecord>>({})
-const weekLoading = ref(false)
+const gridLoading = ref(false)
 const error = ref<string | null>(null)
 
 function getValue(date: string, hour: number, key: string): number | string | null {
@@ -252,12 +218,14 @@ function formatValue(value: number | string | null, row: VitalGridRow): string {
   return String(value)
 }
 
-async function fetchWeekData(pid: number) {
-  weekLoading.value = true
+async function fetchDisplayData(pid: number) {
+  gridLoading.value = true
   error.value = null
-  const start = weekDays.value[0].fullDateStr
-  const end = weekDays.value[6].fullDateStr
   try {
+    // Une seule requête bornée par la fenêtre affichée : [la plus ancienne … aujourd'hui].
+    const days = displayDays.value
+    const start = days[days.length - 1].dateKey
+    const end = days[0].dateKey
     const records = await getVitalSignsItemsList(pid, start, end)
     const map: Record<string, VitalSignsItemRecord> = {}
     for (const r of records) {
@@ -268,13 +236,13 @@ async function fetchWeekData(pid: number) {
     const msg = (e as Error).message
     error.value = msg
   } finally {
-    weekLoading.value = false
+    gridLoading.value = false
   }
 }
 
 async function onRefresh() {
   if (patientId.value) {
-    await fetchWeekData(patientId.value)
+    await fetchDisplayData(patientId.value)
   }
 }
 
@@ -282,27 +250,26 @@ function scrollToCurrentTime() {
   nextTick(() => {
     const wrapper = document.querySelector('.vital-check__grid-wrapper')
     if (!wrapper) return
-    const idx = weekDays.value.findIndex(d => d.isToday)
+    // Today is always the first column.
+    const idx = displayDays.value.findIndex(d => d.isToday)
     if (idx < 0) return
     const hourIdx = hours.indexOf(currentHour.value)
     if (hourIdx < 0) return
     const targetIdx = idx * hours.length + hourIdx
     const target = wrapper.querySelectorAll('.vital-check__date-hour')[targetIdx] as HTMLElement
-    if (target) {
-      target.scrollIntoView({ inline: 'center', block: 'nearest' })
-    }
+    target?.scrollIntoView?.({ inline: 'center', block: 'nearest' })
   })
 }
 
-watch([patientId, currentWeekStart], async ([pid]) => {
+watch(patientId, async (pid) => {
   if (pid) {
-    await fetchWeekData(pid)
+    await fetchDisplayData(pid)
   } else {
     allItems.value = {}
   }
 }, { immediate: true })
 
-watch(weekLoading, (loading) => {
+watch(gridLoading, (loading) => {
   if (!loading) {
     scrollToCurrentTime()
   }
@@ -325,8 +292,10 @@ const hourDialogDate = ref('')
 const hourDialogHour = ref(6)
 
 const hourDialogTitle = computed(() => {
-  const day = weekDays.value.find(d => d.fullDateStr === hourDialogDate.value)
-  const dateLabel = day ? `${day.date}` : hourDialogDate.value
+  const day = displayDays.value.find(d => d.dateKey === hourDialogDate.value)
+  const dateLabel = day
+    ? `${String(day.fullDate.getDate()).padStart(2, '0')}/${String(day.fullDate.getMonth() + 1).padStart(2, '0')}`
+    : hourDialogDate.value
   return `Constantes — ${dateLabel} à ${String(hourDialogHour.value).padStart(2, '0')}h00`
 })
 
@@ -377,8 +346,9 @@ async function onSaveHour() {
     }
 
     const saved = await saveVitalSignsItem(patientId.value, data as any)
-    // Update local cache
-    allItems.value[`${saved.date}__${saved.hour}`] = saved
+    // Full refresh (dates list + range) so a first measurement of the day
+    // adds today's column when missing.
+    await fetchDisplayData(patientId.value)
     showHourDialog.value = false
     ElMessage.success(`Constantes enregistrées pour ${String(saved.hour).padStart(2, '0')}h00`)
   } catch (e) {
@@ -412,11 +382,8 @@ function isAlertValue(key: string, value: number | string | null): boolean {
 }
 
 defineExpose({
-  nextWeek,
-  previousWeek,
-  weekDays,
-  currentWeekStart,
-  fetchWeekData,
+  fetchDisplayData,
+  displayDays,
   allItems,
   getValue,
   isAlertValue,
@@ -429,30 +396,11 @@ defineExpose({
   margin-bottom: 16px;
 }
 
-/* ── Header ── */
-.vital-check__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.vital-check__title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--cd-gray-900);
-  margin: 0;
-}
-
-.vital-check__actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.vital-check__week-label {
-  min-width: 140px;
-  font-weight: 600;
+/* ── Range label ── */
+.vital-check__range-label {
+  font-size: 12px;
+  color: var(--cde-muted);
+  white-space: nowrap;
 }
 
 /* ── Grid wrapper ── */
@@ -460,6 +408,7 @@ defineExpose({
   overflow: auto;
   border: 1px solid var(--cd-gray-200);
   border-radius: 8px;
+  background: var(--cd-widget-bg);
   max-height: calc(100vh - 260px);
 }
 
@@ -482,10 +431,15 @@ defineExpose({
   letter-spacing: 0.5px;
   position: sticky;
   left: 0;
-  z-index: 3;
+  top: 0;
+  z-index: 4;
 }
 
 .vital-check__date-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 40px;
   background: var(--cd-gray-100);
   border-bottom: 1px solid var(--cd-gray-200);
   border-right: 1px solid var(--cd-gray-200);
@@ -495,32 +449,39 @@ defineExpose({
 }
 
 .vital-check__date-header--today {
-  background: var(--cd-primary) !important;
+  background: var(--cd-primary);
   color: white;
 }
 .vital-check__date-header--today .vital-check__date-text {
   color: white;
-}
-.vital-check__date-header--today .vital-check__date-hours-row {
-  border-top-color: rgba(255,255,255,0.3);
-}
-.vital-check__date-header--today .vital-check__date-hour {
-  color: rgba(255,255,255,0.9);
-  border-right-color: rgba(255,255,255,0.2);
 }
 
 .vital-check__date-text {
   padding: 6px 12px 2px;
   font-size: 11px;
   font-weight: 600;
+  color: #1C2833;
   text-align: left;
   line-height: 1.2;
   white-space: nowrap;
 }
 
+.vital-check__date-text-date {
+  color: var(--cd-gray-500);
+  font-weight: 400;
+}
+
+.vital-check__date-header--today .vital-check__date-text-date {
+  color: rgba(255, 255, 255, 0.85);
+}
+
 .vital-check__date-hours-row {
   display: flex;
   border-top: 1px solid var(--cd-gray-300);
+}
+
+.vital-check__date-header--today .vital-check__date-hours-row {
+  border-top-color: rgba(255, 255, 255, 0.3);
 }
 
 .vital-check__date-hour {
@@ -535,12 +496,17 @@ defineExpose({
   transition: background 0.15s;
 }
 
+.vital-check__date-header--today .vital-check__date-hour {
+  color: rgba(255, 255, 255, 0.9);
+  border-right-color: rgba(255, 255, 255, 0.2);
+}
+
 .vital-check__date-hour:last-child {
   border-right: none;
 }
 
 .vital-check__date-hour:hover {
-  background: rgba(0,0,0,0.05);
+  background: var(--cde-hover);
 }
 
 .vital-check__date-hour--now {
@@ -570,15 +536,15 @@ defineExpose({
 
 .vital-check__const-name {
   font-size: 12px;
-  font-weight: 700;
-  color: #1C2833;
+  font-weight: 600;
+  color: var(--cd-gray-900);
   line-height: 1.3;
 }
 
 .vital-check__const-unit {
   font-size: 10px;
   font-weight: 500;
-  color: #566573;
+  color: var(--cde-muted);
   line-height: 1.2;
 }
 
@@ -604,13 +570,11 @@ defineExpose({
 }
 
 .vital-check__cell--now {
-  background: #F9E79F;
-  border-left: 1px solid #D35400;
-  border-right-color: #D35400;
+  background: var(--cd-primary-lighter);
 }
 
 .vital-check__cell--now:hover {
-  background: #F9E79F;
+  background: var(--cd-primary-lighter);
 }
 
 .vital-check__cell:last-child {
@@ -621,29 +585,29 @@ defineExpose({
 .vital-check__cell-value {
   font-size: 11px;
   font-weight: 600;
-  color: #1C2833;
+  color: var(--cd-gray-900);
   text-align: center;
   line-height: 1.2;
   white-space: nowrap;
 }
 
 .vital-check__value--alert {
-  color: #C0392B;
-  font-weight: 700;
-  background: #FDEBD0;
+  color: var(--cd-alert-red);
+  font-weight: 600;
+  background: var(--cd-danger-bg);
   padding: 1px 5px;
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 /* ── Dialog alert indicator ── */
 .vital-check__value--alert-dialog :deep(.el-input__wrapper) {
-  background: #FDEBD0;
-  border-color: #E67E22;
-  box-shadow: 0 0 0 1px #E67E22 inset;
+  background: var(--cd-danger-bg);
+  border-color: var(--cd-alert-red);
+  box-shadow: 0 0 0 1px var(--cd-alert-red) inset;
 }
 
 .vital-check__value--alert-dialog :deep(.el-input__inner) {
-  color: #C0392B;
-  font-weight: 700;
+  color: var(--cd-alert-red);
+  font-weight: 600;
 }
 </style>

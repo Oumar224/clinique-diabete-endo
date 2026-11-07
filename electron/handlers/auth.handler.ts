@@ -1,10 +1,12 @@
 import { container } from 'tsyringe'
 import { AuthService } from '../services/auth.service'
 import { SessionService } from '../services/auth/session.service'
+import { CurrentSessionService } from '../services/auth/current-session.service'
 import { EmailService } from '../services/email/email.service'
 import { UserEntity } from '../entities/user.entity'
 import type { UserDto, ValidatePasswordDto, SyncUserRelationsDto, TerminateContractDto } from '../dto/auth.dto'
 import { createHandler } from '../utils/create-handler'
+import type { AppRole } from '../utils/authorization'
 
 export function registerAuthHandlers() {
   const authService = container.resolve(AuthService)
@@ -12,12 +14,44 @@ export function registerAuthHandlers() {
 
   createHandler('session:validate', async ({ token }: { token: string }) => {
     const user = await sessionService.validate(token)
-    return user ? UserEntity.toDto(user) : null
+    if (!user || user.id == null) return null
+    // Restauration de session : le processus principal adopte l'identité.
+    container.resolve(CurrentSessionService).set({
+      token,
+      userId: user.id,
+      role: (user.role ?? 'MEDECIN') as AppRole,
+      email: user.email,
+      nom: user.nom,
+    })
+    return UserEntity.toDto(user)
   })
 
-  createHandler('auth:login', ({ email, password, rememberMe }: { email: string; password: string; rememberMe?: boolean }) =>
-    authService.login(email, password, rememberMe)
-  )
+  createHandler('auth:login', async ({ email, password, rememberMe }: { email: string; password: string; rememberMe?: boolean }) => {
+    const result = await authService.login(email, password, rememberMe)
+    // Le jeton est créé par le processus principal : c'est ici que la session
+    // courante est ouverte. Le renderer ne fait que le conserver.
+    if (result.token && result.user?.id != null) {
+      container.resolve(CurrentSessionService).set({
+        token: result.token,
+        userId: result.user.id,
+        role: (result.user.role ?? 'MEDECIN') as AppRole,
+        email: result.user.email,
+        nom: result.user.nom,
+      })
+    }
+    return result
+  })
+
+  createHandler('auth:logout', async ({ token }: { token?: string } = {}) => {
+    const currentSession = container.resolve(CurrentSessionService)
+    const current = currentSession.get()
+    const tokenToRevoke = token ?? current?.token
+    if (tokenToRevoke) {
+      await sessionService.invalidate(tokenToRevoke)
+    }
+    currentSession.clear()
+    return { success: true }
+  })
 
   createHandler('auth:validate-password', async (dto: ValidatePasswordDto) => {
     return await authService.validatePassword(dto.userId!, dto.oldPassword!, dto.newPassword!)

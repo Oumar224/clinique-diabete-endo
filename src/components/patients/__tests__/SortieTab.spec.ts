@@ -112,12 +112,13 @@ describe('SortieTab', () => {
   function createDefaultData(overrides: Partial<SortieData> = {}): SortieData {
     return {
       dateSortie: '2025-01-15',
-      destinationSortie: 'Retour domicile',
+      destinationSortie: 'Retour à domicile',
       infoPatientFamille: false,
       produitsSanguins: false,
       bmrBhre: false,
       conclusionSortie: '',
       rdvSuivi: [],
+      destinationPrecision: '',
       ...overrides,
     }
   }
@@ -125,11 +126,13 @@ describe('SortieTab', () => {
   function createWrapper(options: {
     data?: SortieData
     fieldMeta?: Record<string, string>
+    readonly?: boolean
   } = {}) {
     return mount(SortieTab, {
       props: {
         data: options.data ?? createDefaultData(),
         fieldMeta: options.fieldMeta,
+        readonly: options.readonly ?? false,
       },
       global: {
         stubs: EL_STUBS,
@@ -180,7 +183,7 @@ describe('SortieTab', () => {
   describe('Clôture Administrative – réglementaires', () => {
     it('renders the 3 réglementaires checkboxes when the section is opened', async () => {
       const wrapper = createWrapper()
-      await openSection(wrapper, 0)
+      await openSection(wrapper, 1)
       const checkboxes = wrapper.findAll('.el-checkbox')
       expect(checkboxes).toHaveLength(3)
       expect(checkboxes.map(c => c.text())).toEqual(['Oui', 'Oui', 'Oui'])
@@ -188,29 +191,35 @@ describe('SortieTab', () => {
       expect(labels).toContain('Information du patient / famille')
       expect(labels).toContain('Administration de produits sanguins')
       expect(labels).toContain('Porteur / Contact BMR ou BHRe')
-      const items = wrapper.findAll('.el-form-item')
-      expect(items.some(i => i.attributes('data-history-path') === 'sortie.infoPatientFamille')).toBe(true)
-      expect(items.some(i => i.attributes('data-history-path') === 'sortie.produitsSanguins')).toBe(true)
-      expect(items.some(i => i.attributes('data-history-path') === 'sortie.bmrBhre')).toBe(true)
+      // Migration historique : data-history-path supprimé — la présence des
+      // champs est vérifiée via leurs labels ci-dessus.
     })
 
-    it('keeps edits in the draft until Enregistrer (checked checkbox → no preview row yet)', async () => {
+    it('keeps edits in the draft until Enregistrer (checked checkbox → data prop not committed yet)', async () => {
       const wrapper = createWrapper()
-      await openSection(wrapper, 0)
-      await wrapper.find('.el-checkbox input').setValue(true)
-      await nextTick()
-      // The value is only in the draft — the preview still reads the committed data
+      await openSection(wrapper, 1)
+      // produitsSanguins is OFF by default → the preview already shows "Non"
       const rows = wrapper.findAll('.form-preview__row')
-      const infoRow = rows.find(r => r.text().includes('Information du patient / famille'))
-      expect(infoRow).toBeUndefined()
+      const sanguinsRow = rows.find(r => r.text().includes('Administration de produits sanguins'))
+      expect(sanguinsRow).toBeDefined()
+      expect(sanguinsRow!.text()).toContain('Non')
+      // Check the Sanguins checkbox (2nd of the 3 réglementaires) — the edit lands in the draft only
+      await wrapper.findAll('.el-checkbox input')[1].setValue(true)
+      await nextTick()
+      // The value is only in the draft — the data prop (and the preview) still reads the committed value
+      expect(wrapper.props('data').produitsSanguins).toBe(false)
+      const rowsAfter = wrapper.findAll('.form-preview__row')
+      const sanguinsAfter = rowsAfter.find(r => r.text().includes('Administration de produits sanguins'))
+      expect(sanguinsAfter).toBeDefined()
+      expect(sanguinsAfter!.text()).toContain('Non')
     })
 
     it('commits the draft and shows "Oui" in the preview on Enregistrer', async () => {
       const wrapper = createWrapper()
-      await openSection(wrapper, 0)
+      await openSection(wrapper, 1)
       await wrapper.find('.el-checkbox input').setValue(true)
       await nextTick()
-      const saveBtn = sectionBodies(wrapper)[0].findAll('.staged-section__footer .el-button')[0]
+      const saveBtn = sectionBodies(wrapper)[1].findAll('.staged-section__footer .el-button')[0]
       await saveBtn.trigger('click')
       await nextTick()
       const rows = wrapper.findAll('.form-preview__row')
@@ -220,7 +229,7 @@ describe('SortieTab', () => {
       expect(infoRow!.text()).not.toContain('Non')
     })
 
-    it('hides preview rows for unchecked réglementaires booleans', () => {
+    it('shows "Non" for unchecked réglementaires booleans and "Oui" for checked ones', () => {
       const wrapper = createWrapper({
         data: createDefaultData({
           infoPatientFamille: true,
@@ -232,12 +241,16 @@ describe('SortieTab', () => {
       const infoRow = rows.find(r => r.text().includes('Information du patient / famille'))
       expect(infoRow).toBeDefined()
       expect(infoRow!.text()).toContain('Oui')
+      expect(infoRow!.text()).not.toContain('Non')
       const bmrRow = rows.find(r => r.text().includes('Porteur / Contact BMR ou BHRe'))
       expect(bmrRow).toBeDefined()
       expect(bmrRow!.text()).toContain('Oui')
-      // Unchecked booleans render no row at all
+      expect(bmrRow!.text()).not.toContain('Non')
+      // Unchecked booleans now render an explicit "Non" row
       const sanguinsRow = rows.find(r => r.text().includes('Administration de produits sanguins'))
-      expect(sanguinsRow).toBeUndefined()
+      expect(sanguinsRow).toBeDefined()
+      expect(sanguinsRow!.text()).toContain('Non')
+      expect(sanguinsRow!.text()).not.toContain('Oui')
     })
   })
 
@@ -246,7 +259,7 @@ describe('SortieTab', () => {
   describe('Clôture Médicale section', () => {
     it('renders RichTextEditor for conclusionSortie when opened', async () => {
       const wrapper = createWrapper()
-      await openSection(wrapper, 1)
+      await openSection(wrapper, 0)
       expect(wrapper.find('.rich-editor-mock').exists()).toBe(true)
     })
 
@@ -270,47 +283,151 @@ describe('SortieTab', () => {
   // ─── RDV section ─────────────────────────────────────────────────
 
   describe('RDV suivi section', () => {
-    it('renders RDV cards and an icon-only delete button', async () => {
-      const wrapper = createWrapper({
-        data: createDefaultData({
-          rdvSuivi: [
-            { _key: 'k1', date: '2025-02-01', heure: '10:00', intitule: 'Consult cardiologie', lieuPraticien: 'Bichat' },
-          ],
-        }),
-      })
-      await openSection(wrapper, 2)
-      expect(wrapper.findAll('.rdv-card')).toHaveLength(1)
-      const delBtn = wrapper.find('.rdv-card__delete')
-      expect(delBtn.exists()).toBe(true)
-      expect(delBtn.attributes('aria-label')).toBe('Supprimer RDV #1')
-    })
-
-    it('adds a RDV in the draft and commits it on Enregistrer', async () => {
+    it('renders a single RDV form card with no add button', async () => {
       const wrapper = createWrapper()
       await openSection(wrapper, 2)
+      const cards = wrapper.findAll('.rdv-card')
+      expect(cards).toHaveLength(1)
+      expect(cards[0].find('.rdv-card__title').text()).toBe('Nouveau RDV de suivi')
+      // le bouton « + Ajouter un RDV de suivi » a été retiré (un seul formulaire à la fois)
       const addBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Ajouter un RDV'))
-      await addBtn!.trigger('click')
-      await nextTick()
-      // Draft now holds a new RDV → Enregistrer becomes enabled
-      const rdvBody = sectionBodies(wrapper)[2]
-      const footerButtons = rdvBody.findAll('.el-button')
-      expect(footerButtons[0].attributes('disabled')).toBeUndefined()
+      expect(addBtn).toBeUndefined()
     })
 
-    it('sorts RDVs by date and time', async () => {
+    it('commits a filled RDV card into data.rdvSuivi on the card Enregistrer', async () => {
+      const data = createDefaultData()
+      const wrapper = createWrapper({ data })
+      await openSection(wrapper, 2)
+
+      const cards = wrapper.findAll('.rdv-card')
+      expect(cards).toHaveLength(1)
+      const card = cards[0]
+      await card.find('.el-date-picker').setValue('2025-02-01')
+      await card.find('.el-time-picker').setValue('10:00')
+      const inputs = card.findAll('.el-input')
+      await inputs[0].setValue('Consult cardiologie')
+      await inputs[1].setValue('Bichat')
+      await nextTick()
+
+      const saveBtn = card.findAll('.rdv-card__actions .el-button')
+        .find(b => b.text().trim() === 'Enregistrer')
+      expect(saveBtn).toBeDefined()
+      await saveBtn!.trigger('click')
+      await nextTick()
+
+      expect(data.rdvSuivi).toHaveLength(1)
+      expect(data.rdvSuivi[0]).toEqual({
+        _key: expect.any(String),
+        date: '2025-02-01',
+        heure: '10:00',
+        intitule: 'Consult cardiologie',
+        lieuPraticien: 'Bichat',
+      })
+      expect(wrapper.emitted('change')).toBeDefined()
+
+      // la preview externe (3e FormPreview) reflète le RDV commité
+      const rows = wrapper.findAll('.form-preview')[2].findAll('.form-preview__row')
+      expect(rows).toHaveLength(1)
+      expect(rows[0].find('.form-preview__label').text()).toBe('01/02/2025 10:00')
+      expect(rows[0].find('.form-preview__value').text()).toBe('Consult cardiologie — Bichat')
+    })
+
+    it('sorts RDVs in the preview by date and time', async () => {
       const wrapper = createWrapper({
         data: createDefaultData({
           rdvSuivi: [
-            { _key: 'k1', date: '2025-02-02', heure: '10:00', intitule: 'B', lieuPraticien: 'x' },
-            { _key: 'k2', date: '2025-02-01', heure: '09:00', intitule: 'A', lieuPraticien: 'x' },
+            { _key: 'k1', date: '2025-02-02', heure: '10:00', intitule: 'B optic', lieuPraticien: 'b' },
+            { _key: 'k2', date: '2025-02-01', heure: '09:00', intitule: 'A cardio', lieuPraticien: 'a' },
           ],
         }),
       })
+
+      const rows = wrapper.findAll('.form-preview')[2].findAll('.form-preview__row')
+      expect(rows).toHaveLength(2)
+      expect(rows[0].find('.form-preview__label').text()).toBe('01/02/2025 09:00')
+      expect(rows[0].find('.form-preview__value').text()).toBe('A cardio — a')
+      expect(rows[1].find('.form-preview__label').text()).toBe('02/02/2025 10:00')
+      expect(rows[1].find('.form-preview__value').text()).toBe('B optic — b')
+    })
+
+    it('edits an RDV from the preview Modifier button (single form)', async () => {
+      const data = createDefaultData({
+        rdvSuivi: [{ _key: 'k1', date: '2025-02-01', heure: '10:00', intitule: 'Consult', lieuPraticien: 'Bichat' }],
+      })
+      const wrapper = createWrapper({ data })
+
+      const body = sectionBodies(wrapper)[2]
+      expect(body.attributes('style') ?? '').toContain('display: none')
+
+      const editBtn = wrapper.findAll('.form-preview')[2]
+        .find('.form-preview__row .form-preview__edit')
+      expect(editBtn.attributes('aria-label')).toBe('Modifier 01/02/2025 10:00')
+      await editBtn.trigger('click')
+      await nextTick()
+
+      // la section est rouverte sur le RDV existant (pas de nouvel élément)
+      expect(body.attributes('style') ?? '').not.toContain('display: none')
+      const card = wrapper.find('.rdv-card')
+      expect(card.find('.rdv-card__title').text()).toBe('Modifier le RDV')
+      expect(card.find('.el-date-picker').attributes('value')).toBe('2025-02-01')
+      expect(card.find('.el-time-picker').attributes('value')).toBe('10:00')
+      const inputs = card.findAll('.el-input')
+      expect(inputs[0].attributes('value')).toBe('Consult')
+      expect(inputs[1].attributes('value')).toBe('Bichat')
+
+      // modification en place : pas de nouvel RDV, valeurs mises à jour
+      await inputs[0].setValue('Consult vasculaire')
+      await nextTick()
+      const saveBtn = card.findAll('.rdv-card__actions .el-button')
+        .find(b => b.text().trim() === 'Enregistrer')
+      await saveBtn!.trigger('click')
+      await nextTick()
+
+      expect(data.rdvSuivi).toHaveLength(1)
+      expect(data.rdvSuivi[0]).toMatchObject({ _key: 'k1', intitule: 'Consult vasculaire', lieuPraticien: 'Bichat' })
+      const rows = wrapper.findAll('.form-preview')[2].findAll('.form-preview__row')
+      expect(rows).toHaveLength(1)
+      expect(rows[0].find('.form-preview__value').text()).toBe('Consult vasculaire — Bichat')
+    })
+
+    it('deletes an RDV from the preview', async () => {
+      const data = createDefaultData({
+        rdvSuivi: [{ _key: 'k1', date: '2025-02-01', heure: '10:00', intitule: 'Consult', lieuPraticien: 'Bichat' }],
+      })
+      const wrapper = createWrapper({ data })
+
+      const deleteBtn = wrapper.findAll('.form-preview')[2]
+        .find('.form-preview__row .form-preview__delete')
+      expect(deleteBtn.attributes('aria-label')).toBe('Supprimer 01/02/2025 10:00')
+      await deleteBtn.trigger('click')
+      await nextTick()
+
+      expect(data.rdvSuivi).toHaveLength(0)
+      expect(wrapper.emitted('change')).toBeDefined()
+      expect(wrapper.findAll('.form-preview')[2].find('.el-empty').exists()).toBe(true)
+    })
+
+    it('shows the RDV count as a badge on the section header', () => {
+      const wrapper = createWrapper({
+        data: createDefaultData({
+          rdvSuivi: [
+            { _key: 'k1', date: '2025-02-01', heure: '10:00', intitule: 'A', lieuPraticien: 'a' },
+            { _key: 'k2', date: '2025-02-02', heure: '09:00', intitule: 'B', lieuPraticien: 'b' },
+          ],
+        }),
+      })
+
+      const header = wrapper.findAll('.collapsible-section__header')[2]
+      expect(header.find('.el-badge').attributes('value')).toBe('2')
+    })
+
+    it('disables the card actions in readonly mode', async () => {
+      const wrapper = createWrapper({ readonly: true })
       await openSection(wrapper, 2)
-      const titles = wrapper.findAll('.rdv-card__title').map(el => el.text())
-      expect(titles).toEqual(['RDV #1', 'RDV #2'])
-      const firstIntitule = wrapper.findAll('.rdv-card')[0].findAll('.el-input')[0].attributes('value')
-      expect(firstIntitule).toBe('A')
+
+      const saveBtn = wrapper.findAll('.rdv-card__actions .el-button')
+        .find(b => b.text().trim() === 'Enregistrer')
+      expect(saveBtn!.attributes('disabled')).toBeDefined()
     })
   })
 
@@ -379,13 +496,13 @@ describe('SortieTab', () => {
         fieldMeta: { 'sortie.dateSortie': '2026-06-15T10:30:00.000Z' },
       })
 
-      const body = sectionBodies(wrapper)[0]
+      const body = sectionBodies(wrapper)[1]
 
       // Prove the section is collapsed BEFORE the click
       expect(body.attributes('style') ?? '').toContain('display: none')
 
-      // The first preview (Clôture Administrative) holds the Date de sortie row
-      const btn = wrapper.findAll('.form-preview')[0]
+      // The second preview (Clôture Administrative, now after Clôture Médicale) holds the Date de sortie row
+      const btn = wrapper.findAll('.form-preview')[1]
         .find('.form-preview__row .form-preview__edit')
       expect(btn.exists()).toBe(true)
       await btn.trigger('click')
@@ -429,13 +546,13 @@ describe('SortieTab', () => {
         fieldMeta: { 'sortie.infoPatientFamille': '2026-06-15T10:30:00.000Z' },
       })
 
-      const body = sectionBodies(wrapper)[0]
+      const body = sectionBodies(wrapper)[1]
 
       // Prove the section is collapsed BEFORE the click
       expect(body.attributes('style') ?? '').toContain('display: none')
 
-      // The first preview (Clôture Administrative) holds the infoPatientFamille row
-      const btn = wrapper.findAll('.form-preview')[0]
+      // The second preview (Clôture Administrative) holds the infoPatientFamille row
+      const btn = wrapper.findAll('.form-preview')[1]
         .find('.form-preview__row .form-preview__edit')
       expect(btn.exists()).toBe(true)
       await btn.trigger('click')

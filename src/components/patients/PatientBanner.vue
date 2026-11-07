@@ -20,7 +20,7 @@
           <span v-if="addressLine" class="patient-banner__sep">|</span>
           <span v-if="addressLine" class="patient-banner__address">{{ addressLine }}</span>
           <span v-if="patient.allergies && patient.allergies.length" class="patient-banner__allergies">
-            <el-icon style="color:#e74c3c"><WarningFilled /></el-icon>
+            <el-icon style="color: var(--cde-danger)"><WarningFilled /></el-icon>
             Allergies&nbsp;:
             <span
               v-for="(a, i) in normalizeAllergies(patient.allergies)"
@@ -83,9 +83,9 @@ function maskNir(nir: string | undefined): string {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: var(--cd-widget-bg, #fff);
-  border: 1px solid var(--cd-border, #d9dde3);
-  border-radius: 2px;
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
 }
 
 .patient-banner__identity {
@@ -96,13 +96,13 @@ function maskNir(nir: string | undefined): string {
 
 .patient-banner__photo {
   flex-shrink: 0;
-  background: var(--cd-primary, #0b3b6b) !important;
+  background: var(--cde-accent-strong) !important;
 }
 
 .patient-banner__name {
   font-size: 15px;
   font-weight: 700;
-  color: var(--cd-gray-900, #222);
+  color: var(--cde-header-text);
 }
 
 .patient-banner__meta {
@@ -111,23 +111,23 @@ function maskNir(nir: string | undefined): string {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: var(--cd-gray-500, #777);
+  color: var(--cde-muted);
   margin-top: 4px;
 }
 
 .patient-banner__sep {
-  color: var(--cd-gray-300, #ccc);
+  color: var(--cde-border);
 }
 
 .patient-banner__address {
-  color: var(--cd-gray-400);
+  color: var(--cde-muted);
 }
 
 .patient-banner__allergies {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #e74c3c;
+  color: var(--cde-danger);
   font-weight: 600;
   margin-left: 4px;
   flex-wrap: wrap;

@@ -1,9 +1,12 @@
 <template>
   <div
     class="form-preview"
-    :class="`form-preview--${variant}`"
+    :class="[`form-preview--${variant}`, { 'form-preview--hide-header': hideHeader }]"
   >
-    <header class="form-preview__header">
+    <header
+      v-if="!hideHeader"
+      class="form-preview__header"
+    >
       <span
         class="form-preview__accent"
         aria-hidden="true"
@@ -63,8 +66,12 @@
           v-for="(field, idx) in visibleFields"
           :key="idx"
           class="form-preview__row"
+          :class="{ 'form-preview__row--rich': field.rich, 'form-preview__row--hide-label': field.hideLabel }"
         >
-          <span class="form-preview__label">{{ field.label }}</span>
+          <span
+            v-if="!field.hideLabel"
+            class="form-preview__label"
+          >{{ field.label }}</span>
           <span
             v-if="field.rich"
             class="form-preview__value"
@@ -84,6 +91,16 @@
               <template v-else-if="field.tracked">Non modifié</template>
             </span>
             <button
+              v-if="deletable"
+              type="button"
+              class="form-preview__delete"
+              :aria-label="`Supprimer ${field.label}`"
+              :title="`Supprimer ${field.label}`"
+              @click.stop="onDeleteField(field)"
+            >
+              <Delete class="form-preview__delete-icon" aria-hidden="true" />
+            </button>
+            <button
               type="button"
               class="form-preview__edit"
               :aria-label="`Modifier ${field.label}`"
@@ -101,7 +118,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Edit } from '@element-plus/icons-vue'
+import { Delete, Edit } from '@element-plus/icons-vue'
 import { formatUpdatedAt } from '@/utils/field-meta'
 
 export interface FormPreviewField {
@@ -111,6 +128,7 @@ export interface FormPreviewField {
   updatedAt?: string | null
   tracked?: boolean
   rich?: boolean
+  hideLabel?: boolean
 }
 
 const props = withDefaults(defineProps<{
@@ -118,13 +136,17 @@ const props = withDefaults(defineProps<{
   fields: FormPreviewField[]
   emptyText?: string
   variant?: 'default' | 'compact'
+  hideHeader?: boolean
+  deletable?: boolean
 }>(), {
   title: 'Aperçu',
   emptyText: 'Aucune valeur saisie',
   variant: 'default',
+  hideHeader: false,
+  deletable: false,
 })
 
-const emit = defineEmits<{ edit: [key: string] }>()
+const emit = defineEmits<{ edit: [key: string]; delete: [key: string] }>()
 
 const visibleFields = computed(() =>
   props.fields.filter(field => {
@@ -151,16 +173,17 @@ function zoomOut() {
 function onEditField(field: FormPreviewField) {
   if (field.key) emit('edit', field.key)
 }
+
+function onDeleteField(field: FormPreviewField) {
+  if (field.key) emit('delete', field.key)
+}
 </script>
 
 <style scoped>
 .form-preview {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  background: linear-gradient(180deg, #ffffff 0%, #f6f9fc 100%);
-  box-shadow:
-    0 1px 2px rgba(26, 82, 118, 0.06),
-    0 2px 8px rgba(26, 82, 118, 0.05);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+  background: var(--cde-surface);
   padding: 0 14px 10px;
   margin-top: 10px;
   overflow: hidden;
@@ -173,19 +196,14 @@ function onEditField(field: FormPreviewField) {
   gap: 7px;
   margin: 0 -14px 10px;
   padding: 7px 14px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: linear-gradient(
-    90deg,
-    rgba(26, 82, 118, 0.07),
-    rgba(26, 82, 118, 0.015) 60%,
-    transparent
-  );
+  border-bottom: 1px solid var(--cde-border);
+  background: var(--cde-header-bg);
 }
 .form-preview__accent {
   width: 3px;
   height: 12px;
   border-radius: 2px;
-  background: var(--cd-primary);
+  background: var(--cde-accent);
   flex-shrink: 0;
 }
 .form-preview__title {
@@ -219,7 +237,7 @@ function onEditField(field: FormPreviewField) {
   width: 24px;
   height: 22px;
   padding: 0;
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--cde-border-soft);
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.8);
   color: var(--el-text-color-secondary);
@@ -259,8 +277,8 @@ function onEditField(field: FormPreviewField) {
   align-items: baseline;
   gap: 16px;
   padding: 5px 0;
-  border-bottom: 1px dashed var(--el-border-color-lighter);
-  font-size: 13px;
+  border-bottom: 1px dashed var(--cde-border-soft);
+  font-size: 17px;
 }
 .form-preview__row:last-child {
   border-bottom: none;
@@ -312,15 +330,15 @@ function onEditField(field: FormPreviewField) {
   margin-bottom: 2px;
 }
 .form-preview__value--rich :deep(blockquote) {
-  border-left: 3px solid #d1d5db;
+  border-left: 3px solid var(--cde-border);
   margin: 6px 0;
   padding: 2px 8px;
-  color: #4b5563;
+  color: var(--cde-muted);
   font-style: italic;
 }
 .form-preview__value--rich :deep(pre) {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: var(--cde-surface-tint);
+  border: 1px solid var(--cde-border-soft);
   padding: 8px;
   font-family: monospace;
   font-size: 11px;
@@ -328,14 +346,14 @@ function onEditField(field: FormPreviewField) {
   margin: 6px 0;
 }
 .form-preview__value--rich :deep(code) {
-  background: #f3f4f6;
+  background: var(--cde-surface-tint);
   font-family: monospace;
   font-size: 11px;
   padding: 1px 3px;
 }
 .form-preview__value--rich :deep(hr) {
   border: none;
-  border-top: 1px solid #d1d5db;
+  border-top: 1px solid var(--cde-border);
   margin: 8px 0;
 }
 .form-preview__value--rich :deep(img) {
@@ -357,8 +375,28 @@ function onEditField(field: FormPreviewField) {
   margin: 6px auto;
 }
 .form-preview__value--rich :deep(a) {
-  color: #2563eb;
+  color: var(--cde-accent);
   text-decoration: underline;
+}
+
+.form-preview__row--rich {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.form-preview__row--rich .form-preview__label {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.form-preview__row--rich .form-preview__value--rich {
+  width: 100%;
+  text-align: left;
+  font-weight: 400;
+}
+.form-preview__row--hide-label .form-preview__value--rich {
+  width: 100%;
 }
 
 /* ── Meta line (updated-at + edit button) ────────────────────────── */
@@ -390,6 +428,24 @@ function onEditField(field: FormPreviewField) {
   width: 13px;
   height: 13px;
 }
+.form-preview__delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--cde-danger);
+  line-height: 1;
+}
+.form-preview__delete:hover {
+  opacity: 0.75;
+}
+.form-preview__delete-icon {
+  width: 13px;
+  height: 13px;
+}
 
 /* ── Empty state ────────────────────────────────────────────────── */
 .form-preview :deep(.el-empty) {
@@ -405,12 +461,14 @@ function onEditField(field: FormPreviewField) {
   border-radius: 6px;
   padding: 0 10px 8px;
   margin-top: 8px;
-  box-shadow: 0 1px 2px rgba(26, 82, 118, 0.05);
 }
 .form-preview--compact .form-preview__header {
   gap: 6px;
   margin: 0 -10px 6px;
   padding: 5px 10px;
+}
+.form-preview--hide-header .form-preview__header {
+  display: none;
 }
 .form-preview--compact .form-preview__title {
   font-size: 10px;
@@ -440,7 +498,8 @@ function onEditField(field: FormPreviewField) {
   font-size: 11px;
 }
 .form-preview--compact .form-preview__updated,
-.form-preview--compact .form-preview__edit {
+.form-preview--compact .form-preview__edit,
+.form-preview--compact .form-preview__delete {
   font-size: 10px;
 }
 </style>

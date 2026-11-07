@@ -63,6 +63,15 @@
             {{ contactTypeLabel(encounter.contact_type) }}
           </el-tag>
         </el-descriptions-item>
+        <el-descriptions-item label="Type de cas">
+          {{ caseTypeLabel(encounter.case_type) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="Nouveau cas">
+          {{ encounter.is_new_case ? 'Premier passage pour ce motif' : 'Non' }}
+        </el-descriptions-item>
+        <el-descriptions-item v-if="encounter.contact_type === 'hospitalisation'" label="Type d'hospitalisation">
+          {{ stayTypeLabel(encounter.stay_type) }}
+        </el-descriptions-item>
         <el-descriptions-item label="Statut">
           <el-tag :type="statusTagType" size="small">
             {{ encounter.status === 'active' ? 'Actif' : 'Fermé' }}
@@ -159,7 +168,7 @@ import { ipcInvoke } from '@/utils/ipc'
 import { useEncounters } from '@/composables/useEncounters'
 import type { EncounterDto, EncounterMovementDto } from '@/composables/useEncounters'
 import { isRichTextEmpty } from '@/utils/rich-text'
-import { PRISE_EN_CHARGE_OPTIONS } from '@/composables/useContactFormLogic'
+import { CASE_TYPE_OPTIONS, PRISE_EN_CHARGE_OPTIONS, STAY_TYPE_OPTIONS } from '@/composables/useContactFormLogic'
 
 const { getEncounterMovements } = useEncounters()
 
@@ -177,6 +186,14 @@ const statusTagType = computed(() =>
 
 const priseEnChargeLabels: Record<string, string> = Object.fromEntries(
   PRISE_EN_CHARGE_OPTIONS.map(o => [o.value, o.label])
+)
+
+const caseTypeLabels: Record<string, string> = Object.fromEntries(
+  CASE_TYPE_OPTIONS.map(o => [o.value, o.label])
+)
+
+const stayTypeLabels: Record<string, string> = Object.fromEntries(
+  STAY_TYPE_OPTIONS.map(o => [o.value, o.label])
 )
 
 function open(data: EncounterDto) {
@@ -259,6 +276,16 @@ function contactTypeTag(type: string): 'primary' | 'danger' | 'warning' | 'info'
   return map[type] || 'info'
 }
 
+function caseTypeLabel(value?: string | null): string {
+  if (!value) return '—'
+  return caseTypeLabels[value] || value
+}
+
+function stayTypeLabel(value?: string | null): string {
+  if (!value) return '—'
+  return stayTypeLabels[value] || value
+}
+
 function originLabel(origin: string): string {
   if (!origin) return '—'
   return originLabelMap.value[origin] || origin
@@ -282,7 +309,7 @@ defineExpose({ open })
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--cd-primary);
+  color: var(--cde-accent-strong);
   font-size: 17px;
   font-weight: 600;
 }
@@ -297,13 +324,21 @@ defineExpose({ open })
 
 .detail-summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   padding: 16px;
   margin-bottom: 16px;
   background: var(--cd-widget-bg);
   border-radius: 12px;
   border: 1px solid var(--cd-border);
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 900px) {
+  .detail-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .detail-summary { grid-template-columns: minmax(0, 1fr); }
 }
 
 .detail-summary__cell {
@@ -330,13 +365,13 @@ defineExpose({ open })
 
 :deep(.detail-descriptions .el-descriptions__label) {
   font-weight: 600;
-  color: var(--cd-gray-600);
-  background: var(--cd-widget-bg);
+  color: var(--cde-header-text);
+  background: var(--cde-header-bg);
   width: 130px;
 }
 
 :deep(.detail-descriptions .el-descriptions__content) {
-  color: #1A2E2D;
+  color: var(--cde-header-text);
 }
 
 .detail-notes {
@@ -417,7 +452,7 @@ defineExpose({ open })
   top: 8px;
   bottom: 8px;
   width: 1.5px;
-  background: var(--cd-gray-300, #b0b0b0);
+  background: var(--cde-border);
 }
 
 .detail-movements__timeline-item {
@@ -432,7 +467,7 @@ defineExpose({ open })
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--cd-primary, #1a5276);
+  background: var(--cde-accent-strong);
   flex-shrink: 0;
   position: relative;
   z-index: 1;

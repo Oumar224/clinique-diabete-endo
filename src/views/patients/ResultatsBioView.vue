@@ -1,7 +1,6 @@
 <template>
   <div class="rb" v-loading="loading">
     <div class="rb__header">
-      <h1 class="rb__title">Résultats Biologiques</h1>
       <div class="rb__actions">
         <el-input
           v-model="searchQuery"
@@ -32,9 +31,9 @@
           <el-option v-for="e in filteredExams" :key="e.id" :label="e.label" :value="e.id!" />
         </el-select>
         <el-button-group>
-          <el-button :icon="ArrowLeft" @click="previousWeek" />
+          <el-button :icon="ArrowLeft" @click="goToNewerWindow" />
           <el-button class="rb__week-label">{{ weekLabel }}</el-button>
-          <el-button :icon="ArrowRight" @click="nextWeek" />
+          <el-button :icon="ArrowRight" @click="goToOlderWindow" />
         </el-button-group>
         <el-button :icon="Refresh" :loading="refreshing" @click="loadData">
           Actualiser
@@ -88,17 +87,29 @@ const matrixGroups = ref<MatrixGroup[]>([])
 
 const searchQuery = ref('')
 
-const currentWeekStart = ref(getWeekStart(new Date()))
+/** Longueur de la fenêtre glissante (identique à l'ancienne semaine). */
+const WINDOW_DAYS = 7
+
+/**
+ * Dernier jour (le plus récent) de la fenêtre affichée. Par défaut : aujourd'hui.
+ * La grille se lit de gauche (jour le plus récent) vers la droite (jours
+ * antérieurs) : la chronologie est donc strictement décroissante.
+ */
+const windowEnd = ref(startOfDay(new Date()))
 
 /* ------------------------------------------------------------------ */
-/*  Week helpers                                                       */
+/*  Window helpers (rolling window ending on `windowEnd`)              */
 /* ------------------------------------------------------------------ */
 
-function getWeekStart(d: Date): Date {
+function startOfDay(d: Date): Date {
   const date = new Date(d)
-  const day = date.getDay()
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1)
-  date.setDate(diff)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+function addDays(d: Date, days: number): Date {
+  const date = new Date(d)
+  date.setDate(date.getDate() + days)
   date.setHours(0, 0, 0, 0)
   return date
 }
@@ -110,17 +121,18 @@ function formatDateKey(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-function previousWeek() {
-  const d = new Date(currentWeekStart.value)
-  d.setDate(d.getDate() - 7)
-  currentWeekStart.value = d
+/*
+ * Navigation spatiale : la grille va du plus récent (gauche) au plus ancien
+ * (droite). `‹` remonte donc vers les dates plus récentes, `›` vers les dates
+ * plus anciennes, par pas d'une fenêtre complète.
+ */
+function goToNewerWindow() {
+  windowEnd.value = addDays(windowEnd.value, WINDOW_DAYS)
   loadData()
 }
 
-function nextWeek() {
-  const d = new Date(currentWeekStart.value)
-  d.setDate(d.getDate() + 7)
-  currentWeekStart.value = d
+function goToOlderWindow() {
+  windowEnd.value = addDays(windowEnd.value, -WINDOW_DAYS)
   loadData()
 }
 
@@ -128,7 +140,8 @@ function nextWeek() {
 /*  Computed                                                           */
 /* ------------------------------------------------------------------ */
 
-const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+/** Indexé par `Date.getDay()` : 0 = dimanche. */
+const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
 
 const currentHour = computed(() => {
   const h = new Date().getHours()
@@ -136,22 +149,20 @@ const currentHour = computed(() => {
 })
 
 const weekDays = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(currentWeekStart.value)
-    d.setDate(d.getDate() + i)
+  const today = startOfDay(new Date())
+  return Array.from({ length: WINDOW_DAYS }, (_, i) => {
+    // i = 0 → jour le plus récent (aujourd'hui par défaut), puis J-1, J-2…
+    const d = addDays(windowEnd.value, -i)
     const dateKey = formatDateKey(d)
     const dateLabel = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1)
       .toString()
       .padStart(2, '0')}`
-    d.setHours(0, 0, 0, 0)
     return {
-      name: dayNames[i],
+      name: dayNames[d.getDay()],
       dateKey,
       dateLabel,
       isToday: d.getTime() === today.getTime(),
-      fullDate: new Date(d),
+      fullDate: d,
     }
   })
 })
@@ -165,16 +176,17 @@ const weekDateColumns = computed(() =>
   })),
 )
 
+/** Libellé aligné sur l'ordre visuel : plus récent (gauche) → plus ancien (droite). */
 const weekLabel = computed(() => {
-  const start = weekDays.value[0]
-  const end = weekDays.value[6]
-  return `${start.dateLabel} — ${end.dateLabel}`
+  const newest = weekDays.value[0]
+  const oldest = weekDays.value[WINDOW_DAYS - 1]
+  return `${newest.dateLabel} — ${oldest.dateLabel}`
 })
 
 const weekDateRange = computed(() => {
-  const first = weekDays.value[0].dateKey
-  const last = weekDays.value[6].dateKey
-  return { dateFrom: first, dateTo: last }
+  const newest = weekDays.value[0]
+  const oldest = weekDays.value[WINDOW_DAYS - 1]
+  return { dateFrom: oldest.dateKey, dateTo: newest.dateKey }
 })
 
 const filteredExams = computed(() => {
@@ -297,14 +309,8 @@ onMounted(async () => {
 .rb__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-bottom: 24px;
-}
-
-.rb__title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--cd-gray-900);
 }
 
 .rb__actions {

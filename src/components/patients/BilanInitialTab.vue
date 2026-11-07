@@ -24,6 +24,7 @@
       <FormPreview
         title="Histoire récente"
         variant="compact"
+        :hide-header="true"
         :fields="histoirePreviewFields"
         @edit="() => openSection('histoire')"
       />
@@ -52,21 +53,19 @@
       <FormPreview
         title="Traitement à l'entrée"
         variant="compact"
+        :hide-header="true"
         :fields="traitementPreviewFields"
         @edit="() => openSection('traitement')"
       />
     </div>
 
-    <StagedCollapsibleSection
+    <!-- Examen clinique: section non-stagée (keys=[] → dirty toujours false) ; vitals/Glasgow/douleur gérés via mutation directe + history-tables -->
+    <CollapsibleSection
       :ref="setSectionRef('examen')"
       title="Examen clinique à l'entrée"
-      :keys="['examenPhysiqueTexte']"
-      :model-value="data"
-      :readonly="props.readonly"
       :default-open="true"
-      @save="emit('change')"
     >
-      <template #default="{ draft }">
+      <template #default>
         <h4 class="examen-subtitle">1. Score de Glasgow</h4>
 
         <div class="history-collapse">
@@ -83,7 +82,7 @@
           <div v-show="glasgowFormOpen" class="history-collapse__body">
             <el-row :gutter="16">
               <el-col :span="6">
-                <el-form-item label="Ouverture des yeux" data-history-path="bilanInitial.glasgow.ouvertureYeux">
+                <el-form-item label="Ouverture des yeux">
                   <el-radio-group v-model="data.glasgow.ouvertureYeux" @change="emitChange">
                     <el-radio :value="1">Aucune (1)</el-radio>
                     <el-radio :value="2">À la douleur (2)</el-radio>
@@ -93,7 +92,7 @@
                 </el-form-item>
               </el-col>
               <el-col :span="7">
-                <el-form-item label="Réponse verbale" data-history-path="bilanInitial.glasgow.reponseVerbale">
+                <el-form-item label="Réponse verbale">
                   <el-radio-group v-model="data.glasgow.reponseVerbale" @change="emitChange">
                     <el-radio :value="1">Aucune (1)</el-radio>
                     <el-radio :value="2">Incompréhensible (2)</el-radio>
@@ -104,7 +103,7 @@
                 </el-form-item>
               </el-col>
               <el-col :span="7">
-                <el-form-item label="Réponse motrice" data-history-path="bilanInitial.glasgow.reponseMotrice">
+                <el-form-item label="Réponse motrice">
                   <el-radio-group v-model="data.glasgow.reponseMotrice" @change="emitChange">
                     <el-radio :value="1">Aucune (1)</el-radio>
                     <el-radio :value="2">Extension (2)</el-radio>
@@ -135,15 +134,18 @@
           </div>
         </div>
 
+        <div class="history-table-toolbar">
+          <el-button size="small" :icon="TrendCharts" @click="forwardMultiHistory('glasgow')">Voir courbes</el-button>
+        </div>
         <div class="history-table-wrap">
           <table class="history-table">
             <thead>
               <tr>
                 <th>Date / Heure</th>
-                <th>Ouverture yeux</th>
-                <th>Réponse verbale</th>
-                <th>Réponse motrice</th>
-                <th>Score</th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.glasgow.ouvertureYeux')" :aria-label="'Voir historique Ouverture yeux'" :title="'Voir historique Ouverture yeux'">Ouverture yeux <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.glasgow.reponseVerbale')" :aria-label="'Voir historique Réponse verbale'" :title="'Voir historique Réponse verbale'">Réponse verbale <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.glasgow.reponseMotrice')" :aria-label="'Voir historique Réponse motrice'" :title="'Voir historique Réponse motrice'">Réponse motrice <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.glasgow.score')" :aria-label="'Voir historique Score de Glasgow'" :title="'Voir historique Score de Glasgow'">Score <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
                 <th>Interprétation</th>
                 <th></th>
               </tr>
@@ -188,7 +190,7 @@
           <div v-show="douleurFormOpen" class="history-collapse__body">
             <el-row :gutter="16">
               <el-col :span="8">
-                <el-form-item label="Score de douleur (EVA)" data-history-path="bilanInitial.scoreDouleur">
+                <el-form-item label="Score de douleur (EVA)">
                   <el-input-number v-model="data.scoreDouleur" :min="0" :max="10" controls-position="right" style="width:100%" @change="emitChange" />
                 </el-form-item>
               </el-col>
@@ -201,12 +203,15 @@
           </div>
         </div>
 
+        <div class="history-table-toolbar">
+          <el-button size="small" :icon="TrendCharts" @click="forwardMultiHistory('douleur')">Voir courbes</el-button>
+        </div>
         <div class="history-table-wrap">
           <table class="history-table">
             <thead>
               <tr>
                 <th>Date / Heure</th>
-                <th>Score</th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.scoreDouleur')" :aria-label="'Voir historique Score de douleur'" :title="'Voir historique Score de douleur'">Score / 10 <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
                 <th></th>
               </tr>
             </thead>
@@ -216,7 +221,7 @@
               </tr>
               <tr v-for="entry in sortedDouleurHistory" :key="entry._key">
                 <td class="history-table__date">{{ formatDateTime(entry.date) }}</td>
-                <td class="history-table__score">{{ entry.score }}</td>
+                <td class="history-table__score">{{ entry.score }} / 10</td>
                 <td class="history-table__actions">
                   <el-button size="small" type="primary" title="Modifier" @click="editDouleurEntry(entry._key)"><el-icon><Edit /></el-icon></el-button>
                   <el-button size="small" type="danger" title="Supprimer" @click="deleteDouleurEntry(entry._key)"><el-icon><Delete /></el-icon></el-button>
@@ -256,32 +261,32 @@
             </el-row>
             <el-row :gutter="16">
               <el-col :span="4">
-                <el-form-item label="TA Systolique (mmHg)" data-history-path="bilanInitial.examenPhysique.taSystolique">
+                <el-form-item label="TA Systolique (mmHg)">
                   <el-input-number v-model="data.examenPhysique.taSystolique" :min="0" :max="300" controls-position="right" style="width:100%" @change="emitChange" />
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="TA Diastolique (mmHg)" data-history-path="bilanInitial.examenPhysique.taDiastolique">
+                <el-form-item label="TA Diastolique (mmHg)">
                   <el-input-number v-model="data.examenPhysique.taDiastolique" :min="0" :max="200" controls-position="right" style="width:100%" @change="emitChange" />
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="Fréquence cardiaque (bpm)" data-history-path="bilanInitial.examenPhysique.frequenceCardiaque">
+                <el-form-item label="Fréquence cardiaque (bpm)">
                   <el-input-number v-model="data.examenPhysique.frequenceCardiaque" :min="0" :max="300" controls-position="right" style="width:100%" @change="emitChange" />
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="Température (°C)" data-history-path="bilanInitial.examenPhysique.temperature">
+                <el-form-item label="Température (°C)">
                   <el-input-number v-model="data.examenPhysique.temperature" :min="32" :max="42" :step="0.1" controls-position="right" style="width:100%" @change="emitChange" />
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="Glycémie (g/L)" data-history-path="bilanInitial.examenPhysique.glycemie">
+                <el-form-item label="Glycémie (g/L)">
                   <el-input-number v-model="data.examenPhysique.glycemie" :min="0" :max="8" :step="0.01" :precision="2" controls-position="right" style="width:100%" @change="emitChange" />
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="Cétominurie" data-history-path="bilanInitial.examenPhysique.cetonurie">
+                <el-form-item label="Cétominurie">
                   <el-select v-model="data.examenPhysique.cetonurie" placeholder="—" clearable style="width:100%" @change="emitChange">
                     <el-option label="+" value="+" />
                     <el-option label="++" value="++" />
@@ -290,7 +295,7 @@
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="Glucosurie" data-history-path="bilanInitial.examenPhysique.glucosurie">
+                <el-form-item label="Glucosurie">
                   <el-select v-model="data.examenPhysique.glucosurie" placeholder="—" clearable style="width:100%" @change="emitChange">
                     <el-option label="+" value="+" />
                     <el-option label="++" value="++" />
@@ -299,32 +304,32 @@
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="Cétonémie (mmol/L)" data-history-path="bilanInitial.examenPhysique.cetonemie">
+                <el-form-item label="Cétonémie (mmol/L)">
                   <el-input-number v-model="data.examenPhysique.cetonemie" :min="0" :max="30" :step="0.1" :precision="1" controls-position="right" style="width:100%" @change="emitChange" />
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="Poids (kg)" data-history-path="bilanInitial.examenPhysique.poids">
+                <el-form-item label="Poids (kg)">
                   <el-input-number v-model="data.examenPhysique.poids" :min="0" :max="300" :step="0.1" :precision="1" controls-position="right" style="width:100%" @change="emitChange" />
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="Taille (cm)" data-history-path="bilanInitial.examenPhysique.taille">
+                <el-form-item label="Taille (cm)">
                   <el-input-number v-model="data.examenPhysique.taille" :min="0" :max="250" :step="0.5" :precision="1" controls-position="right" style="width:100%" @change="emitChange" />
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="IMC (kg/m²)" data-history-path="bilanInitial.examenPhysique.imc">
+                <el-form-item label="IMC (kg/m²)">
                   <el-input :model-value="imcDisplay" disabled />
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="SaO₂ (%)" data-history-path="bilanInitial.examenPhysique.saO2">
+                <el-form-item label="SaO₂ (%)">
                   <el-input-number v-model="data.examenPhysique.saO2" :min="0" :max="100" :step="1" :precision="0" controls-position="right" style="width:100%" @change="emitChange" />
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-form-item label="Diurèse (ml)" data-history-path="bilanInitial.examenPhysique.diurese">
+                <el-form-item label="Diurèse (ml)">
                   <el-input-number v-model="data.examenPhysique.diurese" :min="0" :max="10000" :step="50" :precision="0" controls-position="right" style="width:100%" @change="emitChange" />
                 </el-form-item>
               </el-col>
@@ -337,24 +342,27 @@
           </div>
         </div>
 
+        <div class="history-table-toolbar">
+          <el-button size="small" :icon="TrendCharts" @click="forwardMultiHistory('vitals')">Voir courbes</el-button>
+        </div>
         <div class="history-table-wrap">
           <table class="history-table">
             <thead>
               <tr>
                 <th>Date / Heure</th>
-                <th>TA Syst (mmHg)</th>
-                <th>TA Diast (mmHg)</th>
-                <th>FC (bpm)</th>
-                <th>T° (°C)</th>
-                <th>Glycémie (g/L)</th>
-                <th>Cétominurie</th>
-                <th>Glucosurie</th>
-                <th>Cétonémie (mmol/L)</th>
-                <th>Poids (kg)</th>
-                <th>Taille (cm)</th>
-                <th>IMC (kg/m²)</th>
-                <th>SaO₂ (%)</th>
-                <th>Diurèse (ml)</th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.taSystolique')" :aria-label="'Voir historique TA systolique'" :title="'Voir historique TA systolique'">TA Syst (mmHg) <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.taDiastolique')" :aria-label="'Voir historique TA diastolique'" :title="'Voir historique TA diastolique'">TA Diast (mmHg) <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.frequenceCardiaque')" :aria-label="'Voir historique Fréquence cardiaque'" :title="'Voir historique Fréquence cardiaque'">FC (bpm) <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.temperature')" :aria-label="'Voir historique Température'" :title="'Voir historique Température'">T° (°C) <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.glycemie')" :aria-label="'Voir historique Glycémie'" :title="'Voir historique Glycémie'">Glycémie (g/L) <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.cetonurie')" :aria-label="'Voir historique Cétominurie'" :title="'Voir historique Cétominurie'">Cétominurie <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.glucosurie')" :aria-label="'Voir historique Glucosurie'" :title="'Voir historique Glucosurie'">Glucosurie <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.cetonemie')" :aria-label="'Voir historique Cétonémie'" :title="'Voir historique Cétonémie'">Cétonémie (mmol/L) <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.poids')" :aria-label="'Voir historique Poids'" :title="'Voir historique Poids'">Poids (kg) <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.taille')" :aria-label="'Voir historique Taille'" :title="'Voir historique Taille'">Taille (cm) <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.imc')" :aria-label="'Voir historique IMC'" :title="'Voir historique IMC'">IMC (kg/m²) <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.saO2')" :aria-label="'Voir historique SaO2'" :title="'Voir historique SaO2'">SaO₂ (%) <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
+                <th><button type="button" class="history-th-btn" @click.stop="forwardHistory('bilanInitial.examenPhysique.diurese')" :aria-label="'Voir historique Diurèse'" :title="'Voir historique Diurèse'">Diurèse (ml) <el-icon :size="14" class="history-th-icon" aria-hidden="true"><Clock /></el-icon></button></th>
                 <th></th>
               </tr>
             </thead>
@@ -386,8 +394,18 @@
           </table>
         </div>
 
-        <h4 class="examen-subtitle">4. Examen physique</h4>
+      </template>
+    </CollapsibleSection>
 
+    <StagedCollapsibleSection
+      :ref="setSectionRef('examenPhysique')"
+      title="Examen physique"
+      :keys="['examenPhysiqueTexte']"
+      :model-value="data"
+      :readonly="props.readonly"
+      @save="emit('change')"
+    >
+      <template #default="{ draft }">
         <el-row :gutter="16">
           <el-col :span="24">
             <el-form-item label="Examen physique">
@@ -400,10 +418,11 @@
 
     <div class="section-preview">
       <FormPreview
-        title="Examen clinique à l'entrée"
+        title="Examen physique"
         variant="compact"
+        :hide-header="true"
         :fields="examenPhysiquePreviewFields"
-        @edit="() => openSection('examen')"
+        @edit="() => openSection('examenPhysique')"
       />
     </div>
 
@@ -430,6 +449,7 @@
       <FormPreview
         title="Conclusion à l'entrée"
         variant="compact"
+        :hide-header="true"
         :fields="conclusionPreviewFields"
         @edit="() => openSection('conclusion')"
       />
@@ -458,6 +478,7 @@
       <FormPreview
         title="Projet de soin"
         variant="compact"
+        :hide-header="true"
         :fields="projetSoinPreviewFields"
         @edit="() => openSection('projetSoin')"
       />
@@ -468,7 +489,7 @@
 <script setup lang="ts">
 /* eslint-disable vue/no-mutating-props -- Écritures volontaires dans l'objet réactif partagé data (sub-blocks history-collapse + sync vitals) déclenchées par émission explicite de 'change' */
 import { ref, computed, watch, inject, nextTick, type Ref } from 'vue'
-import { Plus, ArrowDown, Delete, Edit } from '@element-plus/icons-vue'
+import { Plus, ArrowDown, Delete, Edit, Clock, TrendCharts } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { BilanInitialData } from '@/types/crh-diabete'
 import { useCrhDiabeteCalculations } from '@/composables/useCrhDiabeteCalculations'
@@ -476,6 +497,7 @@ import { getVitalSignsItemsList, saveVitalSignsItem, deleteVitalSignsItem, type 
 import { isRichTextEmpty } from '@/utils/rich-text'
 import FormPreview, { type FormPreviewField } from '@/components/common/FormPreview.vue'
 import RichTextEditor from '@/components/patients/RichTextEditor.vue'
+import CollapsibleSection from '@/components/common/CollapsibleSection.vue'
 import StagedCollapsibleSection from '@/components/common/StagedCollapsibleSection.vue'
 
 const FIELD_PREFIX = 'bilanInitial'
@@ -492,17 +514,28 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   change: []
+  'open-history': [path: string]
+  'open-multi-history': [group: string]
 }>()
+
+function forwardHistory(path: string) {
+  emit('open-history', path)
+}
+
+function forwardMultiHistory(group: string) {
+  emit('open-multi-history', group)
+}
 
 function metaFor(key: string): string | null {
   return props.fieldMeta?.[key] ?? null
 }
 
-const sectionRefs = ref<Record<string, InstanceType<typeof StagedCollapsibleSection> | null>>({})
+type SectionExpose = InstanceType<typeof StagedCollapsibleSection> | InstanceType<typeof CollapsibleSection>
+const sectionRefs = ref<Record<string, SectionExpose | null>>({})
 
 function setSectionRef(key: string) {
   return (el: unknown) => {
-    sectionRefs.value[key] = el as InstanceType<typeof StagedCollapsibleSection> | null
+    sectionRefs.value[key] = el as SectionExpose | null
   }
 }
 
@@ -522,6 +555,7 @@ function richValue(html: string | null | undefined): string | undefined {
 const histoirePreviewFields = computed<FormPreviewField[]>(() => [
   {
     label: 'Histoire récente de la maladie',
+    hideLabel: true,
     value: richValue(props.data.histoireRecent),
     rich: true,
     key: `${FIELD_PREFIX}.histoireRecent`,
@@ -533,6 +567,7 @@ const histoirePreviewFields = computed<FormPreviewField[]>(() => [
 const traitementPreviewFields = computed<FormPreviewField[]>(() => [
   {
     label: "Traitement à l'entrée",
+    hideLabel: true,
     value: richValue(props.data.traitementEntree),
     rich: true,
     key: `${FIELD_PREFIX}.traitementEntree`,
@@ -544,6 +579,7 @@ const traitementPreviewFields = computed<FormPreviewField[]>(() => [
 const examenPhysiquePreviewFields = computed<FormPreviewField[]>(() => [
   {
     label: 'Examen physique',
+    hideLabel: true,
     value: richValue(props.data.examenPhysiqueTexte),
     rich: true,
     key: `${FIELD_PREFIX}.examenPhysiqueTexte`,
@@ -555,6 +591,7 @@ const examenPhysiquePreviewFields = computed<FormPreviewField[]>(() => [
 const conclusionPreviewFields = computed<FormPreviewField[]>(() => [
   {
     label: "Conclusion à l'entrée",
+    hideLabel: true,
     value: richValue(props.data.conclusionEntree),
     rich: true,
     key: `${FIELD_PREFIX}.conclusionEntree`,
@@ -566,6 +603,7 @@ const conclusionPreviewFields = computed<FormPreviewField[]>(() => [
 const projetSoinPreviewFields = computed<FormPreviewField[]>(() => [
   {
     label: "Projet de soin pendant l'hospitalisation",
+    hideLabel: true,
     value: richValue(props.data.projetSoin),
     rich: true,
     key: `${FIELD_PREFIX}.projetSoin`,
@@ -655,8 +693,11 @@ function entryImc(entry: { poids: number | null; taille: number | null }) {
 }
 
 function toVitalHistoryEntry(item: VitalSignsItemRecord) {
+  const key = String(item.id)
+  const existing = (props.data.vitalSignsHistory || []).find((e) => e._key === key) as unknown as Record<string, unknown> | undefined
+  const existingTaille = existing?.taille as number | null | undefined
   return {
-    _key: String(item.id),
+    _key: key,
     date: `${item.date}T${String(item.hour).padStart(2, '0')}:00:00`,
     hour: item.hour,
     taSystolique: item.taSystolique,
@@ -670,7 +711,9 @@ function toVitalHistoryEntry(item: VitalSignsItemRecord) {
     poids: item.poids,
     saO2: item.saO2,
     diurese: item.diurese,
-    taille: null,
+    // La table vitaux DB n'a pas de colonne taille : on préserve la taille
+    // déjà saisie localement (Fiche anthropo / Bilan) au lieu de forcer null.
+    taille: existingTaille ?? null,
   }
 }
 
@@ -686,7 +729,13 @@ async function syncVitalHistory() {
     const items = await getVitalSignsItemsList(props.patientId, props.dateDebut || '', end)
     if (epoch !== vitalSyncEpoch) return
     const mapped = items.map(toVitalHistoryEntry)
-    const historyChanged = JSON.stringify(mapped) !== JSON.stringify(props.data.vitalSignsHistory || [])
+    // Merge : préserve les entrées locales (Fiche anthropo / saisies manuelles
+    // avec _key non numérique) que le remplacement brut écrasait, et garde
+    // la taille déjà saisie sur les entrées liées.
+    const mappedKeys = new Set(mapped.map((e) => e._key))
+    const localOnly = (props.data.vitalSignsHistory || []).filter((e) => !mappedKeys.has(e._key))
+    const merged = [...mapped, ...localOnly]
+    const historyChanged = JSON.stringify(merged) !== JSON.stringify(props.data.vitalSignsHistory || [])
     const prefilled = prefillVitalExamenPhysique(items)
     if ((historyChanged || prefilled) && vitalSyncInProgress) {
       // Parent (CrhDiabeteForm) consumes this flag so sync-driven writes are
@@ -696,7 +745,7 @@ async function syncVitalHistory() {
       queueMicrotask(() => { vitalSyncInProgress.value = false })
     }
     if (historyChanged) {
-      props.data.vitalSignsHistory = mapped
+      props.data.vitalSignsHistory = merged
     }
   } catch (e) {
     // Keep existing history on sync failure, but surface the error for diagnostics.
@@ -777,6 +826,8 @@ async function saveVitalEntry() {
       })
       vitalSyncEpoch += 1
       const mapped = toVitalHistoryEntry(saved)
+      // La DB ne stocke pas la taille : on ré-applique la taille saisie dans le formulaire.
+      ;(mapped as unknown as Record<string, unknown>).taille = record.taille ?? null
       const idx = props.data.vitalSignsHistory.findIndex(e => e._key === mapped._key)
       if (idx !== -1) props.data.vitalSignsHistory[idx] = mapped
       else props.data.vitalSignsHistory.push(mapped)
@@ -784,6 +835,17 @@ async function saveVitalEntry() {
       vitalFormOpen.value = false
       ElMessage.success('Mesure enregistrée')
       emitChange()
+      src.taSystolique = null
+      src.taDiastolique = null
+      src.frequenceCardiaque = null
+      src.temperature = null
+      src.glycemie = null
+      src.cetonurie = null
+      src.glucosurie = null
+      src.cetonemie = null
+      src.poids = null
+      src.saO2 = null
+      src.diurese = null
     } catch (e) {
       ElMessage.error(`Erreur lors de l'enregistrement: ${(e as Error).message}`)
     } finally {
@@ -800,6 +862,17 @@ async function saveVitalEntry() {
   }
   vitalFormOpen.value = false
   emitChange()
+  src.taSystolique = null
+  src.taDiastolique = null
+  src.frequenceCardiaque = null
+  src.temperature = null
+  src.glycemie = null
+  src.cetonurie = null
+  src.glucosurie = null
+  src.cetonemie = null
+  src.poids = null
+  src.saO2 = null
+  src.diurese = null
 }
 
 function editVitalEntry(key: string) {
@@ -883,6 +956,7 @@ function saveDouleurEntry() {
   }
   douleurFormOpen.value = false
   emitChange()
+  props.data.scoreDouleur = null
 }
 
 function editDouleurEntry(key: string) {
@@ -926,6 +1000,9 @@ function saveGlasgowEntry() {
   }
   glasgowFormOpen.value = false
   emitChange()
+  props.data.glasgow.ouvertureYeux = null as unknown as number
+  props.data.glasgow.reponseVerbale = null as unknown as number
+  props.data.glasgow.reponseMotrice = null as unknown as number
 }
 
 function editGlasgowEntry(key: string) {
@@ -960,8 +1037,36 @@ function emitChange() {
 </script>
 
 <style scoped lang="scss">
-.el-form-item[data-history-path]:hover {
-  cursor: default;
+.history-th-btn {
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.history-th-btn:hover .history-th-icon {
+  opacity: 0.7;
+}
+.history-th-btn:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+.history-th-icon {
+  cursor: pointer;
+  color: var(--el-color-primary);
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.history-th-icon:hover {
+  opacity: 0.7;
 }
 
 .section-preview {
@@ -969,9 +1074,9 @@ function emitChange() {
 }
 
 .glasgow-result {
-  background: var(--el-color-primary-light-9);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
+  background: var(--cde-surface-tint);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
   padding: 12px;
   text-align: center;
   display: flex;
@@ -1012,14 +1117,15 @@ function emitChange() {
 
 /* History collapse */
 .history-collapse {
-  border: 1px solid var(--cd-gray-200);
+  border: 1px solid var(--cde-border);
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 16px;
 }
 .history-collapse__header {
-  background: linear-gradient(135deg, var(--cd-primary), #2E86C1);
-  color: #fff;
+  background: var(--cde-header-bg);
+  color: var(--cde-header-text);
+  border-left: 3px solid var(--cde-accent);
   padding: 10px 14px;
   display: flex;
   align-items: center;
@@ -1037,12 +1143,12 @@ function emitChange() {
 .history-collapse__header-icon { font-size: 16px; }
 .history-collapse__title { font-size: 13px; font-weight: 600; }
 .history-collapse__badge :deep(.el-badge__content) {
-  background: rgba(255, 255, 255, 0.3);
-  border: none;
+  background: var(--cde-accent-tint);
+  border: 1px solid var(--cde-border);
 }
 .history-collapse__arrow { transition: transform 0.25s ease; font-size: 14px; }
 .history-collapse__arrow--open { transform: rotate(180deg); }
-.history-collapse__body { padding: 14px; background: #fff; }
+.history-collapse__body { padding: 14px; background: var(--cde-surface); }
 .history-collapse__hint {
   font-size: 11px;
   color: var(--cd-gray-400);
@@ -1059,6 +1165,11 @@ function emitChange() {
 }
 
 /* History table */
+.history-table-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
 .history-table-wrap {
   margin-bottom: 16px;
   overflow-x: auto;
@@ -1067,37 +1178,37 @@ function emitChange() {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
-  background: #fff;
-  border: 1px solid var(--cd-gray-200);
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
   border-radius: 6px;
   overflow: hidden;
 }
 .history-table thead th {
-  background: var(--cd-primary-lighter);
-  color: var(--cd-primary);
+  background: var(--cde-header-bg);
+  color: var(--cde-header-text);
   font-weight: 600;
   text-transform: uppercase;
   font-size: 10px;
   letter-spacing: 0.3px;
   padding: 8px 10px;
   text-align: left;
-  border-bottom: 1px solid var(--cd-gray-200);
+  border-bottom: 1px solid var(--cde-border);
   white-space: nowrap;
 }
 .history-table tbody td {
   padding: 7px 10px;
-  border-bottom: 1px solid var(--cd-gray-100);
-  color: var(--cd-gray-600);
+  border-bottom: 1px solid var(--cde-border-soft);
+  color: var(--cde-muted);
 }
 .history-table tbody tr:last-child td {
   border-bottom: none;
 }
 .history-table tbody tr:hover {
-  background: var(--cd-primary-lighter);
+  background: var(--cde-surface-tint);
 }
 .history-table__date {
   font-weight: 600;
-  color: var(--cd-primary);
+  color: var(--cde-accent-strong);
   white-space: nowrap;
 }
 .history-table__score {
@@ -1110,7 +1221,7 @@ function emitChange() {
 }
 .history-table__empty {
   text-align: center;
-  color: var(--cd-gray-400);
+  color: var(--cde-muted);
   font-style: italic;
   padding: 16px 10px;
 }

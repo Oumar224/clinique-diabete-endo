@@ -141,6 +141,14 @@ vi.mock('@/composables/useEncounters', () => ({
   })),
 }))
 
+vi.mock('@/composables/useUsers', () => ({
+  useUsers: vi.fn(() => ({
+    users: { value: [{ id: 1, nom: 'Doe', prenom: 'John', specialties: [] }, { id: 2, nom: 'Smith', prenom: 'Anna', specialties: [] }] },
+    loadUsers: vi.fn(() => Promise.resolve()),
+  })),
+  getUserDisplayName: vi.fn((u: any) => `${u.prenom || ''} ${(u.nom || '').toUpperCase()}`.trim() || String(u.id ?? '')),
+}))
+
 // ===========================================================================
 // Helpers
 // ===========================================================================
@@ -283,7 +291,7 @@ const stubs = {
   ClinicalDocForm: {
     name: 'ClinicalDocForm',
     template: '<div class="clinical-doc-form"><slot /></div>',
-    props: ['document', 'documentType', 'readonly', 'contactDisplay'],
+    props: ['document', 'documentType', 'readonly', 'contactDisplay', 'hideHeader'],
     emits: ['save', 'sign', 'close'],
   },
 }
@@ -884,7 +892,7 @@ describe('DossierClinicView', () => {
       expect(wrapper.vm.fullPageMode).toBe(true)
     })
 
-    it('row-click on a document with a pdfPath opens the in-app preview dialog instead of the full page (WS4)', async () => {
+    it('row-click on a document with a pdfPath goes to the full page (l\'aperçu in-app est réservé au bouton explicite)', async () => {
       const doc = makeDocument({ id: 'doc-1', pdfPath: '/tmp/doc.pdf' })
       state.documents = [doc]
 
@@ -897,9 +905,37 @@ describe('DossierClinicView', () => {
       await wrapper.find('.el-table__row').trigger('click')
       await nextTick()
 
-      expect(mockSelectDocument).not.toHaveBeenCalled()
+      expect(mockSelectDocument).toHaveBeenCalledWith(doc)
+      expect(wrapper.vm.fullPageMode).toBe(true)
+      expect(wrapper.vm.previewDoc).toBeNull()
+    })
+
+    it('the explicit "Aperçu" button stages the in-app preview dialog without entering full page', async () => {
+      const doc = makeDocument({ id: 'doc-1', pdfPath: '/tmp/doc.pdf' })
+      state.documents = [doc]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      await wrapper.find('.el-table__row').trigger('click')
+      await nextTick()
+      // retour à la liste pour repartir d'un état neutre
+      wrapper.vm.handleBackToList()
+      await nextTick()
+
+      const callsBeforeClick = mockSelectDocument.mock.calls.length
+      const apercuBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Ouvrir dans l\'app'))
+      expect(apercuBtn).toBeTruthy()
+      await apercuBtn!.trigger('click')
+      await nextTick()
+
+      // le bouton ne déclenche ni selectDocument ni le plein écran
+      expect(mockSelectDocument.mock.calls.length).toBe(callsBeforeClick)
       expect(wrapper.vm.fullPageMode).toBe(false)
-      // The row is staged for the HtmlPreviewDialog (channel clinical-documents:preview)
+      // la ligne est stagée pour le HtmlPreviewDialog (channel clinical-documents:preview)
       expect(wrapper.vm.previewDoc).toEqual(doc)
     })
 
@@ -989,10 +1025,10 @@ describe('DossierClinicView', () => {
   })
 
   // -----------------------------------------------------------------------
-  // Patient header card (compact, from activePatient)
+  // Patient identity is rendered once, by the PatientLayout banner
   // -----------------------------------------------------------------------
-  describe('patient header card', () => {
-    it('renders the patient identity from activePatient', async () => {
+  describe('patient identity', () => {
+    it('does not duplicate the patient header card inside the tab', async () => {
       state.documents = []
 
       const wrapper = mount(DossierClinicView, { global: { stubs } })
@@ -1001,26 +1037,8 @@ describe('DossierClinicView', () => {
       await waitForData()
       await nextTick()
 
-      const card = wrapper.find('.dossier-clinic__patient-card')
-      expect(card.exists()).toBe(true)
-      expect(card.text()).toContain('John')
-      expect(card.text()).toContain('Doe')
-    })
-
-    it('renders age, NIP and site from activePatient', async () => {
-      state.documents = []
-
-      const wrapper = mount(DossierClinicView, { global: { stubs } })
-
-      await nextTick()
-      await waitForData()
-      await nextTick()
-
-      const card = wrapper.find('.dossier-clinic__patient-card')
-      expect(card.text()).toContain('Âge : 45 ans')
-      expect(card.text()).toContain('NIP : NIP-001')
-      // sites:list mock returns { id: 1, name: 'Site principal' }
-      expect(card.text()).toContain('Site : Site principal')
+      expect(wrapper.find('.dossier-clinic__patient-card').exists()).toBe(false)
+      expect(wrapper.find('.dossier-clinic-view__toolbar').exists()).toBe(true)
     })
   })
 
@@ -1066,6 +1084,29 @@ describe('DossierClinicView', () => {
       expect(createdCell.exists()).toBe(true)
       // date + time (HH:MM) — timezone independent regex
       expect(createdCell.text()).toMatch(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // "Créateur" column
+  // -----------------------------------------------------------------------
+  describe('"Créateur" column', () => {
+    it('renders creator name in the Créateur column (mapped via useUsers) and falls back to raw id', async () => {
+      state.documents = [
+        makeDocument({ id: 'doc-1', createdBy: '1', documentType: makeDocumentType({ label: 'Compte rendu' }) }),
+        makeDocument({ id: 'doc-2', createdBy: '999', documentType: makeDocumentType({ label: 'Ordonnance' }) }),
+      ]
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const creatorCells = wrapper.findAll('.el-table-column[data-label="Créateur"]')
+      expect(creatorCells).toHaveLength(2)
+      expect(creatorCells[0].text()).toContain('John')
+      expect(creatorCells[1].text()).toContain('999')
     })
   })
 
@@ -1355,6 +1396,57 @@ describe('DossierClinicView', () => {
       expect(form.exists()).toBe(true)
       expect(form.props('document')).toEqual(doc)
       expect(form.props('readonly')).toBe(false)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Full-page header — "Retour à la liste" + "Fermer" (Feature: hideHeader)
+  // -----------------------------------------------------------------------
+  describe('full-page header (Retour à la liste + Fermer)', () => {
+    function mountAndEnterFullPage() {
+      const docType = makeDocumentType({ id: 'dt-1', label: 'Compte rendu', category: 'consultation' })
+      const doc = makeDocument({
+        id: 'doc-1',
+        documentTypeId: 'dt-1',
+        documentType: docType,
+        contactId: '42',
+        status: 'draft',
+      })
+      state.documents = [doc]
+      state.documentTypes = [docType]
+      mockListEncountersByPatient.mockResolvedValue([makeEncounter()])
+
+      const wrapper = mount(DossierClinicView, { global: { stubs } })
+      return wrapper.vm.$nextTick().then(() => waitForData()).then(() => nextTick()).then(async () => {
+        await wrapper.find('.el-table__row').trigger('click')
+        await nextTick()
+        return wrapper
+      })
+    }
+
+    it('renders BOTH the "Retour à la liste" and the "Fermer" button in the full-page header', async () => {
+      const wrapper = await mountAndEnterFullPage()
+      expect(wrapper.find('.dossier-clinic__full-page').exists()).toBe(true)
+      const retour = wrapper.findAll('button.el-button').find(b => b.text().includes('Retour'))
+      const fermer = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Fermer')
+      expect(retour).toBeTruthy()
+      expect(fermer).toBeTruthy()
+    })
+
+    it('passes hide-header to ClinicalDocForm as true', async () => {
+      const wrapper = await mountAndEnterFullPage()
+      const form = wrapper.findComponent({ name: 'ClinicalDocForm' })
+      expect(form.exists()).toBe(true)
+      expect(form.props('hideHeader')).toBe(true)
+    })
+
+    it('"Fermer" button calls handleBackToList (returns to list)', async () => {
+      const wrapper = await mountAndEnterFullPage()
+      const fermer = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Fermer')
+      expect(fermer).toBeTruthy()
+      await fermer!.trigger('click')
+      await nextTick()
+      expect(mockSelectDocument).toHaveBeenCalledWith(null)
     })
   })
 })

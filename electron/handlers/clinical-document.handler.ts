@@ -217,7 +217,15 @@ export function registerClinicalDocumentHandlers() {
     if (!pdfPath || !fs.existsSync(pdfPath)) {
       throw new Error('Fichier PDF introuvable')
     }
-    await shell.openPath(pdfPath)
+    // Fire-and-forget: ShellExecute can hang on some Windows configurations.
+    // Awaiting would leave the IPC reply pending ("reply was never sent").
+    void shell.openPath(pdfPath)
+      .then((errorMessage) => {
+        if (errorMessage) console.error(`[clinical-documents:open-pdf] ${errorMessage}`)
+      })
+      .catch((error) => {
+        console.error('[clinical-documents:open-pdf]', error)
+      })
     return { success: true }
   })
 }

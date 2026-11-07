@@ -77,7 +77,12 @@ const stubs = {
     props: ['label', 'level', 'collapsible', 'badge'],
   },
   'el-table': {
-    template: '<div class="el-table"><slot /></div>',
+    template: [
+      '<div class="el-table">',
+      '  <slot />',
+      '  <div v-if="!data || data.length === 0" class="el-table__empty"><slot name="empty" /></div>',
+      '</div>',
+    ].join(''),
     props: ['data', 'size', 'style', 'vLoading', 'elementLoadingText'],
     provide() { return { tableData: this.data || [] } },
   },

@@ -43,6 +43,7 @@
           class="preview-iframe"
           :style="iframeStyle"
           frameborder="0"
+          sandbox="allow-same-origin"
         />
       </div>
       <el-empty v-else description="Aucune ordonnance à afficher" />
@@ -54,6 +55,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Download, Printer, Close, ZoomIn, ZoomOut } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import type { PrescriptionSortie } from '@/types/crh-diabete'
 
 const props = defineProps<{
   patientId: number
@@ -69,6 +71,7 @@ const props = defineProps<{
     prn: boolean
     instructions: string
   }>
+  ordonnanceItems?: PrescriptionSortie[] | null
 }>()
 
 const emit = defineEmits<{
@@ -139,10 +142,12 @@ async function loadPreview() {
   try {
     const safeInline = props.inlinePrescriptions ? JSON.parse(JSON.stringify(props.inlinePrescriptions)) : undefined
     const safeIds = props.prescriptionIds ? [...props.prescriptionIds] : undefined
+    const safeItems = props.ordonnanceItems ? JSON.parse(JSON.stringify(props.ordonnanceItems)) : undefined
     const result: any = await window.electronAPI.invoke('export:prescription-preview', {
       patientId: props.patientId,
       prescriptionIds: safeIds,
       inlinePrescriptions: safeInline,
+      ordonnanceItems: safeItems,
     })
     if (result?.success) {
       htmlContent.value = result.data as string
@@ -163,10 +168,12 @@ async function downloadPdf() {
   try {
     const safeInline = props.inlinePrescriptions ? JSON.parse(JSON.stringify(props.inlinePrescriptions)) : undefined
     const safeIds = props.prescriptionIds ? [...props.prescriptionIds] : undefined
+    const safeItems = props.ordonnanceItems ? JSON.parse(JSON.stringify(props.ordonnanceItems)) : undefined
     const result: any = await window.electronAPI.invoke('export:prescription-pdf', {
       patientId: props.patientId,
       prescriptionIds: safeIds,
       inlinePrescriptions: safeInline,
+      ordonnanceItems: safeItems,
     })
     if (result?.success) {
       ElMessage.success(`Fichier enregistré : ${result.data}`)
@@ -213,7 +220,7 @@ defineExpose({ open })
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  border-bottom: 1px solid var(--el-border-color-light);
+  border-bottom: 1px solid var(--cde-border);
   flex-shrink: 0;
 }
 

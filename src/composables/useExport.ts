@@ -3,6 +3,7 @@ import { ElMessage } from 'element-plus'
 
 const exportingPdf = ref(false)
 const exportingExcel = ref(false)
+const exportingIndicateurs = ref(false)
 const error = ref<string | null>(null)
 
 function getApi() {
@@ -114,8 +115,48 @@ export function useExport() {
     return invokeExport(exportingPdf, 'export:crc-diabete-pdf', normalizeDiabeteParams(params, formData), "Erreur lors de l'export PDF du CRC")
   }
 
+  async function exportCrcObesitePdf(params: DiabeteExportParams | string, formData?: Record<string, any>): Promise<boolean> {
+    return invokeExport(exportingPdf, 'export:crc-obesite-pdf', normalizeDiabeteParams(params, formData), "Erreur lors de l'export PDF du CRC Obésité")
+  }
+
+  async function exportCrcGestaPdf(params: DiabeteExportParams | string, formData?: Record<string, any>): Promise<boolean> {
+    return invokeExport(exportingPdf, 'export:crc-gesta-pdf', normalizeDiabeteParams(params, formData), "Erreur lors de l'export PDF du CRC Diabète gestationnel")
+  }
+
   async function exportOrdonnancePdf(patientId: number): Promise<boolean> {
     return invokeExport(exportingPdf, 'export:prescription-pdf', { patientId }, "Erreur lors de l'export PDF de l'ordonnance")
+  }
+
+  async function exportInvoicesExcel(filters?: { search?: string; status?: string; date_debut?: string; date_fin?: string }): Promise<boolean> {
+    return invokeExport(exportingExcel, 'export:invoices-excel', filters || {}, "Erreur lors de l'export Excel des factures")
+  }
+
+  async function exportReceiptPdf(params: { payment_id?: number; numero_recu?: string }): Promise<boolean> {
+    return invokeExport(exportingPdf, 'export:receipt-pdf', params, "Erreur lors de l'export PDF du reçu")
+  }
+
+  /**
+   * Exporte la fiche de paie PDF d'un employé pour une période (AAAA-MM).
+   *
+   * @returns `true` si le fichier a été enregistré.
+   */
+  async function exportPayslipPdf(params: { userId: number; periode: string }): Promise<boolean> {
+    return invokeExport(exportingPdf, 'export:payslip-pdf', params, "Erreur lors de l'export PDF de la fiche de paie")
+  }
+
+  /**
+   * Exporte les indicateurs annuels de la période au format Excel.
+   *
+   * @param params - Bornes incluses de la période (années civiles).
+   * @returns `true` si le fichier a été enregistré.
+   */
+  async function exportIndicateursExcel(params: { fromYear: number; toYear: number }): Promise<boolean> {
+    return invokeExport(
+      exportingIndicateurs,
+      'export:indicateurs-excel',
+      params,
+      "Erreur lors de l'export Excel des indicateurs annuels",
+    )
   }
 
   function previewCrhDiabete(params: DiabeteExportParams | string, formData?: Record<string, any>): Promise<string | null> {
@@ -126,9 +167,18 @@ export function useExport() {
     return fetchPreview('export:crc-diabete-preview', typeof params === 'string' ? { documentId: params } : params, "Erreur lors de l'aperçu du CRC", formData)
   }
 
+  function previewCrcObesite(params: DiabeteExportParams | string, formData?: Record<string, any>): Promise<string | null> {
+    return fetchPreview('export:crc-obesite-preview', typeof params === 'string' ? { documentId: params } : params, "Erreur lors de l'aperçu du CRC Obésité", formData)
+  }
+
+  function previewCrcGesta(params: DiabeteExportParams | string, formData?: Record<string, any>): Promise<string | null> {
+    return fetchPreview('export:crc-gesta-preview', typeof params === 'string' ? { documentId: params } : params, "Erreur lors de l'aperçu du CRC Diabète gestationnel", formData)
+  }
+
   return {
     exportingPdf,
     exportingExcel,
+    exportingIndicateurs,
     error,
     exportUsersListPdf,
     exportUsersListExcel,
@@ -138,8 +188,16 @@ export function useExport() {
     exportPatientsListExcel,
     exportCrhDiabetePdf,
     exportCrcDiabetePdf,
+    exportCrcObesitePdf,
+    exportCrcGestaPdf,
     exportOrdonnancePdf,
+    exportInvoicesExcel,
+    exportReceiptPdf,
+    exportPayslipPdf,
+    exportIndicateursExcel,
     previewCrhDiabete,
     previewCrcDiabete,
+    previewCrcObesite,
+    previewCrcGesta,
   }
 }

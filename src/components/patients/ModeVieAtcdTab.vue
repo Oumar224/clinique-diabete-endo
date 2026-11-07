@@ -10,7 +10,7 @@
       <template #default="{ draft }">
         <el-row :gutter="16">
           <el-col :span="5">
-            <el-form-item label="Situation familiale" data-history-path="modeVieAtcd.situationFamiliale">
+            <el-form-item label="Situation familiale">
               <el-select v-model="draft.situationFamiliale" placeholder="Sélectionner" style="width:100%">
                 <el-option label="Célibataire" value="Célibataire" />
                 <el-option label="Marié" value="Marié" />
@@ -20,12 +20,12 @@
             </el-form-item>
           </el-col>
           <el-col :span="3">
-            <el-form-item label="Isolement" data-history-path="modeVieAtcd.isolement">
+            <el-form-item label="Isolement">
               <el-checkbox v-model="draft.isolement">Oui</el-checkbox>
             </el-form-item>
           </el-col>
           <el-col :span="5">
-            <el-form-item label="Hébergement / Logement" data-history-path="modeVieAtcd.hebergement">
+            <el-form-item label="Hébergement / Logement">
               <el-select v-model="draft.hebergement" placeholder="Sélectionner" style="width:100%">
                 <el-option label="Domicile" value="Domicile" />
                 <el-option label="Chez un tiers" value="Chez un tiers" />
@@ -64,7 +64,7 @@
       <template #default="{ draft }">
         <el-row :gutter="16">
           <el-col :span="8">
-            <el-form-item label="Alimentation" data-history-path="modeVieAtcd.autonomieSL.alimentation">
+            <el-form-item label="Alimentation">
               <el-radio-group v-model="draft.autonomieSL.alimentation">
                 <el-radio value="Autonome">Autonome</el-radio>
                 <el-radio value="Aide partielle">Aide partielle</el-radio>
@@ -73,7 +73,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="Hygiène" data-history-path="modeVieAtcd.autonomieSL.hygiene">
+            <el-form-item label="Hygiène">
               <el-radio-group v-model="draft.autonomieSL.hygiene">
                 <el-radio value="Autonome">Autonome</el-radio>
                 <el-radio value="Aide partielle">Aide partielle</el-radio>
@@ -82,7 +82,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="Habillage" data-history-path="modeVieAtcd.autonomieSL.habillage">
+            <el-form-item label="Habillage">
               <el-radio-group v-model="draft.autonomieSL.habillage">
                 <el-radio value="Autonome">Autonome</el-radio>
                 <el-radio value="Aide partielle">Aide partielle</el-radio>
@@ -93,7 +93,7 @@
         </el-row>
         <el-row :gutter="16">
           <el-col :span="8">
-            <el-form-item label="Déplacement" data-history-path="modeVieAtcd.autonomieSL.deplacement">
+            <el-form-item label="Déplacement">
               <el-radio-group v-model="draft.autonomieSL.deplacement">
                 <el-radio value="Autonome">Autonome</el-radio>
                 <el-radio value="Aide partielle">Aide partielle</el-radio>
@@ -102,7 +102,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="Continence" data-history-path="modeVieAtcd.autonomieSL.continence">
+            <el-form-item label="Continence">
               <el-radio-group v-model="draft.autonomieSL.continence">
                 <el-radio value="Continence urinaire">Continence urinaire</el-radio>
                 <el-radio value="Continence fécale">Continence fécale</el-radio>
@@ -144,12 +144,12 @@
       <template #default="{ draft }">
         <el-row :gutter="16">
           <el-col :span="6">
-            <el-form-item label="Compréhension du français" class="form-item-inline" data-history-path="modeVieAtcd.comprehensionFrancais">
+            <el-form-item label="Compréhension du français" class="form-item-inline">
               <el-checkbox v-model="draft.comprehensionFrancais">Oui</el-checkbox>
             </el-form-item>
           </el-col>
           <el-col :span="6">
-            <el-form-item label="Tabagisme" class="form-item-inline" data-history-path="modeVieAtcd.tabagisme">
+            <el-form-item label="Tabagisme" class="form-item-inline">
               <el-select v-model="draft.tabagisme" style="width:100%">
                 <el-option label="Non-fumeur" value="Non-fumeur" />
                 <el-option label="Fumeur actif" value="Fumeur actif" />
@@ -158,12 +158,12 @@
             </el-form-item>
           </el-col>
           <el-col :span="6">
-            <el-form-item label="Alcool" class="form-item-inline" data-history-path="modeVieAtcd.alcool">
+            <el-form-item label="Alcool" class="form-item-inline">
               <el-checkbox v-model="draft.alcool">Oui</el-checkbox>
             </el-form-item>
           </el-col>
           <el-col :span="6">
-            <el-form-item label="Cannabis" class="form-item-inline" data-history-path="modeVieAtcd.cannabis">
+            <el-form-item label="Cannabis" class="form-item-inline">
               <el-checkbox v-model="draft.cannabis">Oui</el-checkbox>
             </el-form-item>
           </el-col>
@@ -522,9 +522,6 @@ function removeAntecedent(list: AntecedentEntry[], index: number) {
 .section-preview {
   margin: 8px 0 16px;
 }
-.el-form-item[data-history-path]:hover {
-  cursor: default;
-}
 .entry-list {
   margin-bottom: 20px;
   display: flex;
@@ -534,18 +531,18 @@ function removeAntecedent(list: AntecedentEntry[], index: number) {
 .entry-empty {
   padding: 14px 16px;
   text-align: center;
-  color: #a8abb2;
+  color: var(--cde-muted);
   font-size: 13px;
   font-style: italic;
-  background: #fafbfc;
-  border: 1px dashed #dcdfe6;
+  background: var(--cde-surface-tint);
+  border: 1px dashed var(--cde-border);
   border-radius: 6px;
   margin-bottom: 20px;
 }
 .entry-group-title {
   font-size: 12px;
   font-weight: 700;
-  color: #5e6d77;
+  color: var(--cde-muted);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   margin: 10px 0 2px;
@@ -558,23 +555,21 @@ function removeAntecedent(list: AntecedentEntry[], index: number) {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  background: #ffffff;
-  border: 1px solid #e4e7ed;
-  border-left: 4px solid #dcdfe6;
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
+  border-left: 3px solid var(--cde-accent);
   border-radius: 6px;
   font-size: 13px;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: background-color 0.2s ease;
 }
 .entry-card:hover {
-  background: #f5f7fa;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  background: var(--cde-surface-tint);
 }
 .entry-type-badge {
   display: inline-flex;
   align-items: center;
   padding: 3px 12px;
-  border-radius: 14px;
+  border-radius: 4px;
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
@@ -585,27 +580,27 @@ function removeAntecedent(list: AntecedentEntry[], index: number) {
 .entry-libelle {
   font-weight: 600;
   flex: 1;
-  color: #1f2d3d;
+  color: var(--cde-header-text);
   font-size: 13px;
   line-height: 1.4;
 }
 .entry-annee {
-  color: #5e6d77;
+  color: var(--cde-muted);
   font-size: 12px;
   font-weight: 600;
-  background: #edf0f4;
+  background: var(--cde-surface-tint);
   padding: 2px 10px;
-  border-radius: 10px;
+  border-radius: 4px;
   flex-shrink: 0;
 }
 .entry-categorie {
-  color: #5e6d77;
+  color: var(--cde-muted);
   font-size: 12px;
   font-weight: 600;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: var(--cde-surface-tint);
+  border: 1px solid var(--cde-border-soft);
   padding: 2px 10px;
-  border-radius: 10px;
+  border-radius: 4px;
   flex-shrink: 0;
 }
 .entry-delete {
@@ -616,15 +611,15 @@ function removeAntecedent(list: AntecedentEntry[], index: number) {
   height: 26px;
   border: 1px solid transparent;
   background: transparent;
-  color: #c0c4cc;
-  border-radius: 6px;
+  color: var(--cde-muted);
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
 }
 .entry-delete:hover {
-  background: #fef0f0;
-  color: #f56c6c;
-  border-color: #fde2e2;
+  background: var(--cde-danger-tint);
+  color: var(--cde-danger);
+  border-color: color-mix(in srgb, var(--cde-danger) 20%, transparent);
 }
 </style>

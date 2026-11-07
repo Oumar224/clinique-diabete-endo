@@ -13,6 +13,8 @@ export interface UserDto {
   date_debut_contrat?: string
   date_fin_contrat?: string
   type_contrat?: string
+  temps_travail: 'PLEIN' | 'PARTIEL'
+  numero_securite_sociale?: string
   statut_resiliation?: string
   motif_resiliation?: string
   date_resiliation?: string

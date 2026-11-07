@@ -189,7 +189,7 @@ describe('CareUnitsTab', () => {
     const wrapper = await mountComponent()
     await waitAsync()
 
-    expect(wrapper.find('.el-empty').exists()).toBe(true)
+    expect(wrapper.find('.cde-empty').exists()).toBe(true)
   })
 
   it('calls toggleUnit when switch is toggled', async () => {

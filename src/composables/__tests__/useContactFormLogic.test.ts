@@ -117,6 +117,9 @@ describe('useContactFormLogic', () => {
       form.value.responsable_id = 8
       form.value.responsable_name = 'Dr. Sow'
       form.value.assurance_id = 3
+      form.value.case_type = 'diabete'
+      form.value.is_new_case = true
+      form.value.stay_type = 'jour'
       form.value.care_unit_id = 5
 
       resetForm()
@@ -138,6 +141,9 @@ describe('useContactFormLogic', () => {
       expect(form.value.end_date).toBe('')
       expect(form.value.responsable_id).toBeNull()
       expect(form.value.responsable_name).toBe('')
+      expect(form.value.case_type).toBe('')
+      expect(form.value.is_new_case).toBe(false)
+      expect(form.value.stay_type).toBe('')
       expect(form.value.care_unit_id).toBeNull()
     })
   })
@@ -191,6 +197,9 @@ describe('useContactFormLogic', () => {
       expect(form.value.end_date).toBe('')
       expect(form.value.responsable_id).toBeNull()
       expect(form.value.responsable_name).toBe('')
+      expect(form.value.case_type).toBe('')
+      expect(form.value.is_new_case).toBe(false)
+      expect(form.value.stay_type).toBe('')
       expect(form.value.care_unit_id).toBeNull()
     })
   })

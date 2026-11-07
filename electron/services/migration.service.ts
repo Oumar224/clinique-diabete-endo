@@ -86,6 +86,37 @@ import * as AddPrescriptionDureeType from '../migrations/091-add-prescription-du
 import * as AddClinicalDocumentSite from '../migrations/092-add-clinical-document-site'
 import * as AddExamRequestResultatRealized from '../migrations/093-add-exam-request-resultat-realized'
 import * as CreateExamRequestAttachments from '../migrations/094-create-exam-request-attachments'
+import * as Repair021PatientScramble from '../migrations/095-repair-021-patient-scramble'
+import * as CreateMedicaments from '../migrations/096-create-medicaments'
+import * as CreateStockLots from '../migrations/097-create-stock-lots'
+import * as CreateMouvementsStock from '../migrations/098-create-mouvements-stock'
+import * as CreateDelivrances from '../migrations/099-create-delivrances'
+import * as FixPharmacieTextReferences from '../migrations/100-fix-pharmacie-text-references'
+import * as AddDelivranceMotif from '../migrations/101-add-delivrance-motif'
+import * as AddMedicamentsActifCheck from '../migrations/102-add-medicaments-actif-check'
+import * as CreateFournisseurs from '../migrations/103-create-fournisseurs'
+import * as PharmacieFondationPrixConditionnement from '../migrations/104-pharmacie-fondation-prix-conditionnement'
+import * as InvoicePro from '../migrations/105-invoice-pro'
+import * as FixVoieLabels from '../migrations/106-fix-voie-labels'
+import * as CreateSalaires from '../migrations/107-create-salaires'
+import * as CreateDepenses from '../migrations/108-create-depenses'
+import * as PharmacieComptabilite from '../migrations/109-pharmacie-comptabilite'
+import * as AnnualIndicators from '../migrations/110-annual-indicators'
+import * as IndicateursCasEtSoins from '../migrations/111-indicateurs-cas-et-soins'
+import * as CreateCommandes from '../migrations/113-create-commandes'
+import * as CreateCommandeReceptions from '../migrations/114-create-commande-receptions'
+import * as CreateApports from '../migrations/115-create-apports'
+import * as CreateStockLotAttachments from '../migrations/116-create-stock-lot-attachments'
+import * as CommandeConstraints from '../migrations/117-commande-constraints'
+import * as AddSalaireRubriqueJours from '../migrations/112-add-salaire-rubrique-jours'
+import * as AddUserTempsTravailNss from '../migrations/118-add-user-temps-travail-nss'
+import * as CreateUnitesStock from '../migrations/119-create-unites-stock'
+import * as LaboExamRequestsExterne from '../migrations/120-labo-exam-requests-externe'
+import * as CreateLaboStock from '../migrations/121-create-laboratoire-stock'
+import * as CreateLaboPaiements from '../migrations/122-create-labo-paiements'
+import * as LabExamPrix from '../migrations/123-lab-exam-prix'
+import * as SeedCrcObesite from '../migrations/124-seed-crc-obesite'
+import * as SeedCrcGesta from '../migrations/125-seed-crc-gesta'
 
 export const MIGRATIONS: Record<string, Migration> = {
   '001-initial-schema': InitialSchema,
@@ -175,6 +206,37 @@ export const MIGRATIONS: Record<string, Migration> = {
   '092-add-clinical-document-site': AddClinicalDocumentSite,
   '093-add-exam-request-resultat-realized': AddExamRequestResultatRealized,
   '094-create-exam-request-attachments': CreateExamRequestAttachments,
+  '095-repair-021-patient-scramble': Repair021PatientScramble,
+  '096-create-medicaments': CreateMedicaments,
+  '097-create-stock-lots': CreateStockLots,
+  '098-create-mouvements-stock': CreateMouvementsStock,
+  '099-create-delivrances': CreateDelivrances,
+  '100-fix-pharmacie-text-references': FixPharmacieTextReferences,
+  '101-add-delivrance-motif': AddDelivranceMotif,
+  '102-add-medicaments-actif-check': AddMedicamentsActifCheck,
+  '103-create-fournisseurs': CreateFournisseurs,
+  '104-pharmacie-fondation-prix-conditionnement': PharmacieFondationPrixConditionnement,
+  '105-invoice-pro': InvoicePro,
+  '106-fix-voie-labels': FixVoieLabels,
+  '107-create-salaires': CreateSalaires,
+  '108-create-depenses': CreateDepenses,
+  '109-pharmacie-comptabilite': PharmacieComptabilite,
+  '110-annual-indicators': AnnualIndicators,
+  '111-indicateurs-cas-et-soins': IndicateursCasEtSoins,
+  '113-create-commandes': CreateCommandes,
+  '114-create-commande-receptions': CreateCommandeReceptions,
+  '115-create-apports': CreateApports,
+  '116-create-stock-lot-attachments': CreateStockLotAttachments,
+  '117-commande-constraints': CommandeConstraints,
+  '112-add-salaire-rubrique-jours': AddSalaireRubriqueJours,
+  '118-add-user-temps-travail-nss': AddUserTempsTravailNss,
+  '119-create-unites-stock': CreateUnitesStock,
+  '120-labo-exam-requests-externe': LaboExamRequestsExterne,
+  '121-create-laboratoire-stock': CreateLaboStock,
+  '122-create-labo-paiements': CreateLaboPaiements,
+  '123-lab-exam-prix': LabExamPrix,
+  '124-seed-crc-obesite': SeedCrcObesite,
+  '125-seed-crc-gesta': SeedCrcGesta,
 }
 
 class StaticMigrationProvider implements MigrationProvider {

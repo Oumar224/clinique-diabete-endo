@@ -1,43 +1,24 @@
 <template>
-  <div class="soins-view">
-    <el-tabs v-model="activeTab" class="soins-view__tabs">
+  <div class="soins-view cde" :class="{ 'soins-view--in-layout': inLayout }">
+    <el-tabs
+      v-model="activeTab"
+      class="soins-view__tabs cde-tabs"
+    >
       <el-tab-pane name="distribution">
         <template #label>
-          <span class="tab-label">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="1" y="1" width="12" height="12" rx="1" stroke="currentColor" stroke-width="0.8" fill="currentColor" fill-opacity="0.1"/>
-              <path d="M3.5 4.5H10.5" stroke="currentColor" stroke-width="0.8" stroke-linecap="round"/>
-              <path d="M3.5 7H10.5" stroke="currentColor" stroke-width="0.8" stroke-linecap="round"/>
-              <path d="M3.5 9.5H8" stroke="currentColor" stroke-width="0.8" stroke-linecap="round"/>
-            </svg>
-            Plan Distribution
-          </span>
+          <span>Plan Distribution</span>
         </template>
         <PlanDistributionTab />
       </el-tab-pane>
       <el-tab-pane name="vital-check">
         <template #label>
-          <span class="tab-label">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1C4 1 1.5 3.5 1.5 6.5C1.5 10 7 13 7 13C7 13 12.5 10 12.5 6.5C12.5 3.5 10 1 7 1Z" stroke="currentColor" stroke-width="0.8" fill="currentColor" fill-opacity="0.1"/>
-              <circle cx="7" cy="6.5" r="1.5" stroke="currentColor" stroke-width="0.8"/>
-            </svg>
-            Vital Check
-          </span>
+          <span>Vital Check</span>
         </template>
         <VitalCheckTab />
       </el-tab-pane>
       <el-tab-pane name="diagramme">
         <template #label>
-          <span class="tab-label">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="1" y="3" width="3" height="8" rx="0.5" fill="#3498DB" fill-opacity="0.6"/>
-              <rect x="5.5" y="1" width="3" height="10" rx="0.5" fill="#E74C3C" fill-opacity="0.6"/>
-              <rect x="10" y="5" width="3" height="6" rx="0.5" fill="#27AE60" fill-opacity="0.6"/>
-              <path d="M2.5 7L6 6L8 8.5L11 6" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Diagramme de Synthèse
-          </span>
+          <span>Diagramme de Synthèse</span>
         </template>
         <DiagrammeSyntheseTab />
       </el-tab-pane>
@@ -46,15 +27,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, provide } from 'vue'
+import { ref, computed, inject, provide } from 'vue'
 import { useRoute } from 'vue-router'
 import { provideVitalSigns } from '@/composables/useVitalSigns'
 import PlanDistributionTab from './soins/PlanDistributionTab.vue'
 import VitalCheckTab from './soins/VitalCheckTab.vue'
 import DiagrammeSyntheseTab from './soins/DiagrammeSyntheseTab.vue'
+import {
+  PATIENT_ACTIVE_SECTION_TAB,
+  PATIENT_SECTION_TABS,
+} from './patientSections'
 
 const route = useRoute()
-const activeTab = ref('distribution')
+
+/* Inside PatientLayout the tab strip is rendered in the page band. The layout
+   provides the active tab so both strips stay in sync; standalone mounts keep
+   a local state and their own `.cde-tabs` header. */
+const layoutActiveTab = inject(PATIENT_ACTIVE_SECTION_TAB, null)
+const localActiveTab = ref(PATIENT_SECTION_TABS['patient-soins'][0].name)
+
+const activeTab = computed<string>({
+  get: () => layoutActiveTab?.value ?? localActiveTab.value,
+  set: (value) => {
+    if (layoutActiveTab) layoutActiveTab.value = value
+    else localActiveTab.value = value
+  },
+})
+
+const inLayout = computed(() => layoutActiveTab !== null)
 
 /* Provide activeTab so child tab components can react to tab activation.
    Used by VitalCheckTab (scroll-to-current-time) and DiagrammeSyntheseTab (data refresh). */
@@ -77,12 +77,8 @@ provideVitalSigns(patientId)
   height: 100%;
 }
 
-.soins-view__tabs :deep(.el-tabs__header) {
-  margin: 0 !important;
-}
-
 .soins-view__tabs :deep(.el-tabs__content) {
-  height: calc(100% - 31px);
+  height: calc(100% - 40px);
   overflow: auto;
 }
 
@@ -90,16 +86,13 @@ provideVitalSigns(patientId)
   height: 100%;
 }
 
-.tab-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
+/* The layout owns the visible tab strip inside the page band: hide the
+   duplicate Element Plus header and let the panes use the full height. */
+.soins-view--in-layout :deep(.el-tabs__header) {
+  display: none;
 }
 
-.tab-label svg {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
+.soins-view--in-layout :deep(.el-tabs__content) {
+  height: 100%;
 }
 </style>

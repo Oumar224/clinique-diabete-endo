@@ -180,6 +180,13 @@ describe('ExamensComplementairesTab', () => {
     await nextTick()
   }
 
+  async function clickCardEnregistrer(wrapper: ReturnType<typeof createWrapper>, cardIndex = 0) {
+    const actions = wrapper.findAll('.examen-card')[cardIndex].find('.examen-card__actions')
+    const saveBtn = actions.findAll('.el-button').find(b => b.text().trim() === 'Enregistrer')
+    await saveBtn!.trigger('click')
+    await nextTick()
+  }
+
   // ─── 1. Sections rendered ──────────────────────────────────────
 
   it('renders only the Imagerie / Test and Résultat Bio sections (legacy sections removed)', () => {
@@ -198,15 +205,10 @@ describe('ExamensComplementairesTab', () => {
     const wrapper = createWrapper({ data })
 
     await openSection(wrapper, 0)
-    expect(wrapper.findAll('.examen-card')).toHaveLength(0)
-
-    const addBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Ajouter un examen'))
-    expect(addBtn).toBeDefined()
-    await addBtn!.trigger('click')
-
     const cards = wrapper.findAll('.examen-card')
     expect(cards).toHaveLength(1)
-    // draft holds the new card, data is untouched until Enregistrer
+    expect(wrapper.text()).not.toContain('Ajouter un examen')
+    expect(cards[0].find('.examen-card__title').text()).toBe('Nouvel examen')
     expect(data.imagerieTests).toHaveLength(0)
 
     const cardText = cards[0].text()
@@ -228,22 +230,34 @@ describe('ExamensComplementairesTab', () => {
       'Autre (libre)',
     ])
 
-    await clickEnregistrer(wrapper, 0)
+    await cards[0].find('.el-date-picker').setValue('2026-03-15')
+    await cards[0].find('select.el-select').setValue('IRM')
+    const rich = cards[0].findComponent({ name: 'RichTextEditor' })
+    rich.vm.$emit('update:modelValue', '<p>Résultat normal</p>')
+    await nextTick()
+
+    await clickCardEnregistrer(wrapper)
     expect(data.imagerieTests).toHaveLength(1)
+    expect(data.imagerieTests[0]).toMatchObject({ date: '2026-03-15', type: 'IRM', resultat: '<p>Résultat normal</p>' })
     expect(wrapper.emitted('change')).toBeTruthy()
   })
 
-  it('renders an icon-only delete button on each examen card', async () => {
+  it('renders an icon-only delete button on the Imagerie preview row and commits deletion immediately', async () => {
     const data = createDefaultData({
-      imagerieTests: [{ _key: 'k1', date: '', type: '', typeLibre: '', resultat: '' }],
+      imagerieTests: [{ _key: 'k1', date: '2026-01-05', type: 'Scanner', typeLibre: '', resultat: 'Normal' }],
     })
     const wrapper = createWrapper({ data })
-    await openSection(wrapper, 0)
 
-    const delBtn = wrapper.find('.examen-card .el-button')
-    expect(delBtn.exists()).toBe(true)
-    expect(delBtn.attributes('aria-label')).toBe('Supprimer examen #1')
+    const preview = wrapper.findAll('.form-preview')[0]
+    const delBtn = preview.find('.form-preview__delete')
+    expect(preview.findAll('.form-preview__delete')).toHaveLength(1)
+    expect(delBtn.attributes('aria-label')).toBe('Supprimer Résultat / Conclusion — 05/01/2026 · Scanner')
     expect(delBtn.text().trim()).toBe('')
+
+    await delBtn.trigger('click')
+
+    expect(data.imagerieTests).toHaveLength(0)
+    expect(wrapper.emitted('change')).toBeTruthy()
   })
 
   // ─── 3. "Autre (libre)" reveals the free-type input ────────────
@@ -253,17 +267,13 @@ describe('ExamensComplementairesTab', () => {
     const wrapper = createWrapper({ data })
 
     await openSection(wrapper, 0)
-    const addBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Ajouter un examen'))
-    await addBtn!.trigger('click')
-
     const card = wrapper.find('.examen-card')
     expect(card.text()).not.toContain('Précisez le type')
 
     await card.find('select.el-select').setValue('__autre__')
 
     expect(card.text()).toContain('Précisez le type')
-    // draft holds the selection; commit it to data
-    await clickEnregistrer(wrapper, 0)
+    await clickCardEnregistrer(wrapper)
     expect(data.imagerieTests[0].type).toBe('__autre__')
   })
 
@@ -271,26 +281,21 @@ describe('ExamensComplementairesTab', () => {
 
   it('removes an examen card', async () => {
     const data = createDefaultData({
-      imagerieTests: [{ _key: 'k1', date: '', type: '', typeLibre: '', resultat: '' }],
+      imagerieTests: [{ _key: 'k1', date: '2026-01-05', type: 'Scanner', typeLibre: '', resultat: 'Normal' }],
     })
     const wrapper = createWrapper({ data })
-    await openSection(wrapper, 0)
-    expect(wrapper.findAll('.examen-card')).toHaveLength(1)
 
-    const delBtn = wrapper.find('.examen-card .el-button')
+    const delBtn = wrapper.findAll('.form-preview')[0].find('.form-preview__delete')
+    expect(delBtn.exists()).toBe(true)
     await delBtn.trigger('click')
 
-    // removed from the draft; data is untouched until Enregistrer
-    expect(wrapper.findAll('.examen-card')).toHaveLength(0)
-    expect(data.imagerieTests).toHaveLength(1)
-
-    await clickEnregistrer(wrapper, 0)
     expect(data.imagerieTests).toHaveLength(0)
+    expect(wrapper.emitted('change')).toBeTruthy()
   })
 
   // ─── 4bis. Sort by date desc (display-only) ────────────────────
 
-  it('displays imagerie cards sorted by date desc (empties last) without reordering data', async () => {
+  it('displays imagerie preview rows sorted by date desc (empty-result exam hidden)', async () => {
     const data = createDefaultData({
       imagerieTests: [
         { _key: 'k1', date: '2026-01-05', type: 'Scanner', typeLibre: '', resultat: 'Normal' },
@@ -299,23 +304,10 @@ describe('ExamensComplementairesTab', () => {
       ],
     })
     const wrapper = createWrapper({ data })
-    await openSection(wrapper, 0)
 
-    const cards = wrapper.findAll('.examen-card')
-    expect(cards).toHaveLength(3)
-    expect(cards[0].find('input').attributes('value')).toBe('2026-02-01')
-    expect(cards[1].find('input').attributes('value')).toBe('2026-01-05')
-    expect(cards[2].find('input').attributes('value')).toBe('')
-
-    // committed data keeps the INSERTION order (sorting is display-only)
-    await clickEnregistrer(wrapper, 0)
-    expect(data.imagerieTests.map(e => e._key)).toEqual(['k1', 'k2', 'k3'])
-
-    // the FormPreview rows follow the same sorted order with DD/MM/YYYY labels
-    // (the empty-date exam has no resultat value → its row is hidden)
     const labels = wrapper.findAll('.form-preview')[0]
       .findAll('.form-preview__label').map(el => el.text())
-    expect(labels).toEqual(['01/02/2026 · IRM', '05/01/2026 · Scanner'])
+    expect(labels).toEqual(['Résultat / Conclusion — 01/02/2026 · IRM', 'Résultat / Conclusion — 05/01/2026 · Scanner'])
   })
 
   it('removes the correct card when deleting after a sort reorder', async () => {
@@ -326,19 +318,49 @@ describe('ExamensComplementairesTab', () => {
       ],
     })
     const wrapper = createWrapper({ data })
-    await openSection(wrapper, 0)
 
-    const cards = wrapper.findAll('.examen-card')
-    expect(cards[0].find('input').attributes('value')).toBe('2026-02-01')
+    const preview = wrapper.findAll('.form-preview')[0]
+    const row = preview.findAll('.form-preview__row')
+      .find(r => r.text().includes('IRM'))!
+    expect(row.find('.form-preview__label').text()).toBe('Résultat / Conclusion — 01/02/2026 · IRM')
 
-    // delete the FIRST displayed card (the IRM one, k2 in data)
-    await cards[0].find('.el-button').trigger('click')
+    await row.find('.form-preview__delete').trigger('click')
 
-    expect(wrapper.findAll('.examen-card')).toHaveLength(1)
-    expect(wrapper.findAll('.examen-card')[0].find('input').attributes('value')).toBe('2026-01-05')
-
-    await clickEnregistrer(wrapper, 0)
     expect(data.imagerieTests.map(e => e._key)).toEqual(['k1'])
+    expect(wrapper.emitted('change')).toBeTruthy()
+  })
+
+  // ─── 4ter. Ghost-entry regression: delete from preview while open ──
+
+  it('does NOT resurrect a deleted imagerie item when saving after deleting from the preview while the section is open', async () => {
+    const data = createDefaultData({
+      imagerieTests: [
+        { _key: 'k1', date: '2026-01-05', type: 'Scanner', typeLibre: '', resultat: 'Normal' },
+        { _key: 'k2', date: '2026-02-01', type: 'IRM', typeLibre: '', resultat: 'IRM' },
+      ],
+    })
+    const wrapper = createWrapper({ data })
+
+    // Open the Imagerie section so the draft is populated
+    await openSection(wrapper, 0)
+    expect(sectionBodies(wrapper)[0].attributes('style') ?? '').not.toContain('display: none')
+
+    // Delete k1 from the preview while the section is open
+    // the preview sorts by date desc → k2 (01/02) before k1 (05/01)
+    const row = wrapper.findAll('.form-preview')[0].findAll('.form-preview__row')
+      .find(r => r.text().includes('Scanner'))
+    expect(row).toBeDefined()
+    await row!.find('.form-preview__delete').trigger('click')
+    await nextTick()
+
+    // k1 is already gone from the data model
+    expect(data.imagerieTests.map(e => e._key)).toEqual(['k2'])
+
+    // Commit the still-open draft via the section footer Enregistrer
+    await clickEnregistrer(wrapper, 0)
+
+    // The deleted item must NOT be resurrected (targeted removeFromDraft)
+    expect(data.imagerieTests.map(e => e._key)).toEqual(['k2'])
   })
 
   // ─── 5. Fetch disabled without patientId ───────────────────────
@@ -556,7 +578,7 @@ describe('ExamensComplementairesTab', () => {
     const wrapper = createWrapper({ data, patientId: 42 })
     await openSection(wrapper, 1)
 
-    const rangePicker = wrapper.find('.el-date-picker')
+    const rangePicker = sectionBodies(wrapper)[1].find('.el-date-picker')
     await rangePicker.setValue('2026-02-01→2026-02-28')
 
     const fetchBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Récupérer les résultats'))
@@ -609,7 +631,7 @@ describe('ExamensComplementairesTab', () => {
 
       const btn = row!.find('.form-preview__edit')
       expect(btn.exists()).toBe(true)
-      expect(btn.attributes('aria-label')).toBe('Modifier 05/01/2026 · Scanner')
+      expect(btn.attributes('aria-label')).toBe('Modifier Résultat / Conclusion — 05/01/2026 · Scanner')
     })
 
     it('re-opens the collapsed section and scrolls to it when Modifier is clicked', async () => {
@@ -652,6 +674,39 @@ describe('ExamensComplementairesTab', () => {
     })
   })
 
+  // ─── 10bis. Bio preview table dates sorted newest-first ───────────
+
+  it('renders bio preview table dates in descending order (newest first), even when DD/MM/YYYY sort would differ', async () => {
+    const data = createDefaultData({
+      bilanBio: {
+        dateFrom: '2026-01-01',
+        dateTo: '2026-01-31',
+        results: [
+          { id: 1, parameterId: 6001, parameterName: 'HbA1c', parameterUnit: '%', value: '7.4', isNormal: false, requestDate: '2026-02-05', examName: 'Bilan glycémique' },
+          { id: 2, parameterId: 6001, parameterName: 'HbA1c', parameterUnit: '%', value: '7.0', isNormal: false, requestDate: '2026-01-15', examName: 'Bilan glycémique' },
+          { id: 3, parameterId: 6001, parameterName: 'HbA1c', parameterUnit: '%', value: '6.8', isNormal: true, requestDate: '2026-01-12', examName: 'Bilan glycémique' },
+        ],
+      },
+    })
+    const wrapper = createWrapper({ data })
+    await openSection(wrapper, 1)
+
+    // The preview table (Fix 2) is an HTML string from bioPreviewTableHtml rendered via
+    // v-html inside the FormPreview's rich value. Date headers appear as <th> elements:
+    // "Paramètre" (first), then dates newest-first.
+    const ths = wrapper.find('.form-preview__value--rich').findAll('th')
+    const thTexts = ths.map(th => th.text().trim())
+
+    // "Paramètre" column first, then dates newest-first (chronological desc):
+    // 05/02/2026 (Feb 5) → 15/01/2026 (Jan 15) → 12/01/2026 (Jan 12)
+    expect(thTexts).toEqual(['Paramètre', '05/02/2026', '15/01/2026', '12/01/2026'])
+
+    // This breaks a naive DD/MM/YYYY lexicographic sort: "12/01/2026" < "15/01/2026"
+    // and "05/02/2026" < "12/01/2026" alphabetically (month/day prefixes), so a plain
+    // `.sort()` would order 05/02, 12/01, 15/01 — wrong. We sort raw YYYY-MM-DD
+    // descending so 15/01/2026 correctly precedes 12/01/2026.
+  })
+
   // ─── 11. Per-line edit from preview focuses the card ───────────────
 
   it('opens the section and renders the matching card when Modifier is clicked on a preview row', async () => {
@@ -671,8 +726,12 @@ describe('ExamensComplementairesTab', () => {
     const body = sectionBodies(wrapper)[0]
     expect(body.attributes('style') ?? '').not.toContain('display: none')
     const cards = wrapper.findAll('.examen-card')
-    expect(cards.some(c => c.attributes('data-exam-key') === 'k-b')).toBe(true)
-    expect(cards.some(c => c.attributes('data-exam-key') === 'k-a')).toBe(true)
+    expect(cards).toHaveLength(1)
+    expect(cards[0].attributes('data-exam-key')).toBe('k-b')
+    expect(cards[0].find('.examen-card__title').text()).toBe('Modifier l\'examen')
+    expect(wrapper.findAll('.examen-card[data-exam-key="k-a"]')).toHaveLength(0)
+    expect(wrapper.findAll('.examen-list-item')).toHaveLength(0)
+    expect(wrapper.findAll('.form-preview')[0].text()).toContain('Scanner')
   })
 
   // ─── 12. Prefill imagerie from realized exam requests ──────────────

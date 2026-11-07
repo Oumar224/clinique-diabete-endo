@@ -176,12 +176,11 @@ function waitForData() {
 }
 
 // ---------------------------------------------------------------------------
-// VitalCheckTab — Hour-based grid layout
+// VitalCheckTab — rolling 7-day matrix (convention « Résultats Bio »)
 // ---------------------------------------------------------------------------
-describe('VitalCheckTab (hour-based grid)', () => {
+describe('VitalCheckTab (rolling 7-day matrix)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Default: return empty list
     mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
       if (channel === 'vital-signs-items:list') return []
       if (channel === 'vital-signs-items:save') return makeRecord(params)
@@ -189,196 +188,168 @@ describe('VitalCheckTab (hour-based grid)', () => {
     })
   })
 
+  /** ISO date (local) n days ago. */
+  function dateKeyAgo(n: number): string {
+    const d = new Date()
+    d.setDate(d.getDate() - n)
+    return fmtDate(d)
+  }
+
+  function mountTab() {
+    return mount(VitalCheckTab, {
+      global: { stubs, directives: { loading: vi.fn() } },
+    })
+  }
+
+  function cell(wrapper: ReturnType<typeof mountTab>, row: string, dateKey: string, hour: number) {
+    return wrapper.findAll('.vital-check__cell').find(c =>
+      c.attributes('data-row') === row
+      && c.attributes('data-date') === dateKey
+      && c.attributes('data-hour') === String(hour),
+    )
+  }
+
   // -----------------------------------------------------------------------
-  // Week navigation
+  // Window + always-rendered grid
   // -----------------------------------------------------------------------
-  describe('week navigation', () => {
-    it('renders week navigation with prev/next buttons and week label', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+  describe('7-day window', () => {
+    it('renders no week prev/next buttons', async () => {
+      const wrapper = mountTab()
       await waitForData()
 
-      const groups = wrapper.findAll('.el-button-group')
-      expect(groups.length).toBe(1)
-
-      const buttons = groups[0].findAll('button.el-button')
-      expect(buttons.length).toBe(3) // prev, label, next
+      expect(wrapper.findAll('.el-button-group').length).toBe(0)
     })
 
-    it('renders week label with date range', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+    it('renders a 7-day range label ending today', async () => {
+      const wrapper = mountTab()
       await waitForData()
 
-      const label = wrapper.find('.vital-check__week-label')
+      const label = wrapper.find('.vital-check__range-label')
       expect(label.exists()).toBe(true)
-      expect(label.text()).toMatch(/\d{2}\/\d{2}/)
+      expect(label.text()).toContain('7 jours')
+      expect(label.text()).toMatch(/\d{2}\/\d{2}\/\d{4}/)
     })
-  })
 
-  // -----------------------------------------------------------------------
-  // Grid structure
-  // -----------------------------------------------------------------------
-  describe('grid structure', () => {
-    it('renders 7 date headers with hour labels', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+    it('renders 7 date headers, today first, descending to the left', async () => {
+      const wrapper = mountTab()
       await waitForData()
 
       const headers = wrapper.findAll('.vital-check__date-header')
-      expect(headers.length).toBe(7)
+      expect(headers).toHaveLength(7)
+      expect(headers[0].classes()).toContain('vital-check__date-header--today')
+      expect(headers[0].attributes('data-date')).toBe(dateKeyAgo(0))
+
+      const keys = headers.map(h => h.attributes('data-date'))
+      expect(keys).toEqual([0, 1, 2, 3, 4, 5, 6].map(dateKeyAgo))
+      // Most recent → oldest, left to right.
+      expect([...keys].sort((a, b) => b.localeCompare(a))).toEqual(keys)
     })
 
-    it('highlights today column', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+    it('renders the full grid with no recorded data', async () => {
+      const wrapper = mountTab()
       await waitForData()
 
-      const todayHeader = wrapper.find('.vital-check__date-header--today')
-      expect(todayHeader.exists()).toBe(true)
+      expect(wrapper.findAll('.vital-check__const-cell')).toHaveLength(11)
+      expect(wrapper.findAll('.vital-check__date-header')).toHaveLength(7)
+      // 7 days × 17 hours
+      expect(wrapper.findAll('.vital-check__date-hour')).toHaveLength(119)
+      // 11 rows × 7 days × 17 hours
+      expect(wrapper.findAll('.vital-check__cell')).toHaveLength(1309)
+      expect(wrapper.find('.vital-check__grid-wrapper').exists()).toBe(true)
+    })
+
+    it('renders all 11 constant labels with units', async () => {
+      const wrapper = mountTab()
+      await waitForData()
+
+      const text = wrapper.text()
+      for (const label of ['TA Systolique', 'TA Diastolique', 'FC', 'Température', 'Glycémie', 'Cétonémie', 'Glucosurie', 'Cétonurie', 'SaO₂', 'Diurèse', 'Poids']) {
+        expect(text).toContain(label)
+      }
+      expect(text).toContain('mmHg')
+      expect(text).toContain('bpm')
     })
 
     it('renders the corner header with "Constantes" text', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+      const wrapper = mountTab()
       await waitForData()
 
       const corner = wrapper.find('.vital-check__const-header')
       expect(corner.exists()).toBe(true)
       expect(corner.text()).toBe('Constantes')
     })
-
-    it('renders all 11 constant rows', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
-      await waitForData()
-
-      const constCells = wrapper.findAll('.vital-check__const-cell')
-      expect(constCells.length).toBe(11)
-
-      const allText = wrapper.text()
-      expect(allText).toContain('TA Systolique')
-      expect(allText).toContain('FC')
-      expect(allText).toContain('Glycémie')
-      expect(allText).toContain('Cétonémie')
-      expect(allText).toContain('Glucosurie')
-      expect(allText).toContain('Cétonurie')
-      expect(allText).toContain('SaO₂')
-      expect(allText).toContain('Diurèse')
-      expect(allText).toContain('Poids')
-    })
-
-    it('renders 17 hour labels per day header', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
-      await waitForData()
-
-      const dateHours = wrapper.findAll('.vital-check__date-hour')
-      // 7 days × 17 hours = 119 hour labels
-      expect(dateHours.length).toBe(119)
-    })
-
-    it('renders 11 × 7 × 17 = 1309 data cells', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
-      await waitForData()
-
-      const cells = wrapper.findAll('.vital-check__cell')
-      expect(cells.length).toBe(1309)
-    })
   })
 
   // -----------------------------------------------------------------------
-  // Data fetching
+  // Data fetching — one bounded range query
   // -----------------------------------------------------------------------
   describe('data fetching', () => {
-    it('calls vital-signs-items:list on mount with patient ID and week range', async () => {
-      mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+    it('fetches a single range covering the 7-day window on mount', async () => {
+      mountTab()
       await waitForData()
+
+      expect(mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs-items:dates')).toHaveLength(0)
 
       const listCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs-items:list')
       expect(listCalls).toHaveLength(1)
       const [, params] = listCalls[0]
       expect(params.patientId).toBe(42)
-      expect(params.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-      expect(params.endDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(params.endDate).toBe(dateKeyAgo(0))
+      expect(params.startDate).toBe(dateKeyAgo(6))
     })
 
-    it('re-fetches when week changes', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
-      await flushPromises()
-      const listCallsAfterMount = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs-items:list')
-      expect(listCallsAfterMount).toHaveLength(1)
+    it('re-fetches the range when Actualiser is clicked', async () => {
+      const wrapper = mountTab()
+      await waitForData()
 
-      const vm = wrapper.vm as any
-      vm.nextWeek()
+      const refreshBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Actualiser'))!
+      await refreshBtn.trigger('click')
+      await waitForData()
 
-      await nextTick()
-      await flushPromises()
-
-      const listCallsAfterNav = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs-items:list')
-      expect(listCallsAfterNav).toHaveLength(2)
+      const listCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs-items:list')
+      expect(listCalls).toHaveLength(2)
     })
   })
 
   // -----------------------------------------------------------------------
-  // Value population
+  // Value placement (row × day × hour)
   // -----------------------------------------------------------------------
-  describe('value population', () => {
-    it('populates items map from fetched records', async () => {
+  describe('value placement', () => {
+    it('places values in the correct day/hour cell', async () => {
       mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
         if (channel === 'vital-signs-items:list') return [
-          makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 140, glycemie: 2.5 }),
-          makeRecord({ date: MONDAY_STR, hour: 12, taDiastolique: 90, frequency: 80 }),
+          makeRecord({ date: dateKeyAgo(0), hour: 9, taSystolique: 140, glycemie: 2.5 }),
+          makeRecord({ date: dateKeyAgo(2), hour: 14, taDiastolique: 90 }),
         ]
         if (channel === 'vital-signs-items:save') return makeRecord(params)
         return null
       })
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
+      const wrapper = mountTab()
+      await waitForData()
+
+      expect(cell(wrapper, 'taSystolique', dateKeyAgo(0), 9)?.text()).toBe('140')
+      expect(cell(wrapper, 'glycemie', dateKeyAgo(0), 9)?.text()).toBe('2.50')
+      expect(cell(wrapper, 'taDiastolique', dateKeyAgo(2), 14)?.text()).toBe('90')
+      // Same value must not leak into another day.
+      expect(cell(wrapper, 'taSystolique', dateKeyAgo(1), 9)?.text()).toBe('')
+      // Unrecorded slot stays empty but present.
+      expect(cell(wrapper, 'cetonemie', dateKeyAgo(0), 9)?.text()).toBe('')
+    })
+
+    it('exposes getValue for a (date, hour, row) triple', async () => {
+      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
+        if (channel === 'vital-signs-items:list') return [
+          makeRecord({ date: dateKeyAgo(0), hour: 8, taSystolique: 140 }),
+        ]
+        if (channel === 'vital-signs-items:save') return makeRecord(params)
+        return null
       })
+      const wrapper = mountTab()
       await waitForData()
 
       const vm = wrapper.vm as any
-      // getValue helper should return correct data
-      expect(vm.getValue(MONDAY_STR, 8, 'taSystolique')).toBe(140)
-      expect(vm.getValue(MONDAY_STR, 8, 'glycemie')).toBe(2.5)
-      expect(vm.getValue(MONDAY_STR, 12, 'taDiastolique')).toBe(90)
-      // Unrecorded slot should be null
-      expect(vm.getValue(MONDAY_STR, 8, 'cetonemie')).toBeNull()
-    })
-
-    it('shows formatted cell values in the grid', async () => {
-      mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
-        if (channel === 'vital-signs-items:list') return [
-          makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 140, glycemie: 2.5 }),
-        ]
-        if (channel === 'vital-signs-items:save') return makeRecord(params)
-        return null
-      })
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
-      await waitForData()
-
-      // Cell values are rendered as .vital-check__cell-value spans
-      const cellValues = wrapper.findAll('.vital-check__cell-value')
-      expect(cellValues.length).toBeGreaterThan(0)
-      // Some cells should contain "140" (taSystolique)
-      const texts = cellValues.map(c => c.text())
-      expect(texts.some(t => t === '140')).toBe(true)
+      expect(vm.getValue(dateKeyAgo(0), 8, 'taSystolique')).toBe(140)
+      expect(vm.getValue(dateKeyAgo(0), 8, 'cetonemie')).toBeNull()
     })
   })
 
@@ -387,57 +358,40 @@ describe('VitalCheckTab (hour-based grid)', () => {
   // -----------------------------------------------------------------------
   describe('hour dialog', () => {
     it('opens the dialog when clicking a cell', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+      const wrapper = mountTab()
       await waitForData()
 
-      // Click the first cell
-      const cells = wrapper.findAll('.vital-check__cell')
-      expect(cells.length).toBeGreaterThan(0)
-      await cells[0].trigger('click')
+      await wrapper.findAll('.vital-check__cell')[0].trigger('click')
 
-      // Dialog should be visible
       const dialog = wrapper.find('.el-dialog')
       expect(dialog.exists()).toBe(true)
       expect(dialog.isVisible()).toBe(true)
     })
 
     it('opens the dialog when clicking an hour label', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+      const wrapper = mountTab()
       await waitForData()
 
-      // Click the first hour label
-      const hourLabels = wrapper.findAll('.vital-check__date-hour')
-      expect(hourLabels.length).toBeGreaterThan(0)
-      await hourLabels[0].trigger('click')
+      await wrapper.findAll('.vital-check__date-hour')[0].trigger('click')
 
-      const dialog = wrapper.find('.el-dialog')
-      expect(dialog.exists()).toBe(true)
+      expect(wrapper.find('.el-dialog').exists()).toBe(true)
     })
 
     it('populates dialog fields from existing values', async () => {
       mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
         if (channel === 'vital-signs-items:list') return [
-          makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 145, glycemie: 1.8 }),
+          makeRecord({ date: dateKeyAgo(0), hour: 8, taSystolique: 145, glycemie: 1.8 }),
         ]
         if (channel === 'vital-signs-items:save') return makeRecord(params)
         return null
       })
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+      const wrapper = mountTab()
       await waitForData()
 
-      // Open dialog for Monday 08:00
       const vm = wrapper.vm as any
-      vm.openHourDialog(MONDAY_STR, 8)
-
+      vm.openHourDialog(dateKeyAgo(0), 8)
       await nextTick()
 
-      // The dialog form should be pre-populated
       expect(vm.hourForm.taSystolique).toBe(145)
       expect(vm.hourForm.glycemie).toBe(1.8)
     })
@@ -445,38 +399,29 @@ describe('VitalCheckTab (hour-based grid)', () => {
     it('saves all constants when clicking Enregistrer', async () => {
       mockIpcInvoke.mockImplementation(async (channel: string, params?: any) => {
         if (channel === 'vital-signs-items:list') return []
-        if (channel === 'vital-signs-items:save') return makeRecord({ date: MONDAY_STR, hour: 8, taSystolique: 135, glycemie: 1.0 })
+        if (channel === 'vital-signs-items:save') return makeRecord({ date: dateKeyAgo(0), hour: 8, taSystolique: 135, glycemie: 1.0 })
         return null
       })
-
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+      const wrapper = mountTab()
       await waitForData()
 
-      // Open dialog for Monday 08:00
       const vm = wrapper.vm as any
-      vm.openHourDialog(MONDAY_STR, 8)
-
-      // Set some values
+      vm.openHourDialog(dateKeyAgo(0), 8)
       vm.hourForm.taSystolique = 135
       vm.hourForm.glycemie = 1.0
-
       await nextTick()
 
-      // Find save button by text
       const footer = wrapper.find('.el-dialog__footer')
       const saveBtn = footer.findAll('button.el-button').find(b => b.text() === 'Enregistrer')
       expect(saveBtn).toBeDefined()
       await saveBtn!.trigger('click')
-
       await flushPromises()
 
       const saveCalls = mockIpcInvoke.mock.calls.filter(([ch]: [string]) => ch === 'vital-signs-items:save')
       expect(saveCalls).toHaveLength(1)
       const [, data] = saveCalls[0]
       expect(data.patientId).toBe(42)
-      expect(data.date).toBe(MONDAY_STR)
+      expect(data.date).toBe(dateKeyAgo(0))
       expect(data.hour).toBe(8)
       expect(data.taSystolique).toBe(135)
       expect(data.glycemie).toBe(1.0)
@@ -487,46 +432,17 @@ describe('VitalCheckTab (hour-based grid)', () => {
   // Alert thresholds
   // -----------------------------------------------------------------------
   describe('alert thresholds', () => {
-    it('returns true for glycemie above threshold', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+    it('flags glycemie, temperature and saO2 outside thresholds', async () => {
+      const wrapper = mountTab()
       await waitForData()
 
       const vm = wrapper.vm as any
       expect(vm.isAlertValue('glycemie', 2.0)).toBe(true)
       expect(vm.isAlertValue('glycemie', 0.9)).toBe(false)
-    })
-
-    it('returns true for temperature above threshold', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
-      await waitForData()
-
-      const vm = wrapper.vm as any
       expect(vm.isAlertValue('temperature', 39.0)).toBe(true)
       expect(vm.isAlertValue('temperature', 37.0)).toBe(false)
-    })
-
-    it('returns true for saO2 below 90', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
-      await waitForData()
-
-      const vm = wrapper.vm as any
       expect(vm.isAlertValue('saO2', 85)).toBe(true)
       expect(vm.isAlertValue('saO2', 95)).toBe(false)
-    })
-
-    it('returns false for null or empty values', async () => {
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
-      await waitForData()
-
-      const vm = wrapper.vm as any
       expect(vm.isAlertValue('glycemie', null)).toBe(false)
     })
   })
@@ -540,9 +456,7 @@ describe('VitalCheckTab (hour-based grid)', () => {
         if (channel === 'vital-signs-items:list') throw new Error('Erreur réseau')
         return null
       })
-      const wrapper = mount(VitalCheckTab, {
-        global: { stubs, directives: { loading: vi.fn() } },
-      })
+      const wrapper = mountTab()
       await waitForData()
 
       expect(wrapper.text()).toContain('Erreur réseau')

@@ -344,10 +344,10 @@ function onSaved() {
   justify-content: space-between;
   margin-bottom: 24px;
   padding: 28px 32px;
-  background: var(--cd-widget-bg);
-  border-radius: 14px;
-  border: 1px solid var(--cd-gray-200, #e4e7ed);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  background: var(--cde-surface);
+  border-radius: 6px;
+  border: 1px solid var(--cde-border);
+  border-top: 3px solid var(--cde-accent);
   width: 100%;
   box-sizing: border-box;
 }
@@ -362,13 +362,13 @@ function onSaved() {
   flex-shrink: 0;
 }
 .patient-record__photo--male {
-  background: var(--el-color-primary, #409eff) !important;
+  background: var(--cde-info) !important;
 }
 .patient-record__photo--female {
-  background: var(--el-color-danger, #f56c6c) !important;
+  background: var(--cde-danger) !important;
 }
 .patient-record__photo--none {
-  background: var(--el-color-info, #909399) !important;
+  background: var(--cde-muted) !important;
 }
 .patient-record__gender-symbol {
   font-size: 32px;
@@ -400,31 +400,36 @@ function onSaved() {
 /* ── Card grid: 2 columns on desktop ────────────────────── */
 .patient-record__card-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (min-width: 1024px) {
   .patient-record__card-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+.patient-record__card-grid > * {
+  min-width: 0;
 }
 
 /* ── Card base styling ──────────────────────────────────── */
 .patient-record__card {
   margin-bottom: 16px;
-  border-radius: 10px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s ease;
 }
 
 .patient-record__card :deep(.el-card__body) {
   padding: 20px 24px 24px;
 }
 
-.patient-record__card :deep(.el-card__header) {
+.patient-record__card :deep(.el-card__header),
+.patient-record__section :deep(.el-card__header) {
   padding: 14px 24px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--cde-border);
+  background: var(--cde-header-bg);
+  color: var(--cde-header-text);
   font-size: 15px;
 }
 
@@ -483,42 +488,26 @@ function onSaved() {
   margin-bottom: 16px;
 }
 
-/* ── Card header bar colors ─────────────────────────────── */
+/* ── Card accents: 3px top bar, semantic, no pastel fills ─ */
 .patient-record__card--personal {
-  --patient-section-bg: #EBF2FA;
-}
-.patient-record__card--personal :deep(.el-card__header) {
-  background: #EBF2FA;
+  border-top: 3px solid var(--cde-info);
 }
 
 .patient-record__card--residence {
-  --patient-section-bg: #EBFAF2;
-}
-.patient-record__card--residence :deep(.el-card__header) {
-  background: #EBFAF2;
+  border-top: 3px solid var(--cde-accent);
 }
 
 .patient-record__card--medical {
-  --patient-section-bg: #F5EBFA;
-}
-.patient-record__card--medical :deep(.el-card__header) {
-  background: #F5EBFA;
+  border-top: 3px solid var(--cde-success);
 }
 
-.patient-record__card--trusted {
-  --patient-section-bg: #FAF5EB;
-}
-.patient-record__card--trusted :deep(.el-card__header) {
-  background: #FAF5EB;
-}
-
-.patient-record__card--attachments,
+.patient-record__card--trusted,
 .patient-record__card--attachments-trusted {
-  --patient-section-bg: #F2F2F5;
+  border-top: 3px solid var(--cde-warning);
 }
-.patient-record__card--attachments :deep(.el-card__header),
-.patient-record__card--attachments-trusted :deep(.el-card__header) {
-  background: #F2F2F5;
+
+.patient-record__card--attachments {
+  border-top: 3px solid var(--cde-accent);
 }
 
 /* ── Responsive adjustments ─────────────────────────────── */

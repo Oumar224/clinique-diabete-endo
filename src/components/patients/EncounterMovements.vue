@@ -341,7 +341,7 @@ async function closeSingleMovement(_movementId: number) {
 
 .encounter-movements__from {
   font-size: 11px;
-  color: var(--cd-gray-400, #999);
+  color: var(--cde-muted);
 }
 
 .encounter-movements__readonly-banner {

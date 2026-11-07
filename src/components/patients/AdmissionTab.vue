@@ -11,7 +11,7 @@
       <template #default="{ draft }">
         <el-row :gutter="16">
           <el-col :span="6">
-            <el-form-item label="Date d'entrée" data-history-path="admission.dateEntree">
+            <el-form-item label="Date d'entrée">
               <el-date-picker
                 v-model="draft.dateEntree"
                 type="date"
@@ -23,7 +23,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="Service d'accueil" data-history-path="admission.serviceAccueil">
+            <el-form-item label="Service d'accueil">
               <el-input :model-value="draft.serviceAccueil" :disabled="true" />
             </el-form-item>
           </el-col>
@@ -78,7 +78,7 @@
       <template #default="{ draft }">
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="Médecin référent" data-history-path="admission.medecinTraitantNom">
+            <el-form-item label="Médecin référent">
               <el-select
                 v-model="draft.medecinTraitantNom"
                 filterable
@@ -97,7 +97,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="Responsable" data-history-path="admission.interneIPANom">
+            <el-form-item label="Responsable">
               <el-input :model-value="draft.interneIPANom || '—'" disabled />
             </el-form-item>
           </el-col>
@@ -205,9 +205,5 @@ onMounted(async () => {
 <style scoped>
 .section-preview {
   margin: 8px 0 16px;
-}
-
-.el-form-item[data-history-path]:hover {
-  cursor: default;
 }
 </style>

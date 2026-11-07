@@ -127,6 +127,7 @@ export class ExamTypeService {
         code,
         name: (entity.name ?? '').trim(),
         is_active: 1,
+        prix: Math.max(0, Number(entity.prix ?? 0)),
       })
       .returningAll()
       .executeTakeFirst()
@@ -158,6 +159,7 @@ export class ExamTypeService {
     if (entity.category_id !== undefined) updateData.category_id = entity.category_id
     if (entity.parent_id !== undefined) updateData.parent_id = entity.parent_id
     if (entity.is_active !== undefined) updateData.is_active = entity.is_active ? 1 : 0
+    if (entity.prix !== undefined) updateData.prix = Math.max(0, Number(entity.prix))
 
     await this.db
       .updateTable('lab_exams')

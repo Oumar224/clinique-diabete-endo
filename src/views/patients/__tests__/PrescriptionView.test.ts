@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import PrescriptionView from '../PrescriptionView.vue'
@@ -122,6 +122,7 @@ const stubs = {
       '    <span class="el-table__data-row">{{ item.medicament }} \u2014 {{ item.dosage }} \u2014 {{ item.statut }}</span>',
       '    <span v-if="item.type" class="el-table__type-indicator">{{ item.type === \'medicament\' ? \'M\u00e9dicament\' : \'Soin\' }}</span>',
       '  </div>',
+      '  <div v-if="!data || data.length === 0" class="el-table__empty"><slot name="empty" /></div>',
       '</div>',
     ].join(''),
     props: ['data', 'highlightCurrentRow'],
@@ -447,7 +448,7 @@ describe('PrescriptionView', () => {
       await nextTick()
 
       expect(mockGetPrescriptions).toHaveBeenCalledWith(1)
-      expect(wrapper.find('.el-empty').exists()).toBe(true)
+      expect(wrapper.find('.cde-empty').exists()).toBe(true)
       expect(wrapper.text()).toContain('Aucune prescription')
       expect(wrapper.find('.el-alert--error').exists()).toBe(false)
     })
@@ -1541,6 +1542,59 @@ describe('PrescriptionView', () => {
       const dialog = findDetailDialog(wrapper)!
       expect(dialog.text()).toContain('10')
       expect(dialog.text()).toContain('Rééducation cheville')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Catalogue pharmacie
+  // -----------------------------------------------------------------------
+  describe('catalogue pharmacie', () => {
+    async function mountAndOpenCreateForm() {
+      const wrapper = mount(PrescriptionView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const newBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Nouvelle prescription')!
+      await newBtn.trigger('click')
+      await nextTick()
+      return wrapper
+    }
+
+    function medicamentOptionLabels(wrapper: ReturnType<typeof mount>) {
+      return wrapper.findAll('select.el-select')[0].findAll('option').map(o => o.text())
+    }
+
+    afterEach(async () => {
+      mockIpcInvoke.mockResolvedValue([])
+      const { useMedicaments } = await import('@/composables/useMedicaments')
+      useMedicaments().medicaments.value = []
+    })
+
+    it('fetches the catalogue on mount', async () => {
+      mount(PrescriptionView, { global: { stubs } })
+      await nextTick()
+      await waitForData()
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('medicament:list', { actif: true })
+    })
+
+    it('uses catalogue options when available', async () => {
+      mockIpcInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'medicament:list') return [{ id: 31, dci: 'Metformine', dosage: '1000 mg' }]
+        return []
+      })
+      const wrapper = await mountAndOpenCreateForm()
+
+      expect(medicamentOptionLabels(wrapper)).toContain('Metformine 1000 mg')
+    })
+
+    it('falls back to the local list when the catalogue is empty', async () => {
+      const wrapper = await mountAndOpenCreateForm()
+
+      const labels = medicamentOptionLabels(wrapper)
+      expect(labels).toContain('Ramipril 5 mg')
+      expect(labels).not.toContain('Metformine 1000 mg')
     })
   })
 

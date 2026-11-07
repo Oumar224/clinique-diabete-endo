@@ -98,10 +98,11 @@ describe('DispositifsAccesTab', () => {
   // Header
   // -----------------------------------------------------------------------
   describe('header', () => {
-    it('renders title and Ajouter button', async () => {
+    it('renders the Ajouter button without a page title', async () => {
       const wrapper = mount(DispositifsAccesTab, { global: { stubs } })
       await new Promise(r => setTimeout(r, 0))
-      expect(wrapper.text()).toContain('Dispositifs et voies')
+      expect(wrapper.find('.cde-page-title').exists()).toBe(false)
+      expect(wrapper.findAll('h1')).toHaveLength(0)
       const btn = wrapper.find('button.el-button')
       expect(btn.exists()).toBe(true)
       expect(btn.text().trim()).toBe('Ajouter')

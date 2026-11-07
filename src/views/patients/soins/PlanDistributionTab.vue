@@ -1,50 +1,48 @@
 <template>
-    <div class="plan-distribution" v-loading="(planLoading && !loadingTimeout) || weekLoading">
-    <div v-if="error" class="plan-distribution__error">
+    <div class="plan-distribution cde" v-loading="(planLoading && !loadingTimeout) || gridLoading">
+    <div v-if="error" class="plan-distribution__error cde-alert cde-alert--danger">
       <el-alert :title="error" type="error" show-icon :closable="true" @close="error = null" />
     </div>
 
-    <div v-if="insulinBlocked" class="plan-distribution__insulin-block">
+    <div v-if="insulinBlocked" class="plan-distribution__insulin-block cde-alert">
       <el-alert
-        title="⚠️ Veuillez saisir la glycémie dans l'onglet Vital Check avant d'administrer l'insuline"
+        title="Veuillez saisir la glycémie dans l'onglet Vital Check avant d'administrer l'insuline"
         type="warning"
         show-icon
         :closable="false"
       />
     </div>
 
-    <div class="plan-distribution__header">
-      <h1 class="plan-distribution__title">Plan de distribution</h1>
-      <div class="plan-distribution__actions">
-        <el-button-group>
-          <el-button :icon="ArrowLeft" @click="previousWeek" />
-          <el-button class="plan-distribution__week-label">{{ weekLabel }}</el-button>
-          <el-button :icon="ArrowRight" @click="nextWeek" />
-        </el-button-group>
-        <el-button :icon="Refresh" :loading="weekLoading" @click="onRefresh">
+    <div class="cde-page-toolbar">
+      <div class="cde-page-actions">
+        <span class="plan-distribution__range-label">{{ rangeLabel }}</span>
+        <el-button :icon="Refresh" :loading="gridLoading" @click="onRefresh">
           Actualiser
         </el-button>
-        <el-button :icon="InfoFilled" size="small" @click="diagnosticCheck" title="Diagnostic — vérifier les données du jour">
+        <el-button :icon="InfoFilled" @click="diagnosticCheck" title="Diagnostic — vérifier les données du jour">
         </el-button>
-        <el-button type="primary" size="default" @click="showPrescriptionDialog = true">
+        <el-button type="primary" @click="showPrescriptionDialog = true">
           + Prescrire
         </el-button>
       </div>
     </div>
 
-    <div v-if="!weekLoading" class="plan-distribution__grid-wrapper">
+    <div class="plan-distribution__grid-wrapper">
       <div class="plan-distribution__grid" :style="{ gridTemplateColumns: gridColumns }">
         <!-- HEADER ROW: each day is a single spanning cell with date+hours inside -->
         <div class="plan-distribution__med-header" style="grid-row: 1; grid-column: 1">Prescriptions</div>
         <div class="plan-distribution__type-header" style="grid-row: 1; grid-column: 2">Type</div>
         <div
-          v-for="(day, di) in weekDays"
+          v-for="(day, di) in displayDays"
           :key="'d-' + di"
           class="plan-distribution__date-header"
           :class="{ 'plan-distribution__date-header--today': day.isToday }"
+          :data-date="day.dateKey"
           :style="{ gridRow: 1, gridColumn: `${3 + di * hours.length} / ${3 + (di + 1) * hours.length}` }"
         >
-          <div class="plan-distribution__date-text">{{ formatDateHeader(day.fullDate) }}</div>
+          <div class="plan-distribution__date-text">
+            {{ day.weekday }} <span class="plan-distribution__date-text-date">{{ day.dateLabel }}</span>
+          </div>
           <div class="plan-distribution__date-hours-row">
             <span
               v-for="hour in hours"
@@ -75,7 +73,7 @@
             <div
               class="plan-distribution__prescription-card"
               :class="`plan-distribution__prescription-card--${row.cardStatut}`"
-              :style="row.cardStatut === 'en_cours' ? { borderImage: `linear-gradient(135deg, #1A5276 ${row.pctValide}%, #E67E22 ${row.pctValide}%) 1` } : {}"
+              :style="row.cardStatut === 'en_cours' ? { '--rx-progress': `${row.pctValide}%` } : {}"
             >
               <div class="plan-distribution__prescription-card-row">
                 <span
@@ -102,7 +100,13 @@
             v-for="slot in row.slots"
             :key="`cell-${ri}-${slot.dateIndex}-${slot.hour}`"
             class="plan-distribution__cell"
-            :class="{ 'plan-distribution__cell--now': isCurrentTimeSlot(slot.dateIndex, slot.hour) }"
+            :class="{
+              'plan-distribution__cell--now': isCurrentTimeSlot(slot.dateIndex, slot.hour),
+              'plan-distribution__cell--empty': !slot.soin,
+            }"
+            :data-row="row.medicament"
+            :data-date="displayDays[slot.dateIndex]?.dateKey"
+            :data-hour="slot.hour"
           >
             <div
               v-if="slot.soin"
@@ -131,9 +135,15 @@
                 <span class="plan-distribution__rdv-reprendre-btn" @click.stop="onReprendre(slot.soin, slot.dateIndex)" title="Reprendre">▶</span>
               </div>
             </div>
+            <span v-else class="plan-distribution__cell-empty" aria-hidden="true">—</span>
           </div>
         </template>
       </div>
+    </div>
+
+    <!-- Empty legend: the grid (rows + headers) always renders above. -->
+    <div v-if="!gridLoading && !hasDistributionData" class="plan-distribution__empty-caption">
+      Aucune distribution enregistrée pour ce patient
     </div>
 
     <!-- Prescription dialog -->
@@ -143,7 +153,7 @@
           <el-col :span="10">
             <el-form-item label="Médicaments et soins" prop="medicament">
               <el-select v-model="prescriptionForm.medicament" filterable allow-create style="width:100%">
-                <el-option v-for="m in MEDICAMENTS_LIST" :key="m" :label="m" :value="m" />
+                <el-option v-for="m in medicamentOptions" :key="m" :label="m" :value="m" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -170,7 +180,7 @@
           <el-col :span="5">
             <el-form-item label="Voie" prop="voie">
               <el-select v-model="prescriptionForm.voie" style="width:100%">
-                <el-option v-for="v in VOIES" :key="v" :label="v" :value="v" />
+                <el-option v-for="v in VOIE_OPTIONS" :key="v.code" :label="v.label" :value="v.code" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -224,7 +234,7 @@
           </div>
           <div class="plan-distribution__detail-row">
             <span class="plan-distribution__detail-label">Statut</span>
-            <el-tag :type="detailTagType(detailSoin)" size="small">{{ detailStatutLabel(detailSoin) }}</el-tag>
+            <span class="cde-badge" :class="detailBadgeClass(detailSoin)">{{ detailStatutLabel(detailSoin) }}</span>
           </div>
           <template v-if="detailSoin.validePar">
             <div class="plan-distribution__detail-row">
@@ -283,19 +293,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, reactive, watchEffect, nextTick } from 'vue'
+import { ref, computed, watch, reactive, watchEffect, nextTick, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowLeft, ArrowRight, Refresh, InfoFilled } from '@element-plus/icons-vue'
+import { Refresh, InfoFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { usePlanSoins, isInsulin, getPlanSoins, reprendreSoin, suspendrePrescription, reprendrePrescription } from '@/composables/usePlanSoins'
+import { useMedicaments, medicamentShortLabel } from '@/composables/useMedicaments'
 import { usePrescriptions, type PrescriptionRecord } from '@/composables/usePrescriptions'
 import { useAuth } from '@/composables/useAuth'
 import { FREQUENCE_OPTIONS } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
 import { isRichTextEmpty } from '@/utils/rich-text'
+import {
+  ROLLING_WINDOW_DAYS,
+  buildRollingDays,
+  startOfLocalDay,
+  toLocalDateKey,
+  type RollingDay,
+} from '@/utils/rolling-week'
 import RichTextEditor from '@/components/patients/RichTextEditor.vue'
 import type { SoinItem, StatutSoin, BlocHoraire, VoieAdministration } from '@/types/soins'
+import { VOIE_OPTIONS, normalizeVoie, VOIE_ERROR_MESSAGE } from '@/constants/voies'
 
 const route = useRoute()
 
@@ -305,7 +324,7 @@ const patientId = computed<number | null>(() => {
 })
 
 const { loading: planLoading, error, insulinBlocked, valider, suspendre } = usePlanSoins(patientId)
-const { createPrescription, updatePrescription, getPrescription } = usePrescriptions()
+const { prescriptions, fetchPrescriptions, createPrescription, updatePrescription, getPrescription } = usePrescriptions()
 
 // Force loading to false after 10s to prevent permanent loading overlay
 const loadingTimeout = ref(false)
@@ -318,135 +337,80 @@ watchEffect(() => {
   }
 })
 
-/* ── Week calendar state ── */
+/* ── Fenêtre glissante de 7 jours (convention « Résultats Bio ») ──
+ *
+ * Les colonnes vont du jour le plus récent (index 0, aujourd'hui) vers le plus
+ * ancien. La grille est toujours rendue, même sans distribution : les lignes de
+ * prescriptions remplissent alors des cellules vides.
+ */
 
-const currentWeekStart = ref(getWeekStart(new Date()))
-
-const weekDays = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(currentWeekStart.value)
-    d.setDate(d.getDate() + i)
-    d.setHours(0, 0, 0, 0)
-    const isToday = d.getTime() === today.getTime()
-    return {
-      isToday,
-      fullDate: new Date(d),
-    }
-  })
-})
-
+/** Créneaux horaires de la grille — mêmes valeurs que `EXAM_GRID_HOURS`. */
 const hours = [6, 8, 10, 12, 14, 16, 18, 20, 22]
 
-const weekLabel = computed(() => {
-  const start = weekDays.value[0]
-  const end = weekDays.value[6]
-  const fmt = (d: Date) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
-  return `${fmt(start.fullDate)} — ${fmt(end.fullDate)}`
+/** Dernier jour (le plus récent) de la fenêtre affichée. */
+const windowEnd = ref(startOfLocalDay(new Date()))
+
+const displayDays = computed<RollingDay[]>(() => buildRollingDays(windowEnd.value))
+
+const rangeLabel = computed(() => {
+  const newest = displayDays.value[0]
+  const oldest = displayDays.value[displayDays.value.length - 1]
+  const fmt = (d: Date) =>
+    `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+  return `${fmt(newest.fullDate)} — ${fmt(oldest.fullDate)} · ${ROLLING_WINDOW_DAYS} jours`
 })
-
-function getWeekStart(d: Date): Date {
-  const date = new Date(d)
-  const day = date.getDay()
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1)
-  date.setDate(diff)
-  date.setHours(0, 0, 0, 0)
-  return date
-}
-
-function previousWeek() {
-  const d = new Date(currentWeekStart.value)
-  d.setDate(d.getDate() - 7)
-  currentWeekStart.value = d
-}
-
-function nextWeek() {
-  const d = new Date(currentWeekStart.value)
-  d.setDate(d.getDate() + 7)
-  currentWeekStart.value = d
-}
-
-/**
- * Format a Date as a local 'YYYY-MM-DD' string.
- * CRITICAL: must match the format used by prescription.service.ts
- * when storing plan_soins.date, otherwise queries return no results.
- */
-function formatLocalDate(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 const currentHour = computed(() => {
   const h = new Date().getHours()
   return [...hours].reverse().find(hr => hr <= h) ?? hours[0]
 })
 
-function formatDateHeader(d: Date): string {
-  const weekday = d.toLocaleDateString('fr-FR', { weekday: 'short' })
-  const dd = String(d.getDate()).padStart(2, '0')
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  return `${weekday} ${dd}/${mm}`
-}
-
 function isCurrentTimeSlot(dayIdx: number, hour: number): boolean {
-  return weekDays.value[dayIdx]?.isToday && hour === currentHour.value
+  return displayDays.value[dayIdx]?.isToday && hour === currentHour.value
 }
 
-/* ── Week blocs — fetch per day ── */
+/* ── Blocs par jour — une requête bornée par jour de la fenêtre ── */
 
-const weekBlocs = ref<Record<string, BlocHoraire[]>>({})
-const weekLoading = ref(false)
+const dateBlocs = ref<Record<string, BlocHoraire[]>>({})
+const gridLoading = ref(false)
 let fetchId = 0
 
-async function fetchWeekData(pid: number) {
+/** Vrai dès qu'au moins un créneau contient une administration. */
+const hasDistributionData = computed(() =>
+  Object.values(dateBlocs.value).some(blocs =>
+    blocs.some(bloc => bloc.soins.length > 0),
+  ),
+)
+
+async function fetchDisplayData(pid: number) {
   error.value = null
   const id = ++fetchId
-  weekLoading.value = true
+  gridLoading.value = true
   const newBlocs: Record<string, BlocHoraire[]> = {}
-  const promises = weekDays.value.map(async (day) => {
-    const dateStr = formatLocalDate(day.fullDate)
-    console.log(`[fetchWeekData] ⏳ fetching date=${dateStr} patient=${pid}`)
-    try {
-      const record = await getPlanSoins(pid, dateStr)
-      console.log(`[fetchWeekData] ✅ ${dateStr} response:`, record ? `found (${record.blocs?.length} blocs)` : 'null')
-      if (record?.blocs) {
-        // Trace every soin item for debugging
-        for (const bloc of record.blocs) {
-          for (const soin of bloc.soins) {
-            console.log(`[fetchWeekData]   soin id=${soin.id} medicament="${soin.medicament}" dosage="${soin.dosage}" prescriptionId=%o (type=${typeof soin.prescriptionId})`, soin.prescriptionId)
-          }
-        }
-        newBlocs[dateStr] = record.blocs
+  const days = displayDays.value
+
+  await Promise.all([
+    fetchPrescriptions(pid),
+    ...days.map(async (day) => {
+      try {
+        const record = await getPlanSoins(pid, day.dateKey)
+        if (record?.blocs) newBlocs[day.dateKey] = record.blocs
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        error.value = `Erreur de chargement pour ${day.dateKey}: ${msg}`
       }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      error.value = `Erreur de chargement pour ${dateStr}: ${msg}`
-      console.error(`[fetchWeekData] ❌ ${dateStr} error:`, e)
-    }
-  })
-  await Promise.all(promises)
-  console.log(`[fetchWeekData] 📊 FINAL fetchId=${id} current=${fetchId} race=${id === fetchId ? 'win' : 'LOST'}`)
-  console.log(`[fetchWeekData] 📊 FINAL weekBlocs keys:`, Object.keys(newBlocs))
-  console.log(`[fetchWeekData] 📊 FINAL weekBlocs summary:`,
-    Object.entries(newBlocs).map(([date, blocs]) => ({
-      date,
-      soinCount: blocs.reduce((s, b) => s + b.soins.length, 0),
-      prescriptionIds: [...new Set(blocs.flatMap(b => b.soins.map(s => s.prescriptionId)))],
-      medicaments: [...new Set(blocs.flatMap(b => b.soins.map(s => s.medicament)))],
-    }))
-  )
+    }),
+  ])
+
   if (id === fetchId) {
-    weekBlocs.value = newBlocs
-    weekLoading.value = false
+    dateBlocs.value = newBlocs
+    gridLoading.value = false
   }
 }
 
 async function onRefresh() {
   if (patientId.value) {
-    await fetchWeekData(patientId.value)
+    await fetchDisplayData(patientId.value)
   }
 }
 
@@ -454,15 +418,13 @@ function scrollToCurrentTime() {
   nextTick(() => {
     const wrapper = document.querySelector('.plan-distribution__grid-wrapper')
     if (!wrapper) return
-    const idx = weekDays.value.findIndex(d => d.isToday)
-    if (idx < 0) return
+    // Most recent (today when present) is at the left; scroll there.
+    const idx = displayDays.value.findIndex(d => d.isToday)
     const hourIdx = hours.indexOf(currentHour.value)
     if (hourIdx < 0) return
-    const targetIdx = idx * hours.length + hourIdx
+    const targetIdx = Math.max(idx, 0) * hours.length + hourIdx
     const target = wrapper.querySelectorAll('.plan-distribution__date-hour')[targetIdx] as HTMLElement
-    if (target) {
-      target.scrollIntoView({ inline: 'center', block: 'nearest' })
-    }
+    target?.scrollIntoView?.({ inline: 'center', block: 'nearest' })
   })
 }
 
@@ -472,10 +434,9 @@ function scrollToCurrentTime() {
  */
 async function diagnosticCheck() {
   if (!patientId.value) return
-  const todayStr = formatLocalDate(new Date())
+  const todayStr = toLocalDateKey(new Date())
   try {
     const record = await getPlanSoins(patientId.value, todayStr)
-    console.log('[Diagnostic] plan-soins for today:', record)
     if (!record) {
       ElMessage.warning(`Aucun plan de soins pour aujourd'hui (${todayStr}). Vérifiez que la prescription a bien été créée.`)
     } else {
@@ -487,15 +448,15 @@ async function diagnosticCheck() {
   }
 }
 
-watch([patientId, currentWeekStart], async ([pid]) => {
+watch(patientId, async (pid) => {
   if (pid) {
-    await fetchWeekData(pid)
+    await fetchDisplayData(pid)
   } else {
-    weekBlocs.value = {}
+    dateBlocs.value = {}
   }
 }, { immediate: true })
 
-watch(weekLoading, (loading) => {
+watch(gridLoading, (loading) => {
   if (!loading) {
     scrollToCurrentTime()
   }
@@ -524,10 +485,10 @@ interface MedicationGridRow {
 const medicationGrid = computed((): MedicationGridRow[] => {
   const rowsMap = new Map<string, MedicationGridRow>()
 
-  for (let dayIdx = 0; dayIdx < weekDays.value.length; dayIdx++) {
-    const day = weekDays.value[dayIdx]
-    const dateStr = formatLocalDate(day.fullDate)
-    const blocs = weekBlocs.value[dateStr] ?? []
+  for (let dayIdx = 0; dayIdx < displayDays.value.length; dayIdx++) {
+    const day = displayDays.value[dayIdx]
+    const dateStr = day.dateKey
+    const blocs = dateBlocs.value[dateStr] ?? []
 
     for (const bloc of blocs) {
       for (const soin of bloc.soins) {
@@ -535,12 +496,6 @@ const medicationGrid = computed((): MedicationGridRow[] => {
           ? `${soin.medicament}__rx${soin.prescriptionId}`
           : `${soin.medicament}__orphan`
         if (!rowsMap.has(key)) {
-          const allSlots: MedicationGridSlot[] = []
-          for (let di = 0; di < weekDays.value.length; di++) {
-            for (const h of hours) {
-              allSlots.push({ dateIndex: di, hour: h, soin: null })
-            }
-          }
           rowsMap.set(key, {
             medicament: soin.medicament,
             dosage: soin.dosage,
@@ -550,7 +505,7 @@ const medicationGrid = computed((): MedicationGridRow[] => {
             statut: 'suspendu',
             cardStatut: 'non_administre',
             pctValide: 0,
-            slots: allSlots,
+            slots: emptySlots(),
           })
         }
         const row = rowsMap.get(key)!
@@ -591,30 +546,41 @@ const medicationGrid = computed((): MedicationGridRow[] => {
     }
   }
 
-  const result = Array.from(rowsMap.values())
-
-  // 🔍 Diagnostic: log grid row keys and prescriptionId values
-  console.log('[medicationGrid] keys:', Array.from(rowsMap.keys()))
-  console.log('[medicationGrid] rows:', result.map(r => ({
-    medicament: r.medicament,
-    dosage: r.dosage,
-    prescriptionId: r.prescriptionId,
-    slotsCount: r.slots.filter(s => s.soin !== null).length,
-  })))
-  console.log('[medicationGrid] weekBlocs dates:', Object.keys(weekBlocs.value))
-  for (const [_dateStr, blocs] of Object.entries(weekBlocs.value)) {
-    for (const bloc of blocs) {
-      for (const soin of bloc.soins) {
-        console.log(`[medicationGrid] soin id=${soin.id} medicament="${soin.medicament}" prescriptionId=%o (type=${typeof soin.prescriptionId})`, soin.prescriptionId)
-      }
-    }
-  }
-
-  return result
+  // Aucune distribution sur la fenêtre : les lignes restent les prescriptions
+  // du patient, avec toutes les cellules vides (la grille est toujours rendue).
+  const distributionRows = Array.from(rowsMap.values())
+  if (distributionRows.length > 0) return distributionRows
+  return prescriptions.value
+    .filter(p => p.statut !== 'stopped')
+    .map(prescriptionToGridRow)
 })
 
+function emptySlots(): MedicationGridSlot[] {
+  const slots: MedicationGridSlot[] = []
+  for (let di = 0; di < displayDays.value.length; di++) {
+    for (const h of hours) {
+      slots.push({ dateIndex: di, hour: h, soin: null })
+    }
+  }
+  return slots
+}
+
+function prescriptionToGridRow(p: PrescriptionRecord): MedicationGridRow {
+  return {
+    medicament: p.medicament,
+    dosage: p.dosage,
+    voie: normalizeVoie(p.voie) ?? p.voie,
+    prescriptionId: p.id,
+    prescriptionType: p.type ?? 'medicament',
+    statut: p.statut === 'suspendu' ? 'suspendu' : 'en_attente',
+    cardStatut: 'non_administre',
+    pctValide: 0,
+    slots: emptySlots(),
+  }
+}
+
 const gridColumns = computed(() => {
-  return `200px 70px repeat(${weekDays.value.length * hours.length}, minmax(80px, 1fr))`
+  return `200px 70px repeat(${displayDays.value.length * hours.length}, minmax(80px, 1fr))`
 })
 
 /* ── Data mapping ── */
@@ -632,36 +598,36 @@ function statusClass(statut: StatutSoin): string {
 
 async function onValider(soin: SoinItem, dateIndex: number) {
   await valider(soin)
-  const day = weekDays.value[dateIndex]
+  const day = displayDays.value[dateIndex]
   if (day && patientId.value) {
-    const dateStr = formatLocalDate(day.fullDate)
+    const dateStr = day.dateKey
     try {
       const record = await getPlanSoins(patientId.value, dateStr)
       if (record?.blocs) {
-        weekBlocs.value[dateStr] = record.blocs
+        dateBlocs.value[dateStr] = record.blocs
       } else {
-        delete weekBlocs.value[dateStr]
+        delete dateBlocs.value[dateStr]
       }
     } catch {
-      delete weekBlocs.value[dateStr]
+      delete dateBlocs.value[dateStr]
     }
   }
 }
 
 async function onSuspendre(soin: SoinItem, dateIndex: number) {
   await suspendre(soin)
-  const day = weekDays.value[dateIndex]
+  const day = displayDays.value[dateIndex]
   if (day && patientId.value) {
-    const dateStr = formatLocalDate(day.fullDate)
+    const dateStr = day.dateKey
     try {
       const record = await getPlanSoins(patientId.value, dateStr)
       if (record?.blocs) {
-        weekBlocs.value[dateStr] = record.blocs
+        dateBlocs.value[dateStr] = record.blocs
       } else {
-        delete weekBlocs.value[dateStr]
+        delete dateBlocs.value[dateStr]
       }
     } catch {
-      delete weekBlocs.value[dateStr]
+      delete dateBlocs.value[dateStr]
     }
   }
 }
@@ -669,18 +635,18 @@ async function onSuspendre(soin: SoinItem, dateIndex: number) {
 async function onReprendre(soin: SoinItem, dateIndex: number) {
   try {
     await reprendreSoin(soin.id)
-    const day = weekDays.value[dateIndex]
+    const day = displayDays.value[dateIndex]
     if (day && patientId.value) {
-      const dateStr = formatLocalDate(day.fullDate)
+      const dateStr = day.dateKey
       try {
         const record = await getPlanSoins(patientId.value, dateStr)
         if (record?.blocs) {
-          weekBlocs.value[dateStr] = record.blocs
+          dateBlocs.value[dateStr] = record.blocs
         } else {
-          delete weekBlocs.value[dateStr]
+          delete dateBlocs.value[dateStr]
         }
       } catch {
-        delete weekBlocs.value[dateStr]
+        delete dateBlocs.value[dateStr]
       }
     }
     ElMessage.success(`${soin.medicament} repris`)
@@ -690,14 +656,14 @@ async function onReprendre(soin: SoinItem, dateIndex: number) {
 }
 
 /**
- * Refresh all days in the week from the backend.
+ * Refresh all displayed days from the backend.
  * Used after prescription-level suspend/resume to update every day's grid.
  */
 async function refreshAllDays() {
   if (!patientId.value) return
   const newBlocs: Record<string, BlocHoraire[]> = {}
-  for (const day of weekDays.value) {
-    const dateStr = formatLocalDate(day.fullDate)
+  for (const day of displayDays.value) {
+    const dateStr = day.dateKey
     try {
       const record = await getPlanSoins(patientId.value, dateStr)
       if (record?.blocs) {
@@ -707,7 +673,7 @@ async function refreshAllDays() {
       // skip days that fail to load
     }
   }
-  weekBlocs.value = newBlocs
+  dateBlocs.value = newBlocs
 }
 
 /**
@@ -741,9 +707,17 @@ async function onTogglePrescription(row: MedicationGridRow) {
 
 /* ── Prescription dialog ── */
 
-const MEDICAMENTS_LIST = ['Insuline NOVORAPID', 'Insuline LANTUS', 'Insuline TOUJEO', 'Metformine', 'Furosémide', 'Paracétamol', 'Amlodipine', 'Atorvastatin']
-const VOIES = ['PO', 'SC', 'IV', 'IM', 'SL']
+const FALLBACK_MEDICAMENTS = ['Insuline NOVORAPID', 'Insuline LANTUS', 'Insuline TOUJEO', 'Metformine', 'Furosémide', 'Paracétamol', 'Amlodipine', 'Atorvastatin']
+const { medicaments: catalogueMedicaments, fetchMedicaments } = useMedicaments()
+const medicamentOptions = computed(() =>
+  catalogueMedicaments.value.length > 0
+    ? catalogueMedicaments.value.map(medicamentShortLabel)
+    : FALLBACK_MEDICAMENTS,
+)
 
+onMounted(() => {
+  void fetchMedicaments({ actif: true })
+})
 const { user } = useAuth()
 
 const showPrescriptionDialog = ref(false)
@@ -767,7 +741,17 @@ const prescriptionForm = reactive({
 const prescriptionRules: FormRules = {
   medicament: [{ required: true, message: 'Choisissez un médicament ou soin', trigger: 'change' }],
   dosage: [{ required: true, message: 'La quantité est requise', trigger: 'blur' }],
-  voie: [{ required: true, message: 'La voie est requise', trigger: 'change' }],
+  voie: [
+    { required: true, message: 'La voie est requise', trigger: 'change' },
+    {
+      validator: (_rule: unknown, value: unknown, callback: (error?: Error) => void) => {
+        if (!value) { callback(); return }
+        if (!normalizeVoie(value)) callback(new Error(VOIE_ERROR_MESSAGE))
+        else callback()
+      },
+      trigger: 'change',
+    },
+  ],
   frequence: [{ required: true, message: 'Sélectionnez au moins une fréquence', trigger: 'change' }],
 }
 
@@ -780,7 +764,8 @@ async function onEditPrescription(prescriptionId: number) {
   prescriptionForm.dosage = parts.slice(0, -1).join(' ')
   prescriptionForm.unite = parts.length > 1 ? parts[parts.length - 1] : ''
   prescriptionForm.medicament = p.medicament
-  prescriptionForm.voie = p.voie
+  // Normalise les voies legacy ('VO', labels longs) vers l'allowlist backend.
+  prescriptionForm.voie = normalizeVoie(p.voie) ?? (p.voie as string)
   prescriptionForm.duree = p.duree
   prescriptionForm.frequence = [...p.frequence]
   prescriptionForm.prn = p.prn
@@ -795,6 +780,12 @@ async function onPrescrire() {
   }
   const valid = await prescriptionFormRef.value?.validate().catch(() => false)
   if (!valid) return
+  // Normalise vers l'allowlist backend (VO→PO, labels longs) avec message clair.
+  const normalizedVoie = normalizeVoie(prescriptionForm.voie)
+  if (!normalizedVoie) {
+    ElMessage.error(VOIE_ERROR_MESSAGE)
+    return
+  }
 
   prescribing.value = true
   try {
@@ -805,7 +796,7 @@ async function onPrescrire() {
         type: prescriptionForm.type,
         medicament: prescriptionForm.medicament,
         dosage: combinedDosage,
-        voie: prescriptionForm.voie,
+        voie: normalizedVoie,
         duree: prescriptionForm.duree,
         frequence: prescriptionForm.frequence,
         prn: prescriptionForm.prn,
@@ -819,7 +810,7 @@ async function onPrescrire() {
         type: prescriptionForm.type,
         medicament: prescriptionForm.medicament,
         dosage: combinedDosage,
-        voie: prescriptionForm.voie,
+        voie: normalizedVoie,
         duree: prescriptionForm.duree,
         frequence: prescriptionForm.frequence,
         prn: prescriptionForm.prn,
@@ -833,9 +824,9 @@ async function onPrescrire() {
     showPrescriptionDialog.value = false
     editingPrescriptionId.value = null
     resetPrescriptionForm()
-    console.log(`[onPrescrire] 🔄 About to call fetchWeekData(${patientId.value})`)
-    await fetchWeekData(patientId.value)
-    console.log(`[onPrescrire] ✅ fetchWeekData complete`)
+    console.log(`[onPrescrire] 🔄 About to call fetchDisplayData(${patientId.value})`)
+    await fetchDisplayData(patientId.value)
+    console.log(`[onPrescrire] ✅ fetchDisplayData complete`)
   } catch (e) {
     console.error(`[onPrescrire] ❌ ERROR:`, e)
     ElMessage.error(`Erreur: ${(e as Error).message}`)
@@ -867,11 +858,11 @@ const detailMotifSuspension = computed(() => {
   return detailSoin.value?.motifSuspension ?? null
 })
 
-function detailTagType(soin: SoinItem) {
+function detailBadgeClass(soin: SoinItem) {
   switch (soin.statut) {
-    case 'valide': return 'success'
-    case 'suspendu': return 'danger'
-    default: return 'info'
+    case 'valide': return 'cde-badge--success'
+    case 'suspendu': return 'cde-badge--danger'
+    default: return 'cde-badge--info'
   }
 }
 
@@ -906,34 +897,17 @@ async function onShowDetail(soin: SoinItem) {
   margin-bottom: 16px;
 }
 
-.plan-distribution__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.plan-distribution__title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--cd-gray-900);
-}
-
-.plan-distribution__actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.plan-distribution__week-label {
-  min-width: 140px;
-  font-weight: 600;
+.plan-distribution__range-label {
+  font-size: 12px;
+  color: var(--cde-muted);
+  white-space: nowrap;
 }
 
 .plan-distribution__grid-wrapper {
   overflow: auto;
   border: 1px solid var(--cd-gray-200);
   border-radius: 8px;
+  background: var(--cd-widget-bg);
   max-height: calc(100vh - 260px);
 }
 
@@ -945,7 +919,7 @@ async function onShowDetail(soin: SoinItem) {
 
 .plan-distribution__med-header,
 .plan-distribution__type-header {
-  padding: 8px 8px;
+  padding: 8px;
   font-size: 11px;
   font-weight: 700;
   text-align: center;
@@ -954,26 +928,26 @@ async function onShowDetail(soin: SoinItem) {
   border-bottom: 1px solid #95A5A6;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 4;
 }
 
 .plan-distribution__med-header {
-  position: sticky;
   left: 0;
-  z-index: 3;
   text-align: left;
   padding-left: 12px;
 }
 
 .plan-distribution__type-header {
-  position: sticky;
   left: 200px;
-  z-index: 3;
 }
 
 .plan-distribution__date-header {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 3;
+  height: 40px;
   background: var(--cd-gray-100);
   border-bottom: 1px solid var(--cd-gray-200);
   border-right: 1px solid var(--cd-gray-200);
@@ -986,9 +960,15 @@ async function onShowDetail(soin: SoinItem) {
   padding: 6px 12px 2px;
   font-size: 11px;
   font-weight: 600;
+  color: #1C2833;
   text-align: left;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.plan-distribution__date-text-date {
+  color: var(--cd-gray-500);
+  font-weight: 400;
 }
 
 .plan-distribution__date-hours-row {
@@ -1014,30 +994,30 @@ async function onShowDetail(soin: SoinItem) {
   background: #A04000;
   color: #F9E79F;
   font-weight: 700;
-  text-align: center;
   border-left: 1px solid #D35400;
   border-right-color: #D35400;
 }
 
-.plan-distribution__date-header--today .plan-distribution__date-hour--now {
-  color: #F9E79F;
-  background: #A04000;
-  border-right-color: #D35400;
-}
-
 .plan-distribution__date-header--today {
-  background: var(--cd-primary) !important;
+  background: var(--cd-primary);
   color: white;
 }
+
 .plan-distribution__date-header--today .plan-distribution__date-text {
   color: white;
 }
-.plan-distribution__date-header--today .plan-distribution__date-hours-row {
-  border-top-color: rgba(255,255,255,0.3);
+
+.plan-distribution__date-header--today .plan-distribution__date-text-date {
+  color: rgba(255, 255, 255, 0.85);
 }
+
+.plan-distribution__date-header--today .plan-distribution__date-hours-row {
+  border-top-color: rgba(255, 255, 255, 0.3);
+}
+
 .plan-distribution__date-header--today .plan-distribution__date-hour {
-  color: rgba(255,255,255,0.9);
-  border-right-color: rgba(255,255,255,0.2);
+  color: rgba(255, 255, 255, 0.9);
+  border-right-color: rgba(255, 255, 255, 0.2);
 }
 
 .plan-distribution__med-cell {
@@ -1071,30 +1051,21 @@ async function onShowDetail(soin: SoinItem) {
 
 /* ── Med-cell type coloring ── */
 .plan-distribution__med-cell--medicament {
-  border-left: 6px solid #2980B9;
-  background: linear-gradient(to right, rgba(41, 128, 185, 0.15), #BDC3C7);
+  border-left: 3px solid var(--cd-info-blue);
 }
 .plan-distribution__med-cell--soins {
-  border-left: 6px solid #27AE60;
-  background: linear-gradient(to right, rgba(39, 174, 96, 0.15), #BDC3C7);
+  border-left: 3px solid var(--cd-success);
 }
-.plan-distribution__med-cell--medicament:hover {
-  background: linear-gradient(to right, rgba(41, 128, 185, 0.25), #D5D8DC);
-}
-.plan-distribution__med-cell--soins:hover {
-  background: linear-gradient(to right, rgba(39, 174, 96, 0.25), #D5D8DC);
+.plan-distribution__med-cell:hover {
+  background: var(--cde-hover);
 }
 
 /* ── Voie-cell type coloring ── */
 .plan-distribution__voie-cell--medicament {
-  border-left: 4px solid rgba(52, 152, 219, 0.4);
-  border-top: 1px solid rgba(52, 152, 219, 0.15);
-  border-bottom: 1px solid rgba(52, 152, 219, 0.15);
+  border-left: 3px solid var(--cd-info-blue);
 }
 .plan-distribution__voie-cell--soins {
-  border-left: 4px solid rgba(39, 174, 96, 0.4);
-  border-top: 1px solid rgba(39, 174, 96, 0.15);
-  border-bottom: 1px solid rgba(39, 174, 96, 0.15);
+  border-left: 3px solid var(--cd-success);
 }
 
 /* ── Prescription info layout ── */
@@ -1119,36 +1090,35 @@ async function onShowDetail(soin: SoinItem) {
   width: fit-content;
 }
 .plan-distribution__type-badge--medicament {
-  background: rgba(41, 128, 185, 0.2);
-  color: #1A5276;
+  color: var(--cd-info-blue);
+  background: var(--cd-info-bg);
 }
 .plan-distribution__type-badge--soins {
-  background: rgba(39, 174, 96, 0.2);
-  color: #1E8449;
+  color: var(--cd-success);
+  background: var(--cd-success-bg);
 }
 
 /* ── Type indicator dot ── */
 .plan-distribution__type-dot {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.6);
 }
 .plan-distribution__type-dot--medicament {
-  background: linear-gradient(135deg, #3498DB, #2980B9);
+  background: var(--cd-info-blue);
 }
 .plan-distribution__type-dot--soins {
-  background: linear-gradient(135deg, #2ECC71, #27AE60);
+  background: var(--cd-success);
 }
 
 /* ── RDV slot type coloring ── */
 .plan-distribution__rdv--type-medicament {
-  border-left-color: #3498DB;
+  border-left-color: var(--cd-info-blue);
 }
 .plan-distribution__rdv--type-soins {
-  border-left-color: #27AE60;
+  border-left-color: var(--cd-success);
 }
 
 .plan-distribution__type-header::after,
@@ -1158,15 +1128,13 @@ async function onShowDetail(soin: SoinItem) {
   right: 0;
   top: 0;
   bottom: 0;
-  width: 3px;
-  background: linear-gradient(to right, rgba(0,0,0,0.15), transparent);
+  width: 1px;
+  background: var(--cde-border);
   pointer-events: none;
 }
 
 .plan-distribution__cell--now {
-  background: #F9E79F;
-  border-left: 1px solid #D35400;
-  border-right-color: #D35400;
+  background: var(--cd-primary-lighter);
 }
 
 .plan-distribution__cell {
@@ -1190,44 +1158,58 @@ async function onShowDetail(soin: SoinItem) {
   z-index: 1;
 }
 
+.plan-distribution__cell-empty {
+  color: var(--cd-gray-300);
+  font-size: 12px;
+  user-select: none;
+}
+
+.plan-distribution__empty-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  margin-top: 4px;
+  color: var(--cd-gray-500);
+  font-style: italic;
+  font-size: 13px;
+}
+
 .plan-distribution__rdv {
   padding: 3px 5px;
-  border-radius: 2px;
+  border-radius: 3px;
   font-size: 11px;
   cursor: pointer;
-  border: 1px solid transparent;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  border: 1px solid var(--cde-border);
+  transition: border-color 0.15s ease;
 }
 
 .plan-distribution__rdv:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.12);
   border-color: var(--cd-primary);
 }
 
 .plan-distribution__rdv--pending {
-  background: #FDEBD0;
-  color: #935116;
-  border-left: 3px solid #E67E22;
+  background: var(--cd-warning-bg);
+  color: var(--cd-warning);
+  border-left: 3px solid var(--cd-warning);
 }
 
 .plan-distribution__rdv--confirmed {
-  background: #D5F5E3;
-  color: #1A5276;
-  border-left: 3px solid #1A5276;
+  background: var(--cd-success-bg);
+  color: var(--cd-success);
+  border-left: 3px solid var(--cd-success);
 }
 
 .plan-distribution__rdv--cancelled {
-  background: #F5B7B1;
-  color: #641E16;
-  border-left: 3px solid #C0392B;
+  background: var(--cd-danger-bg);
+  color: var(--cd-alert-red);
+  border-left: 3px solid var(--cd-alert-red);
 }
 
 .plan-distribution__rdv-dosage {
   font-size: 11px;
   font-weight: 600;
-  color: #1C2833;
+  color: var(--cd-gray-900);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1249,9 +1231,8 @@ async function onShowDetail(soin: SoinItem) {
 
 .plan-distribution__med-name {
   font-size: 12px;
-  font-weight: 700;
-  color: #1C2833;
-  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-weight: 600;
+  color: var(--cd-gray-900);
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1259,10 +1240,10 @@ async function onShowDetail(soin: SoinItem) {
 }
 
 .plan-distribution__prescription-card {
-  background: #EAEDED;
+  background: var(--cd-gray-50);
   padding: 4px;
-  border-radius: 2px;
-  border: 4px solid transparent;
+  border-radius: 3px;
+  border: 2px solid transparent;
 }
 
 .plan-distribution__prescription-card-row {
@@ -1272,66 +1253,70 @@ async function onShowDetail(soin: SoinItem) {
 }
 
 .plan-distribution__prescription-card--valide {
-  border-color: #1A5276;
+  border-color: var(--cd-primary);
 }
 
 .plan-distribution__prescription-card--en_cours {
-  border: 4px solid;
-  border-image: linear-gradient(135deg, #1A5276 50%, #E67E22 50%) 1;
+  border: 2px solid;
+  border-image: linear-gradient(
+    135deg,
+    var(--cd-primary) var(--rx-progress, 0%),
+    var(--cd-warning) var(--rx-progress, 0%)
+  ) 1;
 }
 
 .plan-distribution__prescription-card--non_administre {
-  border-color: #E67E22;
+  border-color: var(--cd-warning);
 }
 
 .plan-distribution__prescription-card--suspendu {
-  border-color: #C0392B;
+  border-color: var(--cd-alert-red);
 }
 
 .plan-distribution__prescription-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1;
-  border: 1px solid #BDC3C7;
-  background: #E5E7E9;
-  color: #566573;
+  border: 1px solid var(--cde-border);
+  background: var(--cde-bg);
+  color: var(--cde-muted);
   transition: background 0.15s, border-color 0.15s;
   flex-shrink: 0;
 }
 
 .plan-distribution__prescription-action:hover {
-  background: #D5D8DC;
-  border-color: #95A5A6;
+  background: var(--cde-hover);
+  border-color: var(--cd-gray-400);
 }
 
 .plan-distribution__prescription-action--pause {
-  color: #E67E22;
-  border-color: #E67E22;
+  color: var(--cd-warning);
+  border-color: var(--cd-warning);
 }
 
 .plan-distribution__prescription-action--pause:hover {
-  background: #FDEBD0;
+  background: var(--cd-warning-bg);
 }
 
 .plan-distribution__prescription-action--play {
-  color: #2E86C1;
-  border-color: #2E86C1;
+  color: var(--cd-info-blue);
+  border-color: var(--cd-info-blue);
 }
 
 .plan-distribution__prescription-action--play:hover {
-  background: #D4E6F1;
+  background: var(--cd-info-bg);
 }
 
 .plan-distribution__med-dosage {
   font-size: 11px;
-  color: #566573;
+  color: var(--cde-muted);
   line-height: 1.3;
   margin-top: 1px;
   overflow: hidden;
@@ -1341,9 +1326,8 @@ async function onShowDetail(soin: SoinItem) {
 
 .plan-distribution__voie-text {
   font-size: 12px;
-  font-weight: 700;
-  color: #1C2833;
-  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-weight: 600;
+  color: var(--cd-gray-600);
 }
 
 .plan-distribution__rdv-row {
@@ -1355,9 +1339,9 @@ async function onShowDetail(soin: SoinItem) {
 
 .plan-distribution__rdv-voie-tag {
   font-size: 10px;
-  font-weight: 700;
-  color: #6E2C00;
-  background: #FDEBD0;
+  font-weight: 600;
+  color: var(--cd-gray-600);
+  background: var(--cd-gray-100);
   padding: 0 3px;
   border-radius: 2px;
   line-height: 1.4;
@@ -1368,41 +1352,41 @@ async function onShowDetail(soin: SoinItem) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1;
-  border: 1px solid #BDC3C7;
-  background: #E5E7E9;
-  color: #566573;
+  border: 1px solid var(--cde-border);
+  background: var(--cde-bg);
+  color: var(--cde-muted);
   transition: background 0.15s, border-color 0.15s;
   flex-shrink: 0;
 }
 
 .plan-distribution__rdv-icon-btn:hover {
-  background: #D5D8DC;
-  border-color: #95A5A6;
+  background: var(--cde-hover);
+  border-color: var(--cd-gray-400);
 }
 
 .plan-distribution__rdv-icon-btn--ok {
-  color: #27AE60;
-  border-color: #27AE60;
+  color: var(--cd-success);
+  border-color: var(--cd-success);
 }
 
 .plan-distribution__rdv-icon-btn--ok:hover {
-  background: #D5F5E3;
+  background: var(--cd-success-bg);
 }
 
 .plan-distribution__rdv-icon-btn--pause {
-  color: #E67E22;
-  border-color: #E67E22;
+  color: var(--cd-warning);
+  border-color: var(--cd-warning);
 }
 
 .plan-distribution__rdv-icon-btn--pause:hover {
-  background: #FDEBD0;
+  background: var(--cd-warning-bg);
 }
 
 .plan-distribution__rdv-icon-btn--disabled {
@@ -1417,7 +1401,7 @@ async function onShowDetail(soin: SoinItem) {
   gap: 3px;
   margin-top: 2px;
   padding-top: 2px;
-  border-top: 1px solid rgba(0,0,0,0.06);
+  border-top: 1px solid var(--cde-border-soft);
 }
 
 .plan-distribution__rdv-status-icon {
@@ -1427,7 +1411,7 @@ async function onShowDetail(soin: SoinItem) {
 
 .plan-distribution__rdv-status-text {
   font-size: 9px;
-  color: #566573;
+  color: var(--cde-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1437,24 +1421,20 @@ async function onShowDetail(soin: SoinItem) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
   cursor: pointer;
-  font-size: 12px;
-  background: #E5E7E9;
-  color: #2E86C1;
-  border: 1px solid #2E86C1;
+  font-size: 11px;
+  background: var(--cde-bg);
+  color: var(--cd-info-blue);
+  border: 1px solid var(--cd-info-blue);
   line-height: 1;
   margin-left: auto;
 }
 
 .plan-distribution__rdv-reprendre-btn:hover {
-  background: #D4E6F1;
-}
-
-.plan-distribution__empty {
-  padding: 40px 0;
+  background: var(--cd-info-bg);
 }
 
 .plan-distribution__detail {

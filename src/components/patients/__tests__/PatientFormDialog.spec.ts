@@ -46,7 +46,10 @@ const EL_STUBS: Record<string, any> = {
     props: ['modelValue'],
     emits: ['update:modelValue'],
   },
-  'el-form': { template: '<form><slot /></form>' },
+  'el-form': {
+    template: '<form><slot /></form>',
+    methods: { resetFields: vi.fn() },
+  },
   'el-form-item': { template: '<div class="el-form-item"><slot /></div>' },
   'el-select': { template: '<div class="el-select"><slot /></div>' },
   'el-option': { template: '<div class="el-option"><slot /></div>' },
@@ -204,6 +207,129 @@ describe('PatientFormDialog', () => {
     expect(state.allergyInputVisible).toBe(false)
   })
 
+  // ─── NIP generation / stability ───────────────────────────────────────
+
+  it('auto-generates a NIP in create mode when date and lieu are filled', async () => {
+    mockLocalites()
+    const wrapper = createWrapper()
+    const state = setupState(wrapper)
+
+    await wrapper.vm.open()
+
+    state.form.civilite = 'M'
+    state.form.date_naissance = '1990-05-15'
+    state.form.lieu_naissance = 'Écouché'
+    await new Promise(r => setTimeout(r, 50))
+
+    expect(state.form.nip).toMatch(/^190EC[A-Z]{5}$/)
+    expect(state.nip).toBe(state.form.nip)
+  })
+
+  it('keeps the stored NIP stable when editing an existing patient', async () => {
+    mockLocalites()
+    const wrapper = createWrapper()
+    const state = setupState(wrapper)
+
+    await wrapper.vm.open({
+      id: 8,
+      civilite: 'M', nom: 'Diallo', prenom: 'Amadou',
+      date_naissance: '1985-06-15', nir: '1850615123456', telephone: '0612345678',
+      lieu_naissance: 'Conakry',
+      nip: '185CONIP01',
+      allergies: [],
+    })
+
+    expect(state.form.nip).toBe('185CONIP01')
+    expect(state.nip).toBe('185CONIP01')
+
+    // Changing civilité/date/lieu while editing must NOT change the stored NIP
+    state.form.civilite = 'Mme'
+    state.form.date_naissance = '1986-01-01'
+    state.form.lieu_naissance = 'Boké'
+    await new Promise(r => setTimeout(r, 50))
+
+    expect(state.form.nip).toBe('185CONIP01')
+    expect(state.nip).toBe('185CONIP01')
+  })
+
+  it('keeps the stored NIP stable when restoring a patient_edit draft', async () => {
+    mockLocalites()
+    // Edit-mode open finds a stored patient_edit draft for this patient
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'localites:list') {
+        return { success: true, data: createLocalites() }
+      }
+      if (channel === 'form-draft:get') {
+        return {
+          success: true,
+          data: {
+            form_data: JSON.stringify({
+              civilite: 'M', nom: 'Diallo', prenom: 'Amadou',
+              date_naissance: '1985-06-15', lieu_naissance: 'Conakry',
+              nip: '185CONIP01',
+              allergies: [],
+            }),
+            active_step: 0,
+          },
+        }
+      }
+      return { success: true, data: null }
+    })
+
+    const wrapper = createWrapper()
+    const state = setupState(wrapper)
+
+    // ElMessageBox.confirm mock resolves → user picked "Restaurer"
+    await wrapper.vm.open({
+      id: 9,
+      civilite: 'M', nom: 'Diallo', prenom: 'Amadou',
+      date_naissance: '1985-06-15', nir: '1850615123456', telephone: '0612345678',
+      lieu_naissance: 'Conakry',
+      nip: '185CONIP01',
+      allergies: [],
+    })
+
+    // Restore must keep the stored NIP from the draft…
+    expect(state.form.nip).toBe('185CONIP01')
+
+    // …and changing civilité/date/lieu after the restore must NOT regenerate it
+    state.form.civilite = 'Mme'
+    state.form.date_naissance = '1986-01-01'
+    state.form.lieu_naissance = 'Boké'
+    await new Promise(r => setTimeout(r, 50))
+
+    expect(state.form.nip).toBe('185CONIP01')
+
+    // The draft-restore branch must also run in edit mode (the draft was
+    // saved under 'patient_edit') so save/draft plumbing routes to the update path
+    expect(state.isEdit).toBe(true)
+    expect(state.editId).toBe(9)
+  })
+
+  it('regenerates the NIP in create mode after resetForm clears it', async () => {
+    mockLocalites()
+    const wrapper = createWrapper()
+    const state = setupState(wrapper)
+
+    await wrapper.vm.open()
+    state.form.civilite = 'Mme'
+    state.form.date_naissance = '1985-03-20'
+    state.form.lieu_naissance = "N'Zérékoré"
+    await new Promise(r => setTimeout(r, 50))
+    expect(state.form.nip).toMatch(/^285NZ[A-Z]{5}$/)
+
+    state.resetForm()
+    expect(state.form.nip).toBe('')
+    expect(state.isEdit).toBe(false)
+
+    // Re-fill the form — a fresh create must regenerate the NIP
+    state.form.civilite = 'M'
+    state.form.date_naissance = '1990-05-15'
+    state.form.lieu_naissance = 'Conakry'
+    await new Promise(r => setTimeout(r, 50))
+    expect(state.form.nip).toMatch(/^190CO[A-Z]{5}$/)
+  })
+
   // ─── SelectedRegion watch behavior ─────────────────────────────────────
 
   it('updates form.region to region name when selectedRegion changes', async () => {
@@ -358,5 +484,56 @@ describe('PatientFormDialog', () => {
         { libelle: 'Latex', type: 'Autre' },
       ])
     })
+  })
+
+  // ─── Cancel / intentional close — draft must not be re-saved ────────
+
+  it('cancelAndClose() resets the form and handleClose() does not re-save a draft', async () => {
+    mockLocalites()
+    const wrapper = createWrapper()
+    await wrapper.vm.open()
+    const state = setupState(wrapper)
+
+    // Fill the form so a stale draft would otherwise be saved on close
+    state.form.nom = 'Diawara'
+    state.form.prenom = 'Fatou'
+    state.form.telephone = '0612345678'
+
+    // User clicks "Annuler"
+    await state.cancelAndClose()
+
+    // Dialog closed, draft cleared, form fields reset
+    expect(state.dialogVisible).toBe(false)
+    expect(state.skipDraftSaveOnClose).toBe(true)
+    expect(state.form.nom).toBe('')
+    expect(state.form.prenom).toBe('')
+    expect(state.form.telephone).toBe('')
+
+    // Simulate el-dialog @closed firing: must NOT re-save a patient_create draft
+    await state.handleClose()
+
+    const upserts = mockInvoke.mock.calls.filter(([channel]) => channel === 'form-draft:upsert')
+    expect(upserts).toHaveLength(0)
+    // But the existing draft WAS cleared by cancelAndClose
+    const deletes = mockInvoke.mock.calls.filter(([channel]) => channel === 'form-draft:delete')
+    expect(deletes.length).toBeGreaterThan(0)
+  })
+
+  it('re-opening the dialog restores draft autosave for X/ESC close', async () => {
+    mockLocalites()
+    const wrapper = createWrapper()
+    const state = setupState(wrapper)
+
+    await wrapper.vm.open()
+    await state.cancelAndClose()
+    expect(state.skipDraftSaveOnClose).toBe(true)
+
+    // Next open() resets the flag, so a plain X/ESC close autosaves again
+    await wrapper.vm.open()
+    expect(state.skipDraftSaveOnClose).toBe(false)
+
+    await state.handleClose()
+    const upserts = mockInvoke.mock.calls.filter(([channel]) => channel === 'form-draft:upsert')
+    expect(upserts.length).toBeGreaterThan(0)
   })
 })

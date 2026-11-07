@@ -677,4 +677,29 @@ describe('PlanSoinsService', { timeout: 30_000 }, () => {
     const result = await service.getByPatientAndDate(patientId, '2025-06-15')
     expect(result).not.toBeNull()
   })
+
+  // ─── listDatesByPatient ─────────────────────────────────────────
+
+  async function insertPlanSoinsRow(date: string) {
+    const db = datasource.getInstance()
+    return await db
+      .insertInto('plan_soins')
+      .values({ patient_id: patientId, date, created_by: userId } as any)
+      .returningAll()
+      .executeTakeFirstOrThrow()
+  }
+
+  it('returns distinct dates most recent first', async () => {
+    await insertPlanSoinsRow('2025-06-10')
+    await insertPlanSoinsRow('2025-06-15')
+    await insertPlanSoinsRow('2025-06-12')
+
+    const dates = await service.listDatesByPatient(patientId)
+    expect(dates).toEqual(['2025-06-15', '2025-06-12', '2025-06-10'])
+  })
+
+  it('returns empty array for a patient with no plan_soins rows', async () => {
+    const dates = await service.listDatesByPatient(999999)
+    expect(dates).toEqual([])
+  })
 })

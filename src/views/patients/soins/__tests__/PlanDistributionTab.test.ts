@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref, nextTick } from 'vue'
 import PlanDistributionTab from '../PlanDistributionTab.vue'
@@ -22,6 +22,19 @@ const mockIpcInvoke = vi.hoisted(() => vi.fn())
 
 function waitForData() {
   return new Promise(resolve => setTimeout(resolve, 0))
+}
+
+/** AAAA-MM-JJ locale d'il y a n jours (dates relatives → tests stables). */
+function isoDaysAgo(n: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** JJ/MM/AAAA complet depuis un ISO. */
+function fmtFrLong(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
 }
 
 vi.mock('vue-router', () => ({
@@ -99,7 +112,9 @@ vi.mock('@/composables/usePrescriptions', () => ({
 }))
 
 import { usePlanSoins } from '@/composables/usePlanSoins'
+import { usePrescriptions } from '@/composables/usePrescriptions'
 const mockedUsePlanSoins = vi.mocked(usePlanSoins)
+const mockedUsePrescriptions = vi.mocked(usePrescriptions)
 
 const stubs = {
   'el-tag': {
@@ -277,17 +292,28 @@ describe('PlanDistributionTab', () => {
       updatedAt: '',
     })
     mockedUsePlanSoins.mockImplementation(() => createMockPlanSoins())
+    mockedUsePrescriptions.mockImplementation(() => ({
+      prescriptions: ref([]),
+      loading: ref(false),
+      error: ref(null),
+      fetchPrescriptions: vi.fn(),
+      getPrescription: mockGetPrescription,
+      createPrescription: mockCreatePrescription,
+      updatePrescription: mockUpdatePrescription,
+      stopPrescription: vi.fn(),
+      deletePrescription: vi.fn(),
+    }))
   })
 
   describe('rendering', () => {
-    it('renders 63 hour headers (7 days × 9 hours)', async () => {
+    it('renders 63 hour headers (7 recorded dates × 9 hours)', async () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
       const hourHeaders = wrapper.findAll('.plan-distribution__date-hour')
       expect(hourHeaders.length).toBe(63)
     })
 
-    it('renders 7 date headers with day names and dates', async () => {
+    it('renders one date header per recorded date', async () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
       const dateHeaders = wrapper.findAll('.plan-distribution__date-header')
@@ -320,7 +346,7 @@ describe('PlanDistributionTab', () => {
       expect(wrapper.text()).toContain('⛔')
     })
 
-    it('shows en_attente soins with Valider and Suspendre icon buttons across all 7 days', async () => {
+    it('shows en_attente soins with Valider and Suspendre icon buttons across all recorded dates', async () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
       const validerBtns = wrapper.findAll('.plan-distribution__rdv-icon-btn--ok')
@@ -378,7 +404,7 @@ describe('PlanDistributionTab', () => {
   })
 
   describe('reprendre button', () => {
-    it('shows Reprendre button on suspended medication cards across all 7 days', async () => {
+    it('shows Reprendre button on suspended medication cards across all recorded dates', async () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
       const reprendreBtns = wrapper.findAll('.plan-distribution__rdv-reprendre-btn')
@@ -435,7 +461,7 @@ describe('PlanDistributionTab', () => {
   })
 
   describe('suspendu card styling', () => {
-    it('applies plan-distribution__rdv--cancelled class to suspended medication cards across all 7 days', async () => {
+    it('applies plan-distribution__rdv--cancelled class to suspended medication cards across all recorded dates', async () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       await waitForData()
       const cancelledCards = wrapper.findAll('.plan-distribution__rdv--cancelled')
@@ -454,13 +480,120 @@ describe('PlanDistributionTab', () => {
     })
   })
 
-  describe('week navigation', () => {
-    it('renders week navigation with prev/next buttons', () => {
+  describe('rolling 7-day window (cf. ResultatsBio)', () => {
+    it('renders no week prev/next buttons', () => {
       const wrapper = mount(PlanDistributionTab, { global: { stubs } })
       const groups = wrapper.findAll('.el-button-group')
-      expect(groups.length).toBe(1)
-      const buttons = groups[0].findAll('button.el-button')
-      expect(buttons.length).toBe(3)
+      expect(groups.length).toBe(0)
+    })
+
+    it('renders a 7-day range label ending today', async () => {
+      const wrapper = mount(PlanDistributionTab, { global: { stubs } })
+      await waitForData()
+      const label = wrapper.find('.plan-distribution__range-label')
+      expect(label.exists()).toBe(true)
+      expect(label.text()).toContain(fmtFrLong(isoDaysAgo(0)))
+      expect(label.text()).toContain(fmtFrLong(isoDaysAgo(6)))
+      expect(label.text()).toContain('7 jours')
+    })
+
+    it('orders columns most recent first with today at left', async () => {
+      const wrapper = mount(PlanDistributionTab, { global: { stubs } })
+      await waitForData()
+
+      const headers = wrapper.findAll('.plan-distribution__date-header')
+      expect(headers).toHaveLength(7)
+      expect(headers[0].classes()).toContain('plan-distribution__date-header--today')
+      expect(headers.map(h => h.attributes('data-date'))).toEqual([0, 1, 2, 3, 4, 5, 6].map(isoDaysAgo))
+    })
+
+    it('always renders the full grid, even with no distribution data', async () => {
+      mockGetPlanSoins.mockResolvedValue(null)
+      const wrapper = mount(PlanDistributionTab, { global: { stubs } })
+      await waitForData()
+
+      expect(wrapper.find('.plan-distribution__grid-wrapper').exists()).toBe(true)
+      expect(wrapper.findAll('.plan-distribution__date-header')).toHaveLength(7)
+      expect(wrapper.findAll('.plan-distribution__date-hour')).toHaveLength(63)
+      expect(wrapper.text()).toContain('Aucune distribution enregistrée')
+    })
+
+    it('places each day’s soins in the matching day × hour cell', async () => {
+      const today = isoDaysAgo(0)
+      const twoDaysAgo = isoDaysAgo(2)
+      mockGetPlanSoins.mockImplementation(async (_patientId: number, dateKey: string) => {
+        if (dateKey === today) {
+          return {
+            id: 1, patientId: 42, date: dateKey, createdBy: 1, createdAt: '', updatedAt: '',
+            blocs: [{ heure: '08h00', soins: [{ id: 1, medicament: 'Metformine', dosage: '500 mg', voie: 'PO', statut: 'en_attente' }] }],
+          }
+        }
+        if (dateKey === twoDaysAgo) {
+          return {
+            id: 2, patientId: 42, date: dateKey, createdBy: 1, createdAt: '', updatedAt: '',
+            blocs: [{ heure: '14h00', soins: [{ id: 2, medicament: 'Metformine', dosage: '500 mg', voie: 'PO', statut: 'valide', validePar: 'IDE Diallo', valideA: '18:10' }] }],
+          }
+        }
+        return null
+      })
+
+      const wrapper = mount(PlanDistributionTab, { global: { stubs } })
+      await waitForData()
+
+      const findCell = (dateKey: string, hour: number) =>
+        wrapper.findAll('.plan-distribution__cell').find(c =>
+          c.attributes('data-row') === 'Metformine'
+          && c.attributes('data-date') === dateKey
+          && c.attributes('data-hour') === String(hour),
+        )
+
+      expect(findCell(today, 8)?.text()).toContain('500 mg')
+      expect(findCell(twoDaysAgo, 14)?.text()).toContain('500 mg')
+      expect(findCell(twoDaysAgo, 14)?.text()).toContain('IDE Diallo')
+      // No leakage into the day in between.
+      expect(findCell(isoDaysAgo(1), 8)?.text()).toBe('—')
+    })
+
+    it('shows an error alert when a day fetch fails', async () => {
+      mockGetPlanSoins.mockRejectedValue(new Error('Erreur réseau'))
+      const wrapper = mount(PlanDistributionTab, { global: { stubs } })
+      await waitForData()
+      expect(wrapper.find('.el-alert').exists()).toBe(true)
+      expect(wrapper.text()).toContain('Erreur réseau')
+    })
+  })
+
+  describe('prescription fallback rows', () => {
+    it('lists active prescriptions as empty rows when no distribution exists', async () => {
+      mockGetPlanSoins.mockResolvedValue(null)
+      mockedUsePrescriptions.mockImplementation(() => ({
+        prescriptions: ref([
+          {
+            id: 7, patientId: 42, medicament: 'Amlodipine', dosage: '5 mg', voie: 'PO',
+            type: 'medicament', statut: 'active', duree: 30, frequence: ['Matin'],
+            datePrescription: '2026-07-01', prescripteurId: 1, prn: false, instructions: null,
+            createdAt: '', updatedAt: '',
+          },
+        ]),
+        loading: ref(false),
+        error: ref(null),
+        fetchPrescriptions: vi.fn(),
+        getPrescription: mockGetPrescription,
+        createPrescription: mockCreatePrescription,
+        updatePrescription: mockUpdatePrescription,
+        stopPrescription: vi.fn(),
+        deletePrescription: vi.fn(),
+      }))
+
+      const wrapper = mount(PlanDistributionTab, { global: { stubs } })
+      await waitForData()
+
+      expect(wrapper.findAll('.plan-distribution__med-cell')).toHaveLength(1)
+      expect(wrapper.text()).toContain('Amlodipine')
+      const cells = wrapper.findAll('.plan-distribution__cell')
+      expect(cells).toHaveLength(63)
+      cells.forEach(c => expect(c.text()).toBe('—'))
+      expect(wrapper.findAll('.plan-distribution__rdv')).toHaveLength(0)
     })
   })
 
@@ -749,6 +882,57 @@ describe('PlanDistributionTab', () => {
 
       const action = wrapper.find('.plan-distribution__prescription-action')
       expect(action.exists()).toBe(false)
+    })
+  })
+
+  describe('catalogue pharmacie', () => {
+    function catalogueIpc(catalogue: Array<Record<string, any>> | undefined) {
+      mockIpcInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'medicament:list') return catalogue
+        return undefined
+      })
+    }
+
+    async function openPrescriptionDialog() {
+      const wrapper = mount(PlanDistributionTab, { global: { stubs } })
+      await waitForData()
+      const prescribeBtn = wrapper.findAll('.el-button').find((b) => b.text().includes('Prescrire'))!
+      await prescribeBtn.trigger('click')
+      await waitForData()
+      return wrapper
+    }
+
+    function dialogOptionLabels(wrapper: ReturnType<typeof openPrescriptionDialog>): string[] {
+      return wrapper.find('.el-dialog').findAll('.el-option').map((o) => o.text())
+    }
+
+    afterEach(async () => {
+      const { useMedicaments } = await import('@/composables/useMedicaments')
+      useMedicaments().medicaments.value = []
+    })
+
+    it('fetches the catalogue on mount', async () => {
+      catalogueIpc([])
+      mount(PlanDistributionTab, { global: { stubs } })
+      await waitForData()
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('medicament:list', { actif: true })
+    })
+
+    it('uses catalogue options when available', async () => {
+      catalogueIpc([{ id: 21, dci: 'Metformine', dosage: '500 mg' }])
+      const wrapper = await openPrescriptionDialog()
+
+      expect(dialogOptionLabels(wrapper)).toContain('Metformine 500 mg')
+    })
+
+    it('falls back to the local list when the catalogue is empty', async () => {
+      catalogueIpc(undefined)
+      const wrapper = await openPrescriptionDialog()
+
+      const labels = dialogOptionLabels(wrapper)
+      expect(labels).toContain('Insuline NOVORAPID')
+      expect(labels).not.toContain('Metformine 500 mg')
     })
   })
 })

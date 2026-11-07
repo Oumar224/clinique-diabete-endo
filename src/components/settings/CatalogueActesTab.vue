@@ -1,73 +1,113 @@
 <template>
-  <div class="cat">
-    <el-alert v-if="error" type="error" :title="error" show-icon closable style="margin-bottom: 12px" />
+  <div class="cat cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Actes médicaux
+        </h1>
+        <p class="cde-page-sub">
+          Catalogue des actes et services associés
+        </p>
+      </div>
+    </header>
 
-    <div class="cat__toolbar">
-      <el-input
-        v-model="search"
-        placeholder="Rechercher un acte..."
-        clearable
-        style="width: 260px"
-        @input="onSearch"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      <el-select
-        v-model="serviceFilter"
-        placeholder="Filtrer par service"
-        clearable
-        style="width: 200px"
-        @change="onSearch"
-      >
-        <el-option
-          v-for="s in services"
-          :key="s.id"
-          :label="s.name"
-          :value="s.id!"
-        />
-      </el-select>
-      <el-button type="primary" :icon="Plus" @click="openCreate">Nouvel acte</el-button>
+    <el-alert
+      v-if="error"
+      class="cde-alert cde-alert--danger"
+      type="error"
+      :title="error"
+      :closable="true"
+      @close="error = null"
+    />
+
+    <div class="cde-toolbar">
+      <div class="cde-filters">
+        <div class="cde-filter cde-toolbar__search">
+          <span class="cde-filter__label">Recherche</span>
+          <el-input
+            v-model="search"
+            placeholder="Code ou libellé…"
+            clearable
+            size="small"
+            @input="onSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+        </div>
+        <div class="cde-filter">
+          <span class="cde-filter__label">Service</span>
+          <el-select
+            v-model="serviceFilter"
+            class="cde-toolbar__select"
+            placeholder="Tous"
+            clearable
+            size="small"
+            @change="onSearch"
+          >
+            <el-option
+              v-for="s in services"
+              :key="s.id"
+              :label="s.name"
+              :value="s.id!"
+            />
+          </el-select>
+        </div>
+      </div>
+      <div class="cde-toolbar__actions">
+        <el-button type="primary" size="small" :icon="Plus" @click="openCreate">
+          Nouvel acte
+        </el-button>
+      </div>
     </div>
 
-    <el-table
-      v-loading="loading"
-      :data="paginatedActs"
-      style="width: 100%"
-      border
-      row-key="id"
-    >
-      <el-table-column prop="code" label="Code" width="130" />
-      <el-table-column prop="label" label="Libellé" min-width="250" />
-      <el-table-column prop="service_name" label="Service" width="180" />
-      <el-table-column label="Actif" width="80" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
-            {{ row.is_active ? 'Oui' : 'Non' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="Actions" width="120" align="center">
-        <template #default="{ row }">
-          <el-button text type="primary" :icon="Edit" size="small" @click="openEdit(row)" />
-          <el-button text type="danger" :icon="Delete" size="small" @click="handleDelete(row)" />
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="cde-table-card">
+      <el-table
+        v-loading="loading"
+        :data="paginatedActs"
+        style="width: 100%"
+        size="small"
+        row-key="id"
+        empty-text=""
+      >
+        <el-table-column prop="code" label="Code" width="130" />
+        <el-table-column prop="label" label="Libellé" min-width="250" />
+        <el-table-column prop="service_name" label="Service" width="180">
+          <template #default="{ row }">
+            <span :class="{ 'cde-muted': !row.service_name }">{{ row.service_name || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Actif" width="80" align="center">
+          <template #default="{ row }">
+            <span class="cde-badge" :class="row.is_active ? 'cde-badge--success' : 'cde-badge--danger'">
+              {{ row.is_active ? 'Oui' : 'Non' }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Actions" width="120" align="center">
+          <template #default="{ row }">
+            <el-button text type="primary" size="small" :icon="Edit" title="Modifier" @click="openEdit(row)" />
+            <el-button text type="danger" size="small" :icon="Delete" title="Supprimer" @click="handleDelete(row)" />
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
-    <el-empty v-if="!loading && filteredActs.length === 0" description="Aucun acte médical" />
+    <div v-if="!loading && filteredActs.length === 0" class="cde-empty">
+      Aucun acte médical.
+    </div>
 
-    <el-row justify="center" style="margin-top: 20px">
+    <div class="cde-footer">
+      <span class="cde-muted">{{ filteredActs.length }} acte(s)</span>
       <el-pagination
         v-model:current-page="paginator.currPage"
         v-model:page-size="paginator.pageSize"
-        background
         layout="sizes, prev, pager, next"
         :page-sizes="[10, 20, 50]"
         :total="filteredActs.length"
       />
-    </el-row>
+    </div>
 
     <MedicalActFormDialog ref="actDialogRef" @saved="onSaved" />
   </div>
@@ -150,13 +190,3 @@ function onSaved() {
   paginator.currPage = 1
 }
 </script>
-
-<style scoped>
-.cat__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-</style>

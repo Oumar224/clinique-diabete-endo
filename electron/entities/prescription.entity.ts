@@ -1,4 +1,5 @@
 import type { PrescriptionDto, FrequenceType } from '../dto/prescription.dto'
+import { normalizeVoieOrThrow, type VoieCode } from '../constants/voies'
 import { EntityRegistry } from '../automerge/entity-registry'
 import { PrescriptionConverter } from '../automerge/converters/prescription.converter'
 import type { AutomergeDocument } from '../automerge/utils/entity-types'
@@ -9,7 +10,7 @@ export class PrescriptionEntity {
   @SchemaField() patient_id?: number
   @SchemaField() medicament?: string
   @SchemaField() dosage?: string
-  @SchemaField() voie?: string
+  @SchemaField() voie?: VoieCode | string
   @SchemaField() duree?: number
   @SchemaField() duree_type?: string
   @SchemaField() frequence?: string
@@ -58,7 +59,9 @@ export class PrescriptionEntity {
     e.patient_id = dto.patientId
     e.medicament = dto.medicament
     e.dosage = dto.dosage
-    e.voie = dto.voie
+    // Normalise 'PO (Per Os)' -> 'PO', alias VO -> PO, throw métier si hors CHECK.
+    // On ne normalise que si une valeur est fournie : le service valide le requis.
+    e.voie = dto.voie != null && String(dto.voie).trim() !== '' ? normalizeVoieOrThrow(dto.voie) : dto.voie
     e.duree = dto.duree
     e.duree_type = dto.dureeType ?? 'courte'
     e.frequence = dto.frequence?.join(',')

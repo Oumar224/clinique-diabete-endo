@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { ref, nextTick } from 'vue'
+import { nextTick } from 'vue'
 import OrdonnanceLibreForm from '@/components/patients/OrdonnanceLibreForm.vue'
+import sourceSfc from '@/components/patients/OrdonnanceLibreForm.vue?raw'
 
 // ===========================================================================
 // Hoisted mocks
@@ -36,6 +37,8 @@ vi.mock('element-plus', () => ({
 
 vi.mock('@element-plus/icons-vue', () => ({
   Delete: { render: () => {} },
+  Plus: { render: () => {} },
+  Edit: { render: () => {} },
 }))
 
 vi.mock('@/composables/usePatientContext', () => ({
@@ -75,6 +78,20 @@ vi.mock('@/components/patients/RichTextEditor.vue', () => ({
     template: '<div class="rich-editor-mock" />',
     props: ['modelValue', 'readonly', 'rows', 'placeholder'],
     emits: ['update:modelValue', 'change'],
+  },
+}))
+
+vi.mock('@/components/patients/OrdonnanceSortieTab.vue', () => ({
+  default: {
+    name: 'OrdonnanceSortieTab',
+    template: [
+      '<div class="ordonnance-sortie-tab">',
+      '  <span class="ordonnance-sortie-tab__count">{{ data.length }}</span>',
+      '  <button class="ordonnance-sortie-tab__change" @click="$emit(\'change\')">Changer</button>',
+      '</div>',
+    ].join(''),
+    props: ['data', 'readonly', 'patientId'],
+    emits: ['change'],
   },
 }))
 
@@ -202,18 +219,6 @@ const defaultProps = {
   contactDisplay: 'Hospitalisation - 01/01/2024',
 }
 
-function makeAvailablePrescription(overrides: Record<string, any> = {}) {
-  return {
-    id: 1,
-    medicament: 'Metformine 500 mg',
-    dosage: '500 mg',
-    voie: 'PO',
-    frequence: ['Matin', 'Midi', 'Soir'],
-    statut: 'active',
-    ...overrides,
-  }
-}
-
 // ===========================================================================
 // Tests
 // ===========================================================================
@@ -261,30 +266,10 @@ describe('OrdonnanceLibreForm', () => {
   })
 
   // -----------------------------------------------------------------------
-  // Available prescriptions loading
+  // OrdonnanceSortieTab integration
   // -----------------------------------------------------------------------
-  describe('available prescriptions', () => {
-    it('loads available prescriptions on mount', async () => {
-      mount(OrdonnanceLibreForm, {
-        props: defaultProps,
-        global: { stubs },
-      })
-
-      await nextTick()
-      await waitForData()
-      await nextTick()
-
-      expect(mockFetchAvailablePrescriptions).toHaveBeenCalledTimes(1)
-      expect(mockFetchAvailablePrescriptions).toHaveBeenCalledWith(1)
-    })
-
-    it('renders existing prescriptions table', async () => {
-      const prescriptions = [
-        makeAvailablePrescription(),
-        makeAvailablePrescription({ id: 2, medicament: 'Amlodipine 5 mg', dosage: '5 mg' }),
-      ]
-      mockFetchAvailablePrescriptions.mockResolvedValue(prescriptions)
-
+  describe('OrdonnanceSortieTab integration', () => {
+    it('renders OrdonnanceSortieTab with patient id from context', async () => {
       const wrapper = mount(OrdonnanceLibreForm, {
         props: defaultProps,
         global: { stubs },
@@ -294,14 +279,81 @@ describe('OrdonnanceLibreForm', () => {
       await waitForData()
       await nextTick()
 
-      expect(wrapper.find('.el-table').exists()).toBe(true)
-      expect(wrapper.text()).toContain('Metformine 500 mg')
-      expect(wrapper.text()).toContain('Amlodipine 5 mg')
+      const tab = wrapper.findComponent({ name: 'OrdonnanceSortieTab' })
+      expect(tab.exists()).toBe(true)
+      expect(tab.props('patientId')).toBe(1)
+      expect(tab.props('readonly')).toBe(false)
     })
 
-    it('shows empty state when no prescriptions available', async () => {
-      mockFetchAvailablePrescriptions.mockResolvedValue([])
+    it('loads ordonnanceSortie from document formData', async () => {
+      const props = {
+        ...defaultProps,
+        document: {
+          ...defaultProps.document,
+          formData: {
+            ordonnanceSortie: [
+              {
+                _key: 'k1',
+                categorie: 'medicament',
+                medicament: 'Metformine 500 mg',
+                dosage: '500',
+                unite: 'mg',
+                voie: 'VO',
+                duree: 7,
+                dureeType: 'courte',
+                frequence: ['Matin'],
+                frequenceType: 'moments',
+                instructions: '',
+                formeGalenique: '',
+                momentPrises: [],
+                renouvellement: false,
+                nbRenouvellements: 1,
+              },
+            ],
+          },
+        },
+      }
 
+      const wrapper = mount(OrdonnanceLibreForm, {
+        props,
+        global: { stubs },
+      })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      expect((wrapper.vm as any).ordonnanceItems.length).toBe(1)
+      expect((wrapper.vm as any).ordonnanceItems[0].medicament).toBe('Metformine 500 mg')
+      // Cloné, pas référencé : les mutations du tab ne touchent pas formData
+      expect((wrapper.vm as any).ordonnanceItems[0]).not.toBe(props.document.formData.ordonnanceSortie[0])
+    })
+
+    it('leaves ordonnanceItems empty for legacy docs (inlinePrescriptions only)', async () => {
+      const props = {
+        ...defaultProps,
+        document: {
+          ...defaultProps.document,
+          formData: {
+            inlinePrescriptions: [{ medicament: 'Ancien médicament' }],
+            linkedPrescriptionIds: [],
+          },
+        },
+      }
+
+      const wrapper = mount(OrdonnanceLibreForm, {
+        props,
+        global: { stubs },
+      })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      expect((wrapper.vm as any).ordonnanceItems.length).toBe(0)
+    })
+
+    it('shows zero badge when ordonnanceItems is empty', async () => {
       const wrapper = mount(OrdonnanceLibreForm, {
         props: defaultProps,
         global: { stubs },
@@ -311,22 +363,15 @@ describe('OrdonnanceLibreForm', () => {
       await waitForData()
       await nextTick()
 
-      expect(wrapper.find('.el-empty').exists()).toBe(true)
-      expect(wrapper.text()).toContain('Aucune prescription existante')
+      expect(wrapper.find('.ordonnance-sortie-tab__count').text()).toBe('0')
     })
   })
 
   // -----------------------------------------------------------------------
-  // Prescription selection
+  // buildFormData / ordonnanceSortie serialization
   // -----------------------------------------------------------------------
-  describe('prescription selection', () => {
-    it('toggles prescription selection', async () => {
-      const prescriptions = [
-        makeAvailablePrescription({ id: 1 }),
-        makeAvailablePrescription({ id: 2, medicament: 'Amlodipine 5 mg' }),
-      ]
-      mockFetchAvailablePrescriptions.mockResolvedValue(prescriptions)
-
+  describe('ordonnanceSortie data flow', () => {
+    it('buildFormData serializes a deep-cloned ordonnanceSortie', async () => {
       const wrapper = mount(OrdonnanceLibreForm, {
         props: defaultProps,
         global: { stubs },
@@ -336,29 +381,131 @@ describe('OrdonnanceLibreForm', () => {
       await waitForData()
       await nextTick()
 
-      expect(wrapper.find('.el-table').exists()).toBe(true)
+      ;(wrapper.vm as any).ordonnanceItems.push({
+        _key: 'k2',
+        categorie: 'examen',
+        medicament: '',
+        dosage: '',
+        unite: '',
+        voie: '',
+        duree: 7,
+        dureeType: 'courte',
+        frequence: [],
+        frequenceType: 'moments',
+        instructions: '',
+        formeGalenique: '',
+        momentPrises: [],
+        renouvellement: false,
+        nbRenouvellements: 1,
+        examen: 'NFS',
+        motif: '',
+      })
+      const fd = (wrapper.vm as any).buildFormData()
 
-      ;(wrapper.vm as any).togglePrescription(1, true)
+      expect(fd.ordonnanceSortie).toHaveLength(1)
+      expect(fd.ordonnanceSortie[0].examen).toBe('NFS')
+      expect(fd.title).toBe('Ordonnance Libre')
+      expect(fd.ordonnanceSortie[0]).not.toBe((wrapper.vm as any).ordonnanceItems[0])
+    })
+
+    it('buildFormData deep-clones : muter le tableau source après build ne change pas le snapshot', async () => {
+      const wrapper = mount(OrdonnanceLibreForm, {
+        props: defaultProps,
+        global: { stubs },
+      })
+
+      await nextTick()
+      await waitForData()
       await nextTick()
 
-      expect((wrapper.vm as any).selectedPrescriptionIds).toContain(1)
+      ;(wrapper.vm as any).ordonnanceItems.push({
+        _key: 'k-deep',
+        categorie: 'soins',
+        medicament: 'Pansement quotidien',
+        dosage: '',
+        unite: '',
+        voie: '',
+        duree: 7,
+        dureeType: 'courte',
+        frequence: ['Matin'],
+        frequenceType: 'moments',
+        instructions: '',
+        formeGalenique: '',
+        momentPrises: [],
+        renouvellement: false,
+        nbRenouvellements: 1,
+        objectifClinique: '<p>Objectif A</p>',
+        consignesSpecifiques: '',
+      })
+      const fd = (wrapper.vm as any).buildFormData()
 
-      ;(wrapper.vm as any).togglePrescription(1, false)
+      // Muter l'item SOURCE après le build : le clone ne doit PAS être affecté
+      ;(wrapper.vm as any).ordonnanceItems[0].medicament = 'Muté après build'
+      ;(wrapper.vm as any).ordonnanceItems[0].objectifClinique = '<p>Objectif MUTÉ</p>'
+
+      expect(fd.ordonnanceSortie[0].medicament).toBe('Pansement quotidien')
+      expect(fd.ordonnanceSortie[0].objectifClinique).toBe('<p>Objectif A</p>')
+    })
+
+    it('change emitted by the tab marks the form dirty through buildFormData', async () => {
+      const wrapper = mount(OrdonnanceLibreForm, {
+        props: defaultProps,
+        global: { stubs },
+      })
+
+      await nextTick()
+      await waitForData()
       await nextTick()
 
-      expect((wrapper.vm as any).selectedPrescriptionIds).not.toContain(1)
+      await wrapper.find('.ordonnance-sortie-tab__change').trigger('click')
+      await nextTick()
+
+      // Le tab mute data puis émet 'change' ; le formulaire n'a rien à stocker
+      // de plus — buildFormData() lit ordonnanceItems à l'enregistrement.
+      expect(wrapper.emitted('change')).toBeUndefined()
     })
   })
 
   // -----------------------------------------------------------------------
-  // Inline prescriptions
+  // Relecture d'un document existant
   // -----------------------------------------------------------------------
-  describe('inline prescriptions', () => {
-    it('adds inline prescription', async () => {
-      mockFetchAvailablePrescriptions.mockResolvedValue([])
+  describe('relecture document existant', () => {
+    it('charges ordonnanceSortie from formData on mount', async () => {
+      const props = {
+        ...defaultProps,
+        document: {
+          ...defaultProps.document,
+          formData: {
+            ordonnanceSortie: [
+              {
+                _key: 'k3',
+                categorie: 'soins',
+                medicament: 'Pansement quotidien',
+                dosage: '',
+                unite: '',
+                voie: '',
+                duree: 7,
+                dureeType: 'courte',
+                frequence: ['Matin'],
+                frequenceType: 'moments',
+                instructions: '',
+                formeGalenique: '',
+                momentPrises: [],
+                renouvellement: false,
+                nbRenouvellements: 1,
+                nbSeances: 2,
+                objectifClinique: '',
+                consignesSpecifiques: '',
+                dispositifsMedicaux: '',
+                professionnelCible: '',
+              },
+            ],
+          },
+        },
+      }
 
       const wrapper = mount(OrdonnanceLibreForm, {
-        props: defaultProps,
+        props,
         global: { stubs },
       })
 
@@ -366,63 +513,9 @@ describe('OrdonnanceLibreForm', () => {
       await waitForData()
       await nextTick()
 
-      const selects = wrapper.findAll('select.el-select')
-      await selects[0].setValue('Metformine 500 mg')
-      await selects[1].setValue('mg')
-      await selects[2].setValue('Orale')
-
-      const inputs = wrapper.findAll('input.el-input')
-      await inputs[0].setValue('1')
-
-      await nextTick()
-
-      const addBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Ajouter')
-      expect(addBtn).toBeTruthy()
-      await addBtn!.trigger('click')
-      await waitForData()
-      await nextTick()
-
-      expect((wrapper.vm as any).inlinePrescriptions.length).toBe(1)
-      expect((wrapper.vm as any).inlinePrescriptions[0].medicament).toBe('Metformine 500 mg')
-    })
-
-    it('removes inline prescription', async () => {
-      mockFetchAvailablePrescriptions.mockResolvedValue([])
-
-      const wrapper = mount(OrdonnanceLibreForm, {
-        props: defaultProps,
-        global: { stubs },
-      })
-
-      await nextTick()
-      await waitForData()
-      await nextTick()
-
-      const selects = wrapper.findAll('select.el-select')
-      await selects[0].setValue('Metformine 500 mg')
-      await selects[1].setValue('mg')
-      await selects[2].setValue('Orale')
-
-      const inputs = wrapper.findAll('input.el-input')
-      await inputs[0].setValue('1')
-
-      await nextTick()
-
-      const addBtn = wrapper.findAll('button.el-button').find(b => b.text().trim() === 'Ajouter')
-      await addBtn!.trigger('click')
-      await waitForData()
-      await nextTick()
-
-      expect((wrapper.vm as any).inlinePrescriptions.length).toBe(1)
-
-      const inlineItem = wrapper.find('.ordonnance-libre-form__inline-item')
-      expect(inlineItem.exists()).toBe(true)
-      const deleteBtn = inlineItem.find('button.el-button')
-      expect(deleteBtn.exists()).toBe(true)
-      await deleteBtn.trigger('click')
-      await nextTick()
-
-      expect((wrapper.vm as any).inlinePrescriptions.length).toBe(0)
+      expect((wrapper.vm as any).ordonnanceItems.length).toBe(1)
+      expect((wrapper.vm as any).ordonnanceItems[0].categorie).toBe('soins')
+      expect((wrapper.vm as any).ordonnanceItems[0].nbSeances).toBe(2)
     })
   })
 
@@ -431,8 +524,6 @@ describe('OrdonnanceLibreForm', () => {
   // -----------------------------------------------------------------------
   describe('save actions', () => {
     it('emits save with correct formData on handleSaveDraft', async () => {
-      mockFetchAvailablePrescriptions.mockResolvedValue([])
-
       const wrapper = mount(OrdonnanceLibreForm, {
         props: defaultProps,
         global: { stubs },
@@ -451,8 +542,7 @@ describe('OrdonnanceLibreForm', () => {
       expect(wrapper.emitted('save')).toBeTruthy()
       expect(wrapper.emitted('save')![0]).toEqual([
         expect.objectContaining({
-          linkedPrescriptionIds: [],
-          inlinePrescriptions: [],
+          ordonnanceSortie: [],
           title: 'Ordonnance Libre',
         }),
       ])
@@ -464,10 +554,6 @@ describe('OrdonnanceLibreForm', () => {
   // -----------------------------------------------------------------------
   describe('readonly mode', () => {
     it('does not show form when readonly', async () => {
-      mockFetchAvailablePrescriptions.mockResolvedValue([
-        makeAvailablePrescription(),
-      ])
-
       const wrapper = mount(OrdonnanceLibreForm, {
         props: { ...defaultProps, readonly: true },
         global: { stubs },
@@ -477,7 +563,9 @@ describe('OrdonnanceLibreForm', () => {
       await waitForData()
       await nextTick()
 
-      expect(wrapper.find('.ordonnance-libre-form__inline-form').exists()).toBe(false)
+      const tab = wrapper.findComponent({ name: 'OrdonnanceSortieTab' })
+      expect(tab.exists()).toBe(true)
+      expect(tab.props('readonly')).toBe(true)
       expect(wrapper.find('.ordonnance-libre-form__footer').exists()).toBe(false)
       expect(wrapper.find('.el-alert').exists()).toBe(true)
       expect(wrapper.text()).toContain('Ce document est verrouillé en lecture seule.')
@@ -485,12 +573,10 @@ describe('OrdonnanceLibreForm', () => {
   })
 
   // -----------------------------------------------------------------------
-  // Preview section
+  // Footer
   // -----------------------------------------------------------------------
-  describe('preview section', () => {
-    it('shows empty preview when no prescriptions', async () => {
-      mockFetchAvailablePrescriptions.mockResolvedValue([])
-
+  describe('footer', () => {
+    it('shows footer actions when not readonly', async () => {
       const wrapper = mount(OrdonnanceLibreForm, {
         props: defaultProps,
         global: { stubs },
@@ -500,8 +586,34 @@ describe('OrdonnanceLibreForm', () => {
       await waitForData()
       await nextTick()
 
-      expect(wrapper.find('.ordonnance-libre-form__preview-empty').exists()).toBe(true)
-      expect(wrapper.text()).toContain('Aucune prescription sélectionnée ou ajoutée')
+      expect(wrapper.find('.ordonnance-libre-form__footer').exists()).toBe(true)
+      expect(wrapper.text()).toContain('Enregistrer Brouillon')
+      expect(wrapper.text()).toContain('Signer')
+    })
+
+    it('renders the footer with position: sticky so it stays visible when scrolling', async () => {
+      const wrapper = mount(OrdonnanceLibreForm, {
+        props: defaultProps,
+        global: { stubs },
+      })
+
+      await nextTick()
+      await waitForData()
+      await nextTick()
+
+      const footer = wrapper.find('.ordonnance-libre-form__footer')
+      expect(footer.exists()).toBe(true)
+
+      // jsdom ne fait ni layout ni injection de CSS (Vitest ne traite pas les
+      // <style> des SFC par défaut) : on ne peut pas mesurer la position.
+      // Contract-test sur la déclaration source : le sélecteur scopé du footer
+      // doit déclarer `position: sticky` + `bottom: 0`.
+      const css = (sourceSfc.match(/<style[^>]*>([\s\S]*?)<\/style>/g) || [])
+        .join('\n')
+        .replace(/\s+/g, ' ')
+      expect(css).toContain('.ordonnance-libre-form__footer')
+      expect(css).toMatch(/\.ordonnance-libre-form__footer[^{]*\{[^}]*position: sticky/)
+      expect(css).toMatch(/\.ordonnance-libre-form__footer[^{]*\{[^}]*bottom: 0/)
     })
   })
 

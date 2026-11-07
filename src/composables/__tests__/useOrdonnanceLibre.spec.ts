@@ -2,6 +2,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { nextTick } from 'vue'
+import type { ElMessage } from 'element-plus'
 
 const mockIpcInvoke = vi.hoisted(() => vi.fn())
 
@@ -15,6 +16,7 @@ vi.mock('element-plus', () => ({
 
 // Must import after vi.mock
 import { useOrdonnanceLibre } from '../useOrdonnanceLibre'
+import { ElMessage as mockElMessage } from 'element-plus'
 
 describe('useOrdonnanceLibre', () => {
   beforeEach(() => {
@@ -160,6 +162,116 @@ describe('useOrdonnanceLibre', () => {
       await deleteOrdonnance(1)
       await nextTick()
       expect(error.value).toBe('Delete failed')
+    })
+  })
+
+  // ─── createOrReplaceFromGroup ──────────────────────────────────
+
+  describe('createOrReplaceFromGroup', () => {
+    const params = {
+      patientId: 7,
+      contactId: '42',
+      serviceId: null,
+      siteId: null,
+      createdBy: 'user-1',
+      title: 'CRH - 05/09/2026',
+      sourceDocumentId: 'doc-1',
+      categorie: 'medicament',
+      items: [{ _key: 'k1', medicament: 'Metformine' }],
+    }
+
+    it('should call IPC with channel ordonnance-libre:create-from-group and full params', async () => {
+      mockIpcInvoke.mockResolvedValue({ documentId: 'new-1', replaced: false })
+      const { createOrReplaceFromGroup } = useOrdonnanceLibre()
+      await createOrReplaceFromGroup(params)
+      expect(mockIpcInvoke).toHaveBeenCalledWith(
+        'ordonnance-libre:create-from-group',
+        params,
+      )
+    })
+
+    it('should return the result { documentId, replaced }', async () => {
+      const result = { documentId: 'doc-new', replaced: true }
+      mockIpcInvoke.mockResolvedValue(result)
+      const { createOrReplaceFromGroup } = useOrdonnanceLibre()
+      expect(await createOrReplaceFromGroup(params)).toEqual(result)
+    })
+
+    it('should return null and toast an error when IPC rejects', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('Boom'))
+      const { createOrReplaceFromGroup } = useOrdonnanceLibre()
+      const result = await createOrReplaceFromGroup(params)
+      expect(result).toBeNull()
+      expect(mockElMessage.error).toHaveBeenCalledWith('Boom')
+    })
+
+    it('should return null and toast the default error when IPC rejects with no message', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error())
+      const { createOrReplaceFromGroup } = useOrdonnanceLibre()
+      const result = await createOrReplaceFromGroup(params)
+      expect(result).toBeNull()
+      expect(mockElMessage.error).toHaveBeenCalledWith(
+        "Erreur lors de la génération de l'ordonnance",
+      )
+    })
+  })
+
+  // ─── findCrhGroupOrdonnance ────────────────────────────────────
+
+  describe('findCrhGroupOrdonnance', () => {
+    it('should call ordonnance-libre:list with the patientId', async () => {
+      mockIpcInvoke.mockResolvedValue([])
+      const { findCrhGroupOrdonnance } = useOrdonnanceLibre()
+      await findCrhGroupOrdonnance(7, 'doc-1', 'soins')
+      expect(mockIpcInvoke).toHaveBeenCalledWith('ordonnance-libre:list', { patientId: 7 })
+    })
+
+    it('should return the record whose parsed form_data matches source=crh, sourceDocumentId and categorie', async () => {
+      const target = {
+        id: 99,
+        form_data: JSON.stringify({
+          source: 'crh',
+          sourceDocumentId: 'doc-1',
+          categorie: 'soins',
+          title: 'CRH - x',
+        }),
+      }
+      const other = {
+        id: 100,
+        form_data: JSON.stringify({
+          source: 'crh',
+          sourceDocumentId: 'doc-1',
+          categorie: 'medicament',
+        }),
+      }
+      mockIpcInvoke.mockResolvedValue([other, target])
+      const { findCrhGroupOrdonnance } = useOrdonnanceLibre()
+      const result = await findCrhGroupOrdonnance(7, 'doc-1', 'soins')
+      expect(result).toEqual(target)
+    })
+
+    it('should handle form_data as an object (already parsed)', async () => {
+      const target = {
+        id: 3,
+        form_data: { source: 'crh', sourceDocumentId: 'AB', categorie: 'avis' },
+      }
+      mockIpcInvoke.mockResolvedValue([target])
+      const { findCrhGroupOrdonnance } = useOrdonnanceLibre()
+      expect(await findCrhGroupOrdonnance(7, 'AB', 'avis')).toEqual(target)
+    })
+
+    it('should return null when no record matches', async () => {
+      mockIpcInvoke.mockResolvedValue([
+        { id: 1, form_data: JSON.stringify({ source: 'libre' }) },
+      ])
+      const { findCrhGroupOrdonnance } = useOrdonnanceLibre()
+      expect(await findCrhGroupOrdonnance(7, 'doc-x', 'medicament')).toBeNull()
+    })
+
+    it('should return null when the IPC call rejects', async () => {
+      mockIpcInvoke.mockRejectedValue(new Error('fail'))
+      const { findCrhGroupOrdonnance } = useOrdonnanceLibre()
+      expect(await findCrhGroupOrdonnance(7, 'doc-1', 'medicament')).toBeNull()
     })
   })
 })

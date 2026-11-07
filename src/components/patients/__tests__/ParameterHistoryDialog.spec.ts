@@ -1,12 +1,40 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import type { ParameterHistoryEntry } from '@/composables/useParameterHistory'
 
 // ─── Mock Element Plus ─────────────────────────────────────────────
 
 vi.mock('element-plus', () => ({
   ElMessage: { success: vi.fn(), warning: vi.fn(), error: vi.fn() },
+}))
+
+// ─── Mock chart.js & vue-chartjs (pattern from DiagrammeSyntheseTab) ─
+
+vi.mock('chart.js', () => ({
+  Chart: { register: vi.fn() },
+  CategoryScale: vi.fn(),
+  LinearScale: vi.fn(),
+  PointElement: vi.fn(),
+  LineElement: vi.fn(),
+  Title: vi.fn(),
+  Tooltip: vi.fn(),
+  Filler: vi.fn(),
+}))
+
+vi.mock('vue-chartjs', () => ({
+  Line: {
+    name: 'Line',
+    props: ['data', 'options'],
+    template: '<div class="chart-line" />',
+  },
+}))
+
+// Mock element-plus icons used by the toggle (rendered inline in the dialog)
+vi.mock('@element-plus/icons-vue', () => ({
+  Tickets: { render: () => {} },
+  TrendCharts: { render: () => {} },
 }))
 
 // ─── Stubs for all Element Plus components ─────────────────────────
@@ -197,6 +225,109 @@ describe('ParameterHistoryDialog', () => {
 
       expect(wrapper.emitted('update:modelValue')).toBeDefined()
       expect(wrapper.emitted('update:modelValue')![0]).toEqual([false])
+    })
+  })
+
+  describe('table ↔ curve toggle', () => {
+    it('shows a toggle for a numeric field and switches between table and curve', async () => {
+      const wrapper = createWrapper({
+        path: 'bilanInitial.examenPhysique.poids',
+        entries: [
+          {
+            date: '2025-03-15T10:30:00',
+            documentId: 'doc-1',
+            documentLabel: 'CRH Diabète',
+            status: 'signed',
+            value: 75,
+          },
+          {
+            date: '2025-01-10T08:00:00',
+            documentId: 'doc-2',
+            documentLabel: 'CRH Diabète (brouillon)',
+            status: 'draft',
+            value: 70,
+          },
+        ],
+      })
+
+      // Toggle is visible for a numeric field, table shown by default
+      const toggle = wrapper.find('.parameter-history-dialog__toggle')
+      expect(toggle.exists()).toBe(true)
+      const buttons = toggle.findAll('.parameter-history-dialog__toggle-btn')
+      expect(buttons.length).toBe(2)
+      expect(buttons[0].text()).toContain('Tableau')
+      expect(buttons[1].text()).toContain('Courbe')
+      expect(wrapper.find('.el-table').exists()).toBe(true)
+
+      // Switch to curve → table hidden, line chart shown
+      await buttons[1].trigger('click')
+      expect(wrapper.find('.el-table').exists()).toBe(false)
+      expect(wrapper.find('.parameter-history-dialog__chart').exists()).toBe(true)
+      expect(wrapper.find('.chart-line').exists()).toBe(true)
+
+      // Switch back to table
+      await wrapper.findAll('.parameter-history-dialog__toggle-btn')[0].trigger('click')
+      expect(wrapper.find('.el-table').exists()).toBe(true)
+      expect(wrapper.find('.chart-line').exists()).toBe(false)
+    })
+
+    it('does not render the toggle for a non-numeric (string) field', () => {
+      const wrapper = createWrapper({
+        path: 'modeVieAtcd.situationFamiliale',
+        title: 'Historique — Situation familiale',
+        entries: [
+          {
+            date: '2025-03-15T10:30:00',
+            documentId: 'doc-1',
+            documentLabel: 'CRH Diabète',
+            status: 'signed',
+            value: 'Marié(e)',
+          },
+          {
+            date: '2025-01-10T08:00:00',
+            documentId: 'doc-2',
+            documentLabel: 'CRH Diabète (brouillon)',
+            status: 'draft',
+            value: 'Célibataire',
+          },
+        ],
+      })
+
+      expect(wrapper.find('.parameter-history-dialog__toggle').exists()).toBe(false)
+      // Only the table is rendered
+      expect(wrapper.find('.el-table').exists()).toBe(true)
+    })
+
+    it('shows an empty state in curve mode when no numeric data exists', async () => {
+      const wrapper = createWrapper({
+        path: 'bilanInitial.examenPhysique.poids',
+        entries: [
+          {
+            date: '2025-03-15T10:30:00',
+            documentId: 'doc-1',
+            documentLabel: 'CRH Diabète',
+            status: 'signed',
+            value: 'non mesuré',
+          },
+          {
+            date: '2025-01-10T08:00:00',
+            documentId: 'doc-2',
+            documentLabel: 'CRH Diabète (brouillon)',
+            status: 'draft',
+            value: 'absent',
+          },
+        ],
+      })
+
+      // Curve mode is only reachable via UI when at least one numeric value is
+      // present; here we force it to assert the "nothing to plot" empty state.
+      ;(wrapper.vm as any).viewMode = 'chart'
+      await nextTick()
+
+      expect(wrapper.find('.el-table').exists()).toBe(false)
+      expect(wrapper.find('.chart-line').exists()).toBe(false)
+      expect(wrapper.find('.el-empty').exists()).toBe(true)
+      expect(wrapper.text()).toContain('Aucune donnée numérique à tracer')
     })
   })
 })

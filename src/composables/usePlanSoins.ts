@@ -162,6 +162,14 @@ export function getPlanSoins(patientId: number, date: string): Promise<PlanSoins
   return ipcInvoke<PlanSoinsRecord | null>('plan-soins:list', { patientId, date })
 }
 
+/**
+ * Distinct dates (YYYY-MM-DD) having plan_soins records for the patient,
+ * most recent first. Used to build recorded-dates columns (cf. ResultatsBio).
+ */
+export function getPlanSoinsDates(patientId: number): Promise<string[]> {
+  return ipcInvoke<string[]>('plan-soins:dates', { patientId })
+}
+
 export interface ValideRecord {
   date: string
   heure: string

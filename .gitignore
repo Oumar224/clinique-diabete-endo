@@ -9,4 +9,15 @@ Thumbs.db
 .env.local
 # CocoIndex Code (ccc)
 /.cocoindex_code/
-graphify-out
+graphify-out/
+
+# P0 hygiène : rapports locaux / RGPD — ne jamais committer
+coverage/
+.playwright-mcp/
+
+# Générés TS / plugins Vite (unplugin-auto-import, unplugin-vue-components)
+*.tsbuildinfo
+src/auto-imports.d.ts
+src/components.d.ts
+auto-imports.d.ts
+components.d.ts

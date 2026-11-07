@@ -160,7 +160,7 @@
         <el-card shadow="never" class="consent-card">
           <template #header>
             <div class="consent-header">
-              <el-icon size="18" color="#e6a23c"><WarningFilled /></el-icon>
+              <el-icon size="18" color="var(--cde-warning)"><WarningFilled /></el-icon>
               <span>Consentement données personnelles</span>
             </div>
           </template>
@@ -315,6 +315,8 @@ const isSyncingAge = ref(false)
 const isPostCreate = ref(false)
 const activeStep = ref(0)
 const postSave = ref(false)
+// Suppresses draft autosave on @closed for intentional closures (cancel/finish)
+const skipDraftSaveOnClose = ref(false)
 let isReconstructingResidence = false
 
 const stepTitles = ['Identité', 'Contact & Résidence', 'Allergies et autres', 'Personne de confiance']
@@ -459,6 +461,8 @@ watch(
   [() => form.civilite, () => form.date_naissance, () => form.lieu_naissance],
   ([civ, date, lieu]) => {
     if (initializingNip.value) return
+    // Édition : un NIP déjà stocké doit rester stable — ne jamais le régénérer.
+    if (isEdit.value && form.nip) return
     if (date && lieu) {
       const civForNip = civ || 'M'
       const generated = generateNip(civForNip as 'M' | 'Mme' | 'Mlle', date, lieu)
@@ -619,11 +623,12 @@ async function cancelAndClose() {
   await patientFormDraft.clearDraft()
   postSave.value = false
   resetForm()
+  skipDraftSaveOnClose.value = true
   dialogVisible.value = false
 }
 
 async function handleClose() {
-  if (postSave.value) return   // Don't re-save draft if user clicked Terminer
+  if (postSave.value || skipDraftSaveOnClose.value) return   // Don't re-save draft after post-save close or intentional cancel/finish
   const formType = isEdit.value ? 'patient_edit' : 'patient_create'
   await patientFormDraft.saveDraft(formType, toRaw(form), activeStep.value, editId.value ?? undefined)
 }
@@ -631,6 +636,7 @@ async function handleClose() {
 async function finishAndClose() {
   await patientFormDraft.clearDraft()
   postSave.value = false
+  skipDraftSaveOnClose.value = true
   dialogVisible.value = false
 }
 
@@ -696,6 +702,7 @@ async function submitTrustedPerson() {
 
 async function open(patient?: Patient) {
   postSave.value = false
+  skipDraftSaveOnClose.value = false
   await fetchLocalites(false)
 
   // Fetch sites list
@@ -727,6 +734,13 @@ async function open(patient?: Patient) {
           'Brouillon trouvé',
           { confirmButtonText: 'Restaurer', cancelButtonText: 'Ignorer', type: 'info' }
         )
+        // Le brouillon a été enregistré sous formType 'patient_edit' (avec l'id
+        // du patient) : restaurer le mode édition AVANT de remplir le formulaire
+        // pour que (1) la garde de stabilité du NIP (isEdit && form.nip) tienne
+        // quand le watch se déclenche sur le Object.assign / les éditions
+        // suivantes, et (2) handleClose()/submit() restent en mode édition.
+        isEdit.value = true
+        editId.value = patient.id
         Object.assign(form, draft.formData)
         activeStep.value = draft.activeStep
         dialogVisible.value = true
@@ -896,7 +910,7 @@ defineExpose({ open })
   height: 22px;
   border-radius: 50%;
   background: var(--el-color-danger);
-  color: #fff;
+  color: var(--cde-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -932,10 +946,10 @@ defineExpose({ open })
 
 .step-content {
   min-height: 200px;
-  background: #fafafa;
-  border-radius: 8px;
+  background: var(--cde-surface-tint);
+  border-radius: 6px;
   padding: 20px 24px;
-  border: 1px solid #eee;
+  border: 1px solid var(--cde-border-soft);
 }
 
 .el-form-item {
@@ -947,9 +961,9 @@ defineExpose({ open })
 }
 
 .trusted-person-card {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
-  background: var(--el-color-info-light-9);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+  background: var(--cde-info-tint);
   margin-bottom: 8px;
 }
 

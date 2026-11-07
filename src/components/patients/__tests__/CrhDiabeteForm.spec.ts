@@ -4,6 +4,8 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { ref, nextTick } from 'vue'
 import type { CrhDiabeteFormData, PrescriptionSortie, RdvSuivi } from '@/types/crh-diabete'
 import { createDefaultFormData } from '@/types/crh-diabete'
+import { ElMessage } from 'element-plus'
+import { formatDate } from '@/utils/date'
 
 // ─── Mock composables ──────────────────────────────────────────────
 
@@ -62,6 +64,18 @@ vi.mock('@/composables/usePatients', () => ({
   }),
 }))
 
+const { mockCreateOrReplaceFromGroup, mockFindCrhGroupOrdonnance } = vi.hoisted(() => ({
+  mockCreateOrReplaceFromGroup: vi.fn(),
+  mockFindCrhGroupOrdonnance: vi.fn(),
+}))
+
+vi.mock('@/composables/useOrdonnanceLibre', () => ({
+  useOrdonnanceLibre: () => ({
+    createOrReplaceFromGroup: mockCreateOrReplaceFromGroup,
+    findCrhGroupOrdonnance: mockFindCrhGroupOrdonnance,
+  }),
+}))
+
 const mockIpcInvoke = vi.hoisted(() => vi.fn())
 
 vi.mock('@/utils/ipc', () => ({
@@ -74,7 +88,7 @@ const { mockConfirm } = vi.hoisted(() => ({
   mockConfirm: vi.fn(),
 }))
 vi.mock('element-plus', () => ({
-  ElMessage: { success: vi.fn(), warning: vi.fn(), error: vi.fn() },
+  ElMessage: { success: vi.fn(), warning: vi.fn(), error: vi.fn(), info: vi.fn() },
   ElMessageBox: { confirm: mockConfirm },
 }))
 
@@ -94,6 +108,26 @@ vi.mock('@element-plus/icons-vue', () => ({
 // ─── Child component stubs ─────────────────────────────────────────
 
 const ChildTabStub = {
+  template: '<div class="child-tab-stub" />',
+  props: ['data', 'readonly', 'documentId'],
+  emits: ['change'],
+}
+
+// Stub dédié et NOMÉ pour BilanInitialTab — émet open-history / open-multi-history
+// (nouveau flux historique via <button class="history-th-btn"> dans les <th>).
+// Nécessaire car ChildTabStub partagé n'expose pas ces événements.
+const BilanInitialTabStub: any = {
+  name: 'BilanInitialTab',
+  template: '<div class="bilan-initial-stub" />',
+  props: ['data', 'readonly', 'documentId'],
+  emits: ['change', 'open-history', 'open-multi-history'],
+}
+// Stub dédié et NOMÉ pour OrdonnanceSortieTab. Nécessaire car VTU déduplique
+// les stubs partageant la même définition (8 onglets → 1 seule instance via
+// ChildTabStub) et n'hérite pas la clé du stub comme `name` : sans nom
+// explicite, findComponent({ name: 'OrdonnanceSortieTab' }) ne matche rien.
+const OrdonnanceSortieTabStub: any = {
+  name: 'OrdonnanceSortieTab',
   template: '<div class="child-tab-stub" />',
   props: ['data', 'readonly', 'documentId'],
   emits: ['change'],
@@ -125,12 +159,21 @@ const EL_STUBS: Record<string, any> = {
   AdmissionTab: ChildTabStub,
   ModeVieAtcdTab: ChildTabStub,
   FicheDiabeteTab: ChildTabStub,
-  BilanInitialTab: ChildTabStub,
+  BilanInitialTab: BilanInitialTabStub,
   ExamensComplementairesTab: ChildTabStub,
   EvolutionMedicaleTab: ChildTabStub,
-  OrdonnanceSortieTab: ChildTabStub,
+  OrdonnanceSortieTab: OrdonnanceSortieTabStub,
   SortieTab: ChildTabStub,
   AnnexeTab: ChildTabStub,
+  // DossierPatientHeader calls ipcInvoke('sites:list', …) on mount; stub it so
+  // the open-history history tests can assert on mockIpcInvoke calls without
+  // interference from the header's unrelated IPC fetch. Render contactDisplay
+  // so the "renders the patient contact display" rendering test still passes.
+  DossierPatientHeader: {
+    name: 'DossierPatientHeader',
+    template: '<div class="dossier-patient-header-stub">{{ contactDisplay }}</div>',
+    props: ['contactDisplay', 'admission', 'prominent'],
+  },
   ParameterHistoryDialog: {
     // Renders the dialog payload when open so the form tests can assert the
     // title and the entries fetched via IPC (the real dialog is stubbed).
@@ -145,6 +188,20 @@ const EL_STUBS: Record<string, any> = {
       </div>
     `,
     props: ['modelValue', 'title', 'path', 'loading', 'entries'],
+    emits: ['update:modelValue'],
+  },
+  ParameterMultiHistoryDialog: {
+    template: `
+      <div v-if="modelValue" class="parameter-multi-history-dialog-stub">
+        <h4 class="pmhd-title">{{ title }}</h4>
+        <ul class="pmhd-series">
+          <li v-for="s in series" :key="s.path" class="pmhd-serie">
+            {{ s.path }} — {{ s.entries.length }}
+          </li>
+        </ul>
+      </div>
+    `,
+    props: ['modelValue', 'title', 'series', 'loading'],
     emits: ['update:modelValue'],
   },
 }
@@ -504,13 +561,15 @@ describe('CrhDiabeteForm – mergeFormData', () => {
       const wrapper = createWrapper({
         evolutionMedicale: {
           infoPatientFamille: true,
-          journalEvolution: '<p>Patient stable</p>',
+          journalEvolution: [{ _key: 'x', content: '<p>Patient stable</p>', date: '', heure: '', user: '' }],
         },
       })
       await flushPromises()
 
       const vm = wrapper.vm as any
-      expect(vm.formData.evolutionMedicale.journalEvolution).toBe('<p>Patient stable</p>')
+      expect(vm.formData.evolutionMedicale.journalEvolution).toEqual([
+        { _key: 'x', content: '<p>Patient stable</p>', date: '', heure: '', user: '' },
+      ])
       expect(vm.formData.sortie.infoPatientFamille).toBe(true)
     })
   })
@@ -793,6 +852,54 @@ describe('CrhDiabeteForm – mergeFormData', () => {
       expect(closeBtn).toBeDefined()
     })
 
+    it('renders the crh-form header by default (no hideHeader prop)', () => {
+      const wrapper = createWrapper()
+      expect(wrapper.find('.crh-form__header').exists()).toBe(true)
+    })
+
+    it('does NOT render the crh-form header when hideHeader is true', () => {
+      const wrapper = mount(CrhDiabeteForm, {
+        props: {
+          modelValue: {},
+          readonly: false,
+          contactId: '1',
+          contactDisplay: 'Test Patient',
+          hideHeader: true,
+        },
+        global: {
+          stubs: EL_STUBS,
+        },
+      })
+      expect(wrapper.find('.crh-form__header').exists()).toBe(false)
+    })
+
+    it('forwards prominent to DossierPatientHeader and adds crh-form--fullpage when hideHeader is true', () => {
+      const wrapper = mount(CrhDiabeteForm, {
+        props: {
+          modelValue: {},
+          readonly: false,
+          contactId: '1',
+          contactDisplay: 'Test Patient',
+          hideHeader: true,
+        },
+        global: {
+          stubs: EL_STUBS,
+        },
+      })
+
+      const header = wrapper.findComponent({ name: 'DossierPatientHeader' })
+      expect(header.props('prominent')).toBe(true)
+      expect(wrapper.find('.crh-form').classes()).toContain('crh-form--fullpage')
+    })
+
+    it('does NOT forward prominent and does NOT add crh-form--fullpage when hideHeader is absent', () => {
+      const wrapper = createWrapper()
+
+      const header = wrapper.findComponent({ name: 'DossierPatientHeader' })
+      expect(header.props('prominent')).toBe(false)
+      expect(wrapper.find('.crh-form').classes()).not.toContain('crh-form--fullpage')
+    })
+
     it('emits close when close button is clicked', async () => {
       const wrapper = createWrapper()
       const closeBtn = wrapper.findAll('.el-button').find(b => b.text().includes('Fermer'))
@@ -1043,9 +1150,13 @@ describe('CrhDiabeteForm – mergeFormData', () => {
   })
 })
 
-// ─── onFormCellClick — delegated history dialog ────────────────────
+// ─── openParameterHistory — via BilanInitialTab @open-history ─────────
+// Nouveau flux historique : les <th> de BilanInitialTab portent
+// <button class="history-th-btn" @click="forwardHistory(path)"> qui
+// émettent `open-history`. CrhDiabeteForm écoute @open-history et appelle
+// openParameterHistory(path) (garde getParameterMeta, documentType CRH_DIABETE).
 
-describe('CrhDiabeteForm – onFormCellClick (historique paramètre)', () => {
+describe('CrhDiabeteForm – openParameterHistory (historique paramètre via open-history)', () => {
   let wrapper: ReturnType<typeof createWrapper> | undefined
 
   beforeEach(() => {
@@ -1074,96 +1185,106 @@ describe('CrhDiabeteForm – onFormCellClick (historique paramètre)', () => {
     })
   }
 
-  /** Creates a tracked-field cell the user could click (background/label). */
-  function makeCell(path: string): HTMLDivElement {
-    const cell = document.createElement('div')
-    cell.className = 'history-cell'
-    cell.setAttribute('data-history-path', path)
-    return cell
+  function bilanTab() {
+    return wrapper!.findComponent({ name: 'BilanInitialTab' })
   }
 
-  /** Dispatches a bubbling click; the root div's @click handler receives it. */
-  function clickOn(el: Element): void {
-    el.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-  }
-
-  function crhDoc(overrides: Record<string, any> = {}): Record<string, any> {
+  function vitalsDoc(poids: unknown, overrides: Record<string, any> = {}): Record<string, any> {
     return {
       id: 'doc-1',
       documentTypeCode: 'CRH_DIABETE',
       documentTypeLabel: 'CRH Diabète',
       status: 'signed',
-      formData: JSON.stringify({ modeVieAtcd: { isolement: true } }),
+      formData: JSON.stringify({
+        bilanInitial: {
+          vitalSignsHistory: [{ _key: 'vs-1', date: '2025-03-15T10:30:00.000Z', poids }],
+        },
+      }),
       createdAt: '2025-03-15T10:30:00.000Z',
       ...overrides,
     }
   }
 
-  it('opens the dialog and calls IPC with patientId when clicking a tracked field cell', async () => {
+  function tailleDoc(taille: unknown, overrides: Record<string, any> = {}): Record<string, any> {
+    return {
+      id: 'doc-taille',
+      documentTypeCode: 'CRH_DIABETE',
+      documentTypeLabel: 'CRH Diabète',
+      status: 'draft',
+      formData: JSON.stringify({
+        bilanInitial: {
+          vitalSignsHistory: [{ _key: 'vs-2', date: '2025-04-01T10:00:00.000Z', taille }],
+        },
+      }),
+      createdAt: '2025-04-01T10:00:00.000Z',
+      ...overrides,
+    }
+  }
+
+  it('opens the dialog and calls IPC with patientId when BilanInitialTab emits open-history', async () => {
     mockActivePatient.value = { id: 7 }
-    mockIpcInvoke.mockResolvedValue([crhDoc()])
+    mockIpcInvoke.mockResolvedValue([vitalsDoc(75)])
 
     wrapper = createWrapper()
     await flushPromises()
+    expect(bilanTab().exists()).toBe(true)
 
-    const cell = makeCell('modeVieAtcd.isolement')
-    wrapper.element.appendChild(cell)
-    clickOn(cell)
+    await bilanTab().vm.$emit('open-history', 'bilanInitial.examenPhysique.poids')
     await flushPromises()
 
     expect(mockIpcInvoke).toHaveBeenCalledWith('clinical-documents:list-by-patient', { patientId: 7 })
 
     const vm = wrapper.vm as any
     expect(vm.historyDialogOpen).toBe(true)
-    expect(vm.historyDialogTitle).toBe('Historique — Isolement')
+    expect(vm.historyDialogPath).toBe('bilanInitial.examenPhysique.poids')
+    expect(vm.historyDialogTitle).toBe('Historique — Poids (kg)')
+    expect(vm.historyLoading).toBe(false)
     expect(vm.historyEntries).toHaveLength(1)
-    expect(vm.historyEntries[0]).toMatchObject({ documentId: 'doc-1', value: true })
+    expect(vm.historyEntries[0]).toMatchObject({ documentId: 'doc-1', value: 75 })
 
     // The dialog is rendered with the title and the mocked IPC entries.
     const dialog = wrapper.find('.parameter-history-dialog-stub')
     expect(dialog.exists()).toBe(true)
-    expect(dialog.find('.phd-title').text()).toContain('Historique — ')
+    expect(dialog.find('.phd-title').text()).toContain('Historique — Poids (kg)')
     expect(dialog.text()).toContain('CRH Diabète')
   })
 
-  it('opens the dialog when clicking a field label (el-form-item label is not an interactive control)', async () => {
+  it('filters entries by CRH_DIABETE documentType (CRC docs are ignored)', async () => {
     mockActivePatient.value = { id: 7 }
-    mockIpcInvoke.mockResolvedValue([crhDoc()])
+    mockIpcInvoke.mockResolvedValue([
+      vitalsDoc(75, { id: 'kept-crh' }),
+      vitalsDoc(80, {
+        id: 'ignored-crc',
+        documentTypeCode: 'CRC_DIABETE',
+        documentTypeLabel: 'CRC Diabète',
+      }),
+    ])
 
     wrapper = createWrapper()
     await flushPromises()
 
-    const cell = makeCell('modeVieAtcd.isolement')
-    cell.innerHTML = '<label class="field-label">Isolement</label>'
-    wrapper.element.appendChild(cell)
-    clickOn(cell.querySelector('label')!)
+    await bilanTab().vm.$emit('open-history', 'bilanInitial.examenPhysique.poids')
     await flushPromises()
 
     const vm = wrapper.vm as any
-    expect(vm.historyDialogOpen).toBe(true)
-    expect(mockIpcInvoke).toHaveBeenCalledWith('clinical-documents:list-by-patient', { patientId: 7 })
+    expect(vm.historyEntries).toHaveLength(1)
+    expect(vm.historyEntries[0].documentId).toBe('kept-crh')
+    expect(vm.historyEntries[0].value).toBe(75)
   })
 
-  it('does NOT open the dialog when clicking inside an interactive control', async () => {
+  it('is a no-op for unknown paths (getParameterMeta guard)', async () => {
     mockActivePatient.value = { id: 7 }
+    mockIpcInvoke.mockResolvedValue([])
 
     wrapper = createWrapper()
     await flushPromises()
 
-    // A real <input> inside a tracked cell…
-    const cellWithInput = makeCell('modeVieAtcd.isolement')
-    cellWithInput.innerHTML = '<input class="inner-input" type="text" />'
-    wrapper.element.appendChild(cellWithInput)
-    clickOn(cellWithInput.querySelector('input')!)
-
-    // …and an Element Plus input wrapper (.el-input) — both are excluded.
-    const cellWithElInput = makeCell('modeVieAtcd.isolement')
-    cellWithElInput.innerHTML = '<div class="el-input"><input /></div>'
-    wrapper.element.appendChild(cellWithElInput)
-    clickOn(cellWithElInput.querySelector('.el-input')!)
+    await bilanTab().vm.$emit('open-history', 'path.inconnu.xyz')
+    await flushPromises()
 
     const vm = wrapper.vm as any
     expect(vm.historyDialogOpen).toBe(false)
+    expect(vm.historyDialogTitle).toBe('')
     expect(mockIpcInvoke).not.toHaveBeenCalled()
   })
 
@@ -1174,9 +1295,7 @@ describe('CrhDiabeteForm – onFormCellClick (historique paramètre)', () => {
     wrapper = createWrapper()
     await flushPromises()
 
-    const cell = makeCell('modeVieAtcd.isolement')
-    wrapper.element.appendChild(cell)
-    clickOn(cell)
+    await bilanTab().vm.$emit('open-history', 'bilanInitial.examenPhysique.poids')
     await flushPromises()
 
     const vm = wrapper.vm as any
@@ -1185,46 +1304,507 @@ describe('CrhDiabeteForm – onFormCellClick (historique paramètre)', () => {
     expect(wrapper.find('.parameter-history-dialog-stub').exists()).toBe(false)
   })
 
-  it('discards stale responses when another field is clicked meanwhile', async () => {
+  it('discards stale responses when another field is emitted meanwhile', async () => {
     mockActivePatient.value = { id: 7 }
     let resolveFirst!: (value: unknown) => void
     mockIpcInvoke
       .mockImplementationOnce(() => new Promise(res => { resolveFirst = res }))
-      .mockResolvedValueOnce([
-        {
-          id: 'doc-service',
-          documentTypeCode: 'CRH_DIABETE',
-          documentTypeLabel: 'CRH Diabète',
-          status: 'draft',
-          formData: JSON.stringify({ admission: { serviceAccueil: 'Cardiologie' } }),
-          createdAt: '2025-04-01T10:00:00.000Z',
-        },
-      ])
+      .mockResolvedValueOnce([tailleDoc(170)])
 
     wrapper = createWrapper()
     await flushPromises()
 
     const vm = wrapper.vm as any
-    const cellIsolement = makeCell('modeVieAtcd.isolement')
-    wrapper.element.appendChild(cellIsolement)
-    const cellService = makeCell('admission.serviceAccueil')
-    wrapper.element.appendChild(cellService)
 
-    // First click: the IPC request stays pending.
-    clickOn(cellIsolement)
-    expect(vm.historyDialogTitle).toBe('Historique — Isolement')
+    // First emit: the IPC request stays pending.
+    bilanTab().vm.$emit('open-history', 'bilanInitial.examenPhysique.poids')
+    await nextTick()
+    expect(vm.historyDialogTitle).toBe('Historique — Poids (kg)')
+    expect(vm.historyLoading).toBe(true)
 
-    // Second click on another field: its response resolves immediately.
-    clickOn(cellService)
+    // Second emit on another field: its response resolves immediately.
+    bilanTab().vm.$emit('open-history', 'bilanInitial.examenPhysique.taille')
     await flushPromises()
-    expect(vm.historyDialogTitle).toBe("Historique — Service d'accueil")
+    expect(vm.historyDialogTitle).toBe('Historique — Taille (cm)')
 
     // The stale first response arrives late — it must be discarded.
-    resolveFirst([crhDoc({ id: 'doc-isolement' })])
+    resolveFirst([vitalsDoc(75, { id: 'doc-poids-stale' })])
     await flushPromises()
 
     expect(vm.historyEntries).toHaveLength(1)
-    expect(vm.historyEntries[0].documentId).toBe('doc-service')
-    expect(vm.historyEntries[0].value).toBe('Cardiologie')
+    expect(vm.historyEntries[0].documentId).toBe('doc-taille')
+    expect(vm.historyEntries[0].value).toBe(170)
+  })
+})
+
+// ─── openMultiHistory — via BilanInitialTab @open-multi-history ─────
+// Les 3 toolbars « Voir courbes » de BilanInitialTab émettent
+// `open-multi-history` (glasgow / douleur / vitals). CrhDiabeteForm fan-out
+// via fetchParametersHistory (1 seul IPC) avec titre « Historique CRH — … »
+// et garde anti-stale par requestId.
+
+describe('CrhDiabeteForm – openMultiHistory (multi-courbes via open-multi-history)', () => {
+  let wrapper: ReturnType<typeof mount> | undefined
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockIpcInvoke.mockReset()
+    mockConfirm.mockResolvedValue(true)
+    mockActivePatient.value = null
+  })
+
+  afterEach(() => {
+    (wrapper as any)?.unmount?.()
+    document.body.innerHTML = ''
+  })
+
+  function createWrapper() {
+    return mount(CrhDiabeteForm, {
+      props: {
+        modelValue: {},
+        readonly: false,
+        contactId: '1',
+        contactDisplay: 'Test Patient',
+      },
+      global: {
+        stubs: EL_STUBS,
+      },
+    })
+  }
+
+  function bilanTab() {
+    return (wrapper as any)!.findComponent({ name: 'BilanInitialTab' })
+  }
+
+  function multiDoc(): Record<string, any> {
+    return {
+      id: 'doc-multi',
+      documentTypeCode: 'CRH_DIABETE',
+      documentTypeLabel: 'CRH Diabète',
+      status: 'signed',
+      formData: JSON.stringify({
+        bilanInitial: {
+          glasgowHistory: [
+            { _key: 'g-1', date: '2025-03-15T11:00:00.000Z', ouvertureYeux: 4, reponseVerbale: 5, reponseMotrice: 6 },
+          ],
+        },
+      }),
+      createdAt: '2025-03-15T11:00:00.000Z',
+    }
+  }
+
+  it('opens the multi dialog with the CRH title and fans out the glasgow group (4 séries, 1 seul IPC)', async () => {
+    mockActivePatient.value = { id: 7 }
+    mockIpcInvoke.mockResolvedValue([multiDoc()])
+
+    wrapper = createWrapper()
+    await flushPromises()
+
+    await bilanTab().vm.$emit('open-multi-history', 'glasgow')
+    await flushPromises()
+
+    expect(mockIpcInvoke).toHaveBeenCalledTimes(1)
+    expect(mockIpcInvoke).toHaveBeenCalledWith('clinical-documents:list-by-patient', { patientId: 7 })
+
+    const vm = wrapper!.vm as any
+    expect(vm.multiHistoryDialogOpen).toBe(true)
+    expect(vm.multiHistoryTitle).toBe('Historique CRH — Glasgow')
+    expect(vm.multiHistoryLoading).toBe(false)
+    expect(vm.multiHistorySeries).toHaveLength(4)
+    expect(vm.multiHistorySeries.map((s: any) => s.path)).toEqual([
+      'bilanInitial.glasgow.ouvertureYeux',
+      'bilanInitial.glasgow.reponseVerbale',
+      'bilanInitial.glasgow.reponseMotrice',
+      'bilanInitial.glasgow.score',
+    ])
+    // Le score total est l'extract somme : 4+5+6 = 15.
+    const score = vm.multiHistorySeries.find((s: any) => s.path === 'bilanInitial.glasgow.score')
+    expect(score.entries).toMatchObject([{ value: 15 }])
+
+    const dialog = (wrapper as any).find('.parameter-multi-history-dialog-stub')
+    expect(dialog.exists()).toBe(true)
+    expect(dialog.find('.pmhd-title').text()).toBe('Historique CRH — Glasgow')
+  })
+
+  it('is a no-op for unknown groups (PARAMETER_GROUPS guard)', async () => {
+    mockActivePatient.value = { id: 7 }
+    mockIpcInvoke.mockResolvedValue([])
+
+    wrapper = createWrapper()
+    await flushPromises()
+
+    await bilanTab().vm.$emit('open-multi-history', 'groupe-inconnu')
+    await flushPromises()
+
+    const vm = wrapper!.vm as any
+    expect(vm.multiHistoryDialogOpen).toBe(false)
+    expect(mockIpcInvoke).not.toHaveBeenCalled()
+  })
+
+  it('discards stale multi responses when another group is emitted meanwhile (anti-stale)', async () => {
+    mockActivePatient.value = { id: 7 }
+    let resolveFirst!: (value: unknown) => void
+    mockIpcInvoke
+      .mockImplementationOnce(() => new Promise(res => { resolveFirst = res }))
+      .mockResolvedValueOnce([multiDoc()])
+
+    wrapper = createWrapper()
+    await flushPromises()
+
+    const vm = wrapper!.vm as any
+
+    bilanTab().vm.$emit('open-multi-history', 'vitals')
+    await nextTick()
+    expect(vm.multiHistoryTitle).toBe('Historique CRH — Vitaux')
+    expect(vm.multiHistoryLoading).toBe(true)
+
+    bilanTab().vm.$emit('open-multi-history', 'glasgow')
+    await flushPromises()
+    expect(vm.multiHistoryTitle).toBe('Historique CRH — Glasgow')
+
+    resolveFirst([multiDoc()])
+    await flushPromises()
+
+    // La réponse stale du groupe vitals ne doit pas écraser la série Glasgow.
+    expect(vm.multiHistoryTitle).toBe('Historique CRH — Glasgow')
+    expect(vm.multiHistorySeries).toHaveLength(4)
+  })
+})
+
+describe('CrhDiabeteForm – onOrdonnanceGenerate (ordonnance par groupe)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockConfirm.mockResolvedValue(true)
+    mockActivePatient.value = { id: 7 }
+    mockCreateOrReplaceFromGroup.mockResolvedValue({ documentId: 'ord-1', replaced: false })
+    mockFindCrhGroupOrdonnance.mockResolvedValue(null)
+  })
+
+  const rxMed = (): PrescriptionSortie => ({
+    _key: 'k-med-1',
+    medicament: 'Metformine 500 mg',
+    dosage: '500',
+    unite: 'mg',
+    voie: 'VO',
+    duree: 30,
+    dureeType: 'longue',
+    formeGalenique: 'Comprimé',
+    momentPrises: ['Matin', 'Soir'],
+    renouvellement: false,
+    nbRenouvellements: 1,
+    frequenceType: 'moments',
+    frequence: ['Matin', 'Soir'],
+    instructions: '',
+  })
+  const rxSoin = (): PrescriptionSortie => ({
+    _key: 'k-soin-1',
+    categorie: 'soins',
+    medicament: 'Pansement quotidien',
+    dosage: '',
+    unite: '',
+    voie: '',
+    duree: 7,
+    formeGalenique: '',
+    momentPrises: [],
+    renouvellement: false,
+    nbRenouvellements: 1,
+    frequenceType: 'moments',
+    frequence: ['1/jour'],
+    instructions: '',
+  })
+
+  function createWrapper(modelValue: Record<string, any> = {}) {
+    return mount(CrhDiabeteForm, {
+      props: {
+        modelValue,
+        readonly: false,
+        contactId: '42',
+        contactDisplay: 'Test Patient',
+        documentId: 'doc-abc',
+      },
+      global: {
+        stubs: EL_STUBS,
+      },
+    })
+  }
+
+  function genButtonTitle(): string {
+    return `CRH - ${formatDate(new Date())}`
+  }
+
+  // (a) succès, création (replaced:false)
+  it('génère l\'ordonnance du groupe via createOrReplaceFromGroup (replaced:false → "générée")', async () => {
+    const wrapper = createWrapper({ ordonnanceSortie: [rxMed(), rxSoin()] })
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    await vm.onOrdonnanceGenerate('medicament')
+
+    expect(mockCreateOrReplaceFromGroup).toHaveBeenCalledTimes(1)
+    expect(mockCreateOrReplaceFromGroup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        patientId: 7,
+        contactId: '42',
+        serviceId: null,
+        siteId: null,
+        createdBy: '1',
+        title: genButtonTitle(),
+        sourceDocumentId: 'doc-abc',
+        categorie: 'medicament',
+      }),
+    )
+    // Seuls les items du groupe "medicament" sont envoyés (le soin est exclu)
+    const param = mockCreateOrReplaceFromGroup.mock.calls[0][0]
+    expect(param.items).toHaveLength(1)
+    expect(param.items[0]).toMatchObject({ _key: 'k-med-1', medicament: 'Metformine 500 mg' })
+
+    expect(ElMessage.success).toHaveBeenCalledWith(`Ordonnance « ${genButtonTitle()} » générée.`)
+    expect(ElMessage.success).toHaveBeenCalledWith('Retrouvez-la dans le menu Ordonnances du patient (hors document).')
+  })
+
+it('est câblé sur l\'événement generate du tab OrdonnanceSortie (via le stub)', async () => {
+      const wrapper = createWrapper({ ordonnanceSortie: [rxMed()] })
+      await flushPromises()
+
+      // Le tab OrdonnanceSortie est stubé (ChildTabStub partagé par 8 onglets) ;
+      // VTU nomme le stub d'après la clé du composant : { name: 'OrdonnanceSortieTab' }.
+      const ordonnanceTab = wrapper.findComponent({ name: 'OrdonnanceSortieTab' })
+      expect(ordonnanceTab.exists()).toBe(true)
+      ordonnanceTab.vm.$emit('generate', 'medicament')
+      await flushPromises()
+
+      expect(mockCreateOrReplaceFromGroup).toHaveBeenCalledTimes(1)
+      expect(mockCreateOrReplaceFromGroup.mock.calls[0][0].categorie).toBe('medicament')
+    })
+
+  // (b) remplacement (replaced:true)
+  it('affiche le message de remplacement quand replaced=true', async () => {
+    mockCreateOrReplaceFromGroup.mockResolvedValue({ documentId: 'ord-1', replaced: true })
+    const wrapper = createWrapper({ ordonnanceSortie: [rxMed()] })
+    await flushPromises()
+
+    await (wrapper.vm as any).onOrdonnanceGenerate('medicament')
+
+    expect(ElMessage.info).toHaveBeenCalledWith(`L'ordonnance « ${genButtonTitle()} » existante a été remplacée.`)
+    expect(ElMessage.success).toHaveBeenCalledWith('Retrouvez-la dans le menu Ordonnances du patient (hors document).')
+  })
+
+  // (c) groupe vide
+  it('affiche un warning et n\'appelle AUCUN IPC quand le groupe est vide', async () => {
+    const wrapper = createWrapper({ ordonnanceSortie: [rxSoin()] })
+    await flushPromises()
+
+    await (wrapper.vm as any).onOrdonnanceGenerate('medicament')
+
+    expect(ElMessage.warning).toHaveBeenCalledWith('Aucune prescription dans ce groupe')
+    expect(mockCreateOrReplaceFromGroup).not.toHaveBeenCalled()
+    expect(mockFindCrhGroupOrdonnance).not.toHaveBeenCalled()
+  })
+
+  // (d) ordonnance existante → confirm ; refus → aucun appel
+  it('demande confirmation quand une ordonnance du groupe existe déjà', async () => {
+    mockFindCrhGroupOrdonnance.mockResolvedValue({ id: 5, form_data: '{}' })
+    const wrapper = createWrapper({ ordonnanceSortie: [rxSoin()] })
+    await flushPromises()
+
+    await (wrapper.vm as any).onOrdonnanceGenerate('soins')
+
+    expect(mockFindCrhGroupOrdonnance).toHaveBeenCalledWith(7, 'doc-abc', 'soins')
+    expect(mockConfirm).toHaveBeenCalledWith(
+      'Une ordonnance existe déjà pour ce groupe (celle-ci sera remplacée). Continuer ?',
+      'Remplacer l\'ordonnance',
+      { type: 'warning' },
+    )
+    expect(mockCreateOrReplaceFromGroup).toHaveBeenCalledTimes(1)
+  })
+
+  it('n\'appelle PAS createOrReplaceFromGroup quand l\'utilisateur refuse la confirmation', async () => {
+    mockFindCrhGroupOrdonnance.mockResolvedValue({ id: 5, form_data: '{}' })
+    mockConfirm.mockRejectedValue(new Error('Cancel'))
+    const wrapper = createWrapper({ ordonnanceSortie: [rxSoin()] })
+    await flushPromises()
+
+    await (wrapper.vm as any).onOrdonnanceGenerate('soins')
+
+    expect(mockFindCrhGroupOrdonnance).toHaveBeenCalledWith(7, 'doc-abc', 'soins')
+    expect(mockConfirm).toHaveBeenCalled()
+    expect(mockCreateOrReplaceFromGroup).not.toHaveBeenCalled()
+  })
+
+  // sans patient actif
+  it('affiche un warning quand aucun patient n\'est actif', async () => {
+    mockActivePatient.value = null
+    const wrapper = createWrapper({ ordonnanceSortie: [rxMed()] })
+    await flushPromises()
+
+    await (wrapper.vm as any).onOrdonnanceGenerate('medicament')
+
+    expect(ElMessage.warning).toHaveBeenCalledWith('Aucun patient actif')
+    expect(mockCreateOrReplaceFromGroup).not.toHaveBeenCalled()
+  })
+
+  // erreur IPC
+  it('affiche une erreur quand createOrReplaceFromGroup rejette', async () => {
+    mockCreateOrReplaceFromGroup.mockRejectedValue(new Error('IPC de secours KO'))
+    const wrapper = createWrapper({ ordonnanceSortie: [rxMed()] })
+    await flushPromises()
+
+    await (wrapper.vm as any).onOrdonnanceGenerate('medicament')
+
+    expect(ElMessage.error).toHaveBeenCalledWith('IPC de secours KO')
+  })
+
+  // titres par groupe pour CRH vs un autre docType (CRC couvert dans son propre spec)
+  it('filtre les items du groupe "avis" (specialite conservée)', async () => {
+    const rxAvis = (): PrescriptionSortie => ({
+      _key: 'k-avis-1',
+      categorie: 'avis',
+      specialite: 'Cardiologue',
+      motif: 'Bilan cardiaque',
+      medicament: '',
+      dosage: '',
+      unite: '',
+      voie: '',
+      duree: 7,
+      formeGalenique: '',
+      momentPrises: [],
+      renouvellement: false,
+      nbRenouvellements: 1,
+      frequenceType: 'moments',
+      frequence: [],
+      instructions: '',
+    })
+    const wrapper = createWrapper({ ordonnanceSortie: [rxMed(), rxAvis()] })
+    await flushPromises()
+
+    await (wrapper.vm as any).onOrdonnanceGenerate('avis')
+
+    expect(mockCreateOrReplaceFromGroup).toHaveBeenCalledTimes(1)
+    const param = mockCreateOrReplaceFromGroup.mock.calls[0][0]
+    expect(param.categorie).toBe('avis')
+    expect(param.items).toHaveLength(1)
+    expect(param.items[0]).toMatchObject({ categorie: 'avis', specialite: 'Cardiologue', motif: 'Bilan cardiaque' })
+  })
+})
+
+describe('CrhDiabeteForm – onOrdonnanceGenerateItem (ordonnance individuelle)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockConfirm.mockResolvedValue(true)
+    mockActivePatient.value = { id: 7 }
+    mockCreateOrReplaceFromGroup.mockResolvedValue({ documentId: 'ord-1', replaced: false })
+    mockFindCrhGroupOrdonnance.mockResolvedValue(null)
+  })
+
+  const rxAvis1 = (): PrescriptionSortie => ({
+    _key: 'k-avis-1',
+    categorie: 'avis',
+    specialite: 'Cardiologue',
+    motif: 'Bilan cardiaque',
+    medicament: '',
+    dosage: '',
+    unite: '',
+    voie: '',
+    duree: 7,
+    formeGalenique: '',
+    momentPrises: [],
+    renouvellement: false,
+    nbRenouvellements: 1,
+    frequenceType: 'moments',
+    frequence: [],
+    instructions: '',
+  })
+  const rxAvis2 = (): PrescriptionSortie => ({
+    ...rxAvis1(),
+    _key: 'k-avis-2',
+    specialite: 'Néphrologue',
+    motif: 'Protéinurie',
+  })
+  const rxSoin1 = (): PrescriptionSortie => ({
+    _key: 'k-soin-1',
+    categorie: 'soins',
+    medicament: 'Pansement quotidien',
+    dosage: '',
+    unite: '',
+    voie: '',
+    duree: 7,
+    formeGalenique: '',
+    momentPrises: [],
+    renouvellement: false,
+    nbRenouvellements: 1,
+    frequenceType: 'moments',
+    frequence: ['1/jour'],
+    instructions: '',
+  })
+
+  function createWrapper(modelValue: Record<string, any> = {}) {
+    return mount(CrhDiabeteForm, {
+      props: {
+        modelValue,
+        readonly: false,
+        contactId: '42',
+        contactDisplay: 'Test Patient',
+        documentId: 'doc-abc',
+      },
+      global: {
+        stubs: EL_STUBS,
+      },
+    })
+  }
+
+  it('génère une ordonnance single-item avis (1 seul item, fingerprint, titre avec libellé)', async () => {
+    const wrapper = createWrapper({ ordonnanceSortie: [rxAvis1(), rxAvis2()] })
+    await flushPromises()
+
+    await (wrapper.vm as any).onOrdonnanceGenerateItem('avis', 'k-avis-1')
+
+    expect(mockCreateOrReplaceFromGroup).toHaveBeenCalledTimes(1)
+    const param = mockCreateOrReplaceFromGroup.mock.calls[0][0]
+    expect(param.categorie).toBe('avis')
+    expect(param.items).toHaveLength(1)
+    expect(param.items[0]).toMatchObject({ _key: 'k-avis-1', specialite: 'Cardiologue' })
+    expect(param.sourceDocumentId).toBe('doc-abc:avis:k-avis-1')
+    expect(param.title).toContain('Cardiologue')
+    expect(param.title).toMatch(/^CRH - .* - \d{2}\/\d{2}\/\d{4}$/)
+    expect(mockFindCrhGroupOrdonnance).toHaveBeenCalledWith(7, 'doc-abc:avis:k-avis-1', 'avis')
+  })
+
+  it('génère une ordonnance single-item soins (titre avec medicament)', async () => {
+    const wrapper = createWrapper({ ordonnanceSortie: [rxSoin1(), rxAvis1()] })
+    await flushPromises()
+
+    await (wrapper.vm as any).onOrdonnanceGenerateItem({ categorie: 'soins', key: 'k-soin-1' })
+
+    expect(mockCreateOrReplaceFromGroup).toHaveBeenCalledTimes(1)
+    const param = mockCreateOrReplaceFromGroup.mock.calls[0][0]
+    expect(param.categorie).toBe('soins')
+    expect(param.items).toHaveLength(1)
+    expect(param.sourceDocumentId).toBe('doc-abc:soins:k-soin-1')
+    expect(param.title).toContain('Pansement quotidien')
+  })
+
+  it('le bouton de groupe reste inchangé (tous les items du groupe en même temps)', async () => {
+    const wrapper = createWrapper({ ordonnanceSortie: [rxAvis1(), rxAvis2()] })
+    await flushPromises()
+
+    await (wrapper.vm as any).onOrdonnanceGenerate('avis')
+
+    expect(mockCreateOrReplaceFromGroup).toHaveBeenCalledTimes(1)
+    const param = mockCreateOrReplaceFromGroup.mock.calls[0][0]
+    expect(param.sourceDocumentId).toBe('doc-abc')
+    expect(param.items).toHaveLength(2)
+  })
+
+  it('est câblé sur l\'événement generate-item du tab OrdonnanceSortie', async () => {
+    const wrapper = createWrapper({ ordonnanceSortie: [rxAvis1()] })
+    await flushPromises()
+
+    const ordonnanceTab = wrapper.findComponent({ name: 'OrdonnanceSortieTab' })
+    expect(ordonnanceTab.exists()).toBe(true)
+    ordonnanceTab.vm.$emit('generate-item', { categorie: 'avis', key: 'k-avis-1' })
+    await flushPromises()
+
+    expect(mockCreateOrReplaceFromGroup).toHaveBeenCalledTimes(1)
+    expect(mockCreateOrReplaceFromGroup.mock.calls[0][0].sourceDocumentId).toBe('doc-abc:avis:k-avis-1')
   })
 })

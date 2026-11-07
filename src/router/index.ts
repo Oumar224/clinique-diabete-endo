@@ -1,7 +1,7 @@
 import { createRouter, createMemoryHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
-const routes: RouteRecordRaw[] = [
+export const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'login',
@@ -67,23 +67,26 @@ const routes: RouteRecordRaw[] = [
             path: 'ordonnances',
             name: 'patient-ordonnances',
             component: () => import('@/views/patients/OrdonnanceView.vue'),
-            meta: { label: 'Ordonnances', icon: 'Tickets', roles: ['MEDECIN', 'ADMIN'] },
+            // `title` is the page title rendered by the view itself. PatientLayout
+            // uses it to suppress a redundant band label (see PatientLayout.vue).
+            meta: {
+              label: 'Ordonnances',
+              icon: 'Tickets',
+              title: 'Ordonnances',
+              roles: ['MEDECIN', 'PHARMACIEN', 'ADMIN'],
+            },
           },
           {
             path: 'examens',
             name: 'patient-examens',
             component: () => import('@/views/patients/ExamensView.vue'),
-            meta: { roles: ['MEDECIN', 'ADMIN'] },
+            meta: { title: "Demande d'examens", roles: ['MEDECIN', 'ADMIN'] },
           },
           {
             path: 'labo',
             name: 'patient-labo',
             component: () => import('@/views/patients/ResultatsBioView.vue'),
-          },
-          {
-            path: 'actes',
-            name: 'patient-actes',
-            component: () => import('@/views/patients/ActesView.vue'),
+            meta: { title: 'Résultats Biologiques' },
           },
           {
             path: 'soins',
@@ -105,11 +108,13 @@ const routes: RouteRecordRaw[] = [
             path: 'rdv',
             name: 'patient-rdv',
             component: () => import('@/views/patients/RendezVousView.vue'),
+            meta: { title: 'Rendez-vous du patient' },
           },
           {
             path: 'factures',
             name: 'patient-factures',
             component: () => import('@/views/PatientFacturesView.vue'),
+            meta: { title: 'Factures du patient' },
           },
         ],
       },
@@ -117,11 +122,29 @@ const routes: RouteRecordRaw[] = [
         path: 'pharmacie',
         name: 'pharmacie',
         component: () => import('@/views/PharmacieView.vue'),
+        meta: { roles: ['PHARMACIEN', 'ADMIN'] },
       },
       {
-        path: 'facturation',
-        name: 'facturation',
-        component: () => import('@/views/FacturationView.vue'),
+        path: 'laboratoire',
+        name: 'laboratoire',
+        component: () => import('@/views/LaboratoireView.vue'),
+        meta: { roles: ['ADMIN', 'MEDECIN', 'INFIRMIER', 'SECRETAIRE'] },
+      },
+      {
+        path: 'comptabilite',
+        name: 'comptabilite',
+        component: () => import('@/views/ComptabiliteView.vue'),
+        meta: { roles: ['COMPTABLE', 'ADMIN', 'SECRETAIRE', 'MEDECIN'] },
+      },
+      {
+        path: 'indicateurs',
+        name: 'indicateurs',
+        component: () => import('@/views/IndicateursAnnuelsView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['ADMIN', 'COMPTABLE'],
+          title: 'Indicateur',
+        },
       },
       {
         path: 'utilisateurs',

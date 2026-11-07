@@ -1,10 +1,10 @@
 <template>
-  <div class="dossier-view">
+  <div class="dossier-view cde">
     <!-- Patient Info Sheet (shown when activePatient exists) -->
     <div v-if="patient" class="dossier-view__patient-info">
       <!-- Fieldset: Identite -->
-      <div class="form-group form-group--identite">
-        <div class="form-group__legend">Identite</div>
+      <section class="dossier-view__section">
+        <h2 class="dossier-view__section-title">Identite</h2>
         <div class="dossier-view__grid-2col">
           <div class="dossier-view__field">
             <span class="dossier-view__label">Civilite</span>
@@ -23,11 +23,11 @@
             <span class="dossier-view__value">{{ patient.profession || '\u2014' }}</span>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Fieldset: Contact & Residence -->
-      <div class="form-group form-group--contact">
-        <div class="form-group__legend">Contact &amp; Residence</div>
+      <section class="dossier-view__section">
+        <h2 class="dossier-view__section-title">Contact &amp; Residence</h2>
         <div class="dossier-view__grid-2col">
           <div class="dossier-view__field">
             <span class="dossier-view__label">Telephone</span>
@@ -50,11 +50,11 @@
             <span class="dossier-view__value">{{ patient.complement_adresse || '\u2014' }}</span>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Fieldset: Informations Medicales -->
-      <div class="form-group form-group--medical">
-        <div class="form-group__legend">Informations Medicales</div>
+      <section class="dossier-view__section">
+        <h2 class="dossier-view__section-title">Informations Medicales</h2>
         <div class="dossier-view__grid-2col">
           <div class="dossier-view__field">
             <span class="dossier-view__label">N&deg; SS/Assurance</span>
@@ -91,11 +91,11 @@
             </span>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Fieldset: Personne de confiance (conditional) -->
-      <div v-if="trustedPerson?.has_trusted" class="form-group form-group--trusted">
-        <div class="form-group__legend">Personne de confiance</div>
+      <section v-if="trustedPerson?.has_trusted" class="dossier-view__section">
+        <h2 class="dossier-view__section-title">Personne de confiance</h2>
         <div class="dossier-view__grid-2col">
           <div class="dossier-view__field">
             <span class="dossier-view__label">Nom</span>
@@ -130,7 +130,7 @@
             <span class="dossier-view__value">{{ trustedPerson.lien_parente || '\u2014' }}</span>
           </div>
         </div>
-      </div>
+      </section>
     </div>
 
 
@@ -202,69 +202,62 @@ onMounted(async () => {
 
 <style scoped>
 .dossier-view__patient-info {
-  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .dossier-view__grid-2col {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px 24px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 32px;
+  min-width: 0;
+  max-width: 100%;
+}
+.dossier-view__grid-2col > * {
+  min-width: 0;
 }
 
-/* Section card styling */
-.form-group {
-  border-radius: 10px;
-  padding: 16px 20px 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+/* ── Section card ── */
+.dossier-view__section {
+  background: var(--cde-bg);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+  padding: 10px 14px 12px;
 }
 
-.form-group--identite {
-  background: #EBF2FA;
-}
-
-.form-group--contact {
-  background: #EBFAF2;
-}
-
-.form-group--medical {
-  background: #F5EBFA;
-}
-
-.form-group--trusted {
-  background: #FAF5EB;
-}
-
-.form-group__legend {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--cd-gray-800, #2c3e50);
-  margin-bottom: 14px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid rgba(0, 0, 0, 0.08);
-  letter-spacing: 0.3px;
+.dossier-view__section-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cde-muted);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--cde-border-soft);
 }
 
 .dossier-view__field {
   display: flex;
-  gap: 8px;
-  padding: 4px 0;
+  gap: 12px;
+  padding: 3px 0;
   align-items: baseline;
 }
 
 .dossier-view__label {
-  min-width: 120px;
-  font-size: 13px;
-  color: var(--cd-gray-600);
-  font-weight: 600;
+  min-width: 140px;
+  font-size: 12px;
+  color: var(--cde-muted);
+  font-weight: 500;
   flex-shrink: 0;
 }
 
 .dossier-view__value {
-  font-size: 14px;
+  font-size: 12.5px;
   color: var(--cd-gray-900);
   font-weight: 500;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .dossier-view__allergies-tags {
@@ -278,67 +271,18 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 12px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
   font-weight: 500;
+  line-height: 17px;
   border: 1px solid;
 }
 .dossier-view__allergy-type {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 9px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.04em;
   opacity: 0.7;
-}
-
-/* ── Responsive: single column on mobile ─────────────────── */
-@media (max-width: 767px) {
-  .dossier-view__grid-2col {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .form-group {
-    padding: 12px 14px 16px;
-  }
-
-  .dossier-view__label {
-    min-width: 100px;
-    font-size: 12px;
-  }
-
-  .dossier-view__value {
-    font-size: 13px;
-  }
-
-  .form-group__legend {
-    font-size: 14px;
-  }
-}
-
-/* ── Larger screens: more generous spacing ───────────────── */
-@media (min-width: 1400px) {
-  .dossier-view__grid-2col {
-    gap: 14px 32px;
-  }
-
-  .form-group {
-    padding: 20px 28px 24px;
-  }
-
-  .dossier-view__label {
-    min-width: 130px;
-    font-size: 14px;
-  }
-
-  .dossier-view__value {
-    font-size: 15px;
-  }
-
-  .form-group__legend {
-    font-size: 16px;
-    margin-bottom: 16px;
-  }
 }
 </style>

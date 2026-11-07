@@ -24,11 +24,13 @@ function sanitize(obj: Record<string, unknown>): Record<string, unknown> {
  *
  * @param channel - Canal IPC (ex. `'sites:list'`).
  * @param params - Paramètres optionnels transmis à la méthode.
+ * @param options - `silent: true` désactive le toast d'erreur global
+ *   (l'appelant affiche alors lui-même le message backend).
  * @returns Les données renvoyées par le backend (propriété `data`).
  * @throws Si `electronAPI` n'est pas disponible ou si le backend
  *         a répondu avec `success: false`.
  */
-export async function ipcInvoke<T = any>(channel: string, params?: any): Promise<T> {
+export async function ipcInvoke<T = any>(channel: string, params?: any, options?: { silent?: boolean }): Promise<T> {
   if (!window.electronAPI) {
     throw new Error('electronAPI non disponible')
   }
@@ -37,7 +39,7 @@ export async function ipcInvoke<T = any>(channel: string, params?: any): Promise
     : params
   const result = await window.electronAPI.invoke(channel, safe) as ServiceControllerResult<T>
   if (!result.success) {
-    ElMessage({ type: 'error', message: result.message })
+    if (!options?.silent) ElMessage({ type: 'error', message: result.message })
     throw new Error(result.message)
   }
   return result.data

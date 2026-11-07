@@ -26,13 +26,13 @@ export function registerExamTypeHandlers() {
     return ExamTypeEntity.toDtos(entities)
   })
 
-  createHandler('exam-types:create', async (dto: { label: string; category_id: number; parent_id?: number | null; code?: string }) => {
+  createHandler('exam-types:create', async (dto: { label: string; category_id: number; parent_id?: number | null; code?: string; prix?: number }) => {
     const entity = ExamTypeEntity.fromDto(dto as Partial<ExamTypeDto>)
     const created = await container.resolve(ExamTypeService).createType(entity)
     return ExamTypeEntity.toDto(created)
   })
 
-  createHandler('exam-types:update', async (dto: { id: number; label?: string; is_active?: boolean; parent_id?: number | null }) => {
+  createHandler('exam-types:update', async (dto: { id: number; label?: string; is_active?: boolean; parent_id?: number | null; prix?: number }) => {
     const entity = ExamTypeEntity.fromDto(dto as Partial<ExamTypeDto>)
     const updated = await container.resolve(ExamTypeService).updateType(entity)
     return ExamTypeEntity.toDto(updated)

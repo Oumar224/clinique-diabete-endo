@@ -85,6 +85,18 @@ describe('HtmlPreviewDialog', () => {
     expect(vm.htmlContent).toBe('<html><body>aperçu</body></html>')
   })
 
+  it('garde-fou régression : l\'iframe d\'aperçu conserve sandbox="allow-same-origin" (mitigation XSS)', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as any
+    vm.open()
+    await wrapper.vm.$nextTick()
+    await flushPromises()
+
+    expect(vm.htmlContent).toBeTruthy()
+    expect(vm.loading).toBe(false)
+    expect(wrapper.find('iframe').attributes('sandbox')).toBe('allow-same-origin')
+  })
+
   it('clone les params réactifs avant l\'appel IPC', async () => {
     const wrapper = createWrapper({ params: { documentId: 'doc-reactif' } })
     const vm = wrapper.vm as any
@@ -141,6 +153,35 @@ describe('HtmlPreviewDialog', () => {
 
     vm.handleClosed()
     expect(vm.htmlContent).toBeNull()
+  })
+
+  it('adapte l’aperçu au format paysage, légèrement réduit', async () => {
+    const wrapper = createWrapper({ orientation: 'landscape' })
+    const vm = wrapper.vm as any
+    vm.open()
+    await wrapper.vm.$nextTick()
+    await flushPromises()
+
+    const iframe = wrapper.find('iframe')
+    // La page garde sa largeur A4 paysage (pas de recompaction du contenu)…
+    expect(iframe.attributes('style')).toContain('width: 1123px')
+    expect(iframe.attributes('style')).toContain('height: 794px')
+    // …mais est affichée à 90 % pour ne pas paraître étirée.
+    expect(iframe.attributes('style')).toContain('scale(0.9)')
+  })
+
+  it('ne grossit pas l’aperçu au-delà de 100 % lors de l’ajustement', async () => {
+    const wrapper = createWrapper({ orientation: 'landscape' })
+    const vm = wrapper.vm as any
+    vm.open()
+    await wrapper.vm.$nextTick()
+    await flushPromises()
+
+    // Simule un grand écran : l'ajustement ne doit pas dépasser 90 %.
+    Object.defineProperty(vm.contentRef, 'clientWidth', { value: 2400, configurable: true })
+    window.dispatchEvent(new Event('resize'))
+
+    expect(vm.zoom).toBe(0.9)
   })
 
   it('ignore les réponses obsolètes quand un second chargement démarre', async () => {

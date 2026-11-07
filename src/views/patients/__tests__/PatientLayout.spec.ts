@@ -17,12 +17,18 @@ const mockElMessage = vi.hoisted(() => ({
   warning: vi.fn(),
   error: vi.fn(),
 }))
+// Hoisted so tests can change the active route name before mounting.
+const mockRoute = vi.hoisted(() => ({
+  params: { id: '42' },
+  name: 'patient-dossier',
+  meta: {} as Record<string, unknown>,
+}))
 
 // ===========================================================================
 // Module mocks — hoisted by vitest above all imports
 // ===========================================================================
 vi.mock('vue-router', () => ({
-  useRoute: vi.fn(() => ({ params: { id: '42' }, name: 'patient-dossier' })),
+  useRoute: () => mockRoute,
 }))
 
 vi.mock('element-plus', () => ({
@@ -108,6 +114,7 @@ async function waitForTicks() {
 describe('PatientLayout — loadPatient', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockRoute.name = 'patient-dossier'
   })
 
   // ────────────────────────────────────────────────────────────────────
@@ -263,5 +270,133 @@ describe('PatientLayout — loadPatient', () => {
 
       expect(wrapper.vm.loading).toBe(false)
     })
+  })
+})
+
+// ===========================================================================
+// Page header band — exactly one H1, always inside the band
+// ===========================================================================
+const PATIENT_ROUTES: Array<[string, string]> = [
+  ['patient-dossier', 'Fiche Patient'],
+  ['patient-dossier-clinic', 'Dossier Clinic'],
+  ['patient-labo', 'Résultats Bio'],
+  ['patient-prescription', 'Prescriptions, Soins & Médicaments'],
+  ['patient-ordonnances', 'Ordonnances'],
+  ['patient-examens', 'Demande Examens'],
+  ['patient-soins', 'Administration Soins & Médicaments'],
+  ['patient-contact', 'Contacts du patient'],
+  ['patient-sejour', 'Patient & Séjour'],
+  ['patient-rdv', 'Rendez-vous'],
+  ['patient-factures', 'Factures'],
+]
+
+describe('PatientLayout — page header band', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockRoute.name = 'patient-dossier'
+    mockRoute.meta = {}
+    mockGetPatient.mockResolvedValue(makePatient(42))
+  })
+
+  it.each(PATIENT_ROUTES)(
+    'renders exactly one H1 inside the band for %s',
+    async (routeName, label) => {
+      mockRoute.name = routeName
+
+      const wrapper = mount(PatientLayout, { global: { stubs } })
+      await waitForTicks()
+
+      const band = wrapper.find('.cde-section-head')
+      expect(band.exists()).toBe(true)
+      expect(band.text().trim().length).toBeGreaterThan(0)
+
+      const bandTitle = band.find('h1.patient-layout__section-title')
+      expect(bandTitle.exists()).toBe(true)
+      expect(bandTitle.text()).toBe(label)
+
+      const headings = wrapper.findAll('h1')
+      expect(headings).toHaveLength(1)
+      expect(headings[0].element).toBe(bandTitle.element)
+    },
+  )
+
+  it('keeps the title in the band even when the route declares a meta title', async () => {
+    mockRoute.name = 'patient-rdv'
+    mockRoute.meta = { title: 'Rendez-vous du patient' }
+
+    const wrapper = mount(PatientLayout, { global: { stubs } })
+    await waitForTicks()
+
+    const band = wrapper.find('.cde-section-head')
+    expect(band.find('h1').text()).toBe('Rendez-vous')
+    expect(wrapper.findAll('h1')).toHaveLength(1)
+  })
+
+  it('renders the Soins tab row inside the band, under the title', async () => {
+    mockRoute.name = 'patient-soins'
+
+    const wrapper = mount(PatientLayout, { global: { stubs } })
+    await waitForTicks()
+
+    const band = wrapper.find('.cde-section-head')
+    expect(band.find('h1').text()).toBe('Administration Soins & Médicaments')
+
+    const tabs = band.findAll('[role="tab"]')
+    expect(tabs.map(tab => tab.text())).toEqual([
+      'Plan Distribution',
+      'Vital Check',
+      'Diagramme de Synthèse',
+    ])
+    expect(tabs[0].attributes('aria-selected')).toBe('true')
+  })
+
+  it('selects a tab when its button is clicked', async () => {
+    mockRoute.name = 'patient-soins'
+
+    const wrapper = mount(PatientLayout, { global: { stubs } })
+    await waitForTicks()
+
+    const tabs = wrapper.findAll('.patient-layout__tab')
+    await tabs[1].trigger('click')
+
+    expect(tabs[1].attributes('aria-selected')).toBe('true')
+    expect(tabs[0].attributes('aria-selected')).toBe('false')
+  })
+
+  it('renders no child page title (the band owns the only H1)', async () => {
+    mockRoute.name = 'patient-ordonnances'
+    mockRoute.meta = { title: 'Ordonnances' }
+
+    const wrapper = mount(PatientLayout, {
+      global: {
+        stubs: {
+          ...stubs,
+          'router-view': {
+            template: `
+              <div class="router-view-stub">
+                <div class="cde-page-sub">Sous-titre</div>
+                <div class="cde-page-actions"><button>Rafraîchir</button></div>
+              </div>
+            `,
+          },
+        },
+      },
+    })
+    await waitForTicks()
+
+    expect(wrapper.find('.cde-section-head h1').text()).toBe('Ordonnances')
+    expect(wrapper.findAll('h1')).toHaveLength(1)
+    expect(wrapper.find('.cde-page-title').exists()).toBe(false)
+  })
+
+  it('renders the Ordonnances title only in the band', async () => {
+    mockRoute.name = 'patient-ordonnances'
+
+    const wrapper = mount(PatientLayout, { global: { stubs } })
+    await waitForTicks()
+
+    const band = wrapper.find('.cde-section-head')
+    expect(band.find('h1').text()).toBe('Ordonnances')
+    expect(wrapper.findAll('.cde-page-title')).toHaveLength(0)
   })
 })

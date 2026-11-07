@@ -31,18 +31,35 @@ export class AppointmentService {
   }
 
   async list(date?: string): Promise<AppointmentDto[]> {
-    try {
-      if (await this.checkHasNewColumns()) {
-        return await this.listJoined(date)
-      }
-    } catch { /* fall through */ }
-    return await this.listSimple(date)
+    return this.listFiltered(date ? { date } : {})
   }
 
-  private async listJoined(date?: string): Promise<AppointmentDto[]> {
+  async listFiltered(params?: {
+    date?: string
+    date_debut?: string
+    date_fin?: string
+    medecin_id?: number
+    status?: string
+  }): Promise<AppointmentDto[]> {
+    try {
+      if (await this.checkHasNewColumns()) {
+        return await this.listJoinedFiltered(params)
+      }
+    } catch { /* fall through */ }
+    return await this.listSimpleFiltered(params)
+  }
+
+  private async listJoinedFiltered(params?: {
+    date?: string
+    date_debut?: string
+    date_fin?: string
+    medecin_id?: number
+    status?: string
+  }): Promise<AppointmentDto[]> {
     let query = this.db
       .selectFrom('appointment')
       .leftJoin('user', 'user.id', 'appointment.medecin_id')
+      .leftJoin('patient', 'patient.id', 'appointment.patient_id')
       .leftJoin('services', 'services.id', 'appointment.service_id')
       .leftJoin('care_units', 'care_units.id', 'appointment.care_unit_id')
       .select([
@@ -62,18 +79,28 @@ export class AppointmentService {
         'care_units.name as care_unit_name',
       ])
       .select(sql<string>`TRIM(COALESCE(user.nom, '') || ' ' || COALESCE(user.prenom, ''))`.as('medecin_name'))
+      .select(sql<string>`TRIM(COALESCE(patient.nom, '') || ' ' || COALESCE(patient.prenom, ''))`.as('patient_nom'))
       .orderBy('appointment.date', 'desc')
       .orderBy('appointment.time', 'asc')
-    if (date) {
-      query = query.where('appointment.date', '=', date)
-    }
+    if (params?.date) query = query.where('appointment.date', '=', params.date) as typeof query
+    if (params?.date_debut) query = query.where('appointment.date', '>=', params.date_debut) as typeof query
+    if (params?.date_fin) query = query.where('appointment.date', '<=', params.date_fin) as typeof query
+    if (params?.medecin_id) query = query.where('appointment.medecin_id', '=', params.medecin_id) as typeof query
+    if (params?.status) query = query.where('appointment.status', '=', params.status as any) as typeof query
     return await query.execute() as any
   }
 
-  private async listSimple(date?: string): Promise<AppointmentDto[]> {
+  private async listSimpleFiltered(params?: {
+    date?: string
+    date_debut?: string
+    date_fin?: string
+    medecin_id?: number
+    status?: string
+  }): Promise<AppointmentDto[]> {
     let query = this.db
       .selectFrom('appointment')
       .leftJoin('user', 'user.id', 'appointment.medecin_id')
+      .leftJoin('patient', 'patient.id', 'appointment.patient_id')
       .select([
         'appointment.id',
         'appointment.patient_id',
@@ -87,11 +114,14 @@ export class AppointmentService {
         'appointment.updated_at',
       ])
       .select(sql<string>`TRIM(COALESCE(user.nom, '') || ' ' || COALESCE(user.prenom, ''))`.as('medecin_name'))
+      .select(sql<string>`TRIM(COALESCE(patient.nom, '') || ' ' || COALESCE(patient.prenom, ''))`.as('patient_nom'))
       .orderBy('appointment.date', 'desc')
       .orderBy('appointment.time', 'asc')
-    if (date) {
-      query = query.where('appointment.date', '=', date)
-    }
+    if (params?.date) query = query.where('appointment.date', '=', params.date) as typeof query
+    if (params?.date_debut) query = query.where('appointment.date', '>=', params.date_debut) as typeof query
+    if (params?.date_fin) query = query.where('appointment.date', '<=', params.date_fin) as typeof query
+    if (params?.medecin_id) query = query.where('appointment.medecin_id', '=', params.medecin_id) as typeof query
+    if (params?.status) query = query.where('appointment.status', '=', params.status as any) as typeof query
     return await query.execute() as any
   }
 

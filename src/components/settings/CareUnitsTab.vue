@@ -1,89 +1,115 @@
 <template>
-  <div class="cut">
-    <div class="cut__header">
-      <el-select
-        v-model="serviceFilter"
-        placeholder="Filtrer par service"
-        clearable
-        style="width: 280px"
-        @change="onFilterChange"
-      >
-        <el-option
-          v-for="svc in services"
-          :key="svc.id"
-          :label="svc.name"
-          :value="svc.id!"
-        />
-      </el-select>
-
-      <el-input
-        v-model="searchQuery"
-        placeholder="Rechercher..."
-        clearable
-        style="width: 280px"
-        @input="onSearch"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-
-      <el-button type="primary" :icon="Plus" @click="openCreate">Nouvelle unité</el-button>
-    </div>
+  <div class="cut cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Unités de soins
+        </h1>
+        <p class="cde-page-sub">
+          Unités rattachées aux services médicaux
+        </p>
+      </div>
+    </header>
 
     <el-alert
       v-if="error"
+      class="cde-alert cde-alert--danger"
       type="error"
       :title="error"
-      closable
+      :closable="true"
       @close="error = null"
-      style="margin-bottom: 16px"
     />
 
-    <el-table
-      v-loading="loading"
-      :data="paginatedList"
-      style="width: 100%"
-      border
-      row-key="id"
-    >
-      <el-table-column label="Service" width="200">
-        <template #default="{ row }">
-          <span class="cut__service-name">{{ row.service_name || '—' }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="code" label="Code" width="120" />
-      <el-table-column prop="name" label="Nom" min-width="180" />
-
-      <el-table-column label="Statut" width="90" align="center">
-        <template #default="{ row }">
-          <el-switch
-            :model-value="row.is_active"
+    <div class="cde-toolbar">
+      <div class="cde-filters">
+        <div class="cde-filter">
+          <span class="cde-filter__label">Service</span>
+          <el-select
+            v-model="serviceFilter"
+            class="cde-toolbar__select"
+            placeholder="Tous"
+            clearable
             size="small"
-            @change="handleToggle(row)"
-          />
-        </template>
-      </el-table-column>
-      <el-table-column label="Actions" width="110" align="center">
-        <template #default="{ row }">
-          <el-button text type="primary" :icon="Edit" size="small" @click="openEdit(row)" />
-          <el-button text type="danger" :icon="Delete" size="small" @click="handleDelete(row)" />
-        </template>
-      </el-table-column>
-    </el-table>
+            @change="onFilterChange"
+          >
+            <el-option
+              v-for="svc in services"
+              :key="svc.id"
+              :label="svc.name"
+              :value="svc.id!"
+            />
+          </el-select>
+        </div>
+        <div class="cde-filter cde-toolbar__search">
+          <span class="cde-filter__label">Recherche</span>
+          <el-input
+            v-model="searchQuery"
+            placeholder="Code ou nom…"
+            clearable
+            size="small"
+            @input="onSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+        </div>
+      </div>
+      <div class="cde-toolbar__actions">
+        <el-button type="primary" size="small" :icon="Plus" @click="openCreate">
+          Nouvelle unité
+        </el-button>
+      </div>
+    </div>
 
-    <el-empty v-if="!loading && filteredList.length === 0" description="Aucune unité de soins" />
+    <div class="cde-table-card">
+      <el-table
+        v-loading="loading"
+        :data="paginatedList"
+        style="width: 100%"
+        size="small"
+        row-key="id"
+        empty-text=""
+      >
+        <el-table-column label="Service" width="200">
+          <template #default="{ row }">
+            <span :class="{ 'cde-muted': !row.service_name }">{{ row.service_name || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="code" label="Code" width="120" />
+        <el-table-column prop="name" label="Nom" min-width="180" />
+        <el-table-column label="Statut" width="90" align="center">
+          <template #default="{ row }">
+            <el-switch
+              :model-value="row.is_active"
+              size="small"
+              @change="handleToggle(row)"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column label="Actions" width="110" align="center">
+          <template #default="{ row }">
+            <el-button text type="primary" size="small" :icon="Edit" title="Modifier" @click="openEdit(row)" />
+            <el-button text type="danger" size="small" :icon="Delete" title="Supprimer" @click="handleDelete(row)" />
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
-    <el-row justify="center" style="margin-top: 20px">
+    <div v-if="!loading && filteredList.length === 0" class="cde-empty">
+      Aucune unité de soins.
+    </div>
+
+    <div class="cde-footer">
+      <span class="cde-muted">{{ filteredList.length }} unité(s)</span>
       <el-pagination
         v-model:current-page="paginator.currPage"
         v-model:page-size="paginator.pageSize"
-        background
         layout="sizes, prev, pager, next"
         :page-sizes="[10, 20, 50]"
         :total="filteredList.length"
       />
-    </el-row>
+    </div>
 
     <CareUnitFormDialog ref="dialogRef" @saved="onSaved" />
   </div>
@@ -162,16 +188,3 @@ function onSaved() {
   paginator.currPage = 1
 }
 </script>
-
-<style scoped>
-.cut__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.cut__service-name {
-  font-size: 13px;
-}
-</style>

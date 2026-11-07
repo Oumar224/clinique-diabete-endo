@@ -32,5 +32,18 @@ export class SeedService {
     }
 
     await sql`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('currency', 'GNF')`.execute(this.db)
+
+    // Identité clinique par défaut — remplit uniquement les clés absentes ou vides,
+    // sans jamais écraser une configuration existante.
+    const hospitalDefaults: Array<[string, string]> = [
+      ['hospital_name', 'Clinique Diabète & Endocrinologie'],
+      ['hospital_address', 'Conakry, République de Guinée'],
+      ['hospital_phone', '+224'],
+      ['hospital_city', 'Conakry'],
+    ]
+    for (const [key, value] of hospitalDefaults) {
+      await sql`INSERT INTO app_settings (key, value) VALUES (${key}, ${value}) ON CONFLICT(key) DO NOTHING`.execute(this.db)
+      await sql`UPDATE app_settings SET value = ${value} WHERE key = ${key} AND (value IS NULL OR TRIM(value) = '')`.execute(this.db)
+    }
   }
 }

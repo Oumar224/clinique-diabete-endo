@@ -9,6 +9,8 @@ import { validateForeignKeys } from './utils/fk-validator'
 import { getBase64DecodedSize } from '../utils/file-utils'
 import { entityEventBus } from '../automerge/event-bus'
 import type { CreateExamRequestAttachmentDto } from '../dto/exam-request-attachment.dto'
+import { nextExamRequestNumero } from '../utils/exam-request-numero'
+import { parseExamIds, resolveExamMontant } from '../utils/exam-pricing'
 
 const DATA_URI_RE = /^data:[^;]+;base64,[A-Za-z0-9+/=]+$/
 
@@ -120,6 +122,10 @@ export class ExamRequestService {
   }
 
   async create(entity: ExamRequestEntity): Promise<ExamRequestEntity> {
+    // Le circuit « dossier patient » exige un patient. Les demandes externes
+    // passent par `LaboratoireService`, qui autorise un patient_id nul.
+    if (entity.patient_id == null) throw new Error('Le patient est requis')
+
     // Validate foreign keys before insert
     await validateForeignKeys(this.db as any, [
       { table: 'patient', column: 'patient_id', value: entity.patient_id },
@@ -129,9 +135,22 @@ export class ExamRequestService {
       { table: 'user', column: 'created_by', value: entity.created_by },
     ])
 
+    // Toute demande de laboratoire doit porter un numéro `LB-…`, qu'elle
+    // provienne du dossier patient ou du module Laboratoire.
+    const numero = entity.numero
+      ?? (entity.type === 'laboratoire' ? await nextExamRequestNumero(this.db) : undefined)
+
+    // Montant calculé depuis les prix configurés (Configuration > Examens).
+    if (entity.type === 'laboratoire') {
+      const examIds = parseExamIds(entity.exam_ids)
+      if (entity.examen_id != null) examIds.push(entity.examen_id)
+      entity.montant = await resolveExamMontant(this.db, examIds, entity.montant)
+    }
+
     const result = await this.db
       .insertInto('exam_requests')
       .values({
+        numero,
         patient_id: entity.patient_id!,
         encounter_id: entity.encounter_id ?? undefined,
         type: entity.type!,
@@ -145,6 +164,7 @@ export class ExamRequestService {
         statut: entity.statut ?? 'en_attente',
         prescripteur_id: entity.prescripteur_id ?? undefined,
         created_by: entity.created_by ?? entity.prescripteur_id ?? undefined,
+        montant: entity.montant ?? undefined,
       })
       .returningAll()
       .executeTakeFirst()
@@ -179,6 +199,13 @@ export class ExamRequestService {
     if (entity.realized_at !== undefined) updateData.realized_at = entity.realized_at
     if (entity.resultat !== undefined) updateData.resultat = entity.resultat
     if (entity.prescripteur_id !== undefined) updateData.prescripteur_id = entity.prescripteur_id
+
+    // Les analyses ont changé : le montant suit les prix du catalogue.
+    if (entity.type === 'laboratoire' && entity.exam_ids !== undefined) {
+      const examIds = parseExamIds(entity.exam_ids)
+      if (entity.examen_id != null) examIds.push(entity.examen_id)
+      updateData.montant = await resolveExamMontant(this.db, examIds, entity.montant)
+    }
 
     await this.db
       .updateTable('exam_requests')

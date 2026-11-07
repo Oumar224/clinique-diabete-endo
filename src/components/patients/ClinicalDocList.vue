@@ -193,7 +193,7 @@ function formatDateTime(dateStr: string): string {
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--el-border-color-light);
+  border-right: 1px solid var(--cde-border);
   padding-right: 12px;
 }
 
@@ -229,19 +229,19 @@ function formatDateTime(dateStr: string): string {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color-light);
+  border-radius: 6px;
+  border: 1px solid var(--cde-border);
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 
   &:hover {
-    background-color: var(--el-color-primary-light-9);
-    border-color: var(--el-color-primary-light-7);
+    background-color: var(--cde-surface-tint);
+    border-color: var(--cde-border);
   }
 
   &--selected {
-    background-color: var(--el-color-primary-light-9);
-    border-color: var(--el-color-primary);
+    background-color: var(--cde-accent-tint);
+    border-color: var(--cde-accent);
   }
 }
 

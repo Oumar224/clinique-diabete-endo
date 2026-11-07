@@ -203,9 +203,9 @@ function formatSize(bytes: number | null | undefined): string {
 .avis-result__attachments {
   margin-top: 8px;
   padding: 12px;
-  border: 1px solid var(--cd-gray-200, #e4e7ed);
-  border-radius: 8px;
-  background: #fafafa;
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+  background: var(--cde-surface-tint);
 }
 .avis-result__attachments-header {
   display: flex;
@@ -218,7 +218,7 @@ function formatSize(bytes: number | null | undefined): string {
 .avis-result__attachments-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--cd-gray-700, #333);
+  color: var(--cde-header-text);
 }
 .avis-result__attachments-add {
   display: flex;
@@ -228,11 +228,11 @@ function formatSize(bytes: number | null | undefined): string {
 }
 .avis-result__file-name {
   font-size: 12px;
-  color: #666;
+  color: var(--cde-muted);
 }
 .avis-result__status {
   font-size: 12px;
-  color: #999;
+  color: var(--cde-muted);
   padding: 8px 0;
   text-align: center;
 }
@@ -241,7 +241,7 @@ function formatSize(bytes: number | null | undefined): string {
   align-items: center;
   justify-content: space-between;
   padding: 6px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--cde-border-soft);
 }
 .avis-result__attachment:last-child {
   border-bottom: none;
@@ -253,15 +253,15 @@ function formatSize(bytes: number | null | undefined): string {
 }
 .avis-result__attachment-icon {
   font-size: 18px;
-  color: var(--cd-gray-500, #95a5a6);
+  color: var(--cde-muted);
 }
 .avis-result__attachment-name {
   font-size: 13px;
   font-weight: 500;
-  color: #333;
+  color: var(--cde-header-text);
 }
 .avis-result__attachment-meta {
   font-size: 11px;
-  color: #999;
+  color: var(--cde-muted);
 }
 </style>

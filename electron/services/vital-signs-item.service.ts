@@ -12,6 +12,21 @@ export class VitalSignsItemService {
     this.db = datasource.getInstance()
   }
 
+  /**
+   * Distinct dates (YYYY-MM-DD) having vital-signs items for the patient,
+   * most recent first. Used to build recorded-dates columns (cf. ResultatsBio).
+   */
+  async listDatesByPatient(patientId: number): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom('vital_signs_items')
+      .select('date')
+      .distinct()
+      .where('patient_id', '=', patientId)
+      .orderBy('date', 'desc')
+      .execute()
+    return rows.map(r => r.date as string).filter((d): d is string => d != null && d !== '')
+  }
+
   async listByPatientAndDateRange(patientId: number, startDate: string, endDate: string): Promise<VitalSignsItemEntity[]> {
     const rows = await this.db
       .selectFrom('vital_signs_items')

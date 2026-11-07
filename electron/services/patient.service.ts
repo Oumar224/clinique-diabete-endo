@@ -173,10 +173,116 @@ export class PatientService {
       .executeTakeFirst()
     if (!existing) throw new Error('Patient introuvable')
 
-    await this.db
-      .deleteFrom('patient')
-      .where('id', '=', id)
-      .execute()
+    // SQLite FK enforcement is ON at runtime. Several child trees reference
+    // patient(id) / encounters(id) / stays(id) with NO ACTION (RESTRICT), so
+    // they must be deleted explicitly in dependency order inside one
+    // transaction. See migrations 050, 051, 053, 071 for the FK definitions.
+    await this.db.transaction().execute(async (trx) => {
+      const encounterIds = (
+        await trx
+          .selectFrom('encounters')
+          .select('id')
+          .where('patient_id', '=', id)
+          .execute()
+      ).map((r) => r.id)
+
+      const stayIds = (
+        await trx
+          .selectFrom('stays')
+          .select('id')
+          .where('patient_id', '=', id)
+          .execute()
+      ).map((r) => r.id)
+
+      // Clinical documents attached to the patient's encounters
+      // (patient_clinical_documents.contact_id → encounters(id), NO ACTION, 053:24).
+      const documentIds = encounterIds.length > 0
+        ? (
+            await trx
+              .selectFrom('patient_clinical_documents')
+              .select('id')
+              .where('contact_id', 'in', encounterIds.map(String))
+              .execute()
+          ).map((r) => r.id)
+        : []
+
+      // clinical_document_signatures.document_id → patient_clinical_documents(id)
+      // is NO ACTION (053:47) — must be removed before the documents themselves.
+      if (documentIds.length > 0) {
+        await trx
+          .deleteFrom('clinical_document_signatures')
+          .where('document_id', 'in', documentIds)
+          .execute()
+      }
+
+      // document_attachments.document_id → patient_clinical_documents(id)
+      // is ON DELETE CASCADE (090:7), removed automatically with the documents.
+      if (documentIds.length > 0) {
+        await trx
+          .deleteFrom('patient_clinical_documents')
+          .where('id', 'in', documentIds)
+          .execute()
+      }
+
+      // encounter_movements.encounter_id → encounters(id), NO ACTION (050:40)
+      if (encounterIds.length > 0) {
+        await trx
+          .deleteFrom('encounter_movements')
+          .where('encounter_id', 'in', encounterIds)
+          .execute()
+      }
+
+      // exam_requests.patient_id → patient(id) is NO ACTION (071:7) and
+      // exam_requests.encounter_id → encounters(id) is NO ACTION (071:8), so
+      // exam_requests must be deleted BEFORE encounters.
+      // exam_results (081:7) and exam_request_attachments (094:7) cascade.
+      await trx
+        .deleteFrom('exam_requests')
+        .where('patient_id', '=', id)
+        .execute()
+
+      // encounters.patient_id → patient(id), NO ACTION (050:10, rebuilt in
+      // 057/059/061/066/085). patient_actes.encounter_id is ON DELETE SET NULL
+      // (052:29), handled automatically.
+      if (encounterIds.length > 0) {
+        await trx
+          .deleteFrom('encounters')
+          .where('id', 'in', encounterIds)
+          .execute()
+      }
+
+      // stay_movements.stay_id → stays(id), NO ACTION (051:31)
+      if (stayIds.length > 0) {
+        await trx
+          .deleteFrom('stay_movements')
+          .where('stay_id', 'in', stayIds)
+          .execute()
+      }
+
+      // stays.patient_id → patient(id), NO ACTION (051:9)
+      if (stayIds.length > 0) {
+        await trx
+          .deleteFrom('stays')
+          .where('id', 'in', stayIds)
+          .execute()
+      }
+
+      // form_drafts.patient_id has no FK (028) — orphan cleanup
+      await trx
+        .deleteFrom('form_drafts')
+        .where('patient_id', '=', id)
+        .execute()
+
+      // Finally the patient row. All remaining children cascade:
+      // appointment (001:56), invoice + invoice_items (004), patient_attachments
+      // (015:7), trusted_persons (019:9), plan_soins + plan_soins_items (031),
+      // vital_signs (031:43), dispositifs (031:63), prescriptions (033:11),
+      // patient_actes (052:30), vital_signs_items (043:8).
+      await trx
+        .deleteFrom('patient')
+        .where('id', '=', id)
+        .execute()
+    })
     entityEventBus.emitEntityChange({ entityType: 'patient', action: 'deleted', id: existing.id!, entity: existing, source: 'local', timestamp: Date.now() })
     return existing
   }

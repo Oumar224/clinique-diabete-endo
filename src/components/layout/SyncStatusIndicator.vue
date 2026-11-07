@@ -65,11 +65,11 @@ const progressPercent = computed(() => {
 }
 
 .sync-status--online .sync-status__dot {
-  background: #27ae60;
+  background: var(--cde-success);
 }
 
 .sync-status--offline .sync-status__dot {
-  background: #c0392b;
+  background: var(--cde-danger);
 }
 
 .sync-status--syncing .sync-status__dot {

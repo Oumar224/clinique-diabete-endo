@@ -304,4 +304,294 @@ describe('OrdonnanceLibreService', () => {
     expect(result).toBeDefined()
     expect(result!.linkedPrescriptions).toHaveLength(0)
   })
+
+  // ─── flags de transfert pharmacie ───────────────────────────────
+
+  it('should expose hasMedicamentLines and dejaTransferee in listByPatient', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const db = container.resolve(AppDatabaseDatasource).getInstance()
+    const patientId = await createTestPatient()
+    const userId = await createTestUser()
+    const encounterId = await createTestEncounter(patientId, userId)
+
+    const medDocId = await createTestDocument(encounterId, userId, {
+      items: [{ categorie: 'medicament', medicament: 'Metformine 500 mg' }],
+    })
+    const examDocId = await createTestDocument(encounterId, userId, {
+      items: [{ categorie: 'examen', examen: 'NFS' }],
+    })
+    const sortieDocId = await createTestDocument(encounterId, userId, {
+      ordonnanceSortie: [{ categorie: 'medicament', medicament: 'Amlodipine 5 mg' }],
+    })
+
+    await db
+      .insertInto('delivrances')
+      .values({
+        source: 'ordonnance_libre',
+        source_document_id: medDocId,
+        patient_id: patientId,
+        statut: 'a_servir',
+      })
+      .execute()
+
+    const results = await service.listByPatient(patientId)
+    const byId = new Map(results.map((row) => [row.id, row]))
+
+    expect(byId.get(medDocId)).toMatchObject({ hasMedicamentLines: true, dejaTransferee: true })
+    expect(byId.get(examDocId)).toMatchObject({ hasMedicamentLines: false, dejaTransferee: false })
+    expect(byId.get(sortieDocId)).toMatchObject({ hasMedicamentLines: true, dejaTransferee: false })
+  })
+
+  it('should expose the same transfer flags in getById', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const db = container.resolve(AppDatabaseDatasource).getInstance()
+    const patientId = await createTestPatient()
+    const userId = await createTestUser()
+    const encounterId = await createTestEncounter(patientId, userId)
+
+    const docId = await createTestDocument(encounterId, userId, {
+      items: [{ categorie: 'medicament', medicament: 'Paracétamol' }],
+    })
+    await db
+      .insertInto('delivrances')
+      .values({
+        source: 'ordonnance_libre',
+        source_document_id: docId,
+        patient_id: patientId,
+        statut: 'a_servir',
+      })
+      .execute()
+
+    const result = await service.getById(docId)
+    expect(result).toMatchObject({ hasMedicamentLines: true, dejaTransferee: true })
+  })
+
+  it('should ignore linkedPrescriptionIds alone when computing transfer eligibility', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const patientId = await createTestPatient()
+    const userId = await createTestUser()
+    const encounterId = await createTestEncounter(patientId, userId)
+    const rxId = await createTestPrescription(patientId, userId)
+
+    await createTestDocument(encounterId, userId, { linkedPrescriptionIds: [rxId] })
+
+    const [row] = await service.listByPatient(patientId)
+    expect(row.hasMedicamentLines).toBe(false)
+    expect(row.dejaTransferee).toBe(false)
+  })
+
+  // ─── createFromGroup (génération d'ordonnance par groupe CRH/CRC) ────
+
+  const GROUP_FINGERPRINT = {
+    patientId: 0,
+    contactId: '0',
+    serviceId: null,
+    siteId: null,
+    createdBy: '0',
+    title: 'CRH - 16/08/2026',
+    sourceDocumentId: 'doc-crh-abc',
+    categorie: 'medicament' as const,
+    items: [
+      { _key: 'k1', categorie: 'medicament', medicament: 'Metformine 500 mg', dosage: '500', unite: 'mg', voie: 'PO', frequence: ['Matin', 'Soir'] },
+    ],
+  }
+
+  async function resolveFingerprint(): Promise<typeof GROUP_FINGERPRINT> {
+    const patientId = await createTestPatient()
+    const userId = await createTestUser()
+    const encounterId = await createTestEncounter(patientId, userId)
+    return { ...GROUP_FINGERPRINT, patientId, createdBy: String(userId), contactId: String(encounterId) }
+  }
+
+  it('should create a new draft ORDONNANCE_LIBRE document from a CRH group', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const params = await resolveFingerprint()
+
+    const result = await service.createOrReplaceFromGroup(params)
+
+    expect(result.replaced).toBe(false)
+    expect(result.documentId).toBeTruthy()
+
+    const docs = await service.listByPatient(params.patientId)
+    expect(docs).toHaveLength(1)
+    expect(docs[0].document_type_code).toBe('ORDONNANCE_LIBRE')
+    expect(docs[0].title).toBe('CRH - 16/08/2026')
+    expect(docs[0].status).toBe('draft')
+    const fd = JSON.parse(docs[0].form_data)
+    expect(fd.source).toBe('crh')
+    expect(fd.sourceDocumentId).toBe('doc-crh-abc')
+    expect(fd.categorie).toBe('medicament')
+    expect(fd.items).toEqual(params.items)
+  })
+
+  it('should replace the existing document when the (source, sourceDocumentId, categorie) fingerprint matches', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const params = await resolveFingerprint()
+
+    const first = await service.createOrReplaceFromGroup(params)
+    const second = await service.createOrReplaceFromGroup({
+      ...params,
+      title: 'CRH - 17/08/2026',
+    })
+
+    expect(second.replaced).toBe(true)
+    expect(second.documentId).toBe(first.documentId)
+
+    const docs = await service.listByPatient(params.patientId)
+    expect(docs).toHaveLength(1) // pas de doublon : le document est mis à jour en place
+    const fd = JSON.parse(docs[0].form_data)
+    expect(fd.title).toBe('CRH - 17/08/2026')
+    expect(fd.items).toEqual(params.items)
+  })
+
+  it('should create a separate document for a different categorie (same source document)', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const params = await resolveFingerprint()
+
+    const medicament = await service.createOrReplaceFromGroup(params)
+    const soins = await service.createOrReplaceFromGroup({
+      ...params,
+      categorie: 'soins',
+      items: [{ _key: 'k2', categorie: 'soins', medicament: 'Pansement quotidien', frequence: ['1/jour'] }],
+    })
+
+    expect(medicament.replaced).toBe(false)
+    expect(soins.replaced).toBe(false)
+    expect(soins.documentId).not.toBe(medicament.documentId)
+
+    const docs = await service.listByPatient(params.patientId)
+    const categories = docs
+      .map((d: any) => JSON.parse(d.form_data).categorie)
+      .sort()
+    expect(categories).toEqual(['medicament', 'soins'])
+  })
+
+  it('should create a separate document for a different sourceDocumentId', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const params = await resolveFingerprint()
+
+    const first = await service.createOrReplaceFromGroup(params)
+    const second = await service.createOrReplaceFromGroup({
+      ...params,
+      sourceDocumentId: 'doc-crc-def',
+    })
+
+    expect(second.replaced).toBe(false)
+    expect(second.documentId).not.toBe(first.documentId)
+  })
+
+  it('should NOT replace a legacy ordonnance libre without the crh fingerprint (ex: ordonnanceSortie)', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const params = await resolveFingerprint()
+
+    // document legacy créé via le helper (form_data "ordonnanceSortie", sans source)
+    await createTestDocument(Number(params.contactId), Number(params.createdBy), {
+      ordonnanceSortie: [{ categorie: 'medicament', medicament: 'Legacy' }],
+    })
+
+    const result = await service.createOrReplaceFromGroup(params)
+
+    expect(result.replaced).toBe(false)
+
+    const docs = await service.listByPatient(params.patientId)
+    expect(docs).toHaveLength(2)
+  })
+
+  // ─── matcher défensif (Task 3) ─────────────────────────────────
+
+  it('should NOT replace an ordonnance libre from ANOTHER patient even with matching fingerprint', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const params = await resolveFingerprint()
+    await service.createOrReplaceFromGroup(params)
+
+    // un autre patient avec le même (source, sourceDocumentId, categorie)
+    const otherPatientId = await createTestPatient()
+    const otherUser = await createTestUser()
+    const otherEncounterId = await createTestEncounter(otherPatientId, otherUser)
+    const other = await service.createOrReplaceFromGroup({
+      ...params,
+      patientId: otherPatientId,
+      contactId: String(otherEncounterId),
+    })
+
+    expect(other.replaced).toBe(false)
+    expect(await service.listByPatient(otherPatientId)).toHaveLength(1)
+    // le document du patient A reste intact et unique
+    expect(await service.listByPatient(params.patientId)).toHaveLength(1)
+  })
+
+  it('should NOT replace when categorie differs (already covered) and should create a new doc', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const params = await resolveFingerprint()
+    await service.createOrReplaceFromGroup(params)
+    const result = await service.createOrReplaceFromGroup({ ...params, categorie: 'examen' })
+
+    expect(result.replaced).toBe(false)
+    const docs = await service.listByPatient(params.patientId)
+    expect(docs).toHaveLength(2)
+  })
+
+  it('should NOT crash nor replace when form_data is not an object (ex: JSON array or scalar)', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const params = await resolveFingerprint()
+    // form_data valide en JSON mais PAS un objet (ex: tableau) → ne doit ni matcher ni crasher
+    await createTestDocument(Number(params.contactId), Number(params.createdBy), {} as any)
+    const db = container.resolve(AppDatabaseDatasource).getInstance()
+    await db
+      .updateTable('patient_clinical_documents')
+      .set({ form_data: JSON.stringify([{ source: 'crh', sourceDocumentId: params.sourceDocumentId, categorie: params.categorie }]) })
+      .where('contact_id', '=', String(params.contactId))
+      .execute()
+
+    const result = await service.createOrReplaceFromGroup(params)
+    expect(result.replaced).toBe(false)
+
+    const docs = await service.listByPatient(params.patientId)
+    expect(docs).toHaveLength(2)
+  })
+
+  it('should NOT match when form_data contains an unrelated scalar fingerprint', async () => {
+    const service = container.resolve(OrdonnanceLibreService)
+    const params = await resolveFingerprint()
+    const db = container.resolve(AppDatabaseDatasource).getInstance()
+    await db
+      .insertInto('patient_clinical_documents')
+      .values({
+        id: `doc-scalar-${Date.now()}`,
+        contact_id: String(params.contactId),
+        document_type_id: ORDONNANCE_LIBRE_TYPE_ID,
+        title: 'Scalar',
+        status: 'draft',
+        form_data: JSON.stringify('just a string'),
+        created_by: String(params.createdBy),
+      })
+      .executeTakeFirstOrThrow()
+
+    const result = await service.createOrReplaceFromGroup(params)
+    expect(result.replaced).toBe(false)
+  })
+
+  describe('validateCreateFromGroup', () => {
+    it('rejects an empty items array', async () => {
+      const { validateCreateFromGroup } = await import('../ordonnance-libre.service')
+      expect(() => validateCreateFromGroup({ items: [], categorie: 'medicament' })).toThrow(/non vide/)
+    })
+
+    it('rejects a non-array items', async () => {
+      const { validateCreateFromGroup } = await import('../ordonnance-libre.service')
+      expect(() => validateCreateFromGroup({ items: 'nope', categorie: 'medicament' })).toThrow(/tableau non vide/)
+    })
+
+    it('rejects an out-of-allowlist categorie', async () => {
+      const { validateCreateFromGroup } = await import('../ordonnance-libre.service')
+      expect(() => validateCreateFromGroup({ items: [{ x: 1 }], categorie: 'urgences' })).toThrow(/categorie invalide/)
+    })
+
+    it('accepts a valid non-empty group for every allowlisted categorie', async () => {
+      const { validateCreateFromGroup, ORDONNANCE_LIBRE_CATEGORIES } = await import('../ordonnance-libre.service')
+      for (const categorie of ORDONNANCE_LIBRE_CATEGORIES) {
+        expect(() => validateCreateFromGroup({ items: [{ x: 1 }], categorie })).not.toThrow()
+      }
+    })
+  })
 })

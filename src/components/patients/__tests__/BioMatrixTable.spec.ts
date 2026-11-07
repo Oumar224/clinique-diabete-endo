@@ -218,25 +218,61 @@ describe('BioMatrixTable', () => {
   // ─── Week mode (dateColumns + hourSlots) ──────────────────────────
 
   describe('week mode', () => {
-    it('renders one date header per day with hour slots', () => {
+    // Contrat de la vue « Résultats Bio » : dateColumns arrive trié du plus
+    // récent (index 0, aujourd'hui) au plus ancien. Le composant doit rendre
+    // cet ordre tel quel, sans le réinterpréter.
+    const TODAY = '2026-07-02'
+    const YESTERDAY = '2026-07-01'
+    const dateColumns = [
+      { key: TODAY, name: 'Jeu', dateLabel: '02/07', isToday: true },
+      { key: YESTERDAY, name: 'Mer', dateLabel: '01/07', isToday: false },
+    ]
+
+    it('renders one date header per day with hour slots, newest first', () => {
       const wrapper = createWrapper({
         groups: [makeGroup({
-          rows: [makeRow({ dates: { '2026-07-01|9': { value: '0.95', isNormal: true } } })],
+          rows: [makeRow({ dates: { [`${TODAY}|9`]: { value: '0.95', isNormal: true } } })],
         })],
-        dateColumns: [
-          { key: '2026-07-01', name: 'Mer', dateLabel: '01/07', isToday: true },
-          { key: '2026-07-02', name: 'Jeu', dateLabel: '02/07', isToday: false },
-        ],
+        dateColumns,
         hourSlots: [9, 10],
       })
       const headers = wrapper.findAll('.rb__date-header')
       expect(headers).toHaveLength(2)
-      expect(headers[0].text()).toContain('Mer')
+      expect(headers[0].text()).toContain('Jeu')
+      expect(headers[0].text()).toContain('02/07')
       expect(headers[0].text()).toContain('09:00')
       expect(headers[0].text()).toContain('10:00')
       expect(headers[0].classes()).toContain('rb__date-header--today')
-      expect(headers[1].text()).toContain('Jeu')
+      expect(headers[1].text()).toContain('Mer')
+      expect(headers[1].text()).toContain('01/07')
       expect(headers[1].classes()).not.toContain('rb__date-header--today')
+    })
+
+    it('places each value in the column matching its date (today leftmost)', () => {
+      const wrapper = createWrapper({
+        groups: [makeGroup({
+          rows: [makeRow({
+            dates: {
+              [`${TODAY}|9`]: { value: '1.10', isNormal: true },
+              [`${YESTERDAY}|10`]: { value: '0.85', isNormal: true },
+            },
+          })],
+        })],
+        dateColumns,
+        hourSlots: [9, 10],
+      })
+
+      const cells = wrapper.findAll('.rb__cell')
+      const todayCell = cells.find((cell) => cell.text().includes('1.10'))!
+      const olderCell = cells.find((cell) => cell.text().includes('0.85'))!
+
+      // leftCols = 3 (Analyses, Unités, Référence) → première colonne de données
+      // à la ligne de grille 4. di=0 → 4 + 0*2 + 0 ; di=1 → 4 + 1*2 + 1 = 7.
+      expect(todayCell.attributes('style')).toContain('grid-column: 4')
+      expect(olderCell.attributes('style')).toContain('grid-column: 7')
+
+      // Aucun décalage : la cellule du jour est bien à gauche de l'ancienne.
+      expect(cells.indexOf(todayCell)).toBeLessThan(cells.indexOf(olderCell))
     })
   })
 

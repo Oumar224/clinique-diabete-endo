@@ -144,10 +144,11 @@ describe('DiagrammeSyntheseTab', () => {
   // Structure
   // -----------------------------------------------------------------------
   describe('structure', () => {
-    it('renders the header with title and date picker', () => {
+    it('renders the compact toolbar with date picker and no page title', () => {
       const wrapper = mount(DiagrammeSyntheseTab, { global: { stubs, directives: { loading: vi.fn() } } })
       expect(wrapper.find('.diagramme__header').exists()).toBe(true)
-      expect(wrapper.text()).toContain('Diagramme de synthèse')
+      expect(wrapper.find('.cde-page-title').exists()).toBe(false)
+      expect(wrapper.findAll('h1')).toHaveLength(0)
       expect(wrapper.find('.el-date-picker').exists()).toBe(true)
     })
 

@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { inject, singleton } from 'tsyringe'
+import { inject, singleton, container } from 'tsyringe'
 import type { Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
@@ -16,6 +16,7 @@ export interface CreateDocumentParams {
   siteId?: number | null
   documentTypeId: string
   createdBy: string
+  title?: string
 }
 
 export interface CreateDocumentWithActeResult {
@@ -67,6 +68,7 @@ export class ClinicalDocumentService {
         'clinical_document_types.is_active',
         'clinical_document_types.created_at',
         'clinical_document_types.acte_id_declenche',
+        'clinical_document_types.contact_types',
         'medical_acts.label as acte_label',
         'medical_acts.code as acte_code',
         'config_tarifs.prix_unitaire',
@@ -211,6 +213,7 @@ export class ClinicalDocumentService {
         'clinical_document_types.is_active',
         'clinical_document_types.created_at',
         'clinical_document_types.acte_id_declenche',
+        'clinical_document_types.contact_types',
         'medical_acts.label as acte_label',
         'medical_acts.code as acte_code',
         'config_tarifs.prix_unitaire',
@@ -385,14 +388,14 @@ export class ClinicalDocumentService {
       }
     }
 
-    // Get the document type to build a default title
+    // Get the document type to build a default title (unless explicitly provided)
     const docType = await this.db
       .selectFrom('clinical_document_types')
       .select(['label'])
       .where('id', '=', params.documentTypeId as any)
       .executeTakeFirst()
 
-    const title = docType ? docType.label : 'Document'
+    const title = params.title ?? (docType ? docType.label : 'Ordonnance Libre')
 
     const siteId = await this.resolveSiteId(params.createdBy, params.siteId)
 
@@ -690,6 +693,17 @@ export class ClinicalDocumentService {
     const signed = await this.getDocumentById(id)
     if (!signed) throw new Error('Document introuvable après signature')
     entityEventBus.emitEntityChange({ entityType: 'clinical_document', action: 'updated', id, entity: signed, source: 'local', timestamp: Date.now() })
+    try {
+      const [{ DispensationService }, { ORDONNANCE_LIBRE_ID }] = await Promise.all([
+        import('./dispensation.service'),
+        import('./ordonnance-libre.service'),
+      ])
+      if (signed.documentTypeId === ORDONNANCE_LIBRE_ID) {
+        await container.resolve(DispensationService).createFromDocument(id)
+      }
+    } catch (error) {
+      console.warn('[pharmacie] createFromDocument après signature ignoré', { documentId: id, error: (error as Error)?.message })
+    }
     return signed
   }
 

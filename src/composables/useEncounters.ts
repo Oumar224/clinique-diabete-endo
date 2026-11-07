@@ -22,6 +22,10 @@ export interface EncounterDto {
   prise_en_charge_precision?: string | null
   sinistre_info?: string | null
   notes?: string | null
+  case_type?: 'diabete' | 'thyroide_endocrino' | 'autre' | null
+  is_new_case?: number | null
+  /** Type du séjour miroir (hospitalisation) — stocké dans `stays.type`. */
+  stay_type?: 'jour' | 'complete' | null
   care_unit_id?: number | null
   care_unit_name?: string | null
   status: 'active' | 'closed'
@@ -105,6 +109,9 @@ export function useEncounters() {
     prise_en_charge_precision?: string | null
     sinistre_info?: string | null
     notes?: string | null
+    case_type?: 'diabete' | 'thyroide_endocrino' | 'autre' | null
+    is_new_case?: number | null
+    stay_type?: 'jour' | 'complete' | null
     care_unit_id?: number | null
     created_by?: number | null
   }): Promise<EncounterDto | null> {
@@ -149,6 +156,9 @@ export function useEncounters() {
     prise_en_charge_precision?: string | null
     sinistre_info?: string | null
     notes?: string | null
+    case_type?: 'diabete' | 'thyroide_endocrino' | 'autre' | null
+    is_new_case?: number | null
+    stay_type?: 'jour' | 'complete' | null
     care_unit_id?: number | null
   }>): Promise<EncounterDto | null> {
     loading.value = true

@@ -53,6 +53,35 @@ import { ExamRequestEntity } from './exam-request.entity'
 import { ExamRequestAttachmentEntity } from './exam-request-attachment.entity'
 import { ExamParameterEntity } from './exam-parameter.entity'
 import { ExamResultEntity } from './exam-result.entity'
+import { MedicamentEntity } from './medicament.entity'
+import { StockLotEntity } from './stock-lot.entity'
+import { FournisseurEntity } from './fournisseur.entity'
+import { UniteStockEntity } from './unite-stock.entity'
+import {
+  LaboArticleEntity,
+  LaboStockLotEntity,
+  LaboMouvementStockEntity,
+  LaboCommandeEntity,
+  LaboCommandeLigneEntity,
+  LaboCommandeReceptionEntity,
+  LaboReceptionLigneEntity,
+  LaboPaiementEntity,
+} from './laboratoire.entity'
+import { MouvementStockEntity } from './mouvement-stock.entity'
+import { DelivranceEntity, DelivranceLigneEntity } from './delivrance.entity'
+import { SalaireConfigEntity, SalaireConfigRubriqueEntity, SalairePaiementEntity } from './salaire.entity'
+import { DepenseCategorieEntity, DepenseEntity } from './depense.entity'
+import { VentePharmaciePaiementEntity } from './vente-pharmacie-paiement.entity'
+import { AnnualIndicatorEntity } from './annual-indicator.entity'
+import {
+  CommandeEntity,
+  CommandeLigneEntity,
+  CommandeReceptionAttachmentEntity,
+  CommandeReceptionEntity,
+  CommandeReceptionLigneEntity,
+} from './commande.entity'
+import { ApportEntity, ApportRemboursementEntity } from './apport.entity'
+import { StockLotAttachmentEntity } from './stock-lot-attachment.entity'
 import type { Entity } from './entity'
 
 export interface ServiceSiteEntity {
@@ -122,6 +151,36 @@ export interface DB {
   exam_request_attachments: ExamRequestAttachmentEntity
   exam_parameters: ExamParameterEntity
   exam_results: ExamResultEntity
+  medicaments: MedicamentEntity
+  stock_lots: StockLotEntity
+  fournisseurs: FournisseurEntity
+  unites_stock: UniteStockEntity
+  mouvements_stock: MouvementStockEntity
+  delivrances: DelivranceEntity
+  delivrance_lignes: DelivranceLigneEntity
+  salaire_config: SalaireConfigEntity
+  salaire_config_rubrique: SalaireConfigRubriqueEntity
+  salaire_paiement: SalairePaiementEntity
+  depense_categorie: DepenseCategorieEntity
+  depense: DepenseEntity
+  vente_pharmacie_paiement: VentePharmaciePaiementEntity
+  annual_indicator: AnnualIndicatorEntity
+  commandes: CommandeEntity
+  commande_lignes: CommandeLigneEntity
+  commande_receptions: CommandeReceptionEntity
+  commande_reception_lignes: CommandeReceptionLigneEntity
+  commande_reception_attachments: CommandeReceptionAttachmentEntity
+  apports: ApportEntity
+  apport_remboursements: ApportRemboursementEntity
+  stock_lot_attachments: StockLotAttachmentEntity
+  labo_articles: LaboArticleEntity
+  labo_stock_lots: LaboStockLotEntity
+  labo_mouvements_stock: LaboMouvementStockEntity
+  labo_commandes: LaboCommandeEntity
+  labo_commande_lignes: LaboCommandeLigneEntity
+  labo_commande_receptions: LaboCommandeReceptionEntity
+  labo_commande_reception_lignes: LaboReceptionLigneEntity
+  labo_paiements: LaboPaiementEntity
 }
 
 export const ENTITIES: Entity[] = [
@@ -182,4 +241,33 @@ export const ENTITIES: Entity[] = [
   ExamRequestAttachmentEntity,
   ExamParameterEntity,
   ExamResultEntity,
+  MedicamentEntity,
+  StockLotEntity,
+  FournisseurEntity,
+  UniteStockEntity,
+  MouvementStockEntity,
+  DelivranceEntity,
+  DelivranceLigneEntity,
+  SalaireConfigEntity,
+  SalaireConfigRubriqueEntity,
+  SalairePaiementEntity,
+  DepenseCategorieEntity,
+  DepenseEntity,
+  VentePharmaciePaiementEntity,
+  CommandeEntity as unknown as Entity,
+  CommandeLigneEntity as unknown as Entity,
+  CommandeReceptionEntity as unknown as Entity,
+  CommandeReceptionLigneEntity as unknown as Entity,
+  CommandeReceptionAttachmentEntity as unknown as Entity,
+  ApportEntity as unknown as Entity,
+  ApportRemboursementEntity as unknown as Entity,
+  StockLotAttachmentEntity as unknown as Entity,
+  LaboArticleEntity as unknown as Entity,
+  LaboStockLotEntity as unknown as Entity,
+  LaboMouvementStockEntity as unknown as Entity,
+  LaboCommandeEntity as unknown as Entity,
+  LaboCommandeLigneEntity as unknown as Entity,
+  LaboCommandeReceptionEntity as unknown as Entity,
+  LaboReceptionLigneEntity as unknown as Entity,
+  LaboPaiementEntity as unknown as Entity,
 ]

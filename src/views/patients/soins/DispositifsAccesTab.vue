@@ -1,30 +1,35 @@
 <template>
-  <div class="dispositifs">
-    <div class="dispositifs__header">
-      <h3>Dispositifs et voies d'abord</h3>
-      <el-button type="primary" size="small" :icon="Plus" @click="onAjouter">Ajouter</el-button>
+  <div class="dispositifs cde">
+    <div class="cde-page-toolbar">
+      <div class="cde-page-actions">
+        <el-button type="primary" :icon="Plus" @click="onAjouter">Ajouter</el-button>
+      </div>
     </div>
 
-    <el-table :data="dispositifs" size="small" style="width:100%" v-loading="dispositifsLoading">
-      <el-table-column prop="datePose" label="Date de pose" width="130" />
-      <el-table-column prop="type" label="Type d'accès" />
-      <el-table-column prop="aspect" label="Aspect" width="130">
-        <template #default="{ row }">
-          <el-tag :type="aspectType(row.aspect)" size="small">{{ row.aspect }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="volumeMl" label="Volume (mL)" width="120" align="right">
-        <template #default="{ row }">
-          {{ row.volumeMl != null ? row.volumeMl + ' mL' : '—' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="Actions" width="100" align="center">
-        <template #default="scope">
-          <el-button text type="primary" size="small" :icon="Edit" aria-label="Modifier" @click="onModifier" />
-          <el-button text type="danger" size="small" :icon="Delete" aria-label="Supprimer" @click="onSupprimer((scope as any).row)" />
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="cde-table-card">
+      <div class="cde-table-wrap">
+        <el-table :data="dispositifs" size="small" style="width:100%" v-loading="dispositifsLoading">
+          <el-table-column prop="datePose" label="Date de pose" width="130" />
+          <el-table-column prop="type" label="Type d'accès" />
+          <el-table-column prop="aspect" label="Aspect" width="130">
+            <template #default="{ row }">
+              <span class="cde-badge" :class="aspectClass(row.aspect)">{{ row.aspect }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="volumeMl" label="Volume (mL)" width="120" align="right">
+            <template #default="{ row }">
+              <span class="cde-num">{{ row.volumeMl != null ? row.volumeMl + ' mL' : '—' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="Actions" width="100" align="center">
+            <template #default="scope">
+              <el-button text type="primary" size="small" :icon="Edit" aria-label="Modifier" @click="onModifier" />
+              <el-button text type="danger" size="small" :icon="Delete" aria-label="Supprimer" @click="onSupprimer((scope as any).row)" />
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </div>
 
   </div>
 </template>
@@ -52,12 +57,12 @@ async function loadDispositifs() {
   await fetchDispositifs(pid)
 }
 
-function aspectType(aspect: string): 'success' | 'warning' | 'danger' {
+function aspectClass(aspect: string): string {
   switch (aspect) {
-    case 'Sain': return 'success'
-    case 'Rouge': return 'warning'
-    case 'Douloureux': return 'danger'
-    default: return 'warning'
+    case 'Sain': return 'cde-badge--success'
+    case 'Rouge': return 'cde-badge--warning'
+    case 'Douloureux': return 'cde-badge--danger'
+    default: return 'cde-badge--warning'
   }
 }
 
@@ -117,17 +122,3 @@ async function onSupprimer(row: Dispositif) {
 
 onMounted(() => { loadDispositifs() })
 </script>
-
-<style scoped>
-.dispositifs__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-.dispositifs__header h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--cd-gray-900);
-}
-</style>

@@ -24,12 +24,15 @@ export class EncounterEntity {
   @SchemaField() care_unit_id?: number
   @SchemaField() sinistre_info?: string
   @SchemaField() notes?: string
+  @SchemaField() case_type?: string
+  @SchemaField() is_new_case?: number
   @SchemaField() status?: string
   @SchemaField() created_by?: number
   @SchemaField() created_at?: string
   @SchemaField() updated_at?: string
 
   // Joined fields (populated by SQL JOIN queries)
+  stay_type?: string
   service_name?: string
   medecin_name?: string
   responsable_name?: string
@@ -70,6 +73,9 @@ export class EncounterEntity {
       prise_en_charge_precision: entity.prise_en_charge_precision,
       sinistre_info: entity.sinistre_info,
       notes: entity.notes,
+      case_type: entity.case_type as EncounterDto['case_type'],
+      is_new_case: entity.is_new_case,
+      stay_type: entity.stay_type as EncounterDto['stay_type'],
       status: entity.status as EncounterDto['status'],
       created_by: entity.created_by,
       created_at: entity.created_at,
@@ -101,6 +107,8 @@ export class EncounterEntity {
     e.prise_en_charge_precision = dto.prise_en_charge_precision
     e.sinistre_info = dto.sinistre_info
     e.notes = dto.notes
+    e.case_type = dto.case_type
+    e.is_new_case = dto.is_new_case
     e.status = dto.status
     e.created_by = dto.created_by
     return e

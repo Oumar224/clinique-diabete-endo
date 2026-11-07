@@ -6,29 +6,19 @@
       :keys="['imagerieTests']"
       :model-value="data"
       :readonly="readonly"
-      @save="emit('change')"
+      @save="onImagerieSectionSave"
+      @cancel="onImagerieSectionCancel"
     >
       <template #default="{ draft }">
         <div
-          v-for="(exam, idx) in sortedImagerieTests(draft.imagerieTests)"
+          v-for="exam in [activeExamOf(draft)]"
           :key="exam._key"
           class="examen-card"
           :data-exam-key="exam._key"
           :class="{ 'examen-card--flash': exam._key === highlightedExamKey }"
         >
           <div class="examen-card__header">
-            <span class="examen-card__title">Examen #{{ idx + 1 }}</span>
-            <el-button
-              text
-              type="danger"
-              size="small"
-              :aria-label="`Supprimer examen #${idx + 1}`"
-              @click="removeExamen(draft.imagerieTests, exam)"
-            >
-              <template #icon>
-                <el-icon><Delete /></el-icon>
-              </template>
-            </el-button>
+            <span class="examen-card__title">{{ activeEditingKey ? 'Modifier l\'examen' : 'Nouvel examen' }}</span>
           </div>
           <el-row :gutter="16">
             <el-col :span="6">
@@ -57,15 +47,22 @@
               </el-form-item>
             </el-col>
           </el-row>
+          <div class="examen-card__actions">
+            <el-button
+              size="small"
+              @click="cancelImagerie"
+            >
+              Annuler
+            </el-button>
+            <el-button
+              type="primary"
+              size="small"
+              @click="saveImagerie(draft)"
+            >
+              Enregistrer
+            </el-button>
+          </div>
         </div>
-        <el-button type="primary" text size="small" @click="addExamen(draft.imagerieTests)" class="add-btn">
-          <template #icon>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 2V12M2 7H12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-            </svg>
-          </template>
-          Ajouter un examen
-        </el-button>
       </template>
     </StagedCollapsibleSection>
 
@@ -75,7 +72,9 @@
         variant="compact"
         :fields="imagerieTestsPreviewFields"
         empty-text="Aucun examen renseigné"
+        :deletable="true"
         @edit="onImagerieEdit"
+        @delete="deleteImageriePreview"
       />
     </div>
 
@@ -106,7 +105,7 @@
           </el-col>
           <el-col :span="10">
             <div class="bio-actions">
-              <el-button type="primary" :loading="bioLoading" :disabled="!rangeValue(draft.bilanBio) || !patientId" @click="fetchBio(draft.bilanBio)">
+              <el-button type="primary" :loading="bioLoading" :disabled="!patientId" @click="fetchBio(draft.bilanBio)">
                 Récupérer les résultats
               </el-button>
               <el-button text type="danger" size="small" :disabled="!draft.bilanBio.results.length" @click="clearBio(draft.bilanBio)">
@@ -119,7 +118,7 @@
           :groups="bioMatrixGroups(draft.bilanBio.results)"
           :deletable="true"
           max-height="420px"
-          empty-text="Aucun résultat récupéré — choisissez une plage de dates puis cliquez sur « Récupérer les résultats »."
+          empty-text="Aucun résultat récupéré — cliquez sur « Récupérer les résultats » (plage de dates optionnelle pour filtrer)."
           @delete="row => onBioMatrixDelete(draft.bilanBio.results, row)"
         />
         <p class="bio-hint">La plage de dates et les résultats récupérés sont enregistrés dans le compte-rendu et dans le PDF.</p>
@@ -139,9 +138,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { computed, reactive, ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Delete } from '@element-plus/icons-vue'
 import type { ExamensComplementairesData } from '@/types/crh-diabete'
 import { useExamResults, type MatrixGroup, type MatrixRow } from '@/composables/useExamResults'
 import type { ExamenImagerie, BilanBioResult } from '@/types/crh-diabete'
@@ -205,14 +203,17 @@ const EXAMEN_TYPES = [
 const { fetchByPatient, results: bioResults, loading: bioLoading, buildMatrix } = useExamResults()
 
 const imagerieTestsPreviewFields = computed<FormPreviewField[]>(() =>
-  sortedImagerieTests(props.data.imagerieTests).map(exam => ({
-    label: [exam.date ? formatDate(exam.date) : '', effectiveExamenType(exam)].filter(Boolean).join(' · ') || 'Examen',
-    value: isRichTextEmpty(exam.resultat) ? undefined : exam.resultat,
-    rich: true,
-    key: `${FIELD_PREFIX}.imagerieTests.${exam._key}`,
-    updatedAt: metaFor(`${FIELD_PREFIX}.imagerieTests`),
-    tracked: !!props.fieldMeta,
-  })),
+  sortedImagerieTests(props.data.imagerieTests).map(exam => {
+    const base = [exam.date ? formatDate(exam.date) : '', effectiveExamenType(exam)].filter(Boolean).join(' · ') || 'Examen'
+    return {
+      label: `Résultat / Conclusion — ${base}`,
+      value: isRichTextEmpty(exam.resultat) ? undefined : exam.resultat,
+      rich: true,
+      key: `${FIELD_PREFIX}.imagerieTests.${exam._key}`,
+      updatedAt: metaFor(`${FIELD_PREFIX}.imagerieTests`),
+      tracked: !!props.fieldMeta,
+    }
+  }),
 )
 
 const bilanBioPreviewFields = computed<FormPreviewField[]>(() => {
@@ -231,6 +232,8 @@ let highlightTimer: number | undefined
 function onImagerieEdit(key: string) {
   const examKey = key.split('.').pop() ?? ''
   highlightedExamKey.value = examKey
+  activeEditingKey.value = examKey || null
+  resetCreating()
   void openSection('imagerie').then(() => {
     if (!examKey) return
     const card = document.querySelector(`.examen-card[data-exam-key="${examKey}"]`)
@@ -246,6 +249,31 @@ onUnmounted(() => {
   if (highlightTimer) window.clearTimeout(highlightTimer)
 })
 
+const activeEditingKey = ref<string | null>(null)
+
+const creating = reactive<ExamenImagerie>({
+  _key: crypto.randomUUID(),
+  date: '',
+  type: '',
+  typeLibre: '',
+  resultat: '',
+})
+
+function resetCreating() {
+  creating._key = crypto.randomUUID()
+  creating.date = ''
+  creating.type = ''
+  creating.typeLibre = ''
+  creating.resultat = ''
+}
+
+function activeExamOf(draft: Record<string, unknown>): ExamenImagerie {
+  if (activeEditingKey.value === null) return creating
+  const list = (draft.imagerieTests ?? []) as ExamenImagerie[]
+  const found = list.find(e => e._key === activeEditingKey.value)
+  return found ?? creating
+}
+
 function effectiveExamenType(exam: ExamenImagerie): string {
   return exam.type === '__autre__' ? exam.typeLibre : exam.type
 }
@@ -259,19 +287,46 @@ function sortedImagerieTests(list: ExamenImagerie[]): ExamenImagerie[] {
   })
 }
 
-function addExamen(list: ExamenImagerie[]) {
-  list.push({
-    _key: crypto.randomUUID(),
-    date: '',
-    type: '',
-    typeLibre: '',
-    resultat: '',
-  })
+function removeExamen(list: ExamenImagerie[], key: string) {
+  const idx = list.findIndex(e => e._key === key)
+  if (idx !== -1) list.splice(idx, 1)
 }
 
-function removeExamen(list: ExamenImagerie[], exam: ExamenImagerie) {
-  const idx = list.findIndex(e => e._key === exam._key)
-  if (idx !== -1) list.splice(idx, 1)
+function deleteImageriePreview(key: string) {
+  const examKey = key.split('.').pop() ?? ''
+  removeExamen(props.data.imagerieTests, examKey)
+  if (activeEditingKey.value === examKey) {
+    activeEditingKey.value = null
+    resetCreating()
+  }
+  if (sectionRefs.value.imagerie?.isOpen()) sectionRefs.value.imagerie.removeFromDraft('imagerieTests', examKey)
+  emit('change')
+}
+
+function cancelImagerie() {
+  if (activeEditingKey.value === null) {
+    resetCreating()
+  } else {
+    activeEditingKey.value = null
+  }
+}
+
+function saveImagerie(draft: Record<string, unknown>) {
+  if (activeEditingKey.value === null) {
+    (draft.imagerieTests as ExamenImagerie[]).push(creating)
+  }
+  sectionRefs.value.imagerie?.save()
+}
+
+function onImagerieSectionSave() {
+  activeEditingKey.value = null
+  resetCreating()
+  emit('change')
+}
+
+function onImagerieSectionCancel() {
+  activeEditingKey.value = null
+  resetCreating()
 }
 
 function rangeValue(bilanBio: { dateFrom: string; dateTo: string }): [string, string] | null {
@@ -292,12 +347,16 @@ function setRange(bilanBio: { dateFrom: string; dateTo: string }, value: [string
 }
 
 async function fetchBio(bilanBio: { dateFrom: string; dateTo: string; results: BilanBioResult[] }) {
+  if (!props.patientId) return
   const range = rangeValue(bilanBio)
-  if (!range || !props.patientId) return
-  await fetchByPatient(props.patientId, { dateFrom: range[0], dateTo: range[1] })
-  bilanBio.dateFrom = range[0]
-  bilanBio.dateTo = range[1]
+  await fetchByPatient(props.patientId, range ? { dateFrom: range[0], dateTo: range[1] } : {})
+  if (range) {
+    bilanBio.dateFrom = range[0]
+    bilanBio.dateTo = range[1]
+  }
   bilanBio.results = (bioResults.value as BilanBioResult[]).slice()
+  // Volontairement draft seul : le Staged détecte dirty=true, l'utilisateur
+  // clique Enregistrer pour commiter vers props.data (preview + fiche + PDF).
 }
 
 function clearBio(bilanBio: { dateFrom: string; dateTo: string; results: BilanBioResult[] }) {
@@ -352,7 +411,11 @@ function bioPreviewTableHtml(results: BilanBioResult[]): string {
   const groups = bioGroupsOf(results)
   const parts: string[] = []
   for (const group of groups) {
-    const dates = Array.from(new Set(group.results.map(r => bioDate(r)).filter(Boolean))).sort()
+    const dates = Array.from(new Set(
+      group.results.map(r => r.requestDate || r.filledAt?.slice(0, 10) || '').filter(Boolean),
+    ))
+      .sort((a, b) => b.localeCompare(a))
+      .map(raw => formatDate(raw))
     if (!dates.length) continue
     const paramNames = Array.from(new Set(group.results.map(r => r.parameterName || 'Paramètre')))
     const rowsHtml = paramNames.map(name => {
@@ -429,20 +492,16 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .examen-card {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
   padding: 16px;
   margin-bottom: 12px;
-  background: var(--el-color-primary-light-9);
-  transition: box-shadow 0.15s ease;
-
-  &:hover {
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  }
+  background: var(--cde-surface);
+  border-left: 3px solid var(--cde-accent);
 }
 
 .examen-card--flash {
-  box-shadow: 0 0 0 2px var(--el-color-primary);
+  box-shadow: 0 0 0 2px var(--cde-accent);
 }
 
 .examen-card__header {
@@ -451,7 +510,7 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-light);
+  border-bottom: 1px solid var(--cde-border);
 }
 
 .examen-card__title {
@@ -461,6 +520,15 @@ onMounted(() => {
   font-weight: 600;
   font-size: 13px;
   color: var(--el-text-color-primary);
+}
+
+.examen-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cde-border-soft);
 }
 
 .bio-actions {
@@ -473,10 +541,6 @@ onMounted(() => {
 .bio-hint {
   font-size: 11px;
   color: var(--el-text-color-secondary);
-  margin-top: 4px;
-}
-
-.add-btn {
   margin-top: 4px;
 }
 

@@ -1,85 +1,122 @@
 <template>
-  <div class="dct">
-    <el-alert v-if="error" type="error" :title="error" show-icon closable style="margin-bottom: 12px" />
+  <div class="dct cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Types de documents
+        </h1>
+        <p class="cde-page-sub">
+          Documents cliniques et actes associés
+        </p>
+      </div>
+    </header>
 
-    <div class="dct__toolbar">
-      <el-input
-        v-model="search"
-        placeholder="Rechercher un type de document..."
-        clearable
-        style="width: 260px"
-        @input="onSearch"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      <el-radio-group v-model="filterActive" size="small">
-        <el-radio-button :label="''">Tous</el-radio-button>
-        <el-radio-button :label="'active'">Actifs</el-radio-button>
-        <el-radio-button :label="'inactive'">Inactifs</el-radio-button>
-      </el-radio-group>
-      <el-button type="primary" :icon="Plus" @click="openCreate">Nouveau type</el-button>
+    <el-alert
+      v-if="error"
+      class="cde-alert cde-alert--danger"
+      type="error"
+      :title="error"
+      :closable="true"
+      @close="error = null"
+    />
+
+    <div class="cde-toolbar">
+      <div class="cde-filters">
+        <div class="cde-filter cde-toolbar__search">
+          <span class="cde-filter__label">Recherche</span>
+          <el-input
+            v-model="search"
+            placeholder="Code ou libellé…"
+            clearable
+            size="small"
+            @input="onSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+        </div>
+        <div class="cde-filter">
+          <span class="cde-filter__label">Statut</span>
+          <el-radio-group v-model="filterActive" size="small">
+            <el-radio-button :label="''">Tous</el-radio-button>
+            <el-radio-button :label="'active'">Actifs</el-radio-button>
+            <el-radio-button :label="'inactive'">Inactifs</el-radio-button>
+          </el-radio-group>
+        </div>
+      </div>
+      <div class="cde-toolbar__actions">
+        <el-button type="primary" size="small" :icon="Plus" @click="openCreate">
+          Nouveau type
+        </el-button>
+      </div>
     </div>
 
-    <el-table
-      v-loading="loading"
-      :data="paginatedTypes"
-      style="width: 100%"
-      border
-      row-key="id"
-    >
-      <el-table-column prop="code" label="Code" width="130" />
-      <el-table-column prop="label" label="Libellé" min-width="200" />
-      <el-table-column prop="category" label="Catégorie" width="140" />
-      <el-table-column label="Acte lié" width="180">
-        <template #default="{ row }">
-          <span v-if="row.acteLabel" class="dct__acte-badge">
-            <el-tag size="small" effect="plain" type="warning">
-              {{ row.acteLabel }}
-            </el-tag>
-          </span>
-          <span v-else class="dct__none">&mdash;</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="Prix" width="120" align="right">
-        <template #default="{ row }">
-          {{ row.prixUnitaire != null ? formatPrice(row.prixUnitaire) : '&mdash;' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="Actif" width="80" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.isActive ? 'success' : 'danger'" size="small">
-            {{ row.isActive ? 'Oui' : 'Non' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="Actions" width="120" align="center">
-        <template #default="{ row }">
-          <el-button text type="primary" :icon="Edit" size="small" @click="openEdit(row)" />
-          <el-button
-            text
-            :type="row.isActive ? 'danger' : 'success'"
-            :icon="row.isActive ? Delete : Check"
-            size="small"
-            @click="handleToggleActive(row)"
-          />
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="cde-table-card">
+      <el-table
+        v-loading="loading"
+        :data="paginatedTypes"
+        style="width: 100%"
+        size="small"
+        row-key="id"
+        empty-text=""
+      >
+        <el-table-column prop="code" label="Code" width="130" />
+        <el-table-column prop="label" label="Libellé" min-width="200" />
+        <el-table-column prop="category" label="Catégorie" width="140">
+          <template #default="{ row }">
+            <span class="cde-badge cde-badge--muted">{{ row.category }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Acte lié" width="180">
+          <template #default="{ row }">
+            <span v-if="row.acteLabel">{{ row.acteLabel }}</span>
+            <span v-else class="cde-muted">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Prix" width="120" align="right">
+          <template #default="{ row }">
+            <span v-if="row.prixUnitaire != null" class="cde-num cde-amount">{{ formatPrice(row.prixUnitaire) }}</span>
+            <span v-else class="cde-muted">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Actif" width="80" align="center">
+          <template #default="{ row }">
+            <span class="cde-badge" :class="row.isActive ? 'cde-badge--success' : 'cde-badge--danger'">
+              {{ row.isActive ? 'Oui' : 'Non' }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Actions" width="120" align="center">
+          <template #default="{ row }">
+            <el-button text type="primary" size="small" :icon="Edit" title="Modifier" @click="openEdit(row)" />
+            <el-button
+              text
+              :type="row.isActive ? 'danger' : 'success'"
+              size="small"
+              :icon="row.isActive ? Delete : Check"
+              :title="row.isActive ? 'Désactiver' : 'Activer'"
+              @click="handleToggleActive(row)"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
-    <el-empty v-if="!loading && filteredTypes.length === 0" description="Aucun type de document" />
+    <div v-if="!loading && filteredTypes.length === 0" class="cde-empty">
+      Aucun type de document.
+    </div>
 
-    <el-row justify="center" style="margin-top: 20px">
+    <div class="cde-footer">
+      <span class="cde-muted">{{ filteredTypes.length }} type(s)</span>
       <el-pagination
         v-model:current-page="paginator.currPage"
         v-model:page-size="paginator.pageSize"
-        background
         layout="sizes, prev, pager, next"
         :page-sizes="[10, 20, 50]"
         :total="filteredTypes.length"
       />
-    </el-row>
+    </div>
 
     <DocumentTypeFormDialog ref="formDialogRef" @saved="onSaved" />
   </div>
@@ -179,21 +216,3 @@ function onSaved() {
   loadTypes()
 }
 </script>
-
-<style scoped>
-.dct__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.dct__acte-badge {
-  font-size: 12px;
-}
-
-.dct__none {
-  color: var(--el-text-color-secondary);
-}
-</style>

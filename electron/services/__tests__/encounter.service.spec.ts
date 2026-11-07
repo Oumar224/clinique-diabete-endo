@@ -114,6 +114,37 @@ describe('EncounterService', () => {
     expect(result.notes).toBe('Patient transporté par ambulance')
   })
 
+  it('persiste case_type, is_new_case et crée le séjour avec stay_type', async () => {
+    const service = container.resolve(EncounterService)
+    const patientId = await createTestPatient()
+    const serviceId = await createTestService()
+
+    const result = await service.create({
+      patient_id: patientId,
+      contact_type: 'hospitalisation',
+      start_date: new Date().toISOString(),
+      service_id: serviceId,
+      origin: 'auto_refere',
+      zone_situation: 'zone_responsabilite',
+      prise_en_charge: 'maladie_naturelle',
+      case_type: 'diabete',
+      is_new_case: 1,
+      stay_type: 'jour',
+    })
+
+    expect(result.case_type).toBe('diabete')
+    expect(result.is_new_case).toBe(1)
+    expect(result.stay_type).toBe('jour')
+
+    const stay = await container.resolve(AppDatabaseDatasource).getInstance()
+      .selectFrom('stays')
+      .select(['type'])
+      .where('patient_id', '=', patientId)
+      .where('status', '=', 'en_cours')
+      .executeTakeFirstOrThrow()
+    expect(stay.type).toBe('jour')
+  })
+
   it('should reject create with invalid patient_id', async () => {
     const service = container.resolve(EncounterService)
     const serviceId = await createTestService()
@@ -734,6 +765,77 @@ describe('EncounterService', () => {
       .where('patient_id', '=', patientId)
       .execute()
     expect(stays).toHaveLength(0)
+  })
+
+  it('should delete an encounter that has exam requests (NO ACTION FK) without FK errors', async () => {
+    const encService = container.resolve(EncounterService)
+    const patientId = await createTestPatient()
+    const serviceId = await createTestService()
+
+    const enc = await encService.create({
+      patient_id: patientId,
+      contact_type: 'consultation',
+      start_date: new Date().toISOString(),
+      service_id: serviceId,
+      origin: 'auto_refere',
+      zone_situation: 'zone_responsabilite',
+      prise_en_charge: 'maladie_naturelle',
+    })
+
+    const db = (container.resolve(AppDatabaseDatasource)).getInstance()
+
+    // ─── Exam request tree (NO ACTION on exam_requests.encounter_id, 071:8) ──
+    const labCat = await db.insertInto('lab_exam_categories').values({
+      code: 'TST',
+      name: 'Test Cat',
+      sort_order: 99,
+    }).returning('id').executeTakeFirstOrThrow()
+
+    const exam = await db.insertInto('lab_exams').values({
+      category_id: labCat.id,
+      code: 'TST',
+      name: 'Test examen',
+      is_active: 1,
+      sort_order: 99,
+    }).returning('id').executeTakeFirstOrThrow()
+
+    const parameter = await db.insertInto('exam_parameters').values({
+      exam_id: exam.id,
+      name: 'Glucose',
+      input_type: 'numeric',
+      reference_values: '{}',
+      sort_order: 1,
+    }).returning('id').executeTakeFirstOrThrow()
+
+    // Previously threw "FOREIGN KEY constraint failed" when the encounter
+    // delete hit `DELETE FROM encounters` with a referencing exam_request left.
+    const examReq = await db.insertInto('exam_requests').values({
+      patient_id: patientId,
+      encounter_id: enc.id!,
+      type: 'lab',
+      statut: 'en_attente',
+    }).returning('id').executeTakeFirstOrThrow()
+
+    await db.insertInto('exam_results').values({
+      exam_request_id: examReq.id,
+      parameter_id: parameter.id,
+      value: '0.85',
+    }).execute()
+
+    await db.insertInto('exam_request_attachments').values({
+      exam_request_id: examReq.id,
+      display_name: 'r.txt',
+      file_name: 'r.txt',
+      file_data: 'dGVzdA==',
+    }).execute()
+
+    await expect(encService.delete(enc.id!)).resolves.toBeUndefined()
+
+    // Encounter gone and exam request tree cascaded
+    expect(await db.selectFrom('encounters').select('id').where('id', '=', enc.id!).executeTakeFirst()).toBeUndefined()
+    expect(await db.selectFrom('exam_requests').select('id').where('id', '=', examReq.id).executeTakeFirst()).toBeUndefined()
+    expect(await db.selectFrom('exam_results').select('id').where('exam_request_id', '=', examReq.id).executeTakeFirst()).toBeUndefined()
+    expect(await db.selectFrom('exam_request_attachments').select('id').where('exam_request_id', '=', examReq.id).executeTakeFirst()).toBeUndefined()
   })
 
   // ─── computed status (virtual closed when end_date <= now) ────────

@@ -21,6 +21,10 @@ export interface EncounterDto {
   prise_en_charge_precision?: string
   sinistre_info?: string
   notes?: string
+  case_type?: 'diabete' | 'thyroide_endocrino' | 'autre'
+  is_new_case?: number
+  /** Type du séjour (hospitalisation uniquement) — stocké dans `stays.type`. */
+  stay_type?: 'jour' | 'complete'
   status?: 'active' | 'closed'
   created_by?: number
   created_at?: string
@@ -45,6 +49,9 @@ export interface EncounterUpdateDto {
   prise_en_charge_precision?: string
   sinistre_info?: string
   notes?: string
+  case_type?: 'diabete' | 'thyroide_endocrino' | 'autre'
+  is_new_case?: number
+  stay_type?: 'jour' | 'complete'
 }
 
 export interface EncounterCreateDto {
@@ -65,6 +72,9 @@ export interface EncounterCreateDto {
   prise_en_charge_precision?: string
   sinistre_info?: string
   notes?: string
+  case_type?: 'diabete' | 'thyroide_endocrino' | 'autre'
+  is_new_case?: number
+  stay_type?: 'jour' | 'complete'
   created_by?: number
 }
 

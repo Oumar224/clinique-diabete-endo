@@ -10,6 +10,7 @@ export interface StayDto {
   medecin_id?: number
   medecin_name?: string
   notes?: string
+  type?: 'jour' | 'complete'
   status?: 'en_cours' | 'cloture' | 'transfere'
   sortie_date?: string
   created_by?: number
@@ -26,6 +27,7 @@ export interface StayCreateDto {
   chambre?: string
   lit?: string
   notes?: string
+  type?: 'jour' | 'complete'
   created_by?: number
 }
 

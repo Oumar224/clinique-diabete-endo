@@ -2,6 +2,7 @@ import { container } from 'tsyringe'
 import { createHandler } from '../utils/create-handler'
 import { PrescriptionService } from '../services/prescription.service'
 import { PrescriptionEntity } from '../entities/prescription.entity'
+import { normalizeVoieOrThrow } from '../constants/voies'
 import type { PrescriptionDto } from '../dto/prescription.dto'
 
 export function registerPrescriptionHandlers() {
@@ -25,6 +26,8 @@ export function registerPrescriptionHandlers() {
 
   // ── Create a prescription (and generate plan_soins_items) ───────
   createHandler('prescription:create', async (dto: PrescriptionDto) => {
+    // Validation pré-insert : message métier au lieu du SQLITE CHECK brut.
+    normalizeVoieOrThrow((dto as PrescriptionDto).voie)
     const entity = PrescriptionEntity.fromDto(dto)
     const service = container.resolve(PrescriptionService)
     const result = await service.create(entity)
@@ -33,6 +36,7 @@ export function registerPrescriptionHandlers() {
 
   // ── Update a prescription (regenerates en_attente items) ────────
   createHandler('prescription:update', async (dto: PrescriptionDto) => {
+    if ((dto as PrescriptionDto).voie != null) normalizeVoieOrThrow((dto as PrescriptionDto).voie)
     const entity = PrescriptionEntity.fromDto(dto)
     const service = container.resolve(PrescriptionService)
     const result = await service.update(entity)

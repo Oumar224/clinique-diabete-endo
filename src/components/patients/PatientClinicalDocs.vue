@@ -321,6 +321,6 @@ function handleCloseForm() {
 .patient-clinical-docs__form-col {
   height: 100%;
   overflow-y: auto;
-  border-left: 1px solid var(--el-border-color-light);
+  border-left: 1px solid var(--cde-border);
 }
 </style>

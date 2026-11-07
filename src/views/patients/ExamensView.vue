@@ -1,44 +1,64 @@
 <template>
-  <div class="examens-view" v-loading="loading">
-    <div class="examens-view__header">
-      <h3 class="examens-view__title">Demande d'examens</h3>
-      <div class="examens-view__header-actions">
-        <el-button :icon="Refresh" :loading="refreshing" @click="onRefresh">Actualiser</el-button>
-        <el-button type="primary" :icon="Plus" @click="openCreateDialog">+ Nouvelle demande</el-button>
+  <div class="examens-view cde" v-loading="loading">
+    <PatientPageToolbar>
+      <el-button :icon="Refresh" :loading="refreshing" @click="onRefresh">Actualiser</el-button>
+      <el-button type="primary" :icon="Plus" @click="openCreateDialog">Nouvelle demande</el-button>
+    </PatientPageToolbar>
+
+    <el-alert v-if="error" type="error" :title="error" show-icon closable class="cde-alert cde-alert--danger" />
+
+    <div class="cde-toolbar examens-view__filters">
+      <div class="cde-filters">
+        <div class="cde-filter">
+          <span class="cde-filter__label">Période</span>
+          <el-date-picker
+            v-model="dateRange"
+            class="cde-toolbar__range"
+            type="daterange"
+            range-separator="→"
+            start-placeholder="Début"
+            end-placeholder="Fin"
+            value-format="YYYY-MM-DD"
+            clearable
+            aria-label="Période de la demande"
+          />
+        </div>
+        <div class="cde-filter">
+          <span class="cde-filter__label">Type</span>
+          <el-select
+            v-model="typeFilter"
+            class="cde-toolbar__select"
+            placeholder="Tous"
+            clearable
+            aria-label="Filtrer par type"
+          >
+            <el-option label="Imagerie" value="imagerie" />
+            <el-option label="Laboratoire" value="laboratoire" />
+            <el-option label="Avis spécialisé" value="avis" />
+          </el-select>
+        </div>
+        <div class="cde-filter">
+          <span class="cde-filter__label">Statut</span>
+          <el-select
+            v-model="statutFilter"
+            class="cde-toolbar__select"
+            placeholder="Tous"
+            clearable
+            aria-label="Filtrer par statut"
+          >
+            <el-option label="En attente" value="en_attente" />
+            <el-option label="En cours" value="en_cours" />
+            <el-option label="Réalisé" value="realise" />
+            <el-option label="Annulé" value="annule" />
+          </el-select>
+        </div>
       </div>
     </div>
 
-    <el-alert v-if="error" type="error" :title="error" show-icon closable style="margin-bottom:12px" />
-
-    <div class="examens-view__filters">
-      <el-date-picker
-        v-model="dateRange"
-        type="daterange"
-        range-separator="→"
-        start-placeholder="Date de demande (début)"
-        end-placeholder="Date de demande (fin)"
-        value-format="YYYY-MM-DD"
-        clearable
-        style="width: 280px"
-      />
-      <el-select v-model="typeFilter" placeholder="Type" clearable style="width: 180px">
-        <el-option label="Imagerie" value="imagerie" />
-        <el-option label="Laboratoire" value="laboratoire" />
-        <el-option label="Avis spécialisé" value="avis" />
-      </el-select>
-      <el-select v-model="statutFilter" placeholder="Statut" clearable style="width: 180px">
-        <el-option label="En attente" value="en_attente" />
-        <el-option label="En cours" value="en_cours" />
-        <el-option label="Réalisé" value="realise" />
-        <el-option label="Annulé" value="annule" />
-      </el-select>
-    </div>
-
-    <div class="examens-view__table-wrapper">
+    <div class="cde-table-card">
       <el-table
         :data="filteredRequests"
-        size="default"
-        empty-text="Aucune demande"
+        size="small"
         class="examens-view__table"
         @row-click="openDetailDialog"
       >
@@ -47,7 +67,7 @@
         </el-table-column>
         <el-table-column label="Type" width="130">
           <template #default="{ row }">
-            <el-tag :type="typeTagType(row.type)" size="small" effect="plain">{{ typeLabel(row.type) }}</el-tag>
+            <span class="cde-badge" :class="typeBadgeClass(row.type)">{{ typeLabel(row.type) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="Examen(s)" min-width="200">
@@ -64,11 +84,23 @@
         </el-table-column>
         <el-table-column label="Statut" width="110">
           <template #default="{ row }">
-            <el-tag :type="statutTagType(row.statut)" size="small" effect="plain">{{ statutLabel(row.statut) }}</el-tag>
+            <span class="cde-badge" :class="statutBadgeClass(row.statut)">{{ statutLabel(row.statut) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="Actions" width="250" fixed="right">
+        <el-table-column label="Actions" width="320" fixed="right">
           <template #default="{ row }">
+            <el-button
+              type="primary"
+              size="small"
+              plain
+              :loading="generatingId === row.id"
+              @click.stop="onGenerateOrdonnance(row)"
+            >
+              Générer
+            </el-button>
+            <el-tooltip content="Aperçu PDF de l'ordonnance" placement="top" :show-after="400">
+              <el-button size="small" :icon="View" @click.stop="onPreviewOrdonnance(row)" />
+            </el-tooltip>
             <el-button
               v-if="canRealize(row)"
               type="success"
@@ -91,7 +123,16 @@
             </el-popconfirm>
           </template>
         </el-table-column>
+        <template #empty>
+          <div class="cde-empty">
+            Aucune demande.
+          </div>
+        </template>
       </el-table>
+    </div>
+
+    <div class="cde-footer">
+      <span class="cde-muted">{{ filteredRequests.length }} demande(s)</span>
     </div>
 
     <el-dialog v-model="createDialogVisible" title="Nouvelle demande" width="620px" :close-on-click-modal="false" @closed="onCreateDialogClosed">
@@ -294,6 +335,11 @@
     </el-dialog>
 
     <ExamRequestDetailDialog v-model:visible="detailDialogVisible" :request="selectedRequest" />
+    <OrdonnancePreview
+      ref="ordonnancePreviewRef"
+      :patient-id="activePatient?.id ?? 0"
+      :ordonnance-items="previewOrdonnanceItems"
+    />
 
     <ExamValidationDialog
       v-model:visible="showValidationDialog"
@@ -313,7 +359,7 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch, computed, onMounted } from 'vue'
-import { Plus, Refresh } from '@element-plus/icons-vue'
+import { Plus, Refresh, View } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormItemRule, FormRules } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
@@ -322,8 +368,13 @@ import { useExamTypes, type ExamTypeDto } from '@/composables/useExamTypes'
 import { useExamRequests, type ExamRequestDto } from '@/composables/useExamRequests'
 import { useSpecialties } from '@/composables/useSpecialties'
 import { usePatientContext } from '@/composables/usePatientContext'
+import { useEncounters } from '@/composables/useEncounters'
+import { useOrdonnanceLibre } from '@/composables/useOrdonnanceLibre'
+import type { PrescriptionSortie } from '@/types/crh-diabete'
 import ExamValidationDialog from '@/components/patients/ExamValidationDialog.vue'
 import ExamRequestDetailDialog from '@/components/patients/ExamRequestDetailDialog.vue'
+import OrdonnancePreview from '@/components/prescriptions/OrdonnancePreview.vue'
+import PatientPageToolbar from '@/components/patients/PatientPageToolbar.vue'
 import AvisResultDialog from '@/components/patients/AvisResultDialog.vue'
 import RichTextEditor from '@/components/patients/RichTextEditor.vue'
 import { isRichTextEmpty } from '@/utils/rich-text'
@@ -451,23 +502,23 @@ function statutLabel(statut: string): string {
   return map[statut] || statut
 }
 
-function statutTagType(statut: string): 'warning' | 'primary' | 'success' | 'danger' {
-  const map: Record<string, 'warning' | 'primary' | 'success' | 'danger'> = {
-    en_attente: 'warning',
-    en_cours: 'primary',
-    realise: 'success',
-    annule: 'danger',
+function statutBadgeClass(statut: string): string {
+  const map: Record<string, string> = {
+    en_attente: 'cde-badge--warning',
+    en_cours: 'cde-badge--info',
+    realise: 'cde-badge--success',
+    annule: 'cde-badge--danger',
   }
-  return map[statut] || 'info'
+  return map[statut] || 'cde-badge--muted'
 }
 
-function typeTagType(type: string): 'primary' | 'success' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'warning'> = {
-    imagerie: 'primary',
-    laboratoire: 'success',
-    avis: 'warning',
+function typeBadgeClass(type: string): string {
+  const map: Record<string, string> = {
+    imagerie: 'cde-badge--info',
+    laboratoire: 'cde-badge--success',
+    avis: 'cde-badge--warning',
   }
-  return map[type] || 'info'
+  return map[type] || 'cde-badge--muted'
 }
 
 function examLabel(row: ExamRequestDto): string {
@@ -480,7 +531,7 @@ function examLabel(row: ExamRequestDto): string {
     return row.specialite || 'Avis spécialisé'
   }
   if (row.type === 'laboratoire' && row.examIds && row.examIds.length > 0) {
-    return row.examIds.map(id => findLabel(analysesDisponibles.value, id)).join(', ')
+    return row.examIds.map(id => findLabel([...analysesDisponibles.value, ...imageriesDisponibles.value], id)).join(', ')
   }
   if (row.examenLabel) return row.examenLabel
   if (row.examenId != null) return findLabel(imageriesDisponibles.value, row.examenId)
@@ -673,6 +724,25 @@ async function onDeleteRow(row: ExamRequestDto) {
 const detailDialogVisible = ref(false)
 const selectedRequest = ref<ExamRequestDto | null>(null)
 
+// ─── Aperçu PDF de l'ordonnance d'une demande (sans génération) ───
+
+const ordonnancePreviewRef = ref<InstanceType<typeof OrdonnancePreview> | null>(null)
+const previewOrdonnanceItems = ref<PrescriptionSortie[]>([])
+
+function onPreviewOrdonnance(row: ExamRequestDto) {
+  if (!activePatient.value) {
+    ElMessage.warning('Aucun patient sélectionné')
+    return
+  }
+  const built = buildOrdonnanceItem(row)
+  if (!built) {
+    ElMessage.warning('Impossible de résoudre le libellé de cette demande')
+    return
+  }
+  previewOrdonnanceItems.value = [built.item]
+  ordonnancePreviewRef.value?.open()
+}
+
 function openDetailDialog(row: ExamRequestDto) {
   selectedRequest.value = {
     ...row,
@@ -708,6 +778,145 @@ async function onValidationComplete() {
   }
 }
 
+// ─── Génération d'ordonnance par demande ────────────────────────────
+
+const generatingId = ref<number | null>(null)
+const { createOrReplaceFromGroup, findCrhGroupOrdonnance } = useOrdonnanceLibre()
+const { listEncountersByPatient } = useEncounters()
+
+function truncateLabel(label: string, max = 40): string {
+  const clean = label.replace(/<[^>]*>/g, '').trim()
+  return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean
+}
+
+function buildOrdonnanceItem(row: ExamRequestDto): { item: PrescriptionSortie; categorie: string; shortLabel: string } | null {
+  const motif = row.motif ?? ''
+  const base = {
+    _key: crypto.randomUUID(),
+    medicament: '',
+    dosage: '',
+    unite: '',
+    voie: '',
+    duree: 7,
+    dureeType: 'courte' as const,
+    frequence: [] as string[],
+    frequenceType: 'moments',
+    instructions: '',
+    formeGalenique: '',
+    momentPrises: [] as string[],
+    renouvellement: false,
+    nbRenouvellements: 1,
+  }
+  if (row.type === 'imagerie') {
+    const label = examLabel(row)
+    if (!label || label === '—') return null
+    return {
+      categorie: 'examen',
+      shortLabel: truncateLabel(label),
+      item: { ...base, categorie: 'examen', examenType: 'imagerie', examen: label, examens: [], specialite: '', motif },
+    }
+  }
+  if (row.type === 'laboratoire') {
+    const all = [...analysesDisponibles.value, ...imageriesDisponibles.value]
+    let labels: string[] = (row.examIds ?? []).map(id => findLabel(all, id)).filter(Boolean)
+    if (labels.length === 0) {
+      const fallback = examLabel(row)
+      if (!fallback || fallback === '—') return null
+      labels = fallback.split(',').map(s => s.trim()).filter(Boolean)
+    }
+    if (labels.length === 0) return null
+    return {
+      categorie: 'examen',
+      shortLabel: truncateLabel(labels.length === 1 ? labels[0] : `${labels[0]} +${labels.length - 1}`),
+      item: { ...base, categorie: 'examen', examenType: 'laboratoire', examen: labels.join(', '), examens: labels, specialite: '', motif },
+    }
+  }
+  // avis
+  const specialite = examLabel(row)
+  if (!specialite || specialite === '—') return null
+  return {
+    categorie: 'avis',
+    shortLabel: truncateLabel(specialite),
+    item: { ...base, categorie: 'avis', examen: '', specialite, motif },
+  }
+}
+
+async function onGenerateOrdonnance(row: ExamRequestDto) {
+  if (row.id == null) return
+  if (!activePatient.value) {
+    ElMessage.warning('Aucun patient sélectionné')
+    return
+  }
+  const patientId = activePatient.value.id
+  const built = buildOrdonnanceItem(row)
+  if (!built) {
+    ElMessage.warning('Impossible de résoudre le libellé de cette demande')
+    return
+  }
+  const { item, categorie, shortLabel } = built
+  if (item.examen === '' && (item as PrescriptionSortie).examens?.length === 0 && categorie === 'examen') {
+    ElMessage.warning('Impossible de résoudre le libellé de cette demande')
+    return
+  }
+
+  // Résout le séjour actif (contactId) — ExamensView n'a pas de contact courant.
+  const activeEncounters = await listEncountersByPatient(patientId, 'active')
+  let encounter = activeEncounters.find(e => e.contact_type === 'hospitalisation' && e.status === 'active')
+    ?? activeEncounters.find(e => e.status === 'active')
+    ?? activeEncounters[0]
+  if (!encounter) {
+    const all = await listEncountersByPatient(patientId)
+    encounter = all.find(e => e.contact_type === 'hospitalisation' && e.status === 'active')
+      ?? all.find(e => e.status === 'active')
+      ?? all[0]
+  }
+  if (!encounter?.id) {
+    ElMessage.error('Aucun séjour actif trouvé pour ce patient. Créez ou réouvrez un contact avant de générer une ordonnance.')
+    return
+  }
+  const contactId = String(encounter.id)
+  const createdBy = user.value?.id ? String(user.value.id) : ''
+  const sourceDocumentId = `exam-request-${row.id}`
+  const title = `Ordonnance - ${shortLabel} - ${formatDate(new Date())}`
+
+  generatingId.value = row.id
+  try {
+    const existing = await findCrhGroupOrdonnance(patientId, sourceDocumentId, categorie)
+    if (existing) {
+      try {
+        await ElMessageBox.confirm(
+          'Une ordonnance existe déjà pour cette demande (celle-ci sera remplacée). Continuer ?',
+          'Remplacer l\'ordonnance',
+          { type: 'warning', confirmButtonText: 'Remplacer', cancelButtonText: 'Annuler' },
+        )
+      } catch {
+        return
+      }
+    }
+    const res = await createOrReplaceFromGroup({
+      patientId,
+      contactId,
+      serviceId: null,
+      siteId: null,
+      createdBy,
+      title,
+      sourceDocumentId,
+      categorie,
+      items: [item],
+    })
+    if (res?.replaced) {
+      ElMessage.info(`L'ordonnance « ${title} » existante a été remplacée.`)
+    } else if (res) {
+      ElMessage.success(`Ordonnance « ${title} » générée.`)
+    } else {
+      return
+    }
+    ElMessage.success('Retrouvez-la dans le menu Ordonnances du patient.')
+  } finally {
+    generatingId.value = null
+  }
+}
+
 onMounted(async () => {
   try {
     await loadUsers()
@@ -723,42 +932,24 @@ onMounted(async () => {
     await fetchRequests(activePatient.value.id)
   }
 
+  // Charge les libellés d'examens dès le montage pour que la colonne
+  // « Examen(s) » des demandes laboratoire/imagerie affiche des noms et
+  // non des IDs bruts (avant, les listes n'étaient chargées qu'à
+  // l'ouverture du dialogue de création).
+  try {
+    await fetchAllByCategory('laboratoire')
+    analysesDisponibles.value = [...allTypes.value]
+  } catch { /* silent */ }
+  try {
+    await fetchAllByCategory('imagerie')
+    imageriesDisponibles.value = [...allTypes.value]
+  } catch { /* silent */ }
+
   fetchSpecialties(true)
 })
 </script>
 
 <style scoped>
-.examens-view__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.examens-view__title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--cd-gray-900);
-  margin: 0;
-}
-.examens-view__header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.examens-view__filters {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-.examens-view__table-wrapper {
-  border: 1px solid var(--cd-gray-200);
-  border-radius: 8px;
-  overflow: hidden;
-}
 .examens-view__table {
   width: 100%;
 }

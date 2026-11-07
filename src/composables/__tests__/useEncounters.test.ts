@@ -189,6 +189,30 @@ describe('useEncounters', () => {
       expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:create', payload)
     })
 
+    it('transmet case_type, is_new_case et stay_type', async () => {
+      mockIpcInvoke.mockResolvedValue(mockEncounters[0])
+      const { createEncounter } = useEncounters()
+
+      await createEncounter({
+        patient_id: 42,
+        contact_type: 'hospitalisation',
+        start_date: '2024-07-01T09:00:00.000Z',
+        service_id: 3,
+        origin: 'domicile',
+        zone_situation: 'hors_zone',
+        prise_en_charge: 'maladie_naturelle',
+        case_type: 'diabete',
+        is_new_case: 1,
+        stay_type: 'jour',
+      })
+
+      expect(mockIpcInvoke).toHaveBeenCalledWith('encounters:create', expect.objectContaining({
+        case_type: 'diabete',
+        is_new_case: 1,
+        stay_type: 'jour',
+      }))
+    })
+
     it('retourne null et set error en cas d\'erreur', async () => {
       mockIpcInvoke.mockRejectedValue(new Error('Erreur création'))
       const { createEncounter, error } = useEncounters()

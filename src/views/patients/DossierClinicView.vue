@@ -1,24 +1,6 @@
 <template>
-  <div class="dossier-clinic-view">
-    <!-- Patient header card (compact, distinct from the global PatientBanner) -->
-    <div v-if="activePatient" class="dossier-clinic__patient-card">
-      <el-avatar :size="44" shape="circle" class="dossier-clinic__patient-avatar">
-        <span>{{ getCiviliteSymbol(activePatient.civilite) }}</span>
-      </el-avatar>
-      <div class="dossier-clinic__patient-identity">
-        <span class="dossier-clinic__patient-name">
-          {{ getCiviliteSymbol(activePatient.civilite) }} {{ activePatient.prenom }} {{ activePatient.nom }}
-        </span>
-        <div class="dossier-clinic__patient-meta">
-          <span class="dossier-clinic__patient-meta-item"><strong>Âge :</strong> {{ age !== null ? `${age} ans` : '—' }}</span>
-          <span class="dossier-clinic__patient-meta-item"><strong>NIP :</strong> {{ activePatient.nip || '—' }}</span>
-          <span class="dossier-clinic__patient-meta-item"><strong>N° SS :</strong> {{ activePatient.nir || '—' }}</span>
-          <span class="dossier-clinic__patient-meta-item"><strong>Site :</strong> {{ siteName }}</span>
-          <span class="dossier-clinic__patient-meta-item"><strong>Téléphone :</strong> {{ activePatient.telephone || '—' }}</span>
-          <span class="dossier-clinic__patient-meta-item"><strong>Localité :</strong> {{ residenceDisplay }}</span>
-        </div>
-      </div>
-    </div>
+  <div class="dossier-clinic-view cde">
+    <!-- Patient identity is rendered once by PatientLayout (PatientBanner). -->
 
     <!-- Contact bar or no-contact warning (toujours visible) -->
     <div v-if="activeContact" class="dossier-clinic-view__contact-bar">
@@ -34,160 +16,194 @@
         <span v-if="activeContact.medecin_name" class="dossier-clinic-view__contact-sep">|</span>
         <span v-if="activeContact.medecin_name" class="dossier-clinic-view__contact-medecin">{{ activeContact.medecin_name }}</span>
       </div>
-      <el-tag size="small" type="info" effect="plain">#{{ activeContact.id }}</el-tag>
+      <span class="cde-badge cde-badge--muted">#{{ activeContact.id }}</span>
     </div>
 
-    <!-- Action bar (toujours visible) -->
-    <div class="dossier-clinic-view__actions">
-      <el-button
-        type="primary"
-        size="small"
-        :icon="Plus"
-        @click="showTypeDialog = true"
-      >
-        Nouveau Document
-      </el-button>
-      <el-button
-        size="small"
-        :icon="Upload"
-        :disabled="!activeContact"
-        @click="showImportDialog = true"
-      >
-        Importer Document
-      </el-button>
-    </div>
-
-    <!-- Filter bar -->
-    <div class="dossier-clinic-view__filters">
-      <el-segmented v-model="filterSource" :options="sourceFilterOptions" size="small" />
-      <el-select v-model="filterTypeId" placeholder="Tous les types" clearable size="small" style="width: 200px">
-        <el-option
-          v-for="dt in documentTypes"
-          :key="dt.id"
-          :label="dt.label"
-          :value="dt.id"
-        />
-      </el-select>
-      <el-date-picker
-        v-model="filterDateRange"
-        type="daterange"
-        range-separator="à"
-        start-label="Du"
-        end-label="Au"
-        value-format="YYYY-MM-DD"
-        size="small"
-        style="width: 260px"
-      />
+    <!-- Toolbar : filtres + actions (toujours visible) -->
+    <div class="cde-toolbar dossier-clinic-view__toolbar">
+      <div class="cde-filters">
+        <div class="cde-filter dossier-clinic-view__filter dossier-clinic-view__filter--source">
+          <span class="cde-filter__label">Source</span>
+          <el-segmented
+            v-model="filterSource"
+            class="dossier-clinic-view__source"
+            :options="sourceFilterOptions"
+            size="small"
+            aria-label="Filtrer par source"
+          />
+        </div>
+        <div class="cde-filter dossier-clinic-view__filter dossier-clinic-view__filter--type">
+          <span class="cde-filter__label">Type de document</span>
+          <el-select
+            v-model="filterTypeId"
+            class="cde-toolbar__select"
+            placeholder="Tous les types"
+            clearable
+            aria-label="Filtrer par type de document"
+          >
+            <el-option
+              v-for="dt in documentTypes"
+              :key="dt.id"
+              :label="dt.label"
+              :value="dt.id"
+            />
+          </el-select>
+        </div>
+        <div class="cde-filter dossier-clinic-view__filter dossier-clinic-view__filter--period">
+          <span class="cde-filter__label">Période</span>
+          <el-date-picker
+            v-model="filterDateRange"
+            class="cde-toolbar__range"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Du"
+            end-placeholder="Au"
+            value-format="YYYY-MM-DD"
+            aria-label="Période des documents"
+          />
+        </div>
+      </div>
+      <div class="cde-toolbar__actions">
+        <el-button
+          type="primary"
+          :icon="Plus"
+          @click="showTypeDialog = true"
+        >
+          Nouveau Document
+        </el-button>
+        <el-button
+          :icon="Upload"
+          :disabled="!activeContact"
+          @click="showImportDialog = true"
+        >
+          Importer Document
+        </el-button>
+      </div>
     </div>
 
     <!-- Documents table (toujours visible, même vide) -->
-    <el-table
-      :data="filteredDocuments"
-      style="width:100%;margin-top:12px"
-      size="small"
-      highlight-current-row
-      v-loading="loading"
-      element-loading-text="Chargement des documents..."
-      @row-click="onRowClick"
-    >
-      <el-table-column type="expand" width="32">
-        <template #default="{ row }">
-          <div class="dossier-clinic__expanded">
-            <template v-if="row.pdfPath">
-              <iframe
-                :src="'file://' + row.pdfPath"
-                class="dossier-clinic__pdf-viewer"
-              />
-              <div class="dossier-clinic__expanded-actions">
-                <el-button size="small" type="primary" @click.stop="openPreviewDialog(row)">
-                  Ouvrir dans l'app
-                </el-button>
-                <el-button size="small" @click.stop="downloadDocFile('clinical-documents:export-pdf', row)">
-                  Télécharger PDF
-                </el-button>
-                <el-button size="small" @click.stop="downloadDocFile('clinical-documents:export-doc', row)">
-                  Télécharger DOC
-                </el-button>
-                <el-button size="small" text type="info" @click.stop="openPdf(row.pdfPath)">
-                  Ouvrir dans la visionneuse système
-                </el-button>
+    <div class="cde-table-card dossier-clinic-view__table-card">
+      <el-table
+        :data="filteredDocuments"
+        class="dossier-clinic-view__table"
+        style="width:100%"
+        size="small"
+        highlight-current-row
+        v-loading="loading"
+        element-loading-text="Chargement des documents..."
+        @row-click="onRowClick"
+      >
+        <el-table-column type="expand" width="32">
+          <template #default="{ row }">
+            <div class="dossier-clinic__expanded">
+              <template v-if="row.pdfPath">
+                <iframe
+                  :src="'file://' + row.pdfPath"
+                  class="dossier-clinic__pdf-viewer"
+                />
+                <div class="dossier-clinic__expanded-actions">
+                  <el-button size="small" type="primary" @click.stop="openPreviewDialog(row)">
+                    Ouvrir dans l'app
+                  </el-button>
+                  <el-button size="small" @click.stop="downloadDocFile('clinical-documents:export-pdf', row)">
+                    Télécharger PDF
+                  </el-button>
+                  <el-button size="small" @click.stop="downloadDocFile('clinical-documents:export-doc', row)">
+                    Télécharger DOC
+                  </el-button>
+                  <el-button size="small" text type="info" @click.stop="openPdf(row.pdfPath)">
+                    Ouvrir dans la visionneuse système
+                  </el-button>
+                </div>
+              </template>
+              <div v-else class="cde-empty">
+                Aucun PDF disponible pour ce document.
               </div>
-            </template>
-            <el-empty
-              v-else
-              description="Aucun PDF disponible pour ce document."
-              :image-size="48"
-            />
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="Créé le" width="130">
-        <template #default="{ row }">
-          {{ formatDateTime(row.createdAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="Document" min-width="200">
-        <template #default="{ row }">
-          <div class="dossier-clinic__doc-cell">
-            <span class="dossier-clinic__doc-title">{{ row.documentType?.label || row.title || 'Document' }}</span>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="Source" width="90">
-        <template #default="{ row }">
-          <el-tag v-if="row.source === 'imported'" size="small" type="warning">
-            Importé
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="Site" width="110">
-        <template #default="{ row }">
-          {{ row.siteName || '—' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="Statut" width="100" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 'signed' ? 'success' : 'warning'" size="small" effect="plain">
-            {{ row.status === 'signed' ? 'Signé' : 'Brouillon' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="Actions" width="160" align="center">
-        <template #default="{ row }">
-          <el-tooltip v-if="row.pdfPath" content="Ouvrir le PDF" placement="top" :show-after="400">
-            <el-button size="small" text type="primary" @click.stop="handleOpenPdf(row)">
-              <el-icon><View /></el-icon>
-            </el-button>
-          </el-tooltip>
-          <template v-if="row.source !== 'imported'">
-            <el-tooltip v-if="row.status !== 'signed'" content="Signer" placement="top" :show-after="400">
-              <el-button size="small" text type="success" @click.stop="handleSignRow(row)">
-                <el-icon><DocumentChecked /></el-icon>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="Créé le" width="140" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ formatDateTime(row.createdAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="Créateur" width="130" show-overflow-tooltip>
+          <template #default="{ row }">{{ creatorName(row) }}</template>
+        </el-table-column>
+        <el-table-column label="Document" min-width="260" show-overflow-tooltip>
+          <template #default="{ row }">
+            <div class="dossier-clinic__doc-cell">
+              <span class="dossier-clinic__doc-title">{{ row.documentType?.label || row.title || 'Document' }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="Source" width="86">
+          <template #default="{ row }">
+            <span v-if="row.source === 'imported'" class="cde-badge cde-badge--warning">
+              Importé
+            </span>
+            <span v-else class="cde-muted">Créé</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Site" width="120" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.siteName || '—' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="Statut" width="96" align="center">
+          <template #default="{ row }">
+            <span
+              class="cde-badge"
+              :class="row.status === 'signed' ? 'cde-badge--success' : 'cde-badge--warning'"
+            >
+              {{ row.status === 'signed' ? 'Signé' : 'Brouillon' }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Actions" width="156" align="center">
+          <template #default="{ row }">
+            <el-tooltip v-if="row.pdfPath" content="Ouvrir le PDF" placement="top" :show-after="400">
+              <el-button size="small" text type="primary" aria-label="Ouvrir le PDF" @click.stop="handleOpenPdf(row)">
+                <el-icon><View /></el-icon>
               </el-button>
             </el-tooltip>
-            <el-tooltip v-if="row.status !== 'signed'" content="Verrouiller" placement="top" :show-after="400">
-              <el-button size="small" text type="warning" @click.stop="handleSignRow(row)">
-                <el-icon><Lock /></el-icon>
+            <template v-if="row.source !== 'imported'">
+              <el-tooltip v-if="row.status !== 'signed'" content="Signer" placement="top" :show-after="400">
+                <el-button size="small" text type="success" aria-label="Signer le document" @click.stop="handleSignRow(row)">
+                  <el-icon><DocumentChecked /></el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip v-if="row.status !== 'signed'" content="Verrouiller" placement="top" :show-after="400">
+                <el-button size="small" text type="warning" aria-label="Verrouiller le document" @click.stop="handleSignRow(row)">
+                  <el-icon><Lock /></el-icon>
+                </el-button>
+              </el-tooltip>
+            </template>
+            <el-tooltip content="Supprimer" placement="top" :show-after="400">
+              <el-button
+                size="small"
+                text
+                type="danger"
+                aria-label="Supprimer le document"
+                :disabled="row.status === 'signed'"
+                @click.stop="onDelete(row)"
+              >
+                <el-icon><Delete /></el-icon>
               </el-button>
             </el-tooltip>
           </template>
-          <el-tooltip content="Supprimer" placement="top" :show-after="400">
-            <el-button
-              size="small"
-              text
-              type="danger"
-              :disabled="row.status === 'signed'"
-              @click.stop="onDelete(row)"
-            >
-              <el-icon><Delete /></el-icon>
-            </el-button>
-          </el-tooltip>
+        </el-table-column>
+        <template #empty>
+          <div class="dossier-clinic-view__empty">
+            Aucun document clinique pour ce contact.
+          </div>
         </template>
-      </el-table-column>
-      <template #empty>
-        <el-empty description="Aucun document clinique pour ce contact" :image-size="80" />
-      </template>
-    </el-table>
+      </el-table>
+    </div>
+
+    <div class="cde-footer">
+      <span class="cde-muted">{{ filteredDocuments.length }} document(s)</span>
+    </div>
 
     <!-- Popup de sélection du type de document -->
     <el-dialog
@@ -261,6 +277,12 @@
               </template>
               Retour à la liste
             </el-button>
+            <el-button text size="default" @click="handleBackToList">
+              <template #icon>
+                <Close />
+              </template>
+              Fermer
+            </el-button>
           </div>
           <div class="dossier-clinic__full-page-header-right">
             <span class="dossier-clinic__full-page-doc-title">
@@ -282,6 +304,7 @@
             :document-type="selectedDocType"
             :readonly="isReadonly"
             :contact-display="contactDisplayLabel"
+            :hide-header="true"
             @save="handleSave"
             @sign="handleSign"
             @close="handleBackToList"
@@ -295,19 +318,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Delete, User, Upload, View, ArrowLeft, DocumentChecked, Lock } from '@element-plus/icons-vue'
+import { Plus, Delete, User, Upload, View, ArrowLeft, Close, DocumentChecked, Lock } from '@element-plus/icons-vue'
 import { usePatientContext } from '@/composables/usePatientContext'
 import { useClinicalDocuments, type ClinicalDocumentDTO } from '@/composables/useClinicalDocuments'
 import { useAuth } from '@/composables/useAuth'
 import { useEncounters, type EncounterDto } from '@/composables/useEncounters'
-import { useLocalites } from '@/composables/useLocalites'
-import { getCiviliteSymbol } from '@/utils/civilite'
 import { ipcInvoke } from '@/utils/ipc'
+import { useUsers, getUserDisplayName } from '@/composables/useUsers'
 import ClinicalDocForm from '@/components/patients/ClinicalDocForm.vue'
 import ImportDocumentDialog from '@/components/patients/ImportDocumentDialog.vue'
 import HtmlPreviewDialog from '@/components/common/HtmlPreviewDialog.vue'
 
-const { activePatient, age } = usePatientContext()
+const { activePatient } = usePatientContext()
 const { listEncountersByPatient } = useEncounters()
 const {
   documentTypes,
@@ -326,10 +348,22 @@ const {
   selectDocument,
 } = useClinicalDocuments()
 const { user } = useAuth()
-const { localites, fetchLocalites } = useLocalites()
-const sites = ref<Array<{ id: number; name: string }>>([])
+const { users, loadUsers } = useUsers()
 const previewDoc = ref<ClinicalDocumentDTO | null>(null)
 const previewDialogRef = ref<InstanceType<typeof HtmlPreviewDialog> | null>(null)
+
+const usersMap = computed(() => {
+  const m = new Map<string, string>()
+  for (const u of users.value) {
+    if (u.id != null) m.set(String(u.id), getUserDisplayName(u))
+  }
+  return m
+})
+
+function creatorName(row: ClinicalDocumentDTO): string {
+  if (!row.createdBy) return '—'
+  return usersMap.value.get(String(row.createdBy)) ?? String(row.createdBy)
+}
 
 const pageLoading = ref(true)
 const activeContact = ref<EncounterDto | null>(null)
@@ -416,21 +450,6 @@ const isReadonly = computed(() => {
   return selectedDocument.value.status === 'signed'
 })
 
-const siteName = computed(() => {
-  if (!activePatient.value?.site_id) return '\u2014'
-  const site = sites.value.find(s => s.id === activePatient.value!.site_id)
-  return site?.name ?? '\u2014'
-})
-
-const residenceDisplay = computed(() => {
-  const p = activePatient.value
-  if (!p?.residence_code) return '\u2014'
-  if (!localites.value) return p.residence_code
-  const leaf = localites.value.find(l => l.code === p.residence_code)
-  if (!leaf) return p.residence_code
-  return leaf.name
-})
-
 const previewDocTitle = computed(() => {
   if (!previewDoc.value) return 'Aperçu du document'
   return previewDoc.value.documentType?.label || previewDoc.value.title || 'Aperçu du document'
@@ -473,12 +492,7 @@ async function loadData() {
 }
 
 onMounted(async () => {
-  await fetchLocalites(false)
-  if (activePatient.value?.id) {
-    try {
-      sites.value = await ipcInvoke<Array<{ id: number; name: string }>>('sites:list')
-    } catch { sites.value = [] }
-  }
+  try { await loadUsers() } catch { /* users non bloquant */ }
   await loadData()
 })
 
@@ -538,10 +552,6 @@ function onRowClick(row: any, column?: { type?: string }) {
   // Garde-fou conservé (WS4) : un clic sur la colonne "expand" ne doit
   // déclencher ni l'aperçu PDF in-app, ni le formulaire plein écran.
   if (column?.type === 'expand') return
-  if (row.pdfPath) {
-    openPreviewDialog(row)
-    return
-  }
   selectDocument(row)
   fullPageMode.value = true
 }
@@ -631,67 +641,80 @@ function handleBackToList() {
   padding: 8px 0;
 }
 
-.dossier-clinic__patient-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
-  background: var(--cd-widget-bg);
-  border: 1px solid var(--cd-gray-200, #e4e7ed);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+.dossier-clinic-view__toolbar {
+  align-items: flex-end;
+  row-gap: 8px;
 }
 
-.dossier-clinic__patient-avatar {
-  flex-shrink: 0;
-  background: var(--el-color-primary, #409eff);
+.dossier-clinic-view__toolbar .cde-filters {
+  flex: 1 1 auto;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.dossier-clinic-view__filter {
+  flex: 0 0 auto;
+  min-width: auto;
+}
+
+.dossier-clinic-view__filter--source {
+  min-width: 200px;
+}
+
+.dossier-clinic-view__filter--type {
+  width: 168px;
+}
+
+.dossier-clinic-view__filter--period {
+  width: 250px;
+}
+
+.dossier-clinic-view__toolbar :deep(.cde-toolbar__select) {
+  width: 100%;
+}
+
+.dossier-clinic-view__toolbar :deep(.cde-toolbar__range) {
+  width: 100%;
+}
+
+/* Neutral segmented control: the selected item stays readable and on-system. */
+.dossier-clinic-view__source {
+  --el-segmented-bg-color: var(--cd-widget-bg);
+  --el-segmented-color: var(--cd-gray-600);
+  --el-segmented-item-selected-bg-color: var(--cd-gray-100);
+  --el-segmented-item-selected-color: var(--cd-gray-900);
+  --el-segmented-item-hover-bg-color: var(--cd-gray-50);
+  --el-segmented-item-hover-color: var(--cd-gray-900);
+  --el-segmented-item-active-bg-color: var(--cd-gray-100);
+  width: 100%;
+  min-height: 28px;
+  padding: 2px;
+  border: 1px solid var(--cd-gray-300);
+  border-radius: 6px;
+}
+
+.dossier-clinic-view__source :deep(.el-segmented__group) {
+  gap: 0;
+}
+
+.dossier-clinic-view__source :deep(.el-segmented__item) {
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dossier-clinic-view__source :deep(.el-segmented__item.is-selected) {
   font-weight: 600;
 }
 
-.dossier-clinic__patient-avatar span {
-  font-size: 18px;
-  line-height: 1;
+.dossier-clinic-view__source :deep(.el-segmented__item-selected) {
+  border-radius: 4px;
 }
 
-.dossier-clinic__patient-identity {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.dossier-clinic__patient-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--cd-gray-900);
-  line-height: 1.2;
-}
-
-.dossier-clinic__patient-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-  font-size: 13px;
-  color: var(--cd-gray-500);
-}
-
-.dossier-clinic__patient-meta-item {
-  white-space: nowrap;
-}
-
-.dossier-clinic-view__alert {
-  margin-bottom: 16px;
-}
-
-.dossier-clinic-view__empty {
-  margin-top: 24px;
-}
-
-.dossier-clinic-view__loading {
-  padding: 24px 0;
-  text-align: center;
-  color: var(--cd-gray-500);
+.dossier-clinic-view__source :deep(.el-segmented__item-selected.is-focus-visible:before) {
+  outline-color: var(--el-color-primary);
 }
 
 .dossier-clinic-view__page-loading {
@@ -703,9 +726,9 @@ function handleBackToList() {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: var(--el-color-info-light-9);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
+  background: var(--cd-gray-50);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
   margin-bottom: 12px;
 }
 
@@ -714,39 +737,38 @@ function handleBackToList() {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--cd-gray-500);
 }
 
 .dossier-clinic-view__contact-label {
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--cd-gray-900);
 }
 
 .dossier-clinic-view__contact-sep {
-  color: var(--el-border-color);
+  color: var(--cd-gray-300);
 }
 
 .dossier-clinic-view__contact-type,
 .dossier-clinic-view__contact-date,
 .dossier-clinic-view__contact-service,
 .dossier-clinic-view__contact-medecin {
-  color: var(--el-text-color-regular);
+  color: var(--cd-gray-600);
   font-weight: 500;
 }
 
-.dossier-clinic-view__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+
+.dossier-clinic-view :deep(.el-table__empty-block) {
+  min-height: 40px;
 }
 
-.dossier-clinic-view__filters {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  margin-bottom: 4px;
-  flex-wrap: wrap;
+.dossier-clinic-view__empty {
+  width: 100%;
+  padding: 0 10px;
+  font-size: 12px;
+  line-height: 40px;
+  color: var(--cde-muted);
+  text-align: left;
 }
 
 .dossier-clinic__doc-cell {
@@ -769,9 +791,9 @@ function handleBackToList() {
   width: 100%;
   height: 150px;
   min-height: 150px;
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--cde-border-soft);
   border-radius: 6px;
-  background: var(--el-fill-color-light);
+  background: var(--cde-surface-tint);
 }
 
 .dossier-clinic__expanded-actions {
@@ -787,7 +809,7 @@ function handleBackToList() {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: var(--el-bg-color, #fff);
+  background: var(--cde-surface);
   display: flex;
   flex-direction: column;
 }
@@ -796,17 +818,23 @@ function handleBackToList() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--el-border-color-light);
-  background: var(--cd-white, #fff);
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--cde-border);
+  background: var(--cde-surface);
   flex-shrink: 0;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .dossier-clinic__full-page-header-left {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.dossier-clinic__full-page-header-left .el-button + .el-button {
+  margin-left: 4px;
+  border-left: 1px solid var(--cde-border-soft);
+  border-radius: 0;
+  padding-left: 14px;
 }
 
 .dossier-clinic__full-page-header-right {
@@ -825,6 +853,7 @@ function handleBackToList() {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  padding-top: 0;
 }
 
 </style>

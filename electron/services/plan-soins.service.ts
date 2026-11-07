@@ -1,4 +1,4 @@
-import { inject, singleton } from 'tsyringe'
+import { inject, singleton, container } from 'tsyringe'
 import { type Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
@@ -53,6 +53,21 @@ export class PlanSoinsService {
     return planDto
   }
 
+  /**
+   * Distinct dates (YYYY-MM-DD) having a plan_soins record for the patient,
+   * most recent first. Used to build recorded-dates columns (cf. ResultatsBio).
+   */
+  async listDatesByPatient(patientId: number): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom('plan_soins')
+      .select('date')
+      .distinct()
+      .where('patient_id', '=', patientId)
+      .orderBy('date', 'desc')
+      .execute()
+    return rows.map(r => r.date as string).filter((d): d is string => d != null && d !== '')
+  }
+
   async listValidesByPatientAndDateRange(patientId: number, startDate: string, endDate: string): Promise<{
     date: string
     heure: string
@@ -94,6 +109,16 @@ export class PlanSoinsService {
   }
 
   async validerSoin(soinId: number, validePar: string): Promise<SoinItem> {
+    const current = await this.db
+      .selectFrom('plan_soins_items')
+      .selectAll()
+      .where('id', '=', soinId)
+      .executeTakeFirst()
+    if (!current) throw new Error(`Soin ${soinId} introuvable`)
+    if (current.statut === 'valide') {
+      return this.toSoinItem(current, await this.resolvePrescriptionType(current.prescription_id))
+    }
+
     const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 
     await this.db
@@ -114,6 +139,20 @@ export class PlanSoinsService {
       .executeTakeFirst()
 
     if (!updated) throw new Error(`Soin ${soinId} introuvable`)
+
+    try {
+      const { StockService } = await import('./stock.service')
+      const administered = await container.resolve(StockService).administration({
+        libelle: updated.medicament ?? '',
+        planSoinsItemId: soinId,
+        quantite: 1,
+      })
+      if (!administered) {
+        console.warn('[pharmacie] administration ignorée (sans match catalogue ou stock insuffisant)', { planSoinsItemId: soinId, libelle: updated.medicament })
+      }
+    } catch (error) {
+      console.warn('[pharmacie] hook administration ignoré', { planSoinsItemId: soinId, error: (error as Error)?.message })
+    }
 
     return this.toSoinItem(updated, await this.resolvePrescriptionType(updated.prescription_id))
   }

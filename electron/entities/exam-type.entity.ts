@@ -12,6 +12,7 @@ export class ExamTypeEntity {
   @SchemaField() name?: string
   @SchemaField() is_active?: number
   @SchemaField() sort_order?: number
+  @SchemaField() prix?: number
   @SchemaField() created_at?: string
   @SchemaField() updated_at?: string
   category_name?: string
@@ -24,6 +25,7 @@ export class ExamTypeEntity {
       parent_id: entity.parent_id ?? undefined,
       label: entity.name as string,
       is_active: entity.is_active as unknown as boolean,
+      prix: Number(entity.prix ?? 0),
       category_label: entity.category_name,
       parent_label: entity.parent_name,
       created_at: entity.created_at,
@@ -39,6 +41,7 @@ export class ExamTypeEntity {
     if (dto.code != null) e.code = dto.code
     if (dto.label != null) e.name = dto.label
     if (dto.is_active != null) e.is_active = dto.is_active as unknown as number
+    if (dto.prix != null) e.prix = dto.prix
     e.created_at = dto.created_at
     e.updated_at = dto.updated_at
     return e

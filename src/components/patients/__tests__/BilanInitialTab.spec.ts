@@ -131,6 +131,8 @@ vi.mock('@element-plus/icons-vue', () => ({
   ArrowDown: { template: '<span />' },
   Edit: { template: '<span />' },
   Delete: { template: '<span />' },
+  Clock: { template: '<span />' },
+  TrendCharts: { template: '<span />' },
 }))
 
 // ─── EL Stubs ──────────────────────────────────────────────────────
@@ -403,7 +405,6 @@ describe('BilanInitialTab', () => {
         '1. Score de Glasgow',
         '2. Score de douleur à l\'entrée',
         '3. Paramètres vitaux à l\'admission',
-        '4. Examen physique',
       ])
     })
   })
@@ -721,16 +722,18 @@ describe('BilanInitialTab', () => {
       const wrapper = createWrapper()
       const body = await openVitalsForm(wrapper)
 
-      const poidsItem = body.find('[data-history-path="bilanInitial.examenPhysique.poids"]')
-      const tailleItem = body.find('[data-history-path="bilanInitial.examenPhysique.taille"]')
-      const imcItem = body.find('[data-history-path="bilanInitial.examenPhysique.imc"]')
+      const itemByLabel = (label: string) =>
+        body.findAll('.el-form-item').find(w => w.find('label').exists() && w.find('label').text() === label)
+      const poidsItem = itemByLabel('Poids (kg)')
+      const tailleItem = itemByLabel('Taille (cm)')
+      const imcItem = itemByLabel('IMC (kg/m²)')
 
-      expect(poidsItem.exists()).toBe(true)
-      expect(poidsItem.find('.el-input-number').exists()).toBe(true)
-      expect(tailleItem.exists()).toBe(true)
-      expect(tailleItem.find('.el-input-number').exists()).toBe(true)
+      expect(poidsItem?.exists()).toBe(true)
+      expect(poidsItem?.find('.el-input-number').exists()).toBe(true)
+      expect(tailleItem?.exists()).toBe(true)
+      expect(tailleItem?.find('.el-input-number').exists()).toBe(true)
 
-      const imcInput = imcItem.find('.el-input')
+      const imcInput = imcItem!.find('.el-input')
       expect(imcInput.exists()).toBe(true)
       expect(imcInput.attributes('disabled')).toBeDefined()
       // Without poids/taille the computed IMC renders the placeholder '—'
@@ -742,8 +745,10 @@ describe('BilanInitialTab', () => {
       const wrapper = createWrapper({ data })
       const body = await openVitalsForm(wrapper)
 
-      await body.find('[data-history-path="bilanInitial.examenPhysique.poids"] .el-input-number').setValue('75')
-      await body.find('[data-history-path="bilanInitial.examenPhysique.taille"] .el-input-number').setValue('170')
+      const itemByLabel = (label: string) =>
+        body.findAll('.el-form-item').find(w => w.find('label').exists() && w.find('label').text() === label)
+      await itemByLabel('Poids (kg)')!.find('.el-input-number').setValue('75')
+      await itemByLabel('Taille (cm)')!.find('.el-input-number').setValue('170')
 
       expect(data.examenPhysique.poids).toBe(75)
       expect(data.examenPhysique.taille).toBe(170)
@@ -754,7 +759,10 @@ describe('BilanInitialTab', () => {
       const wrapper = createWrapper({ data })
       const body = await openVitalsForm(wrapper)
 
-      const imcInput = () => body.find('[data-history-path="bilanInitial.examenPhysique.imc"] .el-input')
+      const imcInput = () => {
+        const item = body.findAll('.el-form-item').find(w => w.find('label').exists() && w.find('label').text() === 'IMC (kg/m²)')
+        return item!.find('.el-input')
+      }
       expect((imcInput().element as HTMLInputElement).value).toBe('—')
 
       // Mutating the nested plain-object prop directly does NOT trigger the
@@ -1336,13 +1344,14 @@ describe('BilanInitialTab', () => {
   // ─── 11. Staged sections & previews ──────────────────────────────
 
   describe('staged sections', () => {
-    it('renders the 5 CollapsibleSection headers in order', () => {
+    it('renders the 6 CollapsibleSection headers in order', () => {
       const wrapper = createWrapper()
       const titles = wrapper.findAll('.collapsible-section__title').map(el => el.text())
       expect(titles).toEqual([
         'Histoire récente',
         'Traitement à l\'entrée',
         'Examen clinique à l\'entrée',
+        'Examen physique',
         'Conclusion à l\'entrée',
         'Projet de soin pendant l\'hospitalisation',
       ])
@@ -1360,12 +1369,13 @@ describe('BilanInitialTab', () => {
     it('sections are collapsed by default except the examen section (default-open)', () => {
       const wrapper = createWrapper()
       const bodies = sectionBodies(wrapper)
-      expect(bodies).toHaveLength(5)
+      expect(bodies).toHaveLength(6)
 
       expect(bodies[0].attributes('style') ?? '').toContain('display: none')
       expect(bodies[1].attributes('style') ?? '').toContain('display: none')
       expect(bodies[3].attributes('style') ?? '').toContain('display: none')
       expect(bodies[4].attributes('style') ?? '').toContain('display: none')
+      expect(bodies[5].attributes('style') ?? '').toContain('display: none')
 
       // Examen clinique section stays open so the history-collapse sub-blocks
       // (Glasgow / Douleur / Vitals) are visible and editable by default
@@ -1407,7 +1417,10 @@ describe('BilanInitialTab', () => {
       expect(wrapper.emitted('change')).toBeTruthy()
 
       const rows = wrapper.findAll('.form-preview')[0].findAll('.form-preview__row')
-      const row = rows.find(r => r.text().includes('Histoire récente de la maladie'))
+      // Locate the row via the edit button's aria-label: the visible label is
+      // hidden (hideLabel), but the aria-label still uses field.label.
+      const row = rows.find(r => r.find('.form-preview__edit').attributes('aria-label') === 'Modifier Histoire récente de la maladie')
+      expect(row).toBeDefined()
       expect(row!.find('.form-preview__value').text()).toBe('Douleurs abdominales depuis 3 jours')
     })
 
@@ -1415,19 +1428,19 @@ describe('BilanInitialTab', () => {
       const data = createDefaultData({ conclusionEntree: '<p>Sortie prévue</p>' })
       const wrapper = createWrapper({ data })
 
-      await openSection(wrapper, 3)
-      const editor = sectionBodies(wrapper)[3].find('.rich-editor-input')
+      await openSection(wrapper, 4)
+      const editor = sectionBodies(wrapper)[4].find('.rich-editor-input')
       await editor.setValue('<p>Modification perdue</p>')
       await nextTick()
       expect(data.conclusionEntree).toBe('<p>Sortie prévue</p>')
 
-      const footerButtons = sectionFooterButtons(wrapper, 3)
+      const footerButtons = sectionFooterButtons(wrapper, 4)
       await footerButtons[1].trigger('click')
       await nextTick()
 
       expect(data.conclusionEntree).toBe('<p>Sortie prévue</p>')
       expect(wrapper.emitted('change')).toBeFalsy()
-      expect(sectionBodies(wrapper)[3].attributes('style') ?? '').toContain('display: none')
+      expect(sectionBodies(wrapper)[4].attributes('style') ?? '').toContain('display: none')
     })
 
     it('asks for confirmation before discarding unsaved changes when collapsing', async () => {
@@ -1453,15 +1466,15 @@ describe('BilanInitialTab', () => {
       const data = createDefaultData()
       const wrapper = createWrapper({ data })
 
-      await openSection(wrapper, 4)
-      const editor = sectionBodies(wrapper)[4].find('.rich-editor-input')
+      await openSection(wrapper, 5)
+      const editor = sectionBodies(wrapper)[5].find('.rich-editor-input')
       await editor.setValue('<p>Projet de soin</p>')
       await nextTick()
 
-      await clickEnregistrer(wrapper, 4)
+      await clickEnregistrer(wrapper, 5)
 
       expect(data.projetSoin).toBe('<p>Projet de soin</p>')
-      expect(sectionBodies(wrapper)[4].attributes('style') ?? '').toContain('display: none')
+      expect(sectionBodies(wrapper)[5].attributes('style') ?? '').toContain('display: none')
     })
   })
 
@@ -1492,7 +1505,7 @@ describe('BilanInitialTab', () => {
       })
 
       const row = wrapper.findAll('.form-preview__row')
-        .find(r => r.text().includes('Histoire récente de la maladie'))
+        .find(r => r.find('.form-preview__edit').attributes('aria-label') === 'Modifier Histoire récente de la maladie')
       expect(row).toBeDefined()
 
       expect(row!.find('.form-preview__updated').text())
@@ -1509,7 +1522,7 @@ describe('BilanInitialTab', () => {
         fieldMeta: { 'bilanInitial.conclusionEntree': '2026-06-15T10:30:00.000Z' },
       })
 
-      const body = sectionBodies(wrapper)[3]
+      const body = sectionBodies(wrapper)[4]
 
       // Prove the section is collapsed BEFORE the click
       expect(body.attributes('style') ?? '').toContain('display: none')
@@ -1532,9 +1545,239 @@ describe('BilanInitialTab', () => {
       })
 
       const row = wrapper.findAll('.form-preview__row')
-        .find(r => r.text().includes('Traitement à l\'entrée'))
+        .find(r => r.find('.form-preview__edit').attributes('aria-label') === 'Modifier Traitement à l\'entrée')
       expect(row).toBeDefined()
       expect(row!.find('.form-preview__updated').text()).toBe('Non modifié')
+    })
+  })
+
+  // ─── 14. Regression: live inputs cleared after saving a measurement ──
+
+  describe('clears live inputs after saving a measurement', () => {
+    it('clears scoreDouleur after saving a douleur entry (history retains the score)', async () => {
+      const data = createDefaultData({ scoreDouleur: 6 })
+      const wrapper = createWrapper({ data })
+
+      const headers = wrapper.findAll('.history-collapse__header')
+      await headers[1].trigger('click')
+
+      const bodies = wrapper.findAll('.history-collapse__body')
+      const saveBtn = bodies[1].find('.history-collapse__actions').findAll('button').find(b => b.text() === 'Enregistrer')
+      await saveBtn!.trigger('click')
+      await flushPromises()
+
+      expect(data.douleurHistory).toHaveLength(1)
+      expect(data.douleurHistory[0].score).toBe(6)
+      expect(data.scoreDouleur).toBeNull()
+    })
+
+    it('clears glasgow.ouvertureYeux/reponseVerbale/reponseMotrice after saving a glasgow entry', async () => {
+      const data = createDefaultData({
+        glasgow: { ouvertureYeux: 4, reponseVerbale: 5, reponseMotrice: 6 },
+      })
+      const wrapper = createWrapper({ data })
+
+      const headers = wrapper.findAll('.history-collapse__header')
+      await headers[0].trigger('click')
+
+      const bodies = wrapper.findAll('.history-collapse__body')
+      const saveBtn = bodies[0].find('.history-collapse__actions').findAll('button').find(b => b.text() === 'Enregistrer')
+      await saveBtn!.trigger('click')
+      await flushPromises()
+
+      expect(data.glasgowHistory).toHaveLength(1)
+      expect(data.glasgowHistory[0].ouvertureYeux).toBe(4)
+      expect(data.glasgowHistory[0].reponseVerbale).toBe(5)
+      expect(data.glasgowHistory[0].reponseMotrice).toBe(6)
+      expect(data.glasgow.ouvertureYeux).toBeNull()
+      expect(data.glasgow.reponseVerbale).toBeNull()
+      expect(data.glasgow.reponseMotrice).toBeNull()
+    })
+
+    it('clears the vitals examenPhysique inputs after saving but keeps taille (history retains the values)', async () => {
+      const data = createDefaultData({
+        examenPhysique: {
+          taSystolique: 130,
+          taDiastolique: 85,
+          frequenceCardiaque: 76,
+          temperature: 36.9,
+          glycemie: 6.1,
+          cetonurie: '+',
+          glucosurie: null,
+          cetonemie: 1.2,
+          poids: 75,
+          taille: 170,
+          saO2: 97,
+          diurese: 500,
+        },
+      })
+      const wrapper = createWrapper({ data })
+
+      const headers = wrapper.findAll('.history-collapse__header')
+      await headers[2].trigger('click')
+
+      const bodies = wrapper.findAll('.history-collapse__body')
+      const saveBtn = bodies[2].find('.history-collapse__actions').findAll('button').find(b => b.text() === 'Enregistrer')
+      await saveBtn!.trigger('click')
+      await flushPromises()
+
+      expect(data.vitalSignsHistory).toHaveLength(1)
+      expect(data.vitalSignsHistory[0].taSystolique).toBe(130)
+      expect(data.vitalSignsHistory[0].taDiastolique).toBe(85)
+      expect(data.vitalSignsHistory[0].frequenceCardiaque).toBe(76)
+      expect(data.vitalSignsHistory[0].temperature).toBe(36.9)
+      expect(data.vitalSignsHistory[0].glycemie).toBe(6.1)
+      expect(data.vitalSignsHistory[0].cetonurie).toBe('+')
+      expect(data.vitalSignsHistory[0].cetonemie).toBe(1.2)
+      expect(data.vitalSignsHistory[0].poids).toBe(75)
+      expect(data.vitalSignsHistory[0].taille).toBe(170)
+      expect(data.vitalSignsHistory[0].saO2).toBe(97)
+      expect(data.vitalSignsHistory[0].diurese).toBe(500)
+
+      expect(data.examenPhysique.taSystolique).toBeNull()
+      expect(data.examenPhysique.taDiastolique).toBeNull()
+      expect(data.examenPhysique.frequenceCardiaque).toBeNull()
+      expect(data.examenPhysique.temperature).toBeNull()
+      expect(data.examenPhysique.glycemie).toBeNull()
+      expect(data.examenPhysique.cetonurie).toBeNull()
+      expect(data.examenPhysique.glucosurie).toBeNull()
+      expect(data.examenPhysique.cetonemie).toBeNull()
+      expect(data.examenPhysique.poids).toBeNull()
+      expect(data.examenPhysique.saO2).toBeNull()
+      expect(data.examenPhysique.diurese).toBeNull()
+      expect(data.examenPhysique.taille).toBe(170)
+    })
+
+    it('editing a vitals entry repopulates the inputs first, then save clears them (taille retained)', async () => {
+      const data = createDefaultData({
+        vitalSignsHistory: [
+          { _key: 'v1', date: '2025-02-20T14:30', taSystolique: 140, taDiastolique: 90, frequenceCardiaque: 80, temperature: 36.8, glycemie: 7.2, cetonurie: null, glucosurie: null, cetonemie: null, poids: 88, taille: 165 },
+        ],
+      })
+      const wrapper = createWrapper({ data })
+
+      const actionCells = wrapper.findAll('.history-table__actions')
+      const editBtn = actionCells[0].findAll('button').find(b => b.attributes('title') === 'Modifier')
+      await editBtn!.trigger('click')
+      await flushPromises()
+
+      // The edit*Entry functions still repopulate the live inputs from the row
+      expect(data.examenPhysique.taSystolique).toBe(140)
+      expect(data.examenPhysique.poids).toBe(88)
+      expect(data.examenPhysique.taille).toBe(165)
+
+      data.examenPhysique.taSystolique = 150
+      const bodies = wrapper.findAll('.history-collapse__body')
+      const saveBtn = bodies[2].find('.history-collapse__actions').findAll('button').find(b => b.text() === 'Enregistrer')
+      await saveBtn!.trigger('click')
+      await flushPromises()
+
+      expect(data.vitalSignsHistory).toHaveLength(1)
+      expect(data.vitalSignsHistory[0].taSystolique).toBe(150)
+      expect(data.examenPhysique.taSystolique).toBeNull()
+      expect(data.examenPhysique.poids).toBeNull()
+      expect(data.examenPhysique.taille).toBe(165)
+    })
+  })
+
+  // ─── 15. Historique paramètre : th cliquables (button.history-th-btn) ──
+
+  describe('history th buttons (open-history)', () => {
+    const EXPECTED_PATHS = [
+      'bilanInitial.glasgow.ouvertureYeux',
+      'bilanInitial.glasgow.reponseVerbale',
+      'bilanInitial.glasgow.reponseMotrice',
+      'bilanInitial.glasgow.score',
+      'bilanInitial.scoreDouleur',
+      'bilanInitial.examenPhysique.taSystolique',
+      'bilanInitial.examenPhysique.taDiastolique',
+      'bilanInitial.examenPhysique.frequenceCardiaque',
+      'bilanInitial.examenPhysique.temperature',
+      'bilanInitial.examenPhysique.glycemie',
+      'bilanInitial.examenPhysique.cetonurie',
+      'bilanInitial.examenPhysique.glucosurie',
+      'bilanInitial.examenPhysique.cetonemie',
+      'bilanInitial.examenPhysique.poids',
+      'bilanInitial.examenPhysique.taille',
+      'bilanInitial.examenPhysique.imc',
+      'bilanInitial.examenPhysique.saO2',
+      'bilanInitial.examenPhysique.diurese',
+    ]
+
+    it('renders 18 th buttons.history-th-btn (4 Glasgow + 1 douleur + 13 vitals)', () => {
+      const wrapper = createWrapper()
+      const buttons = wrapper.findAll('button.history-th-btn')
+      expect(buttons).toHaveLength(18)
+    })
+
+    it('exposes an aria-label and a title on every th button (a11y)', () => {
+      const wrapper = createWrapper()
+      const buttons = wrapper.findAll('button.history-th-btn')
+      for (const btn of buttons) {
+        expect(btn.attributes('aria-label')).toBeTruthy()
+        expect(btn.attributes('title')).toBeTruthy()
+      }
+    })
+
+    it('clicking the Score th button (not just the icon) emits open-history with bilanInitial.glasgow.score', async () => {
+      const wrapper = createWrapper()
+      const scoreBtn = wrapper.findAll('button.history-th-btn')
+        .find(b => b.text().includes('Score') && (b.attributes('aria-label') ?? '').includes('Score de Glasgow'))
+      expect(scoreBtn?.exists()).toBe(true)
+      await scoreBtn!.trigger('click')
+      expect(wrapper.emitted('open-history')).toBeTruthy()
+      expect(wrapper.emitted('open-history')![0]).toEqual(['bilanInitial.glasgow.score'])
+    })
+
+    it('clicking a vitals th button emits the matching path (poids)', async () => {
+      const wrapper = createWrapper()
+      const poidsBtn = wrapper.findAll('button.history-th-btn')
+        .find(b => (b.attributes('aria-label') ?? '') === 'Voir historique Poids')
+      await poidsBtn!.trigger('click')
+      expect(wrapper.emitted('open-history')![0]).toEqual(['bilanInitial.examenPhysique.poids'])
+    })
+
+    it('clicking the douleur th button emits bilanInitial.scoreDouleur', async () => {
+      const wrapper = createWrapper()
+      const douleurBtn = wrapper.findAll('button.history-th-btn')
+        .find(b => (b.attributes('aria-label') ?? '') === 'Voir historique Score de douleur')
+      await douleurBtn!.trigger('click')
+      expect(wrapper.emitted('open-history')![0]).toEqual(['bilanInitial.scoreDouleur'])
+    })
+
+    it('emits the 18 expected paths in DOM order (glasgow 4 + douleur 1 + vitals 13)', async () => {
+      const wrapper = createWrapper()
+      const buttons = wrapper.findAll('button.history-th-btn')
+      expect(buttons).toHaveLength(EXPECTED_PATHS.length)
+      for (let i = 0; i < buttons.length; i++) {
+        await buttons[i].trigger('click')
+      }
+      expect(wrapper.emitted('open-history')!.map(args => args[0])).toEqual(EXPECTED_PATHS)
+    })
+  })
+
+  // ─── 16. Multi-historique : toolbars « Voir courbes » ───────────────
+
+  describe('multi-history toolbars (open-multi-history)', () => {
+    it('renders 3 "Voir courbes" toolbars (glasgow / douleur / vitals)', () => {
+      const wrapper = createWrapper()
+      const toolbars = wrapper.findAll('.history-table-toolbar')
+      expect(toolbars).toHaveLength(3)
+      for (const bar of toolbars) {
+        expect(bar.text()).toContain('Voir courbes')
+      }
+    })
+
+    it.each([
+      [0, 'glasgow'],
+      [1, 'douleur'],
+      [2, 'vitals'],
+    ])('toolbar %i emits open-multi-history with "%s"', async (index, group) => {
+      const wrapper = createWrapper()
+      const btn = wrapper.findAll('.history-table-toolbar')[index].find('button')
+      await btn.trigger('click')
+      expect(wrapper.emitted('open-multi-history')).toBeTruthy()
+      expect(wrapper.emitted('open-multi-history')![0]).toEqual([group])
     })
   })
 })

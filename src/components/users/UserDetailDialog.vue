@@ -113,6 +113,13 @@
           <span v-else>—</span>
         </el-descriptions-item>
 
+        <el-descriptions-item label="Temps de travail">
+          {{ currUser.temps_travail === 'PARTIEL' ? 'Temps partiel' : 'Temps plein' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="N° sécurité sociale">
+          {{ currUser.numero_securite_sociale || '—' }}
+        </el-descriptions-item>
+
         <el-descriptions-item label="Date début contrat">
           {{ currUser.date_debut_contrat || '—' }}
         </el-descriptions-item>
@@ -298,7 +305,9 @@ async function handleReactivate() {
     await reactivateContract(currUser.value.id)
     ElMessage.success('Contrat réactivé')
     emit('saved')
-  } catch {}
+  } catch {
+    // `reactivateContract` affiche déjà l'erreur via `ipcInvoke`.
+  }
 }
 
 defineExpose({ open, close })
@@ -349,13 +358,13 @@ defineExpose({ open, close })
 
 :deep(.detail-descriptions .el-descriptions__label) {
   font-weight: 600;
-  color: var(--cd-gray-600);
-  background: var(--cd-widget-bg);
+  color: var(--cde-header-text);
+  background: var(--cde-header-bg);
   width: 130px;
 }
 
 :deep(.detail-descriptions .el-descriptions__content) {
-  color: #1A2E2D;
+  color: var(--cde-header-text);
 }
 
 .detail-footer-btn {

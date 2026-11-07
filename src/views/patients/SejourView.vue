@@ -1,27 +1,26 @@
 <template>
-  <div class="sejour-view" v-loading="loading">
-    <!-- Section 1: Séjour en cours + Infos admin -->
-    <el-row :gutter="24">
-      <el-col :span="12">
-        <el-card class="sejour-view__card">
-          <template #header>
-            <div class="sejour-view__card-header">
-              <span><strong>Séjour en cours</strong></span>
-              <el-tag v-if="activeStay" :type="stayStatusTag(activeStay.status)" size="small" effect="dark">
-                {{ stayStatusLabel(activeStay.status) }}
-              </el-tag>
-            </div>
-          </template>
-          <div v-if="!activeStay" class="sejour-view__empty-card">
-            <el-empty description="Aucun séjour actif" :image-size="48" />
-          </div>
-          <el-descriptions v-else :column="1" border size="small">
+  <div class="sejour-view cde" v-loading="loading">
+    <div class="cde-panels">
+      <!-- Section 1: Séjour en cours -->
+      <section class="cde-panel">
+        <div class="cde-panel__head">
+          <span class="cde-panel__title">Séjour en cours</span>
+          <span v-if="activeStay" class="cde-badge" :class="stayStatusClass(activeStay.status)">
+            {{ stayStatusLabel(activeStay.status) }}
+          </span>
+        </div>
+        <div v-if="!activeStay" class="cde-empty">Aucun séjour actif</div>
+        <div v-else class="sejour-view__body">
+          <el-descriptions :column="1" border size="small">
             <el-descriptions-item label="N° Séjour">{{ activeStay.id }}</el-descriptions-item>
             <el-descriptions-item label="Date d'entrée">{{ formatDate(activeStay.admission_date) }}</el-descriptions-item>
             <el-descriptions-item label="Mode d'admission">
-              <el-tag :type="admissionTag(activeStay.mode_admission)" size="small">
+              <span class="cde-badge" :class="admissionClass(activeStay.mode_admission)">
                 {{ admissionLabel(activeStay.mode_admission) }}
-              </el-tag>
+              </span>
+            </el-descriptions-item>
+            <el-descriptions-item label="Type d'hospitalisation">
+              {{ stayTypeLabel(activeStay.type) }}
             </el-descriptions-item>
             <el-descriptions-item label="Service / Unité">{{ activeStay.service_name || '—' }}</el-descriptions-item>
             <el-descriptions-item label="Chambre / Lit">
@@ -29,38 +28,35 @@
             </el-descriptions-item>
             <el-descriptions-item label="Médecin référent">{{ activeStay.medecin_name || '—' }}</el-descriptions-item>
           </el-descriptions>
-        </el-card>
-      </el-col>
+        </div>
+      </section>
 
-      <el-col :span="12">
-        <el-card class="sejour-view__card">
-          <template #header>
-            <span><strong>Informations administratives</strong></span>
-          </template>
+      <!-- Section 1b: Informations administratives -->
+      <section class="cde-panel">
+        <div class="cde-panel__head">
+          <span class="cde-panel__title">Informations administratives</span>
+        </div>
+        <div class="sejour-view__body">
           <el-descriptions :column="1" border size="small">
             <el-descriptions-item label="NIP">{{ patientInfo?.nip || '—' }}</el-descriptions-item>
             <el-descriptions-item label="N° SS / INS">{{ patientInfo?.nir || '—' }}</el-descriptions-item>
             <el-descriptions-item label="Assurance / Mutuelle">{{ patientInfo?.assuranceMutuelle || '—' }}</el-descriptions-item>
-            <el-descriptions-item label="Consentement études">
-              <el-tag size="small">{{ patientInfo?.consentementEtude || 'Non précisé' }}</el-tag>
-            </el-descriptions-item>
+            <el-descriptions-item label="Consentement études">{{ patientInfo?.consentementEtude || 'Non précisé' }}</el-descriptions-item>
           </el-descriptions>
-        </el-card>
-      </el-col>
-    </el-row>
+        </div>
+      </section>
+    </div>
 
     <!-- Section 2: Timeline du séjour (mouvements du contact associé) -->
-    <el-card class="sejour-view__card sejour-view__card--section">
-      <template #header>
-        <span><strong>Timeline du séjour</strong></span>
-      </template>
-      <div v-if="!activeEncounter" class="sejour-view__empty-card">
-        <el-empty description="Aucun contact hospitalisation actif" :image-size="48" />
+    <section class="cde-panel sejour-view__timeline">
+      <div class="cde-panel__head">
+        <span class="cde-panel__title">Timeline du séjour</span>
       </div>
+      <div v-if="!activeEncounter" class="cde-empty">Aucun contact hospitalisation actif</div>
       <StayTimeline v-else :movements="timelineMovements" :loading="loadingMovements"
         :contact-status="activeEncounter?.status ?? 'closed'"
         :stay-status="activeStay?.status ?? 'cloture'" />
-    </el-card>
+    </section>
   </div>
 </template>
 
@@ -125,8 +121,16 @@ function admissionLabel(mode: string): string {
   return labels[mode] || mode
 }
 
-function admissionTag(mode: string): 'danger' | 'success' | 'warning' {
-  return mode === 'urgences' ? 'danger' : mode === 'transfert' ? 'warning' : 'success'
+function stayTypeLabel(type?: string | null): string {
+  const labels: Record<string, string> = {
+    jour: 'Hôpital de jour',
+    complete: 'Hospitalisation complète',
+  }
+  return type ? labels[type] || type : '—'
+}
+
+function admissionClass(mode: string): string {
+  return mode === 'urgences' ? 'cde-badge--danger' : mode === 'transfert' ? 'cde-badge--warning' : 'cde-badge--success'
 }
 
 function stayStatusLabel(status: string): string {
@@ -138,8 +142,8 @@ function stayStatusLabel(status: string): string {
   return labels[status] || status
 }
 
-function stayStatusTag(status: string): 'success' | 'info' | 'warning' {
-  return status === 'en_cours' ? 'success' : status === 'transfere' ? 'warning' : 'info'
+function stayStatusClass(status: string): string {
+  return status === 'en_cours' ? 'cde-badge--success' : status === 'transfere' ? 'cde-badge--warning' : 'cde-badge--info'
 }
 
 async function loadStayData() {
@@ -211,38 +215,25 @@ onUnmounted(() => {
   width: 100%;
 }
 
-.sejour-view__card {
-  height: 100%;
+.sejour-view__body {
+  padding: 10px 12px;
 }
 
-.sejour-view__card--section {
-  margin-top: 16px;
+.sejour-view__timeline {
+  margin-top: 12px;
 }
 
-.sejour-view__card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+.sejour-view__body :deep(.el-descriptions__body) {
+  background: transparent;
 }
 
-.sejour-view__section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+.sejour-view__body :deep(.el-descriptions__label) {
+  width: 160px;
+  color: var(--cde-muted);
+  font-weight: 500;
 }
 
-.sejour-view__section-title {
-  font-size: 14px;
-  font-weight: 600;
+.sejour-view__body :deep(.el-descriptions__content) {
   color: var(--cd-gray-900);
-  margin: 0;
-}
-
-.sejour-view__empty-card {
-  display: flex;
-  justify-content: center;
-  padding: 8px 0;
 }
 </style>

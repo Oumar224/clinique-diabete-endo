@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import SideBar from '../SideBar.vue'
@@ -18,6 +18,7 @@ const mockElMessage = vi.hoisted(() => ({
   warning: vi.fn(),
   error: vi.fn(),
 }))
+const mockAuthBox = vi.hoisted(() => ({ ref: null as any }))
 
 // ===========================================================================
 // Module mocks — hoisted by vitest above all imports
@@ -53,12 +54,18 @@ vi.mock('@/composables/useOpenPatients', () => ({
   })),
 }))
 
-vi.mock('@/composables/useAuth', () => ({
-  useAuth: vi.fn(() => ({
-    user: { value: { role: 'ADMIN', prenom: 'Test', nom: 'User' } },
-    logout: vi.fn(),
-  })),
-}))
+vi.mock('@/composables/useAuth', async () => {
+  const vue = await vi.importActual<typeof import('vue')>('vue')
+  if (!mockAuthBox.ref) {
+    mockAuthBox.ref = vue.ref({ role: 'ADMIN', prenom: 'Test', nom: 'User' })
+  }
+  return {
+    useAuth: vi.fn(() => ({
+      user: mockAuthBox.ref,
+      logout: vi.fn(),
+    })),
+  }
+})
 
 vi.mock('@/composables/useSidebar', () => ({
   useSidebar: vi.fn(() => ({
@@ -265,6 +272,124 @@ describe('SideBar — onOpenPatientClick', () => {
         expect.stringContaining('Erreur'),
       )
       expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+  })
+
+  // ────────────────────────────────────────────────────────────────────
+  // Pharmacie menu entry (role-based)
+  // ────────────────────────────────────────────────────────────────────
+  describe('pharmacie menu entry', () => {
+    function pharmacieEntry(wrapper: ReturnType<typeof mount>) {
+      return wrapper.findAll('.sidebar__menu-item').find((i) =>
+        i.find('.sidebar__menu-item-label').text() === 'Pharmacie',
+      )
+    }
+
+    afterEach(() => {
+      mockAuthBox.ref.value = { role: 'ADMIN', prenom: 'Test', nom: 'User' }
+    })
+
+    it('shows the Pharmacie entry for PHARMACIEN', async () => {
+      mockAuthBox.ref.value = { role: 'PHARMACIEN', prenom: 'Test', nom: 'User' }
+
+      const wrapper = mount(SideBar, { global: { stubs } })
+      await waitForTicks()
+
+      expect(pharmacieEntry(wrapper)).toBeDefined()
+    })
+
+    it('shows the Pharmacie entry for ADMIN', async () => {
+      const wrapper = mount(SideBar, { global: { stubs } })
+      await waitForTicks()
+
+      expect(pharmacieEntry(wrapper)).toBeDefined()
+    })
+
+    it('hides the Pharmacie entry for other roles', async () => {
+      mockAuthBox.ref.value = { role: 'MEDECIN', prenom: 'Test', nom: 'User' }
+
+      const wrapper = mount(SideBar, { global: { stubs } })
+      await waitForTicks()
+
+      expect(pharmacieEntry(wrapper)).toBeUndefined()
+      expect(wrapper.text()).toContain('Planning')
+    })
+
+    it('navigates to /app/pharmacie on click', async () => {
+      mockAuthBox.ref.value = { role: 'PHARMACIEN', prenom: 'Test', nom: 'User' }
+
+      const wrapper = mount(SideBar, { global: { stubs } })
+      await waitForTicks()
+
+      await pharmacieEntry(wrapper)!.trigger('click')
+      expect(mockRouterPush).toHaveBeenCalledWith('/app/pharmacie')
+    })
+  })
+
+  // ────────────────────────────────────────────────────────────────────
+  // Indicateur menu entry (singular label, route inchangée)
+  // ────────────────────────────────────────────────────────────────────
+  describe('indicateur menu entry', () => {
+    function indicateurEntry(wrapper: ReturnType<typeof mount>) {
+      return wrapper.findAll('.sidebar__menu-item').find((i) =>
+        i.find('.sidebar__menu-item-label').text() === 'Indicateur',
+      )
+    }
+
+    it('affiche le libellé « Indicateur » et navigue vers /app/indicateurs', async () => {
+      const wrapper = mount(SideBar, { global: { stubs } })
+      await waitForTicks()
+
+      const entry = indicateurEntry(wrapper)
+      expect(entry).toBeDefined()
+      expect(wrapper.text()).not.toContain('Indicateurs annuels')
+
+      await entry!.trigger('click')
+      expect(mockRouterPush).toHaveBeenCalledWith('/app/indicateurs')
+    })
+  })
+
+  // ────────────────────────────────────────────────────────────────────
+  // Comptabilité menu entry (role-based, ex-facturation)
+  // ────────────────────────────────────────────────────────────────────
+  describe('comptabilite menu entry', () => {
+    function comptabiliteEntry(wrapper: ReturnType<typeof mount>) {
+      return wrapper.findAll('.sidebar__menu-item').find((i) =>
+        i.find('.sidebar__menu-item-label').text() === 'Comptabilité',
+      )
+    }
+
+    afterEach(() => {
+      mockAuthBox.ref.value = { role: 'ADMIN', prenom: 'Test', nom: 'User' }
+    })
+
+    it('shows the Comptabilité entry for COMPTABLE', async () => {
+      mockAuthBox.ref.value = { role: 'COMPTABLE', prenom: 'Test', nom: 'User' }
+
+      const wrapper = mount(SideBar, { global: { stubs } })
+      await waitForTicks()
+
+      expect(comptabiliteEntry(wrapper)).toBeDefined()
+    })
+
+    it('hides the Comptabilité entry for other roles', async () => {
+      mockAuthBox.ref.value = { role: 'PHARMACIEN', prenom: 'Test', nom: 'User' }
+
+      const wrapper = mount(SideBar, { global: { stubs } })
+      await waitForTicks()
+
+      expect(comptabiliteEntry(wrapper)).toBeUndefined()
+      expect(wrapper.text()).toContain('Pharmacie')
+    })
+
+    it('navigates to /app/comptabilite on click', async () => {
+      mockAuthBox.ref.value = { role: 'COMPTABLE', prenom: 'Test', nom: 'User' }
+
+      const wrapper = mount(SideBar, { global: { stubs } })
+      await waitForTicks()
+
+      await comptabiliteEntry(wrapper)!.trigger('click')
+      expect(mockRouterPush).toHaveBeenCalledWith('/app/comptabilite')
     })
   })
 })

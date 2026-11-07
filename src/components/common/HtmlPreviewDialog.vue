@@ -50,6 +50,7 @@
           class="preview-iframe"
           :style="iframeStyle"
           frameborder="0"
+          sandbox="allow-same-origin"
         />
       </div>
       <el-empty v-else description="Aucun document à afficher" />
@@ -68,8 +69,11 @@ const props = withDefaults(defineProps<{
   downloadChannel: string
   docDownloadChannel?: string
   params?: Record<string, any>
+  /** Format de page de l'aperçu — doit refléter celui du PDF généré. */
+  orientation?: 'portrait' | 'landscape'
 }>(), {
   params: () => ({}),
+  orientation: 'portrait',
 })
 
 const emit = defineEmits<{
@@ -87,19 +91,38 @@ let loadToken = 0
 const MIN_ZOOM = 0.5
 const MAX_ZOOM = 2
 const ZOOM_STEP = 0.25
-const PAGE_WIDTH = 794
-const PAGE_HEIGHT = 1123
+/**
+ * L'aperçu paysage démarre légèrement réduit : en plein écran, une page A4
+ * paysage (1123 px) occupait toute la largeur et paraissait étirée. La page
+ * conserve sa largeur de rendu (le contenu ne se recompacte pas), seule
+ * l'échelle d'affichage est réduite.
+ */
+const LANDSCAPE_BASE_ZOOM = 0.9
+/** Le mode « ajuster à la largeur » ne grossit pas les documents paysage. */
+const maxFitZoom = computed(() => (props.orientation === 'landscape' ? 1 : MAX_ZOOM))
+
+/** Dimensions A4 à 96 dpi, dans le sens demandé. */
+const pageSize = computed(() => (
+  props.orientation === 'landscape'
+    ? { width: 1123, height: 794 }
+    : { width: 794, height: 1123 }
+))
+
+/** Échelle de départ, avant tout ajustement manuel. */
+const baseZoom = computed(() => (props.orientation === 'landscape' ? LANDSCAPE_BASE_ZOOM : 1))
 
 const zoom = ref(1)
 const manualZoom = ref(false)
 const contentRef = ref<HTMLElement | null>(null)
 
 const stageStyle = computed(() => ({
-  width: `${PAGE_WIDTH * zoom.value}px`,
-  minHeight: `${PAGE_HEIGHT * zoom.value}px`,
+  width: `${pageSize.value.width * zoom.value}px`,
+  minHeight: `${pageSize.value.height * zoom.value}px`,
 }))
 
 const iframeStyle = computed(() => ({
+  width: `${pageSize.value.width}px`,
+  height: `${pageSize.value.height}px`,
   transform: `scale(${zoom.value})`,
 }))
 
@@ -122,7 +145,10 @@ function onWindowResize() {
   if (!container) return
   const avail = container.clientWidth
   if (avail <= 0) return
-  zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round((avail / PAGE_WIDTH) * 100) / 100))
+  zoom.value = Math.max(
+    MIN_ZOOM,
+    Math.round(Math.min(maxFitZoom.value, avail / pageSize.value.width) * baseZoom.value * 100) / 100,
+  )
 }
 
 function safeParams(): Record<string, any> {
@@ -144,7 +170,7 @@ async function loadPreview() {
   loading.value = true
   htmlContent.value = null
   manualZoom.value = false
-  zoom.value = 1
+  zoom.value = baseZoom.value
   try {
     const result: any = await window.electronAPI.invoke(props.channel, safeParams())
     if (token !== loadToken) return
@@ -228,7 +254,7 @@ defineExpose({ open })
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  border-bottom: 1px solid var(--el-border-color-light);
+  border-bottom: 1px solid var(--cde-border);
   flex-shrink: 0;
 }
 
@@ -250,7 +276,7 @@ defineExpose({ open })
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  background: #c0c4cc;
+  background: var(--cde-surface-tint);
   padding: 24px 0;
 }
 
@@ -259,8 +285,6 @@ defineExpose({ open })
 }
 
 .preview-iframe {
-  width: 794px;
-  height: 1123px;
   background: #ffffff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   border: none;

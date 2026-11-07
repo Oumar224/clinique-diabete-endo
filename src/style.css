@@ -1,72 +1,97 @@
 @import 'element-plus/dist/index.css';
 
 :root {
-  --cd-primary: #1A5276;
-  --cd-primary-dark: #0E3A54;
-  --cd-primary-light: #D4E6F1;
-  --cd-primary-lighter: #E8F0F8;
+  /* ── Design system CDE — teal pro + or + slate ── */
+  --cd-primary: #0E7C7B;
+  --cd-primary-dark: #0A5E5D;
+  --cd-primary-darker: #084948;
+  --cd-primary-light: #D7EEEDE6;
+  --cd-primary-lighter: #EAF6F5;
   --cd-secondary: #C0392B;
   --cd-secondary-light: #E74C3C;
-  --cd-alert-red: #CC0000;
-  --cd-accent-orange: #E67E22;
-  --cd-accent-orange-dark: #D35400;
-  --cd-accent-orange-light: #FDEBD0;
-  --cd-sidebar-bg: #D4E6F1;
-  --cd-sidebar-header-bg: #2E86C1;
+  --cd-alert-red: #B91C1C;
+  --cd-accent-gold: #C9A227;
+  --cd-accent-gold-light: #FDF3D7;
+  --cd-accent-gold-dark: #92780F;
+  --cd-accent-orange: #C9A227;
+  --cd-accent-orange-dark: #92780F;
+  --cd-accent-orange-light: #FDF3D7;
+  --cd-success: #15803D;
+  --cd-success-bg: #DCFCE7;
+  --cd-info-blue: #1D6FA5;
+  --cd-info-bg: #E0F0FA;
+  --cd-warning: #B45309;
+  --cd-warning-bg: #FEF3C7;
+  --cd-danger-bg: #FEE2E2;
+  --cd-sidebar-bg: #FFFFFF;
+  --cd-sidebar-header-bg: #0E7C7B;
   --cd-sidebar-header-text: #FFFFFF;
-  --cd-sidebar-item: #1A5276;
-  --cd-sidebar-item-hover: #A9CCE3;
-  --cd-page-bg: #F2F4F4;
-  --cd-widget-bg: #F0F3F4;
-  --cd-border: #BDC3C7;
+  --cd-sidebar-item: #334155;
+  --cd-sidebar-item-hover: #EAF6F5;
+  --cd-page-bg: #F1F5F9;
+  --cd-widget-bg: #FFFFFF;
+  --cd-card-bg: #FFFFFF;
+  --cd-border: #E2E8F0;
   --cd-tab-active-bg: var(--cd-widget-bg);
-  --cd-tab-inactive-bg: #BDC3C7;
-  --cd-tab-inactive-text: #555555;
-  --cd-tab-border: #999999;
-  --cd-gray-50: #F5F5F5;
-  --cd-gray-100: #E8E8E8;
-  --cd-gray-150: #DCDCDC;
-  --cd-gray-200: #CCCCCC;
-  --cd-gray-300: #B0B0B0;
-  --cd-gray-400: #888888;
-  --cd-gray-500: #666666;
-  --cd-gray-600: #555555;
-  --cd-gray-900: #1A1A1A;
+  --cd-tab-inactive-bg: #E2E8F0;
+  --cd-tab-inactive-text: #475569;
+  --cd-tab-border: #CBD5E1;
+  --cd-gray-50: #F8FAFC;
+  --cd-gray-100: #F1F5F9;
+  --cd-gray-150: #E2E8F0;
+  --cd-gray-200: #E2E8F0;
+  --cd-gray-300: #CBD5E1;
+  --cd-gray-400: #64748B;
+  --cd-gray-500: #475569;
+  --cd-gray-600: #334155;
+  --cd-gray-900: #0F172A;
   --cd-white: #FFFFFF;
 
-  --el-color-primary: #1A5276;
-  --el-color-primary-light-3: #5499C7;
-  --el-color-primary-light-5: #85C1E9;
-  --el-color-primary-light-7: #D4E6F1;
-  --el-color-primary-light-8: #E8F0F8;
-  --el-color-primary-light-9: #F4F9FC;
-  --el-color-primary-dark-2: #0E3A54;
+  /* Rayons, ombres, espacements */
+  --cd-radius-sm: 8px;
+  --cd-radius-md: 12px;
+  --cd-radius-lg: 16px;
+  --cd-radius-pill: 999px;
+  --cd-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
+  --cd-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.06);
+  --cd-shadow-lift: 0 8px 24px rgba(14, 124, 123, 0.14), 0 2px 8px rgba(15, 23, 42, 0.08);
+  --cd-space-4: 16px;
+  --cd-space-6: 24px;
+  --cd-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Tahoma, Arial, sans-serif;
+
+  --el-color-primary: #0E7C7B;
+  --el-color-primary-light-3: #3AA3A2;
+  --el-color-primary-light-5: #7CC4C3;
+  --el-color-primary-light-7: #D7EEED;
+  --el-color-primary-light-8: #EAF6F5;
+  --el-color-primary-light-9: #F2FAF9;
+  --el-color-primary-dark-2: #0A5E5D;
   --el-color-danger: #C0392B;
   --el-color-danger-light-3: #E74C3C;
-  --el-color-success: #1A5276;
-  --el-color-warning: #B7950B;
-  --el-color-info: #666666;
-  --el-text-color-primary: #1A1A1A;
-  --el-text-color-regular: #333333;
-  --el-text-color-secondary: #666666;
-  --el-text-color-placeholder: #888888;
-  --el-border-color: #CCCCCC;
-  --el-border-color-light: #E0E0E0;
+  --el-color-success: #15803D;
+  --el-color-warning: #B45309;
+  --el-color-info: #475569;
+  --el-text-color-primary: #0F172A;
+  --el-text-color-regular: #334155;
+  --el-text-color-secondary: #475569;
+  --el-text-color-placeholder: #64748B;
+  --el-border-color: #E2E8F0;
+  --el-border-color-light: #EDF2F7;
   --el-bg-color: var(--cd-page-bg);
   --el-bg-color-overlay: var(--cd-widget-bg);
   --el-fill-color-blank: #FFFFFF;
-  --el-fill-color: #F5F5F5;
-  --el-fill-color-light: #FAFAFA;
-  --el-border-radius-base: 2px;
-  --el-border-radius-small: 2px;
+  --el-fill-color: #F8FAFC;
+  --el-fill-color-light: #F8FAFC;
+  --el-border-radius-base: 6px;
+  --el-border-radius-small: 4px;
   --el-font-size-base: 13px;
   --el-font-size-small: 12px;
   --el-font-size-large: 14px;
-  --el-font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  --el-font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Tahoma, Arial, sans-serif;
 }
 
 html, body, #app {
-  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-family: var(--cd-font-sans);
 }
 
 .el-button, .el-input, .el-select, .el-textarea, .el-form-item__label,
@@ -79,7 +104,7 @@ html, body, #app {
 .el-descriptions, .el-result, .el-empty, .el-statistic,
 .el-table-v2, .el-check-tag, .el-text, .el-link, .el-segmented,
 .el-splitter {
-  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-family: var(--cd-font-sans);
 }
 
 *,
@@ -95,11 +120,13 @@ body,
 #app {
   height: 100%;
   width: 100%;
-  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  max-width: 100%;
+  overflow-x: clip;
+  font-family: var(--cd-font-sans);
   background-color: var(--cd-page-bg);
   color: var(--cd-gray-900);
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 a {
@@ -171,8 +198,8 @@ a:hover {
 }
 
 .el-tabs__item:hover {
-  background: #D0D3D4 !important;
-  color: #333333 !important;
+  background: var(--cd-gray-200) !important;
+  color: var(--cd-gray-900) !important;
 }
 
 .el-tabs__item.is-active {
@@ -209,45 +236,196 @@ a:hover {
   height: 14px;
 }
 
+/*
+ * Tableaux neutres — look desktop identique aux écrans Comptabilité.
+ * Un `<el-table>` nu reçoit exactement le même rendu qu'un tableau dans
+ * `.cde-table-wrap` : en-tête clair, texte 11px uppercase, lignes 32-38px.
+ */
 .el-table {
-  --el-table-border-color: var(--cd-gray-200);
-  --el-table-header-bg-color: var(--cd-primary);
-  --el-table-header-text-color: #FFFFFF;
-  --el-table-row-hover-bg-color: var(--cd-primary-lighter);
+  --el-table-border-color: var(--cde-border);
+  --el-table-bg-color: var(--cde-surface);
+  --el-table-tr-bg-color: var(--cde-surface);
+  --el-table-header-bg-color: var(--cde-header-bg);
+  --el-table-header-text-color: var(--cde-header-text);
+  --el-table-row-hover-bg-color: var(--cde-surface-tint);
   font-size: 12px;
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+  /* `clip` (et non `hidden`) pour ne pas casser le sticky header */
+  overflow: clip;
+  box-shadow: none;
+}
+
+.el-table::before,
+.el-table::after,
+.el-table__inner-wrapper::before {
+  display: none;
 }
 
 .el-table th.el-table__cell {
-  background-color: var(--cd-primary) !important;
-  color: #FFFFFF !important;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 32px;
+  padding: 0 12px;
+  background-color: var(--cde-header-bg) !important;
+  color: var(--cde-header-text) !important;
+  font-size: 11px;
   font-weight: 600;
-  padding: 6px 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   white-space: nowrap;
+  border-bottom: 1px solid var(--cde-border);
+  /* Aucun séparateur vertical entre colonnes */
+  border-right: 0;
 }
 
 .el-table td.el-table__cell {
-  padding: 4px 8px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  color: var(--cd-gray-900);
+  background: var(--cde-surface);
+  border-bottom: 1px solid var(--cde-border-soft);
+  border-right: 0;
+  vertical-align: middle;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 0;
 }
 
+.el-table .cell {
+  line-height: 1.35;
+  padding: 0;
+}
+
 .el-table--small td.el-table__cell {
-  padding: 3px 6px;
+  height: 30px;
+  padding: 0 10px;
 }
 
-.el-table--border td.el-table__cell {
-  border-right: 1px solid var(--cd-gray-200);
-}
-
+.el-table--border td.el-table__cell,
 .el-table--border th.el-table__cell {
-  border-right: 1px solid var(--cd-primary-dark);
+  border-right: 0;
+}
+
+.el-table__body tr:last-child td.el-table__cell {
+  border-bottom: 0;
+}
+
+.el-table__body tr:hover > td.el-table__cell {
+  background: var(--cde-surface-tint);
+}
+
+.el-table__empty-text {
+  font-size: 12px;
+  color: var(--cde-muted);
+}
+
+/* Cellules numériques : chiffres tabulaires, alignement à droite conservé */
+.el-table .el-table__cell.is-right {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Tableaux natifs d'historique (`.history-table`) — même rendu neutre que
+ * les `<el-table>` de l'application : en-tête 11px uppercase, séparateurs
+ * 1px, cellules 32-36px, aucune ombre ni fond teal.
+ * Le préfixe `#app` porte la spécificité au-dessus des anciens styles
+ * scoped des onglets, qui restent inchangés : les composants héritent.
+ */
+#app .history-table-wrap {
+  border-radius: 6px;
+}
+
+#app .history-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+  overflow: clip;
+}
+
+#app .history-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--cde-header-bg);
+  color: var(--cde-header-text);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--cde-border);
+}
+
+#app .history-table tbody td {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  color: var(--cd-gray-900);
+  border-bottom: 1px solid var(--cde-border-soft);
+  vertical-align: middle;
+}
+
+#app .history-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+#app .history-table tbody tr:hover {
+  background: var(--cde-surface-tint);
+}
+
+#app .history-table tbody tr:hover > td {
+  background: var(--cde-surface-tint);
+}
+
+#app .history-table .history-th-icon {
+  color: var(--cde-muted);
+}
+
+#app .history-table .history-table__date {
+  font-weight: 600;
+  color: var(--cd-gray-900);
+  white-space: nowrap;
+}
+
+#app .history-table .history-table__score {
+  font-weight: 600;
+  color: var(--cd-gray-900);
+  font-variant-numeric: tabular-nums;
+}
+
+#app .history-table .history-table__actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+#app .history-table .history-table__empty {
+  padding: 16px 12px;
+  text-align: center;
+  color: var(--cd-gray-400);
+  font-style: italic;
+}
+
+#app .history-table td.num,
+#app .history-table td.amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .el-input__wrapper {
   border-radius: 2px;
-  box-shadow: 0 0 0 1px #7F8C8D inset !important;
+  box-shadow: 0 0 0 1px var(--cd-gray-400) inset !important;
   padding: 0 8px !important;
   min-height: 28px;
 }
@@ -289,7 +467,7 @@ a:hover {
 }
 
 .el-button {
-  --el-border-radius-base: 2px;
+  --el-border-radius-base: 6px;
   font-size: 12px;
 }
 
@@ -329,21 +507,6 @@ a:hover {
   margin-right: 2px;
 }
 
-.el-form-item[data-history-path] .el-form-item__label::after {
-  content: "";
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  margin-left: 6px;
-  vertical-align: -2px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23606266' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8'/%3E%3Cpath d='M3 3v5h5'/%3E%3Cpath d='M12 7v5l4 2'/%3E%3C/svg%3E") no-repeat center / contain;
-  opacity: .7;
-}
-
-.el-form-item[data-history-path] .el-form-item__label {
-  cursor: pointer;
-}
-
 .el-dialog {
   --el-dialog-border-radius: 2px;
 }
@@ -358,7 +521,7 @@ a:hover {
 
 /* Fieldset / Group Box */
 .form-group {
-  border: 1px solid var(--cd-border, #BDC3C7);
+  border: 1px solid var(--cde-border);
   padding: 10px 12px 8px;
   margin-bottom: 10px;
   border-radius: 2px;
@@ -385,9 +548,9 @@ a:hover {
 .el-radio__inner {
   width: 14px;
   height: 14px;
-  border: 1px solid #7F8C8D;
+  border: 1px solid var(--cd-gray-400);
   border-radius: 50%;
-  background: #FFFFFF;
+  background: var(--cde-surface);
 }
 
 .el-radio__inner::after {
@@ -399,7 +562,7 @@ a:hover {
 
 .el-radio.is-checked .el-radio__inner {
   border-color: var(--cd-primary);
-  background: #FFFFFF;
+  background: var(--cde-surface);
 }
 
 .el-radio__label {
@@ -416,9 +579,9 @@ a:hover {
 .el-checkbox__inner {
   width: 14px;
   height: 14px;
-  border: 1px solid #7F8C8D;
+  border: 1px solid var(--cd-gray-400);
   border-radius: 2px;
-  background: #FFFFFF;
+  background: var(--cde-surface);
 }
 
 .el-checkbox.is-checked .el-checkbox__inner {
@@ -506,7 +669,7 @@ p, span, div, label, li, .el-message, .el-notification {
 }
 
 .tab-form .el-form-item__content {
-  border-top: 1px solid #e4e7ed;
+  border-top: 1px solid var(--cde-border-soft);
   padding-top: 6px;
 }
 
@@ -591,4 +754,201 @@ p, span, div, label, li, .el-message, .el-notification {
 .tab-form .el-input.is-disabled .el-input__inner {
   -webkit-text-fill-color: var(--cd-gray-600);
   color: var(--cd-gray-600);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CDE Design System — couche pro 2026 (non-destructive)
+   Cards blanches radius 12-16, ombres douces, hover lift,
+   tableaux, formulaires FR, accessibilité AA, print.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Cards génériques */
+.el-card {
+  --el-card-border-color: var(--cde-border);
+  --el-card-border-radius: 6px;
+  --el-card-padding: var(--cd-space-4);
+  --el-card-bg-color: var(--cde-surface);
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
+  box-shadow: none;
+  border-radius: 6px;
+}
+.el-card:hover {
+  box-shadow: none;
+}
+/* Bandeau clinique uniquement quand la carte a un header */
+.el-card__header {
+  background: var(--cde-header-bg);
+  border-bottom: 1px solid var(--cde-border);
+}
+.el-card.is-always-shadow,
+.el-card.is-hover-shadow,
+.el-card.is-always-shadow:hover,
+.el-card.is-hover-shadow:hover {
+  box-shadow: none;
+}
+.cd-card {
+  background: var(--cd-card-bg);
+  border: 1px solid var(--cd-border);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-sm);
+  padding: var(--cd-space-4);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.cd-card--lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--cd-shadow-lift);
+}
+
+/* Boutons : 40px min, focus ring AA */
+.el-button {
+  min-height: 40px;
+  border-radius: 6px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.el-button--small {
+  min-height: 32px;
+  padding: 6px 12px;
+}
+.el-button:focus-visible,
+.el-input__inner:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--cd-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.el-input__wrapper {
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px var(--cd-gray-300) inset !important;
+  min-height: 40px;
+}
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 2px var(--cd-primary) inset !important;
+}
+.el-input__inner {
+  min-height: 38px;
+  font-size: 13px;
+}
+.el-form-item__label {
+  font-weight: 600;
+  color: var(--cd-gray-600);
+}
+.el-dialog {
+  --el-dialog-border-radius: 6px;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+}
+.el-dialog__footer {
+  border-top: 1px solid var(--cd-border);
+  padding-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Tableaux : zebra + montants (le rendu neutre est défini plus haut) */
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: var(--cde-row-alt);
+}
+.el-table .cell .amount,
+.amount--gnf {
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.el-tag {
+  --el-tag-border-radius: 4px;
+  border-radius: 4px;
+  font-weight: 600;
+  padding: 2px 8px;
+}
+.el-tag.el-tag--primary,
+.el-tag.el-tag--plain.el-tag--primary {
+  --el-tag-bg-color: var(--cde-accent-tint);
+  --el-tag-border-color: color-mix(in srgb, var(--cde-accent) 20%, transparent);
+  --el-tag-text-color: var(--cde-accent-strong);
+  --el-tag-hover-color: var(--cde-accent-strong);
+}
+.el-tag.el-tag--success,
+.el-tag.el-tag--plain.el-tag--success {
+  --el-tag-bg-color: var(--cde-success-tint);
+  --el-tag-border-color: color-mix(in srgb, var(--cde-success) 20%, transparent);
+  --el-tag-text-color: var(--cde-success);
+  --el-tag-hover-color: var(--cde-success);
+}
+.el-tag.el-tag--warning,
+.el-tag.el-tag--plain.el-tag--warning {
+  --el-tag-bg-color: var(--cde-warning-tint);
+  --el-tag-border-color: color-mix(in srgb, var(--cde-warning) 20%, transparent);
+  --el-tag-text-color: var(--cde-warning);
+  --el-tag-hover-color: var(--cde-warning);
+}
+.el-tag.el-tag--danger,
+.el-tag.el-tag--error,
+.el-tag.el-tag--plain.el-tag--danger,
+.el-tag.el-tag--plain.el-tag--error {
+  --el-tag-bg-color: var(--cde-danger-tint);
+  --el-tag-border-color: color-mix(in srgb, var(--cde-danger) 20%, transparent);
+  --el-tag-text-color: var(--cde-danger);
+  --el-tag-hover-color: var(--cde-danger);
+}
+.el-tag.el-tag--info,
+.el-tag.el-tag--plain.el-tag--info {
+  --el-tag-bg-color: var(--cde-info-tint);
+  --el-tag-border-color: color-mix(in srgb, var(--cde-info) 20%, transparent);
+  --el-tag-text-color: var(--cde-info);
+  --el-tag-hover-color: var(--cde-info);
+}
+.el-pagination {
+  margin-top: 16px;
+  justify-content: center;
+}
+.el-empty__description {
+  color: var(--cd-gray-400);
+  font-size: 13px;
+}
+
+/* Skeletons */
+.cd-skeleton-card {
+  border-radius: var(--cd-radius-md);
+  overflow: hidden;
+}
+
+/* Print global : masque chrome applicatif */
+@media print {
+  .sidebar,
+  .topbar,
+  .dashboard__main-area > .topbar,
+  #main-nav,
+  .no-print,
+  .el-dialog__footer,
+  .el-button,
+  .el-pagination,
+  .comptabilite__actions,
+  .rapport__actions,
+  .planning__actions,
+  .rdv-view__toolbar {
+    display: none !important;
+  }
+  .dashboard__main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  body, #app {
+    background: var(--cde-surface) !important;
+  }
+  .el-table, .print-table {
+    box-shadow: none !important;
+  }
+}
+
+/* Réduction de mouvement */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

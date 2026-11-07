@@ -1,66 +1,91 @@
 <template>
-  <div class="fct">
-    <div class="fct__header">
-      <el-input
-        v-model="searchQuery"
-        placeholder="Rechercher une fonction..."
-        clearable
-        style="width: 280px"
-        @input="onSearch"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      <el-button type="primary" :icon="Plus" @click="openCreate">Nouvelle fonction</el-button>
-    </div>
+  <div class="fct cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Fonctions
+        </h1>
+        <p class="cde-page-sub">
+          Fonctions du personnel
+        </p>
+      </div>
+    </header>
 
     <el-alert
       v-if="error"
+      class="cde-alert cde-alert--danger"
       type="error"
       :title="error"
-      closable
+      :closable="true"
       @close="error = null"
-      style="margin-bottom: 16px"
     />
 
-    <el-table
-      v-loading="loading"
-      :data="paginatedList"
-      style="width: 100%"
-      border
-      row-key="id"
-    >
-      <el-table-column prop="name" label="Nom" min-width="200" />
-      <el-table-column label="Statut" width="90" align="center">
-        <template #default="{ row }">
-          <el-switch
-            :model-value="row.is_active"
+    <div class="cde-toolbar">
+      <div class="cde-filters">
+        <div class="cde-filter cde-toolbar__search">
+          <span class="cde-filter__label">Recherche</span>
+          <el-input
+            v-model="searchQuery"
+            placeholder="Rechercher…"
+            clearable
             size="small"
-            @change="handleToggle(row)"
-          />
-        </template>
-      </el-table-column>
-      <el-table-column label="Actions" width="110" align="center">
-        <template #default="{ row }">
-          <el-button text type="primary" :icon="Edit" size="small" @click="openEdit(row)" />
-          <el-button text type="danger" :icon="Delete" size="small" @click="handleDelete(row)" />
-        </template>
-      </el-table-column>
-    </el-table>
+            @input="onSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+        </div>
+      </div>
+      <div class="cde-toolbar__actions">
+        <el-button type="primary" size="small" :icon="Plus" @click="openCreate">
+          Nouvelle fonction
+        </el-button>
+      </div>
+    </div>
 
-    <el-empty v-if="!loading && filteredList.length === 0" description="Aucune fonction" />
+    <div class="cde-table-card">
+      <el-table
+        v-loading="loading"
+        :data="paginatedList"
+        style="width: 100%"
+        size="small"
+        row-key="id"
+        empty-text=""
+      >
+        <el-table-column prop="name" label="Nom" min-width="200" />
+        <el-table-column label="Statut" width="90" align="center">
+          <template #default="{ row }">
+            <el-switch
+              :model-value="row.is_active"
+              size="small"
+              @change="handleToggle(row)"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column label="Actions" width="110" align="center">
+          <template #default="{ row }">
+            <el-button text type="primary" size="small" :icon="Edit" title="Modifier" @click="openEdit(row)" />
+            <el-button text type="danger" size="small" :icon="Delete" title="Supprimer" @click="handleDelete(row)" />
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
-    <el-row justify="center" style="margin-top: 20px">
+    <div v-if="!loading && filteredList.length === 0" class="cde-empty">
+      Aucune fonction.
+    </div>
+
+    <div class="cde-footer">
+      <span class="cde-muted">{{ filteredList.length }} élément(s)</span>
       <el-pagination
         v-model:current-page="paginator.currPage"
         v-model:page-size="paginator.pageSize"
-        background
         layout="sizes, prev, pager, next"
         :page-sizes="[10, 20, 50]"
         :total="filteredList.length"
       />
-    </el-row>
+    </div>
 
     <FonctionFormDialog ref="dialogRef" @saved="onSaved" />
   </div>
@@ -135,13 +160,3 @@ function onSaved() {
   paginator.currPage = 1
 }
 </script>
-
-<style scoped>
-.fct__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-</style>

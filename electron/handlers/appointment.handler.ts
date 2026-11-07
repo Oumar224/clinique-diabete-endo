@@ -5,6 +5,10 @@ import type { AppointmentDto } from '../dto/appointment.dto'
 import { createHandler } from '../utils/create-handler'
 
 export function registerAppointmentHandlers() {
+  createHandler('appointments:list', async (params?: { date?: string; date_debut?: string; date_fin?: string; medecin_id?: number; status?: string }) => {
+    return await container.resolve(AppointmentService).listFiltered(params ?? {})
+  })
+
   createHandler('appointments:list-by-patient', async ({ patient_id }: { patient_id: number }) => {
     return await container.resolve(AppointmentService).listByPatient(patient_id)
   })

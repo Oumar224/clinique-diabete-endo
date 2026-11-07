@@ -41,8 +41,11 @@ async function handleLoginSubmit(formRef: FormInstance | undefined, form: LoginC
 <style scoped>
 .login {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   min-height: 100vh;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .login__brand {
@@ -103,7 +106,7 @@ async function handleLoginSubmit(formRef: FormInstance | undefined, form: LoginC
     display: none;
   }
   .login {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

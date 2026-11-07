@@ -116,6 +116,8 @@ vi.mock('@element-plus/icons-vue', () => {
     Delete: { name: 'Delete', ...stub }, Download: { name: 'Download', ...stub },
     Printer: { name: 'Printer', ...stub }, Close: { name: 'Close', ...stub },
     ZoomIn: { name: 'ZoomIn', ...stub }, ZoomOut: { name: 'ZoomOut', ...stub },
+    TrendCharts: { name: 'TrendCharts', ...stub },
+    Clock: { name: 'Clock', ...stub },
   }
 })
 
@@ -205,9 +207,14 @@ async function commitHistoireRecent(
 }
 
 function histoirePreviewValue(wrapper: ReturnType<typeof createCrFormWrapper>): string | undefined {
+  // The histoireRecent preview field now sets `hideLabel: true`, so the label
+  // span is not rendered. Locate the row via the edit pencil's `aria-label`
+  // (`Modifier <label>`) instead of matching visible label text.
   const preview0 = wrapper.findAll('.form-preview')[0]
   const rows = preview0.findAll('.form-preview__row')
-  const row = rows.find(r => r.text().includes('Histoire récente de la maladie'))
+  const row = rows.find(r =>
+    r.find('.form-preview__edit').attributes('aria-label') === 'Modifier Histoire récente de la maladie',
+  )
   return row?.find('.form-preview__value').text()
 }
 

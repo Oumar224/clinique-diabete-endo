@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { reactive, defineComponent, h } from 'vue'
+import { reactive, defineComponent, h, nextTick } from 'vue'
 import StagedCollapsibleSection from '../StagedCollapsibleSection.vue'
 
 // ─── Mock @element-plus/icons-vue ──────────────────────────────────
@@ -204,7 +204,7 @@ describe('StagedCollapsibleSection', () => {
     expect(cancelBtn.attributes('disabled')).toBeDefined()
   })
 
-  it('exposes open/close/toggle/isOpen/save/cancel', () => {
+  it('exposes open/close/toggle/isOpen/save/cancel/syncDraft/removeFromDraft', () => {
     const { wrapper } = mountSection()
     const section = wrapper.findComponent(StagedCollapsibleSection)
     expect(typeof section.vm.open).toBe('function')
@@ -213,5 +213,94 @@ describe('StagedCollapsibleSection', () => {
     expect(typeof section.vm.isOpen).toBe('function')
     expect(typeof section.vm.save).toBe('function')
     expect(typeof section.vm.cancel).toBe('function')
+    expect(typeof section.vm.syncDraft).toBe('function')
+    expect(typeof section.vm.removeFromDraft).toBe('function')
+  })
+
+  // ─── removeFromDraft (targeted in-draft deletion) ────────────────
+
+  it('removeFromDraft removes only the item whose _key matches, in place', async () => {
+    const modelValue = {
+      items: [
+        { _key: 'a', v: 1 },
+        { _key: 'b', v: 2 },
+        { _key: 'c', v: 3 },
+      ],
+    }
+    const { wrapper, section } = mountSection({ modelValue, keys: ['items'] })
+    await wrapper.find('.collapsible-section__header').trigger('click')
+    const sectionVm = section().vm as any
+    sectionVm.removeFromDraft('items', 'b')
+    expect(sectionVm.draft.items.map((i: { _key: string }) => i._key)).toEqual(['a', 'c'])
+    // The other items are untouched (deep-preserved), not rebuilt from the model
+    expect(sectionVm.draft.items[0]).toEqual({ _key: 'a', v: 1 })
+    expect(sectionVm.draft.items[1]).toEqual({ _key: 'c', v: 3 })
+  })
+
+  it('removeFromDraft is a no-op for a missing key', async () => {
+    const modelValue = {
+      items: [
+        { _key: 'a', v: 1 },
+        { _key: 'b', v: 2 },
+      ],
+    }
+    const { wrapper, section } = mountSection({ modelValue, keys: ['items'] })
+    await wrapper.find('.collapsible-section__header').trigger('click')
+    const sectionVm = section().vm as any
+    sectionVm.removeFromDraft('items', 'does-not-exist')
+    expect(sectionVm.draft.items.map((i: { _key: string }) => i._key)).toEqual(['a', 'b'])
+  })
+
+  it('removeFromDraft is a no-op when the draft value is not an array', async () => {
+    const modelValue = { items: 'not-an-array' }
+    const { wrapper, section } = mountSection({ modelValue, keys: ['items'] })
+    await wrapper.find('.collapsible-section__header').trigger('click')
+    const sectionVm = section().vm as any
+    sectionVm.removeFromDraft('items', 'a')
+    expect(sectionVm.draft.items).toBe('not-an-array')
+  })
+
+  // ─── pending prop (unsaved-changes guard even when not dirty) ─────
+
+  it('with pending=true and dirty=false shows the confirm on collapse, then closes and emits cancel on confirm', async () => {
+    const { wrapper, section } = mountSection({ props: { pending: true } })
+    await wrapper.find('.collapsible-section__header').trigger('click') // open
+    expect(section().vm.isOpen()).toBe(true)
+    await wrapper.find('.collapsible-section__header').trigger('click') // close → confirm
+    expect(mockConfirm).toHaveBeenCalled()
+    await nextTick()
+    expect(section().vm.isOpen()).toBe(false)
+    expect(section().emitted('cancel')).toBeTruthy()
+  })
+
+  it('with pending=true and dirty=false aborts the close when confirmation is dismissed', async () => {
+    mockConfirm.mockRejectedValue('cancel')
+    const { wrapper, section } = mountSection({ props: { pending: true } })
+    await wrapper.find('.collapsible-section__header').trigger('click') // open
+    await wrapper.find('.collapsible-section__header').trigger('click') // close → confirm rejected
+    expect(mockConfirm).toHaveBeenCalled()
+    expect(section().vm.isOpen()).toBe(true)
+    expect(section().emitted('cancel')).toBeFalsy()
+  })
+
+  it('with pending=false and dirty=false closes without confirmation (behavior unchanged)', async () => {
+    const { wrapper, section } = mountSection({ props: { pending: false } })
+    await wrapper.find('.collapsible-section__header').trigger('click') // open
+    await wrapper.find('.collapsible-section__header').trigger('click') // close
+    expect(mockConfirm).not.toHaveBeenCalled()
+    expect(section().vm.isOpen()).toBe(false)
+    expect(section().emitted('cancel')).toBeTruthy()
+  })
+
+  it('renders the footer (Enregistrer/Annuler) by default', async () => {
+    const { wrapper } = mountSection()
+    await wrapper.find('.collapsible-section__header').trigger('click')
+    expect(wrapper.find('.staged-section__footer').exists()).toBe(true)
+  })
+
+  it('hides the footer when hideFooter is true', async () => {
+    const { wrapper } = mountSection({ props: { hideFooter: true } })
+    await wrapper.find('.collapsible-section__header').trigger('click')
+    expect(wrapper.find('.staged-section__footer').exists()).toBe(false)
   })
 })

@@ -1,89 +1,106 @@
 <template>
-  <div class="identity-tab">
-    <!-- Logo -->
-    <div class="identity-tab__section">
-      <h2 class="identity-tab__section-title">Logo</h2>
-      <div class="identity-tab__card identity-tab__logo-section">
-        <div class="identity-tab__logo-preview">
-          <el-avatar :size="120" shape="square">
-            <img v-if="logoPreview" :src="logoPreview" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;" />
-            <span v-else style="font-size: 32px; color: var(--cd-gray-400)">CDE</span>
-          </el-avatar>
-        </div>
-        <div class="identity-tab__logo-actions">
-          <el-button type="primary" @click="triggerFileInput">Choisir</el-button>
-          <el-button :disabled="!logoPreview" @click="removeLogo">Supprimer</el-button>
-          <input
-            ref="fileInputRef"
-            type="file"
-            accept="image/png,image/jpeg"
-            style="display: none"
-            @change="onFileSelected"
-          />
-          <p class="identity-tab__logo-hint">Formats&nbsp;: PNG, JPEG. Max&nbsp;: 2 Mo</p>
+  <div class="identity-tab cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Identité
+        </h1>
+        <p class="cde-page-sub">
+          Logo et informations de l'établissement
+        </p>
+      </div>
+      <div class="cde-page-actions">
+        <el-button type="primary" size="small" :icon="Plus" :loading="saving" @click="handleSave">
+          Enregistrer
+        </el-button>
+      </div>
+    </header>
+
+    <section class="cde-section">
+      <div class="cde-section-head">
+        <h2 class="cde-section-title">
+          Logo
+        </h2>
+      </div>
+      <div class="cde-panel">
+        <div class="identity-tab__body identity-tab__logo-section">
+          <div class="identity-tab__logo-preview">
+            <el-avatar :size="96" shape="square" class="identity-tab__avatar">
+              <img v-if="logoPreview" :src="logoPreview" alt="Logo de l'établissement" class="identity-tab__logo-img" />
+              <span v-else class="identity-tab__logo-placeholder">CDE</span>
+            </el-avatar>
+          </div>
+          <div class="identity-tab__logo-actions">
+            <div class="cde-toolbar__actions">
+              <el-button size="small" type="primary" @click="triggerFileInput">
+                Choisir
+              </el-button>
+              <el-button size="small" :disabled="!logoPreview" @click="removeLogo">
+                Supprimer
+              </el-button>
+            </div>
+            <p class="identity-tab__logo-hint cde-muted">
+              Formats : PNG, JPEG. Max : 2 Mo
+            </p>
+            <el-button
+              size="small"
+              text
+              :disabled="!logoPreview"
+              @click="handleApplySystemIcon"
+            >
+              Appliquer comme icône système
+            </el-button>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept="image/png,image/jpeg"
+              class="identity-tab__file-input"
+              @change="onFileSelected"
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Informations -->
-    <div class="identity-tab__section">
-      <h2 class="identity-tab__section-title">Informations</h2>
-      <div class="identity-tab__card">
-        <el-form
-          ref="formRef"
-          :model="info"
-          label-position="top"
-          :rules="rules"
-        >
-          <el-row :gutter="16">
-            <el-col :span="12">
+    <section class="cde-section">
+      <div class="cde-section-head">
+        <h2 class="cde-section-title">
+          Informations
+        </h2>
+      </div>
+      <div class="cde-panel">
+        <div class="identity-tab__body">
+          <el-form
+            ref="formRef"
+            :model="info"
+            label-position="top"
+            :rules="rules"
+            class="identity-tab__form"
+          >
+            <div class="identity-tab__form-grid">
               <el-form-item label="Nom *" prop="name">
                 <el-input v-model="info.name" placeholder="Nom de l'établissement" maxlength="100" />
               </el-form-item>
-            </el-col>
-            <el-col :span="12">
               <el-form-item label="Adresse" prop="address">
                 <el-input v-model="info.address" placeholder="Adresse" />
               </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="16">
-            <el-col :span="12">
               <el-form-item label="Téléphone" prop="phone">
                 <el-input v-model="info.phone" placeholder="Téléphone" />
               </el-form-item>
-            </el-col>
-            <el-col :span="12">
               <el-form-item label="Email *" prop="email">
                 <el-input v-model="info.email" placeholder="Email" />
               </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="16">
-            <el-col :span="12">
               <el-form-item label="Ville / Pays" prop="city">
                 <el-input v-model="info.city" placeholder="Ville / Pays" />
               </el-form-item>
-            </el-col>
-            <el-col :span="12">
               <el-form-item label="N° d'agrément" prop="regNumber">
                 <el-input v-model="info.regNumber" placeholder="Numéro d'agrément" />
               </el-form-item>
-            </el-col>
-          </el-row>
-        </el-form>
+            </div>
+          </el-form>
+        </div>
       </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="identity-tab__actions">
-      <el-button type="primary" :icon="Plus" :loading="saving" @click="handleSave">
-        Enregistrer
-      </el-button>
-      <el-button :disabled="!logoPreview" @click="handleApplySystemIcon">
-        Appliquer comme icône système
-      </el-button>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -127,7 +144,9 @@ async function loadExistingLogo() {
     if (data) {
       logoPreview.value = data
     }
-  } catch {}
+  } catch {
+    // pas de logo existant
+  }
 }
 
 function triggerFileInput() {
@@ -207,55 +226,80 @@ async function handleApplySystemIcon() {
     }
 
     ElMessage.success("L'icône sera définitivement appliquée après rebuild. Lancez npx electron-builder.")
-  } catch {}
+  } catch {
+    // annulé par l'utilisateur
+  }
 }
 </script>
 
 <style scoped>
-.identity-tab__section {
-  margin-bottom: 28px;
+.identity-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
 }
 
-.identity-tab__section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--cd-gray-900);
-  margin-bottom: 12px;
-}
-
-.identity-tab__card {
-  background: var(--cd-widget-bg);
-  border-radius: 10px;
-  border: 1px solid var(--cd-gray-200);
-  padding: 20px;
+.identity-tab__body {
+  padding: 12px;
 }
 
 .identity-tab__logo-section {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .identity-tab__logo-preview {
   flex-shrink: 0;
 }
 
+.identity-tab__avatar {
+  background: var(--cd-gray-50);
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
+}
+
+.identity-tab__logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.identity-tab__logo-placeholder {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--cde-muted);
+}
+
 .identity-tab__logo-actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   align-items: flex-start;
+  min-width: 0;
 }
 
 .identity-tab__logo-hint {
-  font-size: 12px;
-  color: var(--cd-gray-400);
   margin: 0;
+  font-size: 11px;
 }
 
-.identity-tab__actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 8px;
+.identity-tab__file-input {
+  display: none;
+}
+
+.identity-tab__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+
+@media (max-width: 760px) {
+  .identity-tab__form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>

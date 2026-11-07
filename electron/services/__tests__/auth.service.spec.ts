@@ -215,6 +215,40 @@ describe("AuthService", () => {
     expect(relations.statut_contrat).toBe("Actif")
   })
 
+  // ── Temps de travail / sécurité sociale ──────────────────────────────
+
+  it("should default temps_travail to PLEIN, validate it and normalize NSS", async () => {
+    const authService = container.resolve(AuthService)
+    const created = await authService.createUser({
+      nom: "Paie",
+      prenom: "Test",
+      email: "paie@cde.com",
+      role: "MEDECIN",
+    } as any)
+
+    expect(created.temps_travail).toBe("PLEIN")
+    expect(created.numero_securite_sociale ?? null).toBeNull()
+
+    const updated = await authService.updateUser({
+      id: created.id!,
+      temps_travail: "PARTIEL",
+      numero_securite_sociale: "  NSS 2026 0042  ",
+    } as any)
+    expect(updated.temps_travail).toBe("PARTIEL")
+    expect(updated.numero_securite_sociale).toBe("NSS 2026 0042")
+
+    const cleared = await authService.updateUser({
+      id: created.id!,
+      numero_securite_sociale: "   ",
+    } as any)
+    expect(cleared.numero_securite_sociale ?? null).toBeNull()
+
+    await expect(authService.updateUser({
+      id: created.id!,
+      temps_travail: "DEMI",
+    } as any)).rejects.toThrow("Temps de travail invalide (PLEIN ou PARTIEL attendu).")
+  })
+
   // ── Password reset tests ─────────────────────────────────────────────
 
   it("should not throw when resetting password for unknown email", async () => {

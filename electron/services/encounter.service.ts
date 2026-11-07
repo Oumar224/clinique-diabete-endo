@@ -24,6 +24,9 @@ export class EncounterService {
       .leftJoin('user', 'user.id', 'encounters.medecin_id')
       .leftJoin('user as resp', 'resp.id', 'encounters.responsable_id')
       .leftJoin('care_units', 'care_units.id', 'encounters.care_unit_id')
+      .leftJoin('stays as active_stay', join => join
+        .onRef('active_stay.patient_id', '=', 'encounters.patient_id')
+        .on('active_stay.status', '=', 'en_cours'))
       .select([
         'encounters.id',
         'encounters.patient_id',
@@ -43,6 +46,9 @@ export class EncounterService {
         'encounters.care_unit_id',
         'encounters.sinistre_info',
         'encounters.notes',
+        'encounters.case_type',
+        'encounters.is_new_case',
+        'active_stay.type as stay_type',
         'encounters.created_by',
         'encounters.created_at',
         'encounters.updated_at',
@@ -80,6 +86,9 @@ export class EncounterService {
       .leftJoin('user', 'user.id', 'encounters.medecin_id')
       .leftJoin('user as resp', 'resp.id', 'encounters.responsable_id')
       .leftJoin('care_units', 'care_units.id', 'encounters.care_unit_id')
+      .leftJoin('stays as active_stay', join => join
+        .onRef('active_stay.patient_id', '=', 'encounters.patient_id')
+        .on('active_stay.status', '=', 'en_cours'))
       .select([
         'encounters.id',
         'encounters.patient_id',
@@ -99,6 +108,9 @@ export class EncounterService {
         'encounters.care_unit_id',
         'encounters.sinistre_info',
         'encounters.notes',
+        'encounters.case_type',
+        'encounters.is_new_case',
+        'active_stay.type as stay_type',
         'encounters.status',
         'encounters.created_by',
         'encounters.created_at',
@@ -184,6 +196,8 @@ export class EncounterService {
           prise_en_charge_precision: dto.prise_en_charge_precision ?? undefined,
           sinistre_info: dto.sinistre_info ?? undefined,
           notes: dto.notes ?? undefined,
+          case_type: dto.case_type ?? undefined,
+          is_new_case: dto.is_new_case ?? 0,
           status: 'active',
           created_by: dto.created_by ?? undefined,
         })
@@ -215,6 +229,13 @@ export class EncounterService {
           .executeTakeFirst()
 
         if (activeStayForMirror) {
+          if (dto.stay_type) {
+            await trx
+              .updateTable('stays')
+              .set({ type: dto.stay_type })
+              .where('id', '=', activeStayForMirror.id)
+              .execute()
+          }
           await trx
             .insertInto('stay_movements')
             .values({
@@ -234,6 +255,7 @@ export class EncounterService {
             service_id: dto.service_id,
             medecin_id: dto.medecin_id,
             notes: dto.notes,
+            type: dto.stay_type,
             created_by: dto.created_by,
           }
           const stay = await trx
@@ -247,6 +269,7 @@ export class EncounterService {
               chambre: stayDto.chambre ?? undefined,
               lit: stayDto.lit ?? undefined,
               notes: stayDto.notes ?? undefined,
+              type: stayDto.type ?? undefined,
               status: 'en_cours',
               created_by: stayDto.created_by ?? undefined,
             })
@@ -446,11 +469,12 @@ export class EncounterService {
       'service_id', 'medecin_id', 'responsable_id',
       'care_unit_id', 'origin', 'origin_precision', 'zone_situation',
       'zone_precision', 'prise_en_charge', 'prise_en_charge_precision',
-      'sinistre_info', 'notes',
+      'sinistre_info', 'notes', 'case_type', 'is_new_case',
     ]
     for (const f of fields) {
       if (f in dto) {
-        updates[f] = (dto as any)[f] ?? undefined
+        // `case_type` est nullable : une valeur effacée doit vraiment repasser à NULL.
+        updates[f] = f === 'case_type' ? ((dto as any)[f] ?? null) : ((dto as any)[f] ?? undefined)
       }
     }
     const now = new Date().toISOString()
@@ -459,7 +483,7 @@ export class EncounterService {
     // Vérifier que le contact n'est pas fermé (fermeture effective via end_date)
     const existingEncounter = await this.db
       .selectFrom('encounters')
-      .select(['status', 'end_date'])
+      .select(['status', 'end_date', 'patient_id', 'contact_type'])
       .where('id', '=', id)
       .executeTakeFirst()
     const isClosed = existingEncounter?.status === 'closed' ||
@@ -473,6 +497,17 @@ export class EncounterService {
       .set(updates)
       .where('id', '=', id)
       .execute()
+
+    // Le type de séjour vit dans `stays` : synchroniser le séjour actif.
+    // Ne pas toucher au séjour d'un patient pour une consultation éditée.
+    if ('stay_type' in dto && (dto.stay_type || dto.contact_type === 'hospitalisation') && existingEncounter?.patient_id) {
+      await this.db
+        .updateTable('stays')
+        .set({ type: (dto.stay_type ?? null) as any })
+        .where('patient_id', '=', existingEncounter.patient_id)
+        .where('status', '=', 'en_cours')
+        .execute()
+    }
 
     // Partie C: Si end_date a changé, synchroniser le dossier clinic associé
     if ('end_date' in dto && dto.end_date) {
@@ -527,7 +562,7 @@ export class EncounterService {
     // Vérifier que le contact n'est pas fermé (fermeture effective via end_date)
     const encounter = await this.db
       .selectFrom('encounters')
-      .select(['status', 'end_date'])
+      .select(['status', 'end_date', 'patient_id', 'contact_type'])
       .where('id', '=', id)
       .executeTakeFirst()
     const isClosed = encounter?.status === 'closed' ||
@@ -556,6 +591,15 @@ export class EncounterService {
       // Supprimer les mouvements du contact
       await trx
         .deleteFrom('encounter_movements')
+        .where('encounter_id', '=', id)
+        .execute()
+
+      // Supprimer les demandes d'examen liées à ce contact.
+      // exam_requests.encounter_id → encounters(id) est NO ACTION (071:8),
+      // donc elles doivent être supprimées AVANT les encounters.
+      // exam_results (081:7) et exam_request_attachments (094:7) cascadent.
+      await trx
+        .deleteFrom('exam_requests')
         .where('encounter_id', '=', id)
         .execute()
 

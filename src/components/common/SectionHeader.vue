@@ -44,33 +44,38 @@ function toggle() {
 <style scoped>
 .section-header {
   margin-bottom: 6px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .section-header__bar {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
-  background: var(--cd-primary);
-  color: var(--cd-white);
+  padding: 7px 12px 7px 13px;
+  background: var(--cde-header-bg);
+  color: var(--cde-header-text);
   font-size: 13px;
   font-weight: 600;
   user-select: none;
-  border-radius: 2px 2px 0 0;
+  border: 1px solid var(--cde-border);
+  border-bottom: 1px solid var(--cde-border);
+  border-radius: 4px 4px 0 0;
+  box-shadow: inset 3px 0 0 var(--cde-accent);
+}
+
+/* Bandeau fermé : coins arrondis sur les quatre côtés */
+.section-header:not(:has(.section-header__content)) .section-header__bar {
+  border-radius: 4px;
 }
 
 .section-header--secondary .section-header__bar {
-  background: var(--cd-primary-dark);
-  font-size: 12px;
-  padding: 4px 10px;
+  padding: 6px 12px 6px 13px;
 }
 
 .section-header--tertiary .section-header__bar {
-  background: var(--cd-gray-150);
-  color: var(--cd-gray-900);
-  font-size: 12px;
-  padding: 3px 10px;
-  border-bottom: 1px solid var(--cd-gray-200);
+  padding: 5px 12px 5px 13px;
 }
 
 .section-header--collapsible .section-header__bar {
@@ -78,28 +83,27 @@ function toggle() {
 }
 
 .section-header--collapsible .section-header__bar:hover {
-  background: var(--cd-primary-dark);
-}
-
-.section-header--tertiary.section-header--collapsible .section-header__bar:hover {
-  background: var(--cd-gray-200);
+  background: var(--cde-surface-tint);
 }
 
 .section-header__arrow {
   flex-shrink: 0;
+  color: var(--cde-muted);
   transition: transform 0.15s ease;
 }
 
 .section-header__icon {
   flex-shrink: 0;
-  opacity: 0.9;
+  color: var(--cde-accent);
 }
 
 .section-header__label {
   flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--cde-header-text);
 }
 
 .section-header__badge {
@@ -109,28 +113,32 @@ function toggle() {
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--cde-border);
+  border-radius: 4px;
+  background: var(--cde-accent-tint);
+  color: var(--cde-accent-strong);
   font-size: 11px;
-  font-weight: 700;
-}
-
-.section-header--tertiary .section-header__badge {
-  background: var(--cd-gray-300);
-  color: var(--cd-gray-900);
+  font-weight: 600;
 }
 
 .section-header__actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 4px;
   margin-left: auto;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .section-header__content {
-  padding: 8px;
-  background: var(--cd-widget-bg);
-  border: 1px solid var(--cd-gray-200);
+  padding: 10px 12px;
+  background: var(--cde-surface);
+  border: 1px solid var(--cde-border);
   border-top: none;
+  border-radius: 0 0 4px 4px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 </style>

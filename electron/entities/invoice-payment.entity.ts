@@ -11,6 +11,7 @@ export class InvoicePaymentEntity {
   @SchemaField() mode_paiement?: string
   @SchemaField() date_paiement?: string
   @SchemaField() reference?: string
+  @SchemaField() numero_recu?: string
   @SchemaField() created_by?: number
   @SchemaField() created_at?: string
 
@@ -22,6 +23,7 @@ export class InvoicePaymentEntity {
       mode_paiement: entity.mode_paiement as InvoicePaymentDto['mode_paiement'],
       date_paiement: entity.date_paiement!,
       reference: entity.reference,
+      numero_recu: entity.numero_recu,
       created_by: entity.created_by,
       created_at: entity.created_at,
     }
@@ -39,6 +41,7 @@ export class InvoicePaymentEntity {
     e.mode_paiement = dto.mode_paiement
     e.date_paiement = dto.date_paiement
     e.reference = dto.reference
+    e.numero_recu = dto.numero_recu
     e.created_by = dto.created_by
     e.created_at = dto.created_at
     return e

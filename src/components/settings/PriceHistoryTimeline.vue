@@ -12,12 +12,14 @@
             <span class="pht__new">{{ format(entry.prix_unitaire) }}</span>
           </span>
           <span class="pht__meta">
-            <el-tag size="small" type="info">{{ entry.code_tarif }}</el-tag>
+            <span class="cde-badge cde-badge--muted">{{ entry.code_tarif }}</span>
           </span>
         </div>
       </el-timeline-item>
     </el-timeline>
-    <el-empty v-else description="Aucun historique de prix" :image-size="80" />
+    <div v-else class="cde-empty">
+      Aucun historique de prix.
+    </div>
   </div>
 </template>
 
@@ -47,7 +49,7 @@ function format(amount: number | null): string {
 
 <style scoped>
 .pht {
-  padding: 12px 0;
+  padding: 10px 12px;
 }
 
 .pht__entry {
@@ -60,13 +62,13 @@ function format(amount: number | null): string {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 12px;
 }
 
 .pht__new {
-  color: var(--cd-primary);
-  font-weight: 700;
+  color: var(--cd-gray-900);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .pht__meta {

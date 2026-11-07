@@ -74,10 +74,36 @@ export class ExamResultService {
         query = query.where('exam_requests.id', '=', filters.examRequestId)
       }
       if (filters.dateFrom != null) {
-        query = query.where('exam_requests.planned_date', '>=', filters.dateFrom)
+        // Filtre sur la date de résultat (filled_at, jour calendaire) avec
+        // repli sur planned_date quand le résultat n'est pas daté : l'écran
+        // « Résultats Bio » affiche les colonnes par date de remplissage,
+        // pas par date de prescription.
+        query = query.where((eb) =>
+          eb.or([
+            eb.and([
+              eb('exam_results.filled_at', 'is not', null),
+              eb(sql`substr(exam_results.filled_at, 1, 10)`, '>=', filters.dateFrom as string),
+            ]),
+            eb.and([
+              eb('exam_results.filled_at', 'is', null),
+              eb('exam_requests.planned_date', '>=', filters.dateFrom as string),
+            ]),
+          ]),
+        )
       }
       if (filters.dateTo != null) {
-        query = query.where('exam_requests.planned_date', '<=', filters.dateTo)
+        query = query.where((eb) =>
+          eb.or([
+            eb.and([
+              eb('exam_results.filled_at', 'is not', null),
+              eb(sql`substr(exam_results.filled_at, 1, 10)`, '<=', filters.dateTo as string),
+            ]),
+            eb.and([
+              eb('exam_results.filled_at', 'is', null),
+              eb('exam_requests.planned_date', '<=', filters.dateTo as string),
+            ]),
+          ]),
+        )
       }
       if (filters.examId != null) {
         // json_each.value is INTEGER for JSON numbers — CAST to TEXT so the parameter comparison

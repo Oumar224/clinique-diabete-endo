@@ -46,6 +46,7 @@ describe('ExamTypeService', () => {
         name TEXT NOT NULL,
         is_active INTEGER NOT NULL DEFAULT 1,
         sort_order INTEGER NOT NULL DEFAULT 0,
+        prix REAL NOT NULL DEFAULT 0,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))
       )
@@ -175,6 +176,20 @@ describe('ExamTypeService', () => {
     expect(created.name).toBe('Nouvel examen test')
     expect(created.category_id).toBe(imagerieCat.id)
     expect(created.is_active).toBe(1)
+  })
+
+  it('should persist and update the prix of an exam', async () => {
+    const categories = await service.listCategories()
+    const laboCat = categories.find(c => c.code === 'laboratoire')!
+
+    const created = await service.createType(
+      ExamTypeEntity.fromDto({ category_id: laboCat.id!, label: 'Analyse tarifée', is_active: true, prix: 12_500 }),
+    )
+    expect(created.prix).toBe(12_500)
+    expect(ExamTypeEntity.toDto(created).prix).toBe(12_500)
+
+    const updated = await service.updateType(ExamTypeEntity.fromDto({ id: created.id, prix: 20_000 }))
+    expect(updated.prix).toBe(20_000)
   })
 
   it('should reject creation without label', async () => {

@@ -53,6 +53,8 @@ export interface UserDto {
   type_contrat?: 'CDD' | 'CDI'
   statut_contrat?: 'Actif' | 'Expiré' | 'Résilié'
   motif_resiliation?: string | null
+  temps_travail?: 'PLEIN' | 'PARTIEL'
+  numero_securite_sociale?: string | null
 }
 
 export function getUserDisplayName(user: UserDto): string {

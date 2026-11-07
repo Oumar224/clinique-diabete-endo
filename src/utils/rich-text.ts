@@ -39,6 +39,15 @@ export function htmlToLines(html: string | undefined | null): string[] {
 }
 
 /**
+ * Returns `true` when the string contains at least one HTML tag.
+ * Single source for the `/<[a-z][^>]*>/i` check used in previews and exports.
+ */
+export function isHtml(value: string | null | undefined): boolean {
+  if (!value) return false
+  return /<[a-z][^>]*>/i.test(String(value))
+}
+
+/**
  * Returns `true` when the rich-text HTML contains no meaningful content
  * (empty, `null`/`undefined`, tags-only or whitespace-only).
  */

@@ -43,16 +43,66 @@ export interface ModeVieAtcdData {
   antecedents: AntecedentEntry[]
 }
 
+export interface TabacHistoryEntry {
+  _key: string
+  date: string
+  tabac: string
+  tabacQuantite: number | null
+  tabacUnite: string
+  tabacDuree: string
+  tabacDateDebut: string
+  tabacCommentaire: string
+}
+
+export interface SubstanceHistoryEntry {
+  _key: string
+  date: string
+  substance: string
+  substancePrecision: string
+  substanceQuantite: number | null
+  substanceUnite: string
+  substanceDuree: string
+  substanceDateDebut: string
+  substanceCommentaire: string
+}
+
+export interface MedicamentsHistoryEntry {
+  _key: string
+  date: string
+  medicaments: string[]
+  adoDateDebut: string
+  adoCommentaire: string
+  glp1DateDebut: string
+  glp1Commentaire: string
+  insulineType: string
+  insulineDateDebut: string
+  insulineCommentaire: string
+  pompeType: string
+  pompeDateDebut: string
+  pompeCommentaire: string
+}
+
+export interface TraitementHabituelHistoryEntry {
+  _key: string
+  date: string
+  traitementHabituel: string
+}
+
+export interface SurveillanceHistoryEntry {
+  _key: string
+  date: string
+  surveillanceCapillaire: string
+  surveillanceMCG: string
+  surveillanceCommentaire: string
+}
+
 export interface FicheDiabeteData {
   dateDiagnostic: string
-  poidsForme: number | null
-  poidsJuillet2024: number | null
-  poidsDecembre2025: number | null
-  hba1c: number | null
-  hba1cDate: string
-  hdl: number | null
-  ldl: number | null
-  triglycerides: number | null
+  typeDiabete: string
+  typeDiabeteAutre: string
+  circonstanceDecouverte: string
+  anticorps: string
+  typeAnticorps: string
   retinopathie: string
   creatininemie: number | null
   neuropathie: boolean
@@ -63,6 +113,44 @@ export interface FicheDiabeteData {
   ntProBNP: number | null
   aomi: boolean
   ischemicCritique: string
+  // ─── Facteurs de risque ───
+  dyslipidemie: boolean
+  hta: boolean
+  sas: string
+  tabac: string
+  tabacQuantite: number | null
+  tabacUnite: string
+  tabacDuree: string
+  tabacDateDebut: string
+  tabacCommentaire: string
+  tabacHistory: TabacHistoryEntry[]
+  substance: string
+  substancePrecision: string
+  substanceQuantite: number | null
+  substanceUnite: string
+  substanceDuree: string
+  substanceDateDebut: string
+  substanceCommentaire: string
+  substanceHistory: SubstanceHistoryEntry[]
+  // ─── Traitement / Auto surveillance glycémique ───
+  medicaments: string[]
+  adoDateDebut: string
+  adoCommentaire: string
+  glp1DateDebut: string
+  glp1Commentaire: string
+  insulineType: string
+  insulineDateDebut: string
+  insulineCommentaire: string
+  pompeType: string
+  pompeDateDebut: string
+  pompeCommentaire: string
+  medicamentsHistory: MedicamentsHistoryEntry[]
+  traitementHabituel: string
+  traitementHabituelHistory: TraitementHabituelHistoryEntry[]
+  surveillanceCapillaire: string
+  surveillanceMCG: string
+  surveillanceCommentaire: string
+  surveillanceHistory: SurveillanceHistoryEntry[]
 }
 
 export interface GlasgowData {
@@ -167,12 +255,27 @@ export interface EvolutionAvisItem {
   _key: string
   date: string
   specialite: string
+  /** TipTap HTML rich */
   motif: string
 }
 
+export interface EvolutionJournalEntry {
+  _key: string
+  /** TipTap HTML rich — the content of ONE journal line */
+  content: string
+  /** date as 'YYYY-MM-DD' */
+  date: string
+  /** time as 'HH:MM' */
+  heure: string
+  /** author display 'Prénom Nom' */
+  user: string
+}
+
 export interface EvolutionMedicaleData {
-  journalEvolution: string
+  journalEvolution: EvolutionJournalEntry[]
   avis?: EvolutionAvisItem[]
+  avisDateFrom?: string
+  avisDateTo?: string
 }
 
 export interface RdvSuivi {
@@ -201,14 +304,38 @@ export interface PrescriptionSortie {
   momentPrises: string[]
   renouvellement: boolean
   nbRenouvellements: number
+  /** Quantité totale en `unite` (base du décrément de stock pharmacie). */
+  quantite?: number
   examen?: string
+  /** Sous-type d'examen : imagerie (1 libellé) vs laboratoire (N libellés). Absent = legacy. */
+  examenType?: 'imagerie' | 'laboratoire'
+  /** Libellés multiples pour les demandes laboratoire (examen = join ', ' pour compat). */
+  examens?: string[]
   specialite?: string
   motif?: string
+  /** Nom affiché du prescripteur (alignement Demandes d'examens). Optionnel, aucune migration. */
+  prescripteur?: string
+  /** Date planifiée YYYY-MM-DD (alignement Demandes d'examens). Optionnel. */
+  plannedDate?: string | null
+  /** Heure planifiée (6,8,10,12,14,16,18,20,22). Optionnel. */
+  plannedHour?: number | null
+  /** Nombre de séances prévues pour le soin */
+  nbSeances?: number
+  /** Objectif clinique du soin (TipTap HTML rich) */
+  objectifClinique?: string
+  /** Consignes spécifiques du soin (TipTap HTML rich) */
+  consignesSpecifiques?: string
+  /** Dispositifs médicaux / voies d'abord — string joinée ', ' */
+  dispositifsMedicaux?: string
+  /** Professionnel cible du soin */
+  professionnelCible?: string
 }
 
 export interface SortieData {
   dateSortie: string
   destinationSortie: string
+  /** Précision libre pour les destinations "Transférée (à préciser)" / "Autre (à préciser)" */
+  destinationPrecision?: string
   infoPatientFamille: boolean
   produitsSanguins: boolean
   bmrBhre: boolean
@@ -260,14 +387,11 @@ export function createDefaultFormData(): CrcDiabeteFormData {
     },
     ficheDiabete: {
       dateDiagnostic: '',
-      poidsForme: null,
-      poidsJuillet2024: null,
-      poidsDecembre2025: null,
-      hba1c: null,
-      hba1cDate: '',
-      hdl: null,
-      ldl: null,
-      triglycerides: null,
+      typeDiabete: '',
+      typeDiabeteAutre: '',
+      circonstanceDecouverte: '',
+      anticorps: '',
+      typeAnticorps: '',
       retinopathie: 'Absente',
       creatininemie: null,
       neuropathie: false,
@@ -278,6 +402,42 @@ export function createDefaultFormData(): CrcDiabeteFormData {
       ntProBNP: null,
       aomi: false,
       ischemicCritique: '',
+      dyslipidemie: false,
+      hta: false,
+      sas: '',
+      tabac: '',
+      tabacQuantite: null,
+      tabacUnite: '',
+      tabacDuree: '',
+      tabacDateDebut: '',
+      tabacCommentaire: '',
+      tabacHistory: [],
+      substance: '',
+      substancePrecision: '',
+      substanceQuantite: null,
+      substanceUnite: '',
+      substanceDuree: '',
+      substanceDateDebut: '',
+      substanceCommentaire: '',
+      substanceHistory: [],
+      medicaments: [],
+      adoDateDebut: '',
+      adoCommentaire: '',
+      glp1DateDebut: '',
+      glp1Commentaire: '',
+      insulineType: '',
+      insulineDateDebut: '',
+      insulineCommentaire: '',
+      pompeType: '',
+      pompeDateDebut: '',
+      pompeCommentaire: '',
+      medicamentsHistory: [],
+      traitementHabituel: '',
+      traitementHabituelHistory: [],
+      surveillanceCapillaire: '',
+      surveillanceMCG: '',
+      surveillanceCommentaire: '',
+      surveillanceHistory: [],
     },
     bilanInitial: {
       histoireRecent: '',
@@ -312,14 +472,17 @@ export function createDefaultFormData(): CrcDiabeteFormData {
       bilanBio: { dateFrom: '', dateTo: '', results: [] },
     },
     evolutionMedicale: {
-      journalEvolution: '',
+      journalEvolution: [],
       avis: [],
+      avisDateFrom: '',
+      avisDateTo: '',
     },
     ordonnanceSortie: [],
     sortie: {
       dateSortie: '',
       destinationSortie: '',
-      infoPatientFamille: false,
+      destinationPrecision: '',
+      infoPatientFamille: true,
       produitsSanguins: false,
       bmrBhre: false,
       conclusionSortie: '',

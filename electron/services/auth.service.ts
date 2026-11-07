@@ -168,6 +168,8 @@ export class AuthService {
           date_debut_contrat: dto.date_debut_contrat || null,
           date_fin_contrat: dto.date_fin_contrat || null,
           type_contrat: dto.type_contrat || 'CDI',
+          temps_travail: dto.temps_travail || 'PLEIN',
+          numero_securite_sociale: dto.numero_securite_sociale || null,
           is_active: 1,
           is_validated: 0,
         } as any)
@@ -221,6 +223,16 @@ export class AuthService {
     if (dto.date_debut_contrat !== undefined) updates.date_debut_contrat = dto.date_debut_contrat
     if (dto.date_fin_contrat !== undefined) updates.date_fin_contrat = dto.date_fin_contrat
     if (dto.type_contrat !== undefined) updates.type_contrat = dto.type_contrat
+    if (dto.temps_travail !== undefined) {
+      if (dto.temps_travail !== 'PLEIN' && dto.temps_travail !== 'PARTIEL') {
+        throw new Error('Temps de travail invalide (PLEIN ou PARTIEL attendu).')
+      }
+      updates.temps_travail = dto.temps_travail
+    }
+    if (dto.numero_securite_sociale !== undefined) {
+      const nss = String(dto.numero_securite_sociale).trim()
+      updates.numero_securite_sociale = nss === '' ? null : nss
+    }
     if (dto.statut_resiliation !== undefined) updates.statut_resiliation = dto.statut_resiliation
     if (dto.motif_resiliation !== undefined) updates.motif_resiliation = dto.motif_resiliation
     if (dto.date_resiliation !== undefined) updates.date_resiliation = dto.date_resiliation
@@ -483,6 +495,8 @@ export class AuthService {
     e.date_debut_contrat = row.date_debut_contrat as string | undefined
     e.date_fin_contrat = row.date_fin_contrat as string | undefined
     e.type_contrat = row.type_contrat as string | undefined
+    e.temps_travail = (row.temps_travail as 'PLEIN' | 'PARTIEL' | undefined) ?? 'PLEIN'
+    e.numero_securite_sociale = (row.numero_securite_sociale as string | null) ?? undefined
     e.statut_resiliation = row.statut_resiliation as string | undefined
     e.motif_resiliation = row.motif_resiliation as string | undefined
     e.date_resiliation = row.date_resiliation as string | undefined

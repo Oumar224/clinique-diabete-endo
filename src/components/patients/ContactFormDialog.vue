@@ -37,7 +37,52 @@
         </el-col>
       </el-row>
 
-      <!-- Row 2: Service & Médecin -->
+      <!-- Row 2: Type de cas & Nouveau cas -->
+      <el-row :gutter="24">
+        <el-col :span="12">
+          <el-form-item label="Type de cas">
+            <el-select
+              v-model="form.case_type"
+              clearable
+              filterable
+              placeholder="Non précisé"
+            >
+              <el-option
+                v-for="opt in CASE_TYPE_OPTIONS"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="Nouveau cas">
+            <el-switch
+              v-model="form.is_new_case"
+              active-text="Premier passage pour ce motif"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <!-- Row 2b: Type d'hospitalisation -->
+      <el-row v-if="form.contact_type === 'hospitalisation'" :gutter="24">
+        <el-col :span="12">
+          <el-form-item label="Type d'hospitalisation">
+            <el-select v-model="form.stay_type" clearable placeholder="Non précisé">
+              <el-option
+                v-for="opt in STAY_TYPE_OPTIONS"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <!-- Row 3: Service & Médecin -->
       <el-row :gutter="24">
         <el-col :span="12">
           <el-form-item label="Service *" prop="service_id">
@@ -248,6 +293,8 @@ import { useEncounters } from '@/composables/useEncounters'
 import type { EncounterDto } from '@/composables/useEncounters'
 import {
   CONTACT_TYPE_OPTIONS,
+  CASE_TYPE_OPTIONS,
+  STAY_TYPE_OPTIONS,
   originOptions,
   fetchOriginOptions,
   insuranceOptions,
@@ -438,6 +485,9 @@ async function handleSubmit() {
       sinistre_info: sinistreInfo,
       notes: form.value.notes || null,
       care_unit_id: form.value.care_unit_id,
+      case_type: form.value.case_type || null,
+      is_new_case: form.value.is_new_case ? 1 : 0,
+      stay_type: form.value.contact_type === 'hospitalisation' ? form.value.stay_type || null : null,
       created_by: props.userId ?? null,
     }
 
@@ -508,6 +558,9 @@ watch(() => props.encounter, (enc) => {
       sinistre_info: enc.sinistre_info || '',
       notes: enc.notes || '',
       care_unit_id: enc.care_unit_id ?? null,
+      case_type: enc.case_type ?? '',
+      is_new_case: enc.is_new_case === 1,
+      stay_type: enc.stay_type ?? '',
     })
   }
 }, { immediate: true })

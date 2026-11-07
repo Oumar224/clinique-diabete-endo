@@ -51,6 +51,9 @@ vi.mock('@/composables/useContactFormLogic', async () => {
       sinistre_info: '',
       notes: '',
       assurance_id: null,
+      case_type: '',
+      is_new_case: false,
+      stay_type: '',
       care_unit_id: null,
     }
   }
@@ -65,6 +68,15 @@ vi.mock('@/composables/useContactFormLogic', async () => {
     PRISE_EN_CHARGE_OPTIONS: [
       { value: 'individuel', label: 'Individuel' },
       { value: 'assurance', label: 'Assurance' },
+    ],
+    CASE_TYPE_OPTIONS: [
+      { value: 'diabete', label: 'Diabète' },
+      { value: 'thyroide_endocrino', label: 'Thyroïde – Endocrinologie' },
+      { value: 'autre', label: 'Autre' },
+    ],
+    STAY_TYPE_OPTIONS: [
+      { value: 'jour', label: 'Hôpital de jour' },
+      { value: 'complete', label: 'Hospitalisation complète' },
     ],
     originOptions: ref([]),
     insuranceOptions: ref([]),
@@ -83,6 +95,7 @@ vi.mock('@/composables/useContactFormLogic', async () => {
     __resetFormState: () => {
       mockForm.value = createFormState()
     },
+    __mockForm: mockForm,
   }
 })
 
@@ -222,6 +235,7 @@ const EL_STUBS: Record<string, any> = {
   'el-icon': ElIconStub,
   'el-row': ElRowStub,
   'el-col': ElColStub,
+  'el-switch': true,
 }
 
 import ContactFormDialog from '../ContactFormDialog.vue'
@@ -343,6 +357,84 @@ describe('ContactFormDialog', () => {
       const [id, payload] = mockUpdateEncounter.mock.calls[0] as [number, Record<string, unknown>]
       expect(id).toBe(42)
       expect(payload.contact_type).toBe('consultation')
+    })
+  })
+
+  // ─── Champs structurés (migration 110) ───────────────────────────────
+
+  describe('type de cas et nouveau cas', () => {
+    async function formState() {
+      const mod = await import('@/composables/useContactFormLogic') as any
+      return mod.__mockForm
+    }
+
+    it('envoie case_type et is_new_case à la création', async () => {
+      const form = await formState()
+      form.value.case_type = 'diabete'
+      form.value.is_new_case = true
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      await wrapper.findAllComponents(ElButtonStub).at(-1)!.trigger('click')
+      await flushPromises()
+
+      expect(mockCreateEncounter).toHaveBeenCalledTimes(1)
+      expect(mockCreateEncounter.mock.calls[0][0]).toMatchObject({
+        case_type: 'diabete',
+        is_new_case: 1,
+      })
+    })
+
+    it('envoie null et 0 quand les champs ne sont pas précisés', async () => {
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      await wrapper.findAllComponents(ElButtonStub).at(-1)!.trigger('click')
+      await flushPromises()
+
+      expect(mockCreateEncounter.mock.calls[0][0]).toMatchObject({
+        case_type: null,
+        is_new_case: 0,
+      })
+    })
+
+    it('préremplit case_type, is_new_case et stay_type en édition', async () => {
+      const form = await formState()
+      createWrapper({
+        ...editEncounter,
+        contact_type: 'hospitalisation',
+        case_type: 'thyroide_endocrino',
+        is_new_case: 1,
+        stay_type: 'jour',
+      })
+      await flushPromises()
+
+      expect(form.value.case_type).toBe('thyroide_endocrino')
+      expect(form.value.is_new_case).toBe(true)
+      expect(form.value.stay_type).toBe('jour')
+    })
+
+    it('envoie stay_type pour une hospitalisation et null sinon', async () => {
+      const form = await formState()
+      form.value.contact_type = 'hospitalisation'
+      form.value.stay_type = 'complete'
+      let wrapper = createWrapper()
+      await flushPromises()
+
+      await wrapper.findAllComponents(ElButtonStub).at(-1)!.trigger('click')
+      await flushPromises()
+
+      expect(mockCreateEncounter.mock.calls[0][0]).toMatchObject({ stay_type: 'complete' })
+
+      vi.clearAllMocks()
+      form.value.contact_type = 'consultation'
+      form.value.stay_type = 'jour'
+      wrapper = createWrapper()
+      await flushPromises()
+      await wrapper.findAllComponents(ElButtonStub).at(-1)!.trigger('click')
+      await flushPromises()
+
+      expect(mockCreateEncounter.mock.calls[0][0]).toMatchObject({ stay_type: null })
     })
   })
 

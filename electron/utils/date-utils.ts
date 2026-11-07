@@ -8,3 +8,11 @@ export function formatDate(dateStr: string | Date | null | undefined): string {
   const year = d.getFullYear()
   return `${day}/${month}/${year}`
 }
+
+export function todayIso(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+export function nowIso(): string {
+  return new Date().toISOString().slice(0, 19).replace('T', ' ')
+}

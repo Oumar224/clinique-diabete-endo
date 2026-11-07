@@ -96,6 +96,7 @@ describe('ExamResultService.listByPatient', () => {
       parameterId?: number
       examIds?: string | null
       plannedDate?: string
+      filledAt?: string | null
       validatedAt?: string | null
     } = {},
   ) {
@@ -107,6 +108,7 @@ describe('ExamResultService.listByPatient', () => {
     const examName = overrides.examName !== undefined ? overrides.examName : 'Glycémie à jeun'
     const examIds = overrides.examIds !== undefined ? overrides.examIds : '[1]'
     const plannedDate = overrides.plannedDate ?? '2026-01-10'
+    const filledAt = overrides.filledAt !== undefined ? overrides.filledAt : '2026-01-12 08:30:00'
     const validatedAt = overrides.validatedAt !== undefined ? overrides.validatedAt : '2026-01-12 08:30:00'
 
     if (examName !== null) {
@@ -116,8 +118,13 @@ describe('ExamResultService.listByPatient', () => {
       VALUES (${parameterId}, ${examId}, 'Glucose', 'mg/dL', 'numeric', '{"min":0.7,"max":1.1}', 1)`.execute(db)
     await sql`INSERT INTO exam_requests (id, patient_id, type, planned_date, statut, validated_at, exam_ids)
       VALUES (${requestId}, ${patientId}, 'laboratoire', ${plannedDate}, 'realise', ${validatedAt}, ${examIds})`.execute(db)
-    await sql`INSERT INTO exam_results (id, exam_request_id, parameter_id, value, is_normal, filled_at)
-      VALUES (${resultId}, ${requestId}, ${parameterId}, '0.85', 1, '2026-01-12 08:30:00')`.execute(db)
+    if (filledAt === null) {
+      await sql`INSERT INTO exam_results (id, exam_request_id, parameter_id, value, is_normal, filled_at)
+        VALUES (${resultId}, ${requestId}, ${parameterId}, '0.85', 1, NULL)`.execute(db)
+    } else {
+      await sql`INSERT INTO exam_results (id, exam_request_id, parameter_id, value, is_normal, filled_at)
+        VALUES (${resultId}, ${requestId}, ${parameterId}, '0.85', 1, ${filledAt})`.execute(db)
+    }
   }
 
   it('returns examName from lab_exams and validatedAt from exam_requests', async () => {
@@ -156,9 +163,9 @@ describe('ExamResultService.listByPatient', () => {
     expect(rows).toHaveLength(0)
   })
 
-  it('filters by dateFrom and dateTo on planned_date', async () => {
-    await seedResult({ requestId: 1, resultId: 1, parameterId: 1, examId: 1, plannedDate: '2026-01-10' })
-    await seedResult({ requestId: 2, resultId: 2, parameterId: 2, examId: 2, plannedDate: '2026-02-15' })
+  it('filters by dateFrom and dateTo on filled_at with planned_date fallback', async () => {
+    await seedResult({ requestId: 1, resultId: 1, parameterId: 1, examId: 1, plannedDate: '2026-01-10', filledAt: '2026-01-12 08:30:00' })
+    await seedResult({ requestId: 2, resultId: 2, parameterId: 2, examId: 2, plannedDate: '2026-02-15', filledAt: '2026-02-16 09:00:00' })
 
     const from = await service.listByPatient(42, { dateFrom: '2026-02-01' })
     expect(from).toHaveLength(1)
@@ -170,6 +177,21 @@ describe('ExamResultService.listByPatient', () => {
 
     const both = await service.listByPatient(42, { dateFrom: '2026-01-01', dateTo: '2026-01-31' })
     expect(both).toHaveLength(1)
+  })
+
+  it('includes results whose filled date is in range even when planned_date is outside', async () => {
+    // Cas écran : ECBU rempli le 06/09 alors que la prescription est antérieure.
+    await seedResult({ requestId: 1, resultId: 1, parameterId: 1, examId: 1, plannedDate: '2026-07-10', filledAt: '2026-09-06 06:00:00' })
+
+    const rows = await service.listByPatient(42, { dateFrom: '2026-08-01', dateTo: '2026-09-30' })
+    expect(rows).toHaveLength(1)
+  })
+
+  it('falls back to planned_date when filled_at is null', async () => {
+    await seedResult({ requestId: 1, resultId: 1, parameterId: 1, examId: 1, plannedDate: '2026-08-15', filledAt: null })
+
+    const rows = await service.listByPatient(42, { dateFrom: '2026-08-01', dateTo: '2026-09-30' })
+    expect(rows).toHaveLength(1)
   })
 
   it('filters by parameterId', async () => {

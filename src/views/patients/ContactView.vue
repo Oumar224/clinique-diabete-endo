@@ -1,21 +1,19 @@
 <template>
-  <div class="contact-view" v-loading="loading">
-    <el-card class="contact-view__card">
-      <EncountersTable
-        :encounters="encounters"
-        @new-contact="openContactDialog"
-        @edit-contact="onEditContact"
-        @delete-contact="onDeleteContact"
-        @view-contact="onViewContact"
-      />
-    </el-card>
+  <div class="contact-view cde" v-loading="loading">
+    <EncountersTable
+      :encounters="encounters"
+      @new-contact="openContactDialog"
+      @edit-contact="onEditContact"
+      @delete-contact="onDeleteContact"
+      @view-contact="onViewContact"
+    />
 
-    <el-card v-if="activeEncounterId" class="contact-view__card contact-view__card--section">
-      <template #header>
-        <span><strong>Mouvements du contact hospitalisation en cours</strong></span>
-      </template>
+    <section v-if="activeEncounterId" class="cde-panel contact-view__section">
+      <div class="cde-panel__head">
+        <span class="cde-panel__title">Mouvements du contact hospitalisation en cours</span>
+      </div>
       <EncounterMovements :encounter-id="activeEncounterId" @updated="loadEncounters" />
-    </el-card>
+    </section>
 
     <ContactFormDialog
       v-model:visible="contactDialogVisible"
@@ -122,11 +120,7 @@ onMounted(async () => {
   width: 100%;
 }
 
-.contact-view__card {
-  height: 100%;
-}
-
-.contact-view__card--section {
-  margin-top: 16px;
+.contact-view__section {
+  margin-top: 12px;
 }
 </style>

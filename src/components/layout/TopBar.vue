@@ -71,9 +71,9 @@ const showPatientHeader = computed(() =>
 
 const avatarBgColor = computed(() => {
   const c = activePatient.value?.civilite
-  if (c === 'M') return 'var(--el-color-primary, #409eff)'
-  if (c === 'Mme' || c === 'Mlle') return 'var(--el-color-danger, #f56c6c)'
-  return 'var(--el-color-info, #909399)'
+  if (c === 'M') return 'var(--cde-info)'
+  if (c === 'Mme' || c === 'Mlle') return 'var(--cde-danger)'
+  return 'var(--cde-muted)'
 })
 
 const addressLine = computed(() => {
@@ -93,13 +93,14 @@ function maskNir(nir: string | undefined | null): string {
 
 <style scoped>
 .topbar {
-  height: 36px;
-  background: var(--cd-page-bg);
-  border-bottom: 1px solid var(--cd-gray-200);
+  height: 48px;
+  background: var(--cd-card-bg);
+  border-bottom: 1px solid var(--cd-border);
+  box-shadow: var(--cd-shadow-sm);
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 var(--cd-space-4);
   transition: height 0.15s ease;
 }
 

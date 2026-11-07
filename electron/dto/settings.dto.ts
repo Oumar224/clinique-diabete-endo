@@ -240,6 +240,7 @@ export interface ExamTypeDto {
   code?: string
   label?: string
   is_active?: boolean
+  prix?: number
   category_label?: string
   parent_label?: string
   created_at?: string

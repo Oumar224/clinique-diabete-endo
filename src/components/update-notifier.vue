@@ -120,7 +120,8 @@ const dismissUpdate = () => {
 }
 
 onMounted(() => {
-  const { autoUpdater } = window.electronAPI!
+  if (!window.electronAPI) return
+  const { autoUpdater } = window.electronAPI
 
   const cleanupCallbacks = [
     autoUpdater.onUpdateAvailable(onUpdateAvailable),

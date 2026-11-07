@@ -15,6 +15,7 @@ export class StayEntity {
   @SchemaField() lit?: string
   @SchemaField() medecin_id?: number
   @SchemaField() notes?: string
+  @SchemaField() type?: string
   @SchemaField() status?: string
   @SchemaField() sortie_date?: string
   @SchemaField() created_by?: number
@@ -37,6 +38,7 @@ export class StayEntity {
       medecin_id: entity.medecin_id,
       medecin_name: entity.medecin_name,
       notes: entity.notes,
+      type: entity.type as StayDto['type'],
       status: entity.status as StayDto['status'],
       sortie_date: entity.sortie_date,
       created_by: entity.created_by,
@@ -59,6 +61,7 @@ export class StayEntity {
     e.chambre = dto.chambre
     e.lit = dto.lit
     e.notes = dto.notes
+    e.type = dto.type
     e.created_by = dto.created_by
     return e
   }

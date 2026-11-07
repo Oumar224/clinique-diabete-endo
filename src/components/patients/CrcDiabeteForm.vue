@@ -1,6 +1,6 @@
 <template>
-  <div class="crc-form" @click="onFormCellClick">
-    <div class="crc-form__header">
+  <div class="crc-form" :class="{ 'crc-form--fullpage': hideHeader }">
+    <div v-if="!hideHeader" class="crc-form__header">
       <div class="crc-form__header-left">
         <div class="crc-form__title-icon">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -29,22 +29,7 @@
       </div>
     </div>
 
-    <div class="crc-form__contact-bar">
-      <div class="crc-form__contact-bar-left">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="0.8"/>
-          <path d="M2 12.5C2 10.2909 4.23858 8.5 7 8.5C9.76142 8.5 12 10.2909 12 12.5" stroke="currentColor" stroke-width="0.8" stroke-linecap="round"/>
-        </svg>
-        <span class="crc-form__contact-label">Patient :</span>
-        <span class="crc-form__contact-value">{{ contactDisplay }}</span>
-        <el-tag v-if="!contactId" type="danger" size="small" effect="plain">Aucun contact</el-tag>
-      </div>
-      <div class="crc-form__contact-bar-right">
-        <el-tag v-if="patientAge != null" size="small" effect="plain" type="info">
-          {{ patientAge }} ans
-        </el-tag>
-      </div>
-    </div>
+    <DossierPatientHeader :contact-display="contactDisplay" :admission="formData.admission" :prominent="hideHeader" />
 
     <div class="crc-form__badges" v-if="hasActiveBadges">
       <el-alert
@@ -109,7 +94,7 @@
             <span>Fiche Diabète</span>
           </span>
         </template>
-        <FicheDiabeteTab :data="formData.ficheDiabete" :sexe="activePatient?.civilite === 'M' ? 'M' : 'F'" :age="patientAge" :date-entree="formData.admission.dateEntree" @change="onFieldChange" />
+        <FicheDiabeteTab :data="formData.ficheDiabete" :sexe="activePatient?.civilite === 'M' ? 'M' : 'F'" :age="patientAge" :date-entree="formData.admission.dateEntree" :examen-physique="formData.bilanInitial.examenPhysique" :bilan-initial="formData.bilanInitial" :examens-complementaires="formData.examensComplementaires" :patient-id="activePatient?.id ?? null" @change="onFieldChange" @open-history="openParameterHistory" @open-multi-history="openMultiHistory" />
       </el-tab-pane>
       <el-tab-pane name="bilanInitial">
         <template #label>
@@ -123,7 +108,7 @@
             <span>Bilan Initial</span>
           </span>
         </template>
-        <BilanInitialTab :data="formData.bilanInitial" @change="onFieldChange" />
+        <BilanInitialTab :data="formData.bilanInitial" @change="onFieldChange" @open-history="openParameterHistory" @open-multi-history="openMultiHistory" />
       </el-tab-pane>
       <el-tab-pane name="examens">
         <template #label>
@@ -175,6 +160,8 @@
           :patient-id="activePatient?.id ?? null"
           :date-entree="formData.admission.dateEntree"
           @change="onFieldChange"
+          @generate="onOrdonnanceGenerate"
+          @generate-item="onOrdonnanceGenerateItem"
         />
       </el-tab-pane>
       <el-tab-pane name="sortie">
@@ -188,7 +175,7 @@
             <span>Sortie</span>
           </span>
         </template>
-        <SortieTab :data="formData.sortie" @change="onFieldChange" />
+        <SortieTab :data="formData.sortie" :readonly="readonly" @change="onFieldChange" />
       </el-tab-pane>
       <el-tab-pane name="annexe">
         <template #label>
@@ -275,13 +262,20 @@
       :loading="historyLoading"
       :entries="historyEntries"
     />
+
+    <ParameterMultiHistoryDialog
+      v-model="multiHistoryDialogOpen"
+      :title="multiHistoryTitle"
+      :series="multiHistorySeries"
+      :loading="multiHistoryLoading"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { CrcDiabeteFormData } from '@/types/crc-diabete'
+import type { CrcDiabeteFormData, PrescriptionSortie } from '@/types/crc-diabete'
 import { createDefaultFormData } from '@/types/crc-diabete'
 import { useCrhDiabeteCalculations } from '@/composables/useCrhDiabeteCalculations'
 import { usePatientContext } from '@/composables/usePatientContext'
@@ -300,18 +294,23 @@ import OrdonnanceSortieTab from './OrdonnanceSortieTab.vue'
 import SortieTab from './SortieTab.vue'
 import AnnexeTab from './AnnexeTab.vue'
 import ParameterHistoryDialog from './ParameterHistoryDialog.vue'
+import ParameterMultiHistoryDialog, { type MultiHistorySeries } from './ParameterMultiHistoryDialog.vue'
 import HtmlPreviewDialog from '@/components/common/HtmlPreviewDialog.vue'
-import { fetchParameterHistory, type ParameterHistoryEntry } from '@/composables/useParameterHistory'
-import { getParameterMeta } from '@/utils/parameter-history'
+import DossierPatientHeader from './DossierPatientHeader.vue'
+import { fetchParameterHistory, fetchParametersHistory, type ParameterHistoryEntry } from '@/composables/useParameterHistory'
+import { getParameterMeta, getFieldValue, PARAMETER_GROUPS, type ParameterGroupKey } from '@/utils/parameter-history'
+import { formatDate } from '@/utils/date'
+import { useOrdonnanceLibre } from '@/composables/useOrdonnanceLibre'
 
 const props = defineProps<{
   modelValue: Record<string, any>
   readonly: boolean
   contactId: string | null
-  contactDisplay: string
+  contactDisplay: string | null
   documentId?: string | null
   documentCreatedAt?: string | null
   resigning?: boolean
+  hideHeader?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -327,6 +326,9 @@ const { activePatient } = usePatientContext()
 const { exportCrcDiabetePdf } = useExport()
 const { user } = useAuth()
 const { updatePatient } = usePatients()
+const { createOrReplaceFromGroup, findCrhGroupOrdonnance } = useOrdonnanceLibre()
+
+const docTypeLabel = 'CRC'
 
 const annexeDocumentId = computed<string | null>(() => props.documentId || null)
 
@@ -396,6 +398,28 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null
 // win so a stale echo never regresses an in-flight (staged or direct) edit.
 let lastEmittedSnapshot: Record<string, any> | null = null
 
+// Every snapshot this form has emitted via `emit('save')`. An incoming
+// `modelValue` that matches ANY of them — not just the latest — is round-trip
+// feedback of our own save, so the live form wins even when an older echo
+// lands after `lastEmittedSnapshot` was replaced by a newer emission.
+const emittedSnapshots = new Set<string>()
+
+function trackEmittedSnapshot(snapshot: Record<string, any>) {
+  emittedSnapshots.add(JSON.stringify(snapshot))
+  if (emittedSnapshots.size > 20) {
+    const oldest = emittedSnapshots.values().next().value
+    if (oldest !== undefined) emittedSnapshots.delete(oldest)
+  }
+}
+
+function isEmittedSection(key: string, incoming: unknown): boolean {
+  for (const snap of emittedSnapshots) {
+    const emitted = JSON.parse(snap) as Record<string, unknown>
+    if (emitted[key] !== undefined && jsonEquals(incoming, emitted[key])) return true
+  }
+  return false
+}
+
 // Content of the last `modelValue` snapshot merged into `formData`. The deep
 // props watcher can re-fire on internal `formData` writes (Vue tracks the
 // deep reads it performs during traversal). Re-merging from an UNCHANGED
@@ -425,6 +449,9 @@ function mergeObjectSection(
   live: Record<string, any>,
   defaults: Record<string, any>,
 ): Record<string, any> {
+  // Incoming section matches any snapshot we emitted → our own echo, even a
+  // stale one → keep the live (possibly newer) section untouched.
+  if (isEmittedSection(key, incoming)) return live
   const base = { ...(defaults[key] as Record<string, any>), ...incoming }
   const baseline = lastEmittedSnapshot?.[key]
   if (baseline == null) return base
@@ -441,6 +468,7 @@ function mergeObjectSection(
 }
 
 function mergeArraySection(key: string, incoming: unknown, live: unknown): unknown {
+  if (isEmittedSection(key, incoming)) return live
   if (!Array.isArray(incoming)) return Array.isArray(live) ? live : []
   const baseline = lastEmittedSnapshot?.[key]
   if (Array.isArray(live) && baseline != null && jsonEquals(incoming, baseline)) {
@@ -498,6 +526,11 @@ function mergeFormData(val: Record<string, any>) {
   delete exams.ecgRepos
   delete exams.echographieCardiaque
   delete exams.actesInterventionnels
+  // Suivi Pondéral retiré de la fiche diabète : purge des clés orphelines
+  const fiche = formData.value.ficheDiabete as Record<string, unknown>
+  delete fiche.poidsForme
+  delete fiche.poidsJuillet2024
+  delete fiche.poidsDecembre2025
   // Événements réglementaires déplacés vers sortie
   const evolutionLegacy = formData.value.evolutionMedicale as unknown as Record<string, unknown>
   const sortieLegacy = formData.value.sortie as unknown as Record<string, unknown>
@@ -558,15 +591,8 @@ const historyDialogPath = ref('')
 const historyLoading = ref(false)
 const historyEntries = ref<ParameterHistoryEntry[]>([])
 
-async function onFormCellClick(event: MouseEvent) {
-  const target = event.target as HTMLElement
-  // Ignore clicks inside interactive controls (input, buttons, pickers…)
-  if (target.closest('input, textarea, button, select, .el-input, .el-input-number, .el-select, .el-date-editor, .el-radio, .el-checkbox, .el-switch')) return
-  const formItem = target.closest('[data-history-path]') as HTMLElement | null
-  if (!formItem) return
-  const path = formItem.getAttribute('data-history-path')
+async function openParameterHistory(path: string) {
   if (!path || !getParameterMeta(path)) return
-  event.preventDefault()
   historyDialogTitle.value = `Historique — ${getParameterMeta(path)?.label ?? path}`
   historyDialogPath.value = path
   historyDialogOpen.value = true
@@ -576,13 +602,96 @@ async function onFormCellClick(event: MouseEvent) {
     const entries = await fetchParameterHistory(activePatient.value?.id, CRC_DOCUMENT_TYPE_CODES, path)
     // Discard stale responses if the user clicked another field meanwhile.
     if (historyDialogPath.value !== path) return
-    historyEntries.value = entries
+    historyEntries.value = mergeWithCurrentEntries(path, entries)
   } catch {
     // ipcInvoke already surfaces the toast; don't leave a misleading
     // "Aucun historique pour ce paramètre" state on failure.
     historyDialogOpen.value = false
   } finally {
     if (historyDialogPath.value === path) historyLoading.value = false
+  }
+}
+
+const MULTI_GROUP_TITLES: Record<ParameterGroupKey, string> = {
+  vitals: 'Vitaux',
+  glasgow: 'Glasgow',
+  douleur: 'Douleur',
+  ficheTabac: 'Tabac',
+  ficheSubstance: 'Substance',
+  traitementMeds: 'Traitement – Médicaments',
+  traitementHabituel: 'Traitement habituel',
+  surveillance: 'Surveillance glycémique',
+}
+
+const multiHistoryDialogOpen = ref(false)
+const multiHistoryTitle = ref('')
+const multiHistorySeries = ref<MultiHistorySeries[]>([])
+const multiHistoryLoading = ref(false)
+let multiHistoryRequestId = 0
+
+function extractUnit(label: string): string | undefined {
+  const match = label.match(/\(([^)]+)\)\s*$/)
+  return match ? match[1].trim() : undefined
+}
+
+/** Valeurs du document actuel (non encore sauvegardé) fusionnées avec l'historique archivé. */
+function currentEntriesForPath(path: string): ParameterHistoryEntry[] {
+  const meta = getParameterMeta(path)
+  if (!meta) return []
+  const raw = meta.extract
+    ? meta.extract(formData.value as unknown as Record<string, any>)
+    : getFieldValue(formData.value, path)
+  const now = new Date().toISOString()
+  if (Array.isArray(raw)) {
+    return (raw as Array<{ date: string; value: unknown }>)
+      .filter((e) => e && e.value != null && e.value !== '')
+      .map((e) => ({
+        date: e.date || now,
+        documentId: 'current',
+        documentLabel: 'Document actuel',
+        status: 'draft' as const,
+        value: e.value,
+      }))
+  }
+  if (raw == null || raw === '') return []
+  return [{ date: now, documentId: 'current', documentLabel: 'Document actuel', status: 'draft' as const, value: raw }]
+}
+
+function mergeWithCurrentEntries(path: string, archived: ParameterHistoryEntry[]): ParameterHistoryEntry[] {
+  const current = currentEntriesForPath(path)
+  if (!current.length) return archived
+  const seen = new Set(archived.map((e) => `${e.date}|${String(e.value)}|${e.documentId}`))
+  const extra = current.filter((e) => !seen.has(`${e.date}|${String(e.value)}|${e.documentId}`))
+  return [...extra, ...archived].sort((a, b) => b.date.localeCompare(a.date))
+}
+
+async function openMultiHistory(group: string) {
+  if (!(group in PARAMETER_GROUPS)) return
+  const key = group as ParameterGroupKey
+  const paths = PARAMETER_GROUPS[key]
+  const requestId = ++multiHistoryRequestId
+  multiHistoryTitle.value = `Historique CRC — ${MULTI_GROUP_TITLES[key]}`
+  multiHistorySeries.value = []
+  multiHistoryDialogOpen.value = true
+  multiHistoryLoading.value = true
+  try {
+    const byPath = await fetchParametersHistory(activePatient.value?.id, CRC_DOCUMENT_TYPE_CODES, paths)
+    if (requestId !== multiHistoryRequestId) return
+    multiHistorySeries.value = paths.map((path) => {
+      const meta = getParameterMeta(path)
+      const label = meta?.label ?? path
+      return {
+        path,
+        label,
+        unit: extractUnit(label),
+        entries: mergeWithCurrentEntries(path, byPath[path] ?? []),
+      }
+    })
+  } catch {
+    if (requestId !== multiHistoryRequestId) return
+    multiHistoryDialogOpen.value = false
+  } finally {
+    if (requestId === multiHistoryRequestId) multiHistoryLoading.value = false
   }
 }
 
@@ -599,14 +708,17 @@ function onFieldChange() {
 function handleAutoSave() {
   draftStatus.value = 'Sauvegarde...'
   lastEmittedSnapshot = flattenFormData(formData.value)
+  trackEmittedSnapshot(lastEmittedSnapshot)
   emit('save', lastEmittedSnapshot)
   setTimeout(() => { draftStatus.value = 'Brouillon enregistré'; setTimeout(() => { draftStatus.value = '' }, 2000) }, 300)
 }
 
 async function handleSaveDraft() {
+  if (saveTimer) clearTimeout(saveTimer)
   saving.value = true
   draftStatus.value = 'Sauvegarde...'
   lastEmittedSnapshot = flattenFormData(formData.value)
+  trackEmittedSnapshot(lastEmittedSnapshot)
   emit('save', lastEmittedSnapshot)
   setTimeout(() => { draftStatus.value = 'Brouillon enregistré'; saving.value = false; setTimeout(() => { draftStatus.value = '' }, 2000) }, 300)
 }
@@ -626,6 +738,7 @@ async function handleSign() {
   if (saveTimer) clearTimeout(saveTimer)
   signing.value = true
   lastEmittedSnapshot = flattenFormData(formData.value)
+  trackEmittedSnapshot(lastEmittedSnapshot)
   emit('save', lastEmittedSnapshot)
   await nextTick()
   emit('sign')
@@ -661,6 +774,104 @@ function handlePreview() {
   }
   previewDialogRef.value?.open()
 }
+
+async function onOrdonnanceGenerate(categorie: 'medicament' | 'soins' | 'examen' | 'avis') {
+  const items = (formData.value.ordonnanceSortie ?? []).filter(
+    (r: PrescriptionSortie) => (r.categorie ?? 'medicament') === categorie,
+  )
+  if (items.length === 0) {
+    ElMessage.warning('Aucune prescription dans ce groupe')
+    return
+  }
+
+  const title = `${docTypeLabel} - ${formatDate(new Date())}`
+  const sourceDocumentId = String(props.documentId ?? '')
+  await doGenerateOrdonnance(categorie, items, sourceDocumentId, title)
+}
+
+function ordonnanceItemLabel(rx: PrescriptionSortie): string {
+  const cat = rx.categorie ?? 'medicament'
+  if (cat === 'avis') return (rx.specialite || rx.examen || 'Avis').replace(/<[^>]*>/g, '').trim()
+  if (cat === 'examen') {
+    const label = (Array.isArray(rx.examens) && rx.examens.length > 0)
+      ? rx.examens.join(', ')
+      : (rx.examen || rx.specialite || 'Examen')
+    return label.replace(/<[^>]*>/g, '').trim()
+  }
+  return (rx.medicament || 'Ordonnance').trim()
+}
+
+async function onOrdonnanceGenerateItem(
+  categorieOrPayload: 'medicament' | 'soins' | 'examen' | 'avis' | { categorie: 'medicament' | 'soins' | 'examen' | 'avis'; key: string },
+  keyParam?: string,
+) {
+  const categorie = (typeof categorieOrPayload === 'object' ? categorieOrPayload.categorie : categorieOrPayload) as 'medicament' | 'soins' | 'examen' | 'avis'
+  const key = typeof categorieOrPayload === 'object' ? categorieOrPayload.key : (keyParam ?? '')
+  const item = (formData.value.ordonnanceSortie ?? []).find(
+    (r: PrescriptionSortie) => r._key === key && (r.categorie ?? 'medicament') === categorie,
+  ) ?? (formData.value.ordonnanceSortie ?? []).find((r: PrescriptionSortie) => r._key === key)
+  if (!item) {
+    ElMessage.warning('Élément introuvable pour la génération')
+    return
+  }
+  const rawLabel = ordonnanceItemLabel(item) || 'Ordonnance'
+  const shortLabel = rawLabel.length > 50 ? `${rawLabel.slice(0, 49)}…` : rawLabel
+  const title = `${docTypeLabel} - ${shortLabel} - ${formatDate(new Date())}`
+  const sourceDocumentId = `${String(props.documentId ?? '')}:${categorie}:${item._key}`
+  await doGenerateOrdonnance(categorie, [item], sourceDocumentId, title)
+}
+
+async function doGenerateOrdonnance(
+  categorie: 'medicament' | 'soins' | 'examen' | 'avis',
+  items: PrescriptionSortie[],
+  sourceDocumentId: string,
+  title: string,
+) {
+  const contactId = props.contactId ?? ''
+  const createdBy = user.value?.id ? String(user.value.id) : ''
+
+  if (!activePatient.value) {
+    ElMessage.warning('Aucun patient actif')
+    return
+  }
+  const patientId = activePatient.value.id
+
+  try {
+    const existing = await findCrhGroupOrdonnance(patientId, sourceDocumentId, categorie)
+    if (existing) {
+      try {
+        await ElMessageBox.confirm(
+          'Une ordonnance existe déjà pour ce groupe (celle-ci sera remplacée). Continuer ?',
+          'Remplacer l\'ordonnance',
+          { type: 'warning' },
+        )
+      } catch {
+        return
+      }
+    }
+
+    const res = await createOrReplaceFromGroup({
+      patientId,
+      contactId,
+      serviceId: null,
+      siteId: null,
+      createdBy,
+      title,
+      sourceDocumentId,
+      categorie,
+      items,
+    })
+
+    if (res?.replaced) {
+      ElMessage.info(`L'ordonnance « ${title} » existante a été remplacée.`)
+    } else {
+      ElMessage.success(`Ordonnance « ${title} » générée.`)
+    }
+    ElMessage.success('Retrouvez-la dans le menu Ordonnances du patient (hors document).')
+  } catch (e) {
+    ElMessage.error((e as Error).message || 'Erreur lors de la génération de l\'ordonnance')
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -669,14 +880,18 @@ function handlePreview() {
   display: flex;
   flex-direction: column;
   background: var(--el-bg-color);
+  overflow: hidden;
+  min-width: 0;
 }
 
 .crc-form__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 14px 20px;
-  border-bottom: 1px solid var(--el-border-color-light);
+  border-bottom: 1px solid var(--cde-border);
   background: var(--cd-white);
   flex-shrink: 0;
 }
@@ -684,7 +899,9 @@ function handlePreview() {
 .crc-form__header-left {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
+  min-width: 0;
 }
 
 .crc-form__title-icon {
@@ -720,40 +937,6 @@ function handlePreview() {
   flex-shrink: 0;
 }
 
-.crc-form__contact-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 20px;
-  background: var(--cd-gray-50);
-  border-bottom: 1px solid var(--el-border-color-light);
-  font-size: 13px;
-  color: var(--cd-gray-500);
-  flex-shrink: 0;
-}
-
-.crc-form__contact-bar-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.crc-form__contact-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.crc-form__contact-label {
-  font-weight: 600;
-  color: var(--cd-gray-600);
-}
-
-.crc-form__contact-value {
-  color: var(--cd-gray-900);
-  font-weight: 500;
-}
-
 .crc-form__badges {
   display: flex;
   flex-direction: column;
@@ -780,24 +963,69 @@ function handlePreview() {
 }
 
 .crc-form__tabs {
-  flex: 1;
-  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   margin: 8px 16px;
   display: flex;
   flex-direction: column;
 
   :deep(.el-tabs__content) {
     flex: 1;
+    min-height: 0;
     overflow: auto;
     padding: 20px;
   }
 
   :deep(.el-tabs__header) {
     margin: 0;
+    flex-shrink: 0;
+    max-width: 100%;
+    min-width: 0;
   }
 
   :deep(.el-tabs__nav-wrap) {
     padding: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--el-border-color) transparent;
+    flex: 1 1 auto;
+    min-width: 0;
+
+    &.is-scrollable {
+      padding: 0;
+    }
+
+    &::-webkit-scrollbar {
+      height: 5px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--el-border-color);
+      border-radius: 999px;
+    }
+  }
+
+  :deep(.el-tabs__nav-scroll) {
+    overflow: visible;
+  }
+
+  :deep(.el-tabs__nav-prev),
+  :deep(.el-tabs__nav-next) {
+    display: none;
+  }
+
+  :deep(.el-tabs__nav) {
+    white-space: nowrap;
+    flex-wrap: nowrap;
+    transform: none !important;
   }
 
   :deep(.el-tabs__item) {
@@ -805,6 +1033,18 @@ function handlePreview() {
     padding: 0 14px;
     height: 38px;
     line-height: 38px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+.crc-form--fullpage {
+  .crc-form__badges {
+    padding: 0;
+  }
+
+  .crc-form__tabs {
+    margin: 0 0 12px;
   }
 }
 
@@ -849,14 +1089,17 @@ function handlePreview() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 12px 20px;
-  border-top: 1px solid var(--el-border-color-light);
+  border-top: 1px solid var(--cde-border);
   background: var(--cd-white);
   flex-shrink: 0;
 }
 
 .crc-form__footer-left {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .crc-form__draft-status {
@@ -867,6 +1110,48 @@ function handlePreview() {
 
 .crc-form__footer-right {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
   gap: 8px;
+}
+
+@media (max-width: 1366px) {
+  .crc-form__header {
+    padding: 10px 14px;
+  }
+
+  .crc-form__footer {
+    padding: 10px 14px;
+  }
+
+  .crc-form__tabs {
+    margin: 8px 10px;
+
+    :deep(.el-tabs__item) {
+      padding: 0 9px;
+      font-size: 11px;
+      height: 36px;
+      line-height: 36px;
+    }
+
+    :deep(.el-tabs__content) {
+      padding: 16px;
+    }
+  }
+}
+
+@media (max-width: 1200px) {
+  .tab-label svg {
+    display: none;
+  }
+
+  .crc-form__tabs {
+    margin: 6px 8px;
+
+    :deep(.el-tabs__content) {
+      padding: 12px;
+    }
+  }
 }
 </style>

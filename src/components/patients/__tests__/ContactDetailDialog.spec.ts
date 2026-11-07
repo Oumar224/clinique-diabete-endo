@@ -45,6 +45,15 @@ vi.mock('@/composables/useContactFormLogic', () => ({
     { value: 'ambulatoire', label: 'Ambulatoire' },
     { value: 'hospitalise', label: 'Hospitalisé' },
   ],
+  CASE_TYPE_OPTIONS: [
+    { value: 'diabete', label: 'Diabète' },
+    { value: 'thyroide_endocrino', label: 'Thyroïde – Endocrinologie' },
+    { value: 'autre', label: 'Autre' },
+  ],
+  STAY_TYPE_OPTIONS: [
+    { value: 'jour', label: 'Hôpital de jour' },
+    { value: 'complete', label: 'Hospitalisation complète' },
+  ],
 }))
 
 // ─── Stubs for all Element Plus components ─────────────────────────────────
@@ -185,6 +194,23 @@ describe('ContactDetailDialog', () => {
       expect(dialog.text()).toContain('Type de contact')
       expect(dialog.text()).toContain('Statut')
       expect(dialog.text()).toContain('Hospitalisation')
+    })
+
+    it('affiche le type de cas, le nouveau cas et le type d\'hospitalisation', async () => {
+      const wrapper = createWrapper()
+      await (wrapper.vm as any).open(makeEncounter({
+        case_type: 'diabete',
+        is_new_case: 1,
+        stay_type: 'jour',
+      }))
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Type de cas')
+      expect(wrapper.text()).toContain('Diabète')
+      expect(wrapper.text()).toContain('Nouveau cas')
+      expect(wrapper.text()).toContain('Premier passage pour ce motif')
+      expect(wrapper.text()).toContain("Type d'hospitalisation")
+      expect(wrapper.text()).toContain('Hôpital de jour')
     })
 
     it('renders rich-text notes content (not escaped) when present', async () => {

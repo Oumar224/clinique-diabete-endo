@@ -158,18 +158,18 @@ describe('REAL RichTextEditor flow', () => {
     capturedOnUpdates[0]({ editor: mockEditor })
     await nextTick()
 
-    // eslint-disable-next-line no-console
-    console.log('BODY-HTML', sectionBodies(wrapper)[0].html())
     const footers = sectionBodies(wrapper)[0].findAll('.staged-section__footer button')
-    // eslint-disable-next-line no-console
-    console.log('FOOTER-BTNS', footers.map(b => ({ text: b.text(), disabled: b.attributes('disabled') })))
     await clickEnregistrer(wrapper, 0)
 
     expect(data.histoireRecent).toBe('<p>Douleurs abdominales depuis 3 jours</p>')
 
     const rows = wrapper.findAll('.form-preview')[0].findAll('.form-preview__row')
-    const row = rows.find(r => r.text().includes('Histoire récente de la maladie'))
-    expect(row!.find('.form-preview__value').text()).toBe('Douleurs abdominales depuis 3 jours')
+    // La valeur riche est rendue en v-html dans .form-preview__value ; le champ
+    // « Histoire récente de la maladie » est déclaré avec hideLabel: true (le
+    // libellé n'apparaît donc pas dans le DOM du preview).
+    const richRow = rows.find(r => r.find('.form-preview__value').text() === 'Douleurs abdominales depuis 3 jours')
+    expect(richRow).toBeTruthy()
+    expect(richRow!.find('.form-preview__value').text()).toBe('Douleurs abdominales depuis 3 jours')
   })
 
   it('preview shows pre-loaded rich content at mount', async () => {
@@ -178,7 +178,9 @@ describe('REAL RichTextEditor flow', () => {
     await nextTick()
 
     const rows = wrapper.findAll('.form-preview')[0].findAll('.form-preview__row')
-    const row = rows.find(r => r.text().includes('Histoire récente de la maladie'))
-    expect(row!.find('.form-preview__value').text()).toBe('Motif existant depuis l\'entrée')
+    // idem : valeur riche rendue en v-html, libellé masqué (hideLabel)
+    const richRow = rows.find(r => r.find('.form-preview__value').text() === 'Motif existant depuis l\'entrée')
+    expect(richRow).toBeTruthy()
+    expect(richRow!.find('.form-preview__value').text()).toBe('Motif existant depuis l\'entrée')
   })
 })

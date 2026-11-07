@@ -3,6 +3,7 @@ import { type Kysely } from 'kysely'
 import { AppDatabaseDatasource } from '../sqlite-data-source'
 import type { DB } from '../entities/database'
 import { PrescriptionEntity } from '../entities/prescription.entity'
+import { normalizeVoieOrThrow } from '../constants/voies'
 import { validateForeignKeys } from './utils/fk-validator'
 import { entityEventBus } from '../automerge/event-bus'
 
@@ -108,6 +109,11 @@ export class PrescriptionService {
       { table: 'user', column: 'prescripteur_id', value: entity.prescripteur_id },
     ])
 
+    // Assert voie AVANT insert : convertit labels longs ('PO (Per Os)') en codes
+    // CHECK-compatibles, throw métier claire sinon (évite SQLITE CHECK failed).
+    const voieCode = normalizeVoieOrThrow(entity.voie)
+    entity.voie = voieCode
+
     const now = new Date().toISOString()
     const insertResult = await this.db
       .insertInto('prescriptions')
@@ -115,7 +121,7 @@ export class PrescriptionService {
         patient_id: entity.patient_id,
         medicament: entity.medicament,
         dosage: entity.dosage,
-        voie: entity.voie,
+        voie: voieCode,
         duree: entity.duree,
         duree_type: entity.duree_type ?? 'courte',
         frequence: entity.frequence,
@@ -145,7 +151,7 @@ export class PrescriptionService {
       prn: entity.prn === 1,
       medicament: entity.medicament ?? '',
       dosage: entity.dosage ?? '',
-      voie: entity.voie ?? '',
+      voie: voieCode,
       createdBy: entity.prescripteur_id!,
     })
     console.log(`[PrescriptionService.create] ✅ prescriptionId=${prescriptionId} itemsGenerated=${itemsGenerated} medicament="${entity.medicament}" dosage="${entity.dosage}" duree=${entity.duree} frequence=["${entity.frequence}"]`)
@@ -205,10 +211,16 @@ export class PrescriptionService {
       throw new Error('Prescription introuvable')
     }
 
+    // Normalise la voie entrante ; valide aussi la valeur existante par sécurité
+    // (les lignes historiques hors-CHECK doivent échouer avec un message métier).
+    const voieCode = entity.voie != null
+      ? normalizeVoieOrThrow(entity.voie)
+      : normalizeVoieOrThrow(existing.voie)
+
     const updatedData = {
       medicament: entity.medicament ?? existing.medicament,
       dosage: entity.dosage ?? existing.dosage,
-      voie: entity.voie ?? existing.voie,
+      voie: voieCode,
       duree: entity.duree ?? existing.duree,
       duree_type: entity.duree_type ?? existing.duree_type ?? 'courte',
       frequence: entity.frequence ?? existing.frequence,
@@ -241,7 +253,7 @@ export class PrescriptionService {
     const mergedDuree = entity.duree ?? existing.duree!
     const mergedMedicament = entity.medicament ?? existing.medicament!
     const mergedDosage = entity.dosage ?? existing.dosage!
-    const mergedVoie = entity.voie ?? existing.voie!
+    const mergedVoie = voieCode
 
     const itemsGenerated = await this.generatePlanItems({
       prescriptionId: id,
@@ -392,6 +404,9 @@ export class PrescriptionService {
   }): Promise<number> {
     if (params.prn) return 0
 
+    // Assert avant insert dans plan_soins_items (même CHECK que prescriptions).
+    const voiePlan = normalizeVoieOrThrow(params.voie)
+
     // ── Resolve time blocks based on frequency type ──────────────
     let blocHeures: string[]
 
@@ -445,7 +460,7 @@ export class PrescriptionService {
             bloc_heure: blocHeure,
             medicament: params.medicament,
             dosage: params.dosage,
-            voie: params.voie,
+            voie: voiePlan,
             statut: 'en_attente',
             prescription_id: params.prescriptionId,
             created_at: now,

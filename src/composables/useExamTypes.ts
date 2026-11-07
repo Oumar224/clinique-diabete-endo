@@ -16,6 +16,7 @@ export interface ExamTypeDto {
   code?: string
   label: string
   is_active: boolean
+  prix?: number
   category_label?: string
   parent_label?: string
   created_at?: string
@@ -91,6 +92,7 @@ export function useExamTypes() {
     category_id: number
     parent_id?: number | null
     code?: string
+    prix?: number
   }): Promise<ExamTypeDto | null> {
     try {
       const created = await ipcInvoke<ExamTypeDto>('exam-types:create', dto)
@@ -104,7 +106,7 @@ export function useExamTypes() {
 
   async function updateType(
     id: number,
-    dto: { label?: string; is_active?: boolean; parent_id?: number | null },
+    dto: { label?: string; is_active?: boolean; parent_id?: number | null; prix?: number },
   ): Promise<ExamTypeDto | null> {
     try {
       const updated = await ipcInvoke<ExamTypeDto>('exam-types:update', { id, ...dto })

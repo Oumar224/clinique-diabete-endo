@@ -97,6 +97,15 @@ describe('OrdonnancePreview', () => {
     expect(zoomOutBtn(wrapper).attributes('disabled')).toBeUndefined()
   })
 
+  it('garde-fou régression : l\'iframe d\'aperçu conserve sandbox="allow-same-origin" (mitigation XSS)', async () => {
+    const wrapper = createWrapper()
+    await openPreview(wrapper)
+
+    expect((wrapper.vm as any).htmlContent).toBeTruthy()
+    expect((wrapper.vm as any).loading).toBe(false)
+    expect(wrapper.find('iframe').attributes('sandbox')).toBe('allow-same-origin')
+  })
+
   it('clic « Zoom avant » → zoom 1.25 et affichage « 125 % »', async () => {
     const wrapper = createWrapper()
     await openPreview(wrapper)
@@ -185,5 +194,54 @@ describe('OrdonnancePreview', () => {
     expect(mockInvoke.mock.calls.length).toBe(callsBefore)
     expect(wrapper.emitted('close')).toBeUndefined()
     expect(vm.visible).toBe(true)
+  })
+
+  // ─── Prop ordonnanceItems (génération par groupe CRH/CRC/libre) ────
+
+  describe('prop ordonnanceItems', () => {
+    const items = [
+      { _key: 'k1', categorie: 'medicament', medicament: 'Metformine 500 mg', dosage: '500' },
+      { _key: 'k2', categorie: 'examen', examen: 'NFS', motif: 'Bilan' },
+    ]
+
+    it('transmet ordonnanceItems (clone profond, pas la même référence) à export:prescription-preview', async () => {
+      const wrapper = createWrapper({ ordonnanceItems: items })
+      await openPreview(wrapper)
+
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'export:prescription-preview',
+        expect.objectContaining({ patientId: 42, ordonnanceItems: items }),
+      )
+      const payload = mockInvoke.mock.calls[0][1]
+      expect(payload.ordonnanceItems).toEqual(items)
+      expect(payload.ordonnanceItems).not.toBe(items)
+      expect(payload.ordonnanceItems[0]).not.toBe(items[0])
+    })
+
+    it('omet ordonnanceItems du payload quand la prop est null', async () => {
+      const wrapper = createWrapper({ ordonnanceItems: null })
+      await openPreview(wrapper)
+
+      const payload = mockInvoke.mock.calls[0][1]
+      expect(payload.ordonnanceItems).toBeUndefined()
+    })
+
+    it('transmet ordonnanceItems (clone profond) à export:prescription-pdf', async () => {
+      mockInvoke.mockResolvedValue({ success: true, data: '/tmp/ord.pdf' })
+      const wrapper = createWrapper({ ordonnanceItems: items })
+      await openPreview(wrapper)
+
+      const downloadBtn = wrapper.findAll('button.el-button').find(b => b.text().includes('Télécharger PDF'))!
+      await downloadBtn.trigger('click')
+      await flushPromises()
+
+      const pdfCall = mockInvoke.mock.calls.find(([channel]) => channel === 'export:prescription-pdf')!
+      expect(pdfCall).toBeDefined()
+      expect(pdfCall[1]).toEqual(
+        expect.objectContaining({ patientId: 42, ordonnanceItems: items }),
+      )
+      expect(pdfCall[1].ordonnanceItems).not.toBe(items)
+      expect(mockElMessage.success).toHaveBeenCalledWith('Fichier enregistré : /tmp/ord.pdf')
+    })
   })
 })

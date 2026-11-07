@@ -1,32 +1,44 @@
 <template>
-  <div class="patients-list">
-    <SectionHeader label="Gestion des Patients" :icon="User" level="primary">
-      <template #actions>
-        <el-button type="primary" :icon="Plus" size="small" @click="openCreate">Nouveau patient</el-button>
-      </template>
-      <div class="patients-list__toolbar">
-        <el-input
-          v-model="search"
-          placeholder="Rechercher par nom, prénom ou N° SS..."
-          :prefix-icon="Search"
-          clearable
-          style="width: 280px"
-          size="small"
-          @input="onSearch"
-        />
-        <el-button size="small" :loading="exportingExcel" @click="exportPatientsListExcel">
+  <div class="patients-list cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Gestion des Patients
+        </h1>
+      </div>
+      <div class="cde-head-actions">
+        <el-button type="primary" :icon="Plus" @click="openCreate">Nouveau patient</el-button>
+      </div>
+    </header>
+
+    <div class="cde-toolbar">
+      <div class="cde-filters">
+        <div class="cde-filter cde-toolbar__search">
+          <span class="cde-filter__label">Recherche</span>
+          <el-input
+            v-model="search"
+            placeholder="Nom, prénom ou N° SS..."
+            :prefix-icon="Search"
+            clearable
+            aria-label="Rechercher un patient"
+            @input="onSearch"
+          />
+        </div>
+      </div>
+      <div class="cde-toolbar__actions">
+        <el-button :loading="exportingExcel" @click="exportPatientsListExcel">
           <el-icon><Download /></el-icon> Exporter (Excel)
         </el-button>
       </div>
-    </SectionHeader>
+    </div>
 
+    <div class="cde-table-card">
     <el-table
       v-loading="loading"
       :data="filteredList"
       style="width: 100%"
       @row-click="onPatientClick"
       size="small"
-      border
       highlight-current-row
     >
       <el-table-column label="" width="38">
@@ -52,26 +64,33 @@
       <el-table-column prop="region" label="Région" width="100">
         <template #default="{ row }">
           <span v-if="row.region">{{ row.region }}</span>
-          <span v-else class="patients-list__none">\u2014</span>
+          <span v-else class="cde-muted">—</span>
         </template>
       </el-table-column>
       <el-table-column prop="nir" label="N° SS" width="110" />
       <el-table-column label="Assurance" width="120">
         <template #default="{ row }">
           <span v-if="row.assuranceMutuelle">{{ row.assuranceMutuelle }}</span>
-          <span v-else class="patients-list__none">\u2014</span>
+          <span v-else class="cde-muted">—</span>
         </template>
       </el-table-column>
       <el-table-column prop="telephone" label="Téléphone" width="110" />
       <el-table-column label="Actions" width="90" align="center">
         <template #default="{ row }">
-          <el-button text type="primary" :icon="Edit" size="small" @click.stop="openEdit(row)" />
-          <el-button text type="danger" :icon="Delete" size="small" @click.stop="onDelete(row)" />
+          <el-button text type="primary" :icon="Edit" size="small" aria-label="Modifier le patient" @click.stop="openEdit(row)" />
+          <el-button text type="danger" :icon="Delete" size="small" aria-label="Supprimer le patient" @click.stop="onDelete(row)" />
         </template>
       </el-table-column>
+      <template #empty>
+        <div class="cde-empty">
+          Aucun patient.
+        </div>
+      </template>
     </el-table>
+    </div>
 
-    <div class="patients-list__pagination">
+    <div class="cde-footer">
+      <span class="cde-muted">{{ patients.length }} patient(s)</span>
       <el-pagination
         v-model:current-page="paginator.currPage"
         background
@@ -89,7 +108,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onErrorCaptured } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Plus, Edit, Delete, User, Download } from '@element-plus/icons-vue'
+import { Search, Plus, Edit, Delete, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { usePatients } from '@/composables/usePatients'
 import { calculateAge } from '@/utils/age'
@@ -97,7 +116,6 @@ import { getCiviliteSymbol, getCiviliteLabel } from '@/utils/civilite'
 import type { PatientDto } from '@/composables/usePatients'
 import { usePatientContext } from '@/composables/usePatientContext'
 import PatientFormDialog from '@/components/patients/PatientFormDialog.vue'
-import SectionHeader from '@/components/common/SectionHeader.vue'
 import { useExport } from '@/composables/useExport'
 
 const router = useRouter()
@@ -197,25 +215,9 @@ async function onSaved() {
 .patients-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
-.patients-list__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.patients-list__none {
-  color: var(--cd-gray-400);
-  font-size: 12px;
-}
-
-.patients-list__pagination {
-  display: flex;
-  justify-content: center;
-  padding: 8px 0;
-}
 
 .patient-list__avatar--male {
   background: var(--cd-primary) !important;

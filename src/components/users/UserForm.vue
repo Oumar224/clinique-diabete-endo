@@ -222,6 +222,27 @@
         </el-col>
       </el-row>
 
+      <el-row :gutter="16">
+        <el-col :span="8">
+          <el-form-item label="Temps de travail">
+            <el-select v-model="form.temps_travail" style="width: 100%">
+              <el-option label="Temps plein" value="PLEIN" />
+              <el-option label="Temps partiel" value="PARTIEL" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="16">
+          <el-form-item label="N° sécurité sociale">
+            <el-input
+              v-model="form.numero_securite_sociale"
+              maxlength="40"
+              clearable
+              placeholder="ex. 123456789012345"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
+
       <!-- ==================== Compte ==================== -->
       <el-divider content-position="left">Compte</el-divider>
 
@@ -339,6 +360,8 @@ const form = reactive({
   date_debut_contrat: null as string | null,
   date_fin_contrat: null as string | null,
   type_contrat: 'CDI' as 'CDD' | 'CDI',
+  temps_travail: 'PLEIN' as 'PLEIN' | 'PARTIEL',
+  numero_securite_sociale: '',
 })
 
 // --- Validation ---
@@ -454,6 +477,8 @@ function open(user?: UserDto) {
   form.date_debut_contrat = null
   form.date_fin_contrat = null
   form.type_contrat = 'CDI'
+  form.temps_travail = 'PLEIN'
+  form.numero_securite_sociale = ''
 
   // Remove id for new users (so spread doesn't include undefined)
   delete (form as any).id
@@ -473,6 +498,8 @@ function open(user?: UserDto) {
     form.type_contrat = (user.type_contrat as 'CDD' | 'CDI') ?? 'CDI'
     form.date_debut_contrat = user.date_debut_contrat ?? null
     form.date_fin_contrat = user.date_fin_contrat ?? null
+    form.temps_travail = user.temps_travail ?? 'PLEIN'
+    form.numero_securite_sociale = user.numero_securite_sociale ?? ''
 
     // Extract IDs from resolved relation objects (populated by users:list)
     if (user.specialties?.length) {
@@ -526,8 +553,8 @@ defineExpose({ open, close })
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--el-color-danger);
-  color: #fff;
+  background: var(--cde-danger);
+  color: var(--cde-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -551,8 +578,8 @@ defineExpose({ open, close })
   font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
   font-size: 11px;
   font-weight: 600;
-  color: var(--el-color-info, #909399);
-  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--cde-muted);
+  background: var(--cde-surface-tint);
   padding: 1px 5px;
   border-radius: 2px;
   letter-spacing: 0.2px;
@@ -561,7 +588,7 @@ defineExpose({ open, close })
 
 .uf__service-depth {
   font-size: 10px;
-  color: var(--el-text-color-secondary, #909399);
+  color: var(--cde-muted);
   margin-left: auto;
   flex-shrink: 0;
 }

@@ -14,6 +14,26 @@
       label-width="140px"
       label-position="top"
     >
+      <el-row v-if="editablePatient" :gutter="24">
+        <el-col :span="24">
+          <el-form-item label="Patient *" prop="patient_id">
+            <el-select
+              v-model="selectedPatientId"
+              filterable
+              placeholder="Rechercher un patient..."
+              style="width:100%"
+            >
+              <el-option
+                v-for="p in patients"
+                :key="p.id"
+                :label="`${p.prenom} ${p.nom}`"
+                :value="p.id"
+              />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
       <el-row :gutter="24">
         <el-col :span="12">
           <el-form-item label="Date *" prop="date">
@@ -26,17 +46,37 @@
             />
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="Heure *" prop="time">
+        <el-col :span="8">
+          <el-form-item label="Heure * (8h-18h)" prop="time">
             <el-time-picker
               v-model="form.time"
               format="HH:mm"
               value-format="HH:mm"
+              :selectable-range="selectableRange"
+              :step="step30min"
               style="width:100%"
             />
           </el-form-item>
         </el-col>
+        <el-col :span="4">
+          <el-form-item label="Durée" prop="duration">
+            <el-select v-model="form.duration" style="width:100%">
+              <el-option label="30 min" :value="30" />
+              <el-option label="45 min" :value="45" />
+              <el-option label="60 min" :value="60" />
+            </el-select>
+          </el-form-item>
+        </el-col>
       </el-row>
+
+      <el-alert
+        v-if="conflictWarning"
+        :title="conflictWarning"
+        type="warning"
+        show-icon
+        :closable="false"
+        style="margin-bottom:12px"
+      />
 
       <el-row :gutter="24">
         <el-col :span="24">
@@ -128,11 +168,12 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { ipcInvoke } from '@/utils/ipc'
-import { createAppointment, updateAppointment, type AppointmentDto } from '@/composables/useAppointments'
+import { createAppointment, updateAppointment, listAppointments, findTimeConflict, timeToMinutes, type AppointmentDto } from '@/composables/useAppointments'
 import { useMedicalStaff, formatMedecinName } from '@/composables/useMedicalStaff'
+import { usePatients } from '@/composables/usePatients'
 import type { UserDto } from '@/composables/useUsers'
 import RichTextEditor from '@/components/patients/RichTextEditor.vue'
 
@@ -150,21 +191,32 @@ const props = defineProps<{
   patientId: number
   patientName: string
   appointment?: AppointmentDto | null
+  initialDate?: string
+  initialTime?: string
+  editablePatient?: boolean
 }>()
 
 const { searchMedicalStaff, fetchMedicalStaff } = useMedicalStaff()
+const { patients, fetchPatients } = usePatients()
 const visible = defineModel<boolean>('visible')
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
 const services = ref<ServiceSuggestion[]>([])
 const careUnits = ref<{ id: number; name: string }[]>([])
 const staffLoaded = ref(false)
+const selectedPatientId = ref<number>(props.patientId)
+const dayAppointments = ref<AppointmentDto[]>([])
+const conflictWarning = ref('')
+
+const selectableRange = '08:00:00 - 18:00:00'
+const step30min = '00:30'
 
 const isEdit = computed(() => !!props.appointment)
 
 const form = reactive({
   date: '',
   time: '',
+  duration: 30 as number,
   motif: '',
   service_id: null as number | null,
   service_name: '',
@@ -175,9 +227,25 @@ const form = reactive({
   notes: '',
 })
 
+function isWithinWorkingHours(t: string): boolean {
+  const mins = timeToMinutes(t)
+  if (Number.isNaN(mins)) return false
+  return mins >= 8 * 60 && mins <= 18 * 60
+}
+
 const rules: Record<string, any[]> = {
   date: [{ required: true, message: 'La date est requise', trigger: 'change' }],
-  time: [{ required: true, message: 'L\'heure est requise', trigger: 'change' }],
+  time: [
+    { required: true, message: 'L\'heure est requise', trigger: 'change' },
+    {
+      validator: (_r: any, v: string, cb: (e?: Error) => void) => {
+        if (!v) return cb()
+        if (!isWithinWorkingHours(v)) return cb(new Error('Horaire entre 8h et 18h'))
+        cb()
+      },
+      trigger: 'change',
+    },
+  ],
   service_id: [{ required: true, message: 'Le service est requis', trigger: 'change' }],
   medecin_id: [
     {
@@ -205,6 +273,7 @@ watch(() => props.appointment, (appt) => {
   if (appt) {
     form.date = appt.date || ''
     form.time = appt.time || ''
+    form.duration = 30
     form.motif = appt.motif || ''
     form.service_id = appt.service_id ?? null
     form.service_name = appt.service_name || ''
@@ -213,12 +282,14 @@ watch(() => props.appointment, (appt) => {
     form.medecin_name = appt.medecin_name || ''
     form.status = appt.status || 'confirmed'
     form.notes = appt.notes || ''
+    selectedPatientId.value = appt.patient_id ?? props.patientId
     if (appt.service_id) {
       fetchCareUnitsByService(appt.service_id)
     }
   } else {
-    form.date = ''
-    form.time = ''
+    form.date = props.initialDate || ''
+    form.time = props.initialTime || ''
+    form.duration = 30
     form.motif = ''
     form.service_id = null
     form.service_name = ''
@@ -227,9 +298,60 @@ watch(() => props.appointment, (appt) => {
     form.medecin_name = ''
     form.status = 'confirmed'
     form.notes = ''
+    selectedPatientId.value = props.patientId
     careUnits.value = []
   }
+  conflictWarning.value = ''
 }, { immediate: true })
+
+watch(() => [props.initialDate, props.initialTime, props.patientId], ([d, t, pid]) => {
+  if (!props.appointment) {
+    if (d) form.date = d as string
+    if (t) form.time = t as string
+    if (pid) selectedPatientId.value = pid as number
+  }
+})
+
+watch(() => [form.date, form.time, form.medecin_id, form.duration], async () => {
+  await checkConflict()
+})
+
+watch(visible, async (v) => {
+  if (v) {
+    selectedPatientId.value = props.appointment?.patient_id ?? props.patientId
+    if (props.editablePatient && patients.value.length === 0) {
+      try { await fetchPatients() } catch { /* silencieux */ }
+    }
+    if (form.date) await refreshDayAppointments(form.date)
+    await checkConflict()
+  }
+})
+
+async function refreshDayAppointments(date: string) {
+  if (!date) { dayAppointments.value = []; return }
+  try {
+    dayAppointments.value = await listAppointments(date)
+  } catch {
+    dayAppointments.value = []
+  }
+}
+
+async function checkConflict() {
+  conflictWarning.value = ''
+  if (!form.date || !form.time || form.medecin_id == null) return
+  if (dayAppointments.value.length === 0 || dayAppointments.value[0]?.date !== form.date) {
+    await refreshDayAppointments(form.date)
+  }
+  const hit = findTimeConflict(
+    dayAppointments.value,
+    { date: form.date, time: form.time, medecin_id: form.medecin_id },
+    form.duration || 30,
+    props.appointment?.id,
+  )
+  if (hit) {
+    conflictWarning.value = `Conflit horaire : ${hit.medecin_name || 'ce médecin'} a déjà un RDV le ${hit.date} à ${hit.time} (${hit.motif || 'RDV'}).`
+  }
+}
 
 async function queryServices(query: string, cb: (results: ServiceSuggestion[]) => void) {
   if (services.value.length === 0) {
@@ -289,19 +411,33 @@ async function handleSubmit() {
   if (!formRef.value) return
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) {
-    ElMessage.warning('Veuillez remplir tous les champs obligatoires')
+    ElMessage.warning('Veuillez remplir tous les champs obligatoires (date, heure 8h-18h, service)')
     return
   }
 
-  if (!props.patientId || props.patientId <= 0) {
-    ElMessage.error('Patient non valide. Veuillez réessayer.')
+  const effectivePatientId = props.editablePatient ? selectedPatientId.value : props.patientId
+  if (!effectivePatientId || effectivePatientId <= 0) {
+    ElMessage.error('Patient non valide. Veuillez sélectionner un patient.')
     return
+  }
+
+  await checkConflict()
+  if (conflictWarning.value) {
+    try {
+      await ElMessageBox.confirm(
+        `${conflictWarning.value}\nVoulez-vous quand même enregistrer ?`,
+        'Conflit horaire',
+        { type: 'warning', confirmButtonText: 'Enregistrer quand même', cancelButtonText: 'Annuler' },
+      )
+    } catch {
+      return
+    }
   }
 
   submitting.value = true
   try {
     const payload = {
-      patient_id: props.patientId,
+      patient_id: effectivePatientId,
       date: form.date,
       time: form.time,
       motif: form.motif || undefined,

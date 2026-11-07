@@ -14,6 +14,17 @@ export interface OrdonnanceLibreRecord {
   linkedPrescriptions?: any[]
   medecin_nom?: string
   medecin_prenom?: string
+  /**
+   * Au moins une ligne médicament transférable à la pharmacie.
+   * Calculé par le backend (`ordonnance-libre:list` / `ordonnance-libre:get`)
+   * à partir de `form_data`.
+   */
+  hasMedicamentLines?: boolean
+  /**
+   * Une délivrance pharmacie a déjà été créée pour cette ordonnance.
+   * Calculé par le backend depuis la table `delivrances`.
+   */
+  dejaTransferee?: boolean
 }
 
 const ordonnances = ref<OrdonnanceLibreRecord[]>([])
@@ -64,6 +75,51 @@ export function useOrdonnanceLibre() {
     }
   }
 
+  async function createOrReplaceFromGroup(params: {
+    patientId: number
+    contactId: string
+    serviceId?: string | null
+    siteId?: number | null
+    createdBy: string
+    title: string
+    sourceDocumentId: string
+    categorie: string
+    items: any[]
+  }): Promise<{ documentId: string; replaced: boolean } | null> {
+    try {
+      return await ipcInvoke<{ documentId: string; replaced: boolean }>(
+        'ordonnance-libre:create-from-group',
+        params,
+      )
+    } catch (e) {
+      ElMessage.error((e as Error).message || 'Erreur lors de la génération de l\'ordonnance')
+      return null
+    }
+  }
+
+  async function findCrhGroupOrdonnance(
+    patientId: number,
+    sourceDocumentId: string,
+    categorie: string,
+  ): Promise<Record<string, any> | null> {
+    try {
+      const records = await ipcInvoke<OrdonnanceLibreRecord[]>('ordonnance-libre:list', { patientId })
+      if (!records || records.length === 0) return null
+      for (const record of records) {
+        if (!record.form_data) continue
+        const fd: Record<string, any> = typeof record.form_data === 'string'
+          ? JSON.parse(record.form_data)
+          : record.form_data
+        if (fd.source === 'crh' && fd.sourceDocumentId === sourceDocumentId && fd.categorie === categorie) {
+          return record
+        }
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
   return {
     ordonnances,
     loading,
@@ -72,5 +128,7 @@ export function useOrdonnanceLibre() {
     getOrdonnance,
     fetchAvailablePrescriptions,
     deleteOrdonnance,
+    createOrReplaceFromGroup,
+    findCrhGroupOrdonnance,
   }
 }

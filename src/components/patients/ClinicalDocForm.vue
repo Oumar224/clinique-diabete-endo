@@ -1,5 +1,5 @@
 <template>
-  <div class="doc-form">
+  <div class="doc-form" :class="{ 'doc-form--fill': hideHeader }">
     <!-- No document selected -->
     <el-empty
       v-if="!document"
@@ -77,6 +77,7 @@
         :contact-display="contactDisplay"
         :document-id="document.id"
         :document-created-at="document.createdAt"
+        :hide-header="hideHeader"
         @save="handleSave"
         @sign="handleSign"
         @close="$emit('close')"
@@ -92,6 +93,39 @@
         :contact-display="contactDisplay"
         :document-id="document.id"
         :document-created-at="document.createdAt"
+        :hide-header="hideHeader"
+        @save="handleSave"
+        @sign="handleSign"
+        @close="$emit('close')"
+      />
+
+      <!-- CRC Obésité: dedicated form -->
+      <CrcObesiteForm
+        v-else-if="documentType.code === 'CRC_OBESITE'"
+        v-model="localFormData"
+        :readonly="readonly"
+        :resigning="document.status === 'signed'"
+        :contact-id="document.contactId"
+        :contact-display="contactDisplay"
+        :document-id="document.id"
+        :document-created-at="document.createdAt"
+        :hide-header="hideHeader"
+        @save="handleSave"
+        @sign="handleSign"
+        @close="$emit('close')"
+      />
+
+      <!-- CRC Diabète gestationnel: dedicated form -->
+      <CrcGestaForm
+        v-else-if="documentType.code === 'CRC_GESTA'"
+        v-model="localFormData"
+        :readonly="readonly"
+        :resigning="document.status === 'signed'"
+        :contact-id="document.contactId"
+        :contact-display="contactDisplay"
+        :document-id="document.id"
+        :document-created-at="document.createdAt"
+        :hide-header="hideHeader"
         @save="handleSave"
         @sign="handleSign"
         @close="$emit('close')"
@@ -190,6 +224,8 @@ import { useClinicalDocuments } from '@/composables/useClinicalDocuments'
 import DynamicFormRenderer from './DynamicFormRenderer.vue'
 import CrhDiabeteForm from './CrhDiabeteForm.vue'
 import CrcDiabeteForm from './CrcDiabeteForm.vue'
+import CrcObesiteForm from './CrcObesiteForm.vue'
+import CrcGestaForm from './CrcGestaForm.vue'
 import OrdonnanceLibreForm from './OrdonnanceLibreForm.vue'
 
 const props = defineProps<{
@@ -197,6 +233,7 @@ const props = defineProps<{
   documentType: ClinicalDocumentTypeDTO | null
   readonly: boolean
   contactDisplay?: string
+  hideHeader?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -264,8 +301,8 @@ async function handleSaveDraft() {
 async function handleSign() {
   if (!props.document) return
 
-  // For CRH/CRC Diabète and Ordonnance Libre, signing is handled by the dedicated form
-  if (['CRH_DIABETE', 'CRC_DIABETE', 'ORDONNANCE_LIBRE'].includes(props.documentType?.code ?? '')) {
+  // For CRH/CRC Diabète, CRC Obésité and Ordonnance Libre, signing is handled by the dedicated form
+  if (['CRH_DIABETE', 'CRC_DIABETE', 'CRC_OBESITE', 'CRC_GESTA', 'ORDONNANCE_LIBRE'].includes(props.documentType?.code ?? '')) {
     emit('sign')
     return
   }
@@ -322,6 +359,10 @@ function formatDateTime(dateStr: string): string {
   flex-direction: column;
 }
 
+.doc-form--fill {
+  padding: 4px 20px 20px;
+}
+
 .doc-form__header {
   display: flex;
   align-items: center;
@@ -348,7 +389,7 @@ function formatDateTime(dateStr: string): string {
   gap: 16px;
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--el-border-color-light);
+  border-bottom: 1px solid var(--cde-border);
 }
 
 .doc-form__meta-item {
@@ -395,7 +436,7 @@ function formatDateTime(dateStr: string): string {
   justify-content: flex-end;
   gap: 8px;
   padding-top: 16px;
-  border-top: 1px solid var(--el-border-color-light);
+  border-top: 1px solid var(--cde-border);
   margin-top: 16px;
 }
 </style>

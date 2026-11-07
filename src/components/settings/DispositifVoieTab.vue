@@ -1,84 +1,127 @@
 <template>
-  <div class="dvt">
-    <el-alert v-if="error" type="error" :title="error" show-icon closable style="margin-bottom: 12px" />
+  <div class="dvt cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Dispositifs médicaux &amp; Voies d'abord
+        </h1>
+        <p class="cde-page-sub">
+          Référentiels utilisés dans les dossiers de soins
+        </p>
+      </div>
+    </header>
+
+    <el-alert
+      v-if="error"
+      class="cde-alert cde-alert--danger"
+      type="error"
+      :title="error"
+      :closable="true"
+      @close="error = null"
+    />
 
     <div class="dvt__sections">
-      <!-- Dispositifs médicaux -->
-      <div class="dvt__section">
-        <div class="dvt__section-header">
-          <h3 class="dvt__section-title">Dispositifs médicaux</h3>
-          <el-button type="primary" size="small" :icon="Plus" @click="openCreate('dispositif')">Ajouter</el-button>
+      <section class="cde-section">
+        <div class="cde-section-head">
+          <h2 class="cde-section-title">
+            Dispositifs médicaux
+          </h2>
+          <el-button type="primary" size="small" :icon="Plus" @click="openCreate('dispositif')">
+            Ajouter
+          </el-button>
         </div>
-        <div class="dvt__toolbar">
-          <el-input
-            v-model="dispositifSearch"
-            placeholder="Rechercher un dispositif..."
-            clearable
-            style="width: 260px"
+        <div class="cde-toolbar">
+          <div class="cde-filters">
+            <div class="cde-filter cde-toolbar__search">
+              <span class="cde-filter__label">Recherche</span>
+              <el-input
+                v-model="dispositifSearch"
+                placeholder="Libellé…"
+                clearable
+                size="small"
+              >
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
+                </template>
+              </el-input>
+            </div>
+          </div>
+        </div>
+        <div class="cde-table-card">
+          <el-table
+            v-loading="dispositifLoading"
+            :data="dispositifFiltered"
+            size="small"
+            style="width: 100%"
+            empty-text=""
           >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
+            <el-table-column prop="label" label="Type de dispositif / Voie d'abord" min-width="280" />
+            <el-table-column label="Actions" width="90" align="center">
+              <template #default="{ row }">
+                <el-button text type="danger" size="small" :icon="Delete" title="Supprimer" @click="handleDelete('dispositif', row)" />
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
-        <el-table
-          v-loading="dispositifLoading"
-          :data="dispositifFiltered"
-          size="small"
-          border
-          style="width:100%"
-        >
-          <template #empty>
-            <el-empty description="Aucun dispositif" :image-size="40" />
-          </template>
-          <el-table-column prop="label" label="Type de dispositif / Voie d'abord" min-width="280" />
-          <el-table-column label="Actions" width="90" align="center">
-            <template #default="{ row }">
-              <el-button text type="danger" :icon="Delete" size="small" @click="handleDelete('dispositif', row)" />
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
+        <div v-if="!dispositifLoading && dispositifFiltered.length === 0" class="cde-empty">
+          Aucun dispositif.
+        </div>
+        <div class="cde-footer">
+          <span class="cde-muted">{{ dispositifFiltered.length }} dispositif(s)</span>
+        </div>
+      </section>
 
-      <!-- Voies d'administration -->
-      <div class="dvt__section">
-        <div class="dvt__section-header">
-          <h3 class="dvt__section-title">Voies d'administration</h3>
-          <el-button type="primary" size="small" :icon="Plus" @click="openCreate('voie')">Ajouter</el-button>
+      <section class="cde-section">
+        <div class="cde-section-head">
+          <h2 class="cde-section-title">
+            Voies d'administration
+          </h2>
+          <el-button type="primary" size="small" :icon="Plus" @click="openCreate('voie')">
+            Ajouter
+          </el-button>
         </div>
-        <div class="dvt__toolbar">
-          <el-input
-            v-model="voieSearch"
-            placeholder="Rechercher une voie..."
-            clearable
-            style="width: 260px"
+        <div class="cde-toolbar">
+          <div class="cde-filters">
+            <div class="cde-filter cde-toolbar__search">
+              <span class="cde-filter__label">Recherche</span>
+              <el-input
+                v-model="voieSearch"
+                placeholder="Libellé…"
+                clearable
+                size="small"
+              >
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
+                </template>
+              </el-input>
+            </div>
+          </div>
+        </div>
+        <div class="cde-table-card">
+          <el-table
+            v-loading="voieLoading"
+            :data="voieFiltered"
+            size="small"
+            style="width: 100%"
+            empty-text=""
           >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
+            <el-table-column prop="label" label="Voie d'administration" min-width="280" />
+            <el-table-column label="Actions" width="90" align="center">
+              <template #default="{ row }">
+                <el-button text type="danger" size="small" :icon="Delete" title="Supprimer" @click="handleDelete('voie', row)" />
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
-        <el-table
-          v-loading="voieLoading"
-          :data="voieFiltered"
-          size="small"
-          border
-          style="width:100%"
-        >
-          <template #empty>
-            <el-empty description="Aucune voie" :image-size="40" />
-          </template>
-          <el-table-column prop="label" label="Voie d'administration" min-width="280" />
-          <el-table-column label="Actions" width="90" align="center">
-            <template #default="{ row }">
-              <el-button text type="danger" :icon="Delete" size="small" @click="handleDelete('voie', row)" />
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
+        <div v-if="!voieLoading && voieFiltered.length === 0" class="cde-empty">
+          Aucune voie d'administration.
+        </div>
+        <div class="cde-footer">
+          <span class="cde-muted">{{ voieFiltered.length }} voie(s)</span>
+        </div>
+      </section>
     </div>
 
-    <!-- Create dialog -->
     <el-dialog
       v-model="showDialog"
       :title="dialogTitle"
@@ -220,28 +263,24 @@ function onDialogClosed() {
 </script>
 
 <style scoped>
+.dvt {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .dvt__sections {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-.dvt__section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-.dvt__section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--cd-gray-900);
-  margin: 0;
-}
-.dvt__toolbar {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
+}
+
+.dvt__sections > * {
+  min-width: 0;
+}
+
+@media (max-width: 1000px) {
+  .dvt__sections {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>

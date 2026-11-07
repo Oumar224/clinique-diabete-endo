@@ -1,34 +1,60 @@
 <template>
-  <div class="stk">
-    <!-- Error alert -->
-    <el-alert v-if="error" type="error" :title="error" show-icon closable style="margin-bottom: 12px" />
+  <div class="stk cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Stockages / Conservateurs
+        </h1>
+        <p class="cde-page-sub">
+          Emplacements et champs de localisation des échantillons
+        </p>
+      </div>
+    </header>
 
-    <!-- Toolbar globale -->
-    <div class="stk__toolbar">
-      <el-input
-        v-model="stockageSearch"
-        placeholder="Rechercher un stockage..."
-        clearable
-        style="width: 240px"
-        @input="onSearch"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      <el-radio-group v-model="filterActive" size="small">
-        <el-radio-button :label="''">Tous</el-radio-button>
-        <el-radio-button :label="'active'">Actifs</el-radio-button>
-        <el-radio-button :label="'inactive'">Inactifs</el-radio-button>
-      </el-radio-group>
-      <el-button type="primary" :icon="Plus" @click="openStockageCreate">Nouveau stockage</el-button>
+    <el-alert
+      v-if="error"
+      class="cde-alert cde-alert--danger"
+      type="error"
+      :title="error"
+      :closable="true"
+      @close="error = null"
+    />
+
+    <div class="cde-toolbar">
+      <div class="cde-filters">
+        <div class="cde-filter cde-toolbar__search">
+          <span class="cde-filter__label">Recherche</span>
+          <el-input
+            v-model="stockageSearch"
+            placeholder="Nom ou code…"
+            clearable
+            size="small"
+            @input="onSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+        </div>
+        <div class="cde-filter">
+          <span class="cde-filter__label">Statut</span>
+          <el-radio-group v-model="filterActive" size="small">
+            <el-radio-button :label="''">Tous</el-radio-button>
+            <el-radio-button :label="'active'">Actifs</el-radio-button>
+            <el-radio-button :label="'inactive'">Inactifs</el-radio-button>
+          </el-radio-group>
+        </div>
+      </div>
+      <div class="cde-toolbar__actions">
+        <el-button type="primary" size="small" :icon="Plus" @click="openStockageCreate">
+          Nouveau stockage
+        </el-button>
+      </div>
     </div>
 
-    <!-- Split panel -->
     <div class="stk__split">
-      <!-- Sidebar : liste des stockages -->
       <aside class="stk__sidebar">
-        <div class="stk__sidebar-list" v-loading="loading">
+        <div v-loading="loading" class="stk__sidebar-list">
           <div
             v-for="stk in filteredStockages"
             :key="stk.id"
@@ -40,70 +66,76 @@
             <div class="stk__sidebar-item-code">{{ stk.code }}</div>
             <div class="stk__sidebar-item-count">{{ stk.champs_count ?? '?' }} champ(s)</div>
           </div>
-          <el-empty
-            v-if="!loading && filteredStockages.length === 0"
-            :image-size="60"
-            description="Aucun stockage"
-          />
+          <div v-if="!loading && filteredStockages.length === 0" class="cde-empty stk__sidebar-empty">
+            Aucun stockage.
+          </div>
         </div>
       </aside>
 
-      <!-- Panneau détail -->
       <main class="stk__detail">
-        <!-- État vide : aucun stockage sélectionné -->
-        <div v-if="!selectedStockage" class="stk__empty-state">
-          <el-icon :size="40" color="var(--cd-gray-300)"><FolderOpened /></el-icon>
-          <p>Sélectionnez un stockage</p>
+        <div v-if="!selectedStockage" class="cde-empty stk__empty-state">
+          Sélectionnez un stockage.
         </div>
 
         <template v-else>
-          <!-- En-tête stockage -->
           <div class="stk__detail-header">
             <h2 class="stk__detail-title">{{ selectedStockage.name }}</h2>
             <div class="stk__detail-header-actions">
-              <el-button text size="small" :icon="Edit" @click="openStockageEdit(selectedStockage)" />
-              <el-button text size="small" type="danger" :icon="Delete" @click="handleDeleteStockage" />
+              <el-button text size="small" :icon="Edit" title="Modifier" @click="openStockageEdit(selectedStockage)" />
+              <el-button text size="small" type="danger" :icon="Delete" title="Supprimer" @click="handleDeleteStockage" />
             </div>
           </div>
 
-          <!-- Barre d'outils champs -->
-          <div class="stk__champ-toolbar">
-            <span class="stk__champ-toolbar-title">Champs de localisation</span>
-            <el-button type="primary" size="small" :icon="Plus" @click="openCreateChamp">Nouveau champ</el-button>
+          <div class="cde-section-head stk__champ-toolbar">
+            <h3 class="cde-section-title">
+              Champs de localisation
+            </h3>
+            <el-button type="primary" size="small" :icon="Plus" @click="openCreateChamp">
+              Nouveau champ
+            </el-button>
           </div>
 
-          <!-- Tableau des champs -->
-          <el-table
-            v-loading="champsLoading"
-            :data="champs"
-            size="small"
-            style="width: 100%"
-            border
-            row-key="id"
-          >
-            <el-table-column prop="cle" label="Clé" width="120" />
-            <el-table-column prop="label" label="Label" min-width="180" />
-            <el-table-column prop="type" label="Type" width="100">
-              <template #default="{ row }">
-                {{ row.type || 'texte' }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="sort_order" label="Ordre" width="80" align="center" />
-            <el-table-column label="Actions" width="100" align="center">
-              <template #default="{ row }">
-                <el-button text type="primary" :icon="Edit" size="small" @click="openChampEdit(row)" />
-                <el-button text type="danger" :icon="Delete" size="small" @click="handleDeleteChamp(row)" />
-              </template>
-            </el-table-column>
-          </el-table>
+          <div class="cde-table-card">
+            <el-table
+              v-loading="champsLoading"
+              :data="champs"
+              size="small"
+              style="width: 100%"
+              row-key="id"
+              empty-text=""
+            >
+              <el-table-column prop="cle" label="Clé" width="120" />
+              <el-table-column prop="label" label="Label" min-width="180" />
+              <el-table-column prop="type" label="Type" width="100">
+                <template #default="{ row }">
+                  <span class="cde-badge cde-badge--muted">{{ row.type || 'texte' }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="sort_order" label="Ordre" width="80" align="right">
+                <template #default="{ row }">
+                  <span class="cde-num">{{ row.sort_order }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="Actions" width="100" align="center">
+                <template #default="{ row }">
+                  <el-button text type="primary" size="small" :icon="Edit" title="Modifier" @click="openChampEdit(row)" />
+                  <el-button text type="danger" size="small" :icon="Delete" title="Supprimer" @click="handleDeleteChamp(row)" />
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
 
-          <!-- État vide : aucun champ -->
-          <el-empty v-if="!champsLoading && champs.length === 0" description="Aucun champ de localisation" />
+          <div v-if="!champsLoading && champs.length === 0" class="cde-empty">
+            Aucun champ de localisation.
+          </div>
+
+          <div class="cde-footer">
+            <span class="cde-muted">{{ champs.length }} champ(s)</span>
+          </div>
         </template>
       </main>
     </div>
 
-    <!-- Dialogues -->
     <StockageFormDialog ref="stockageDialogRef" @saved="onStockageSaved" />
     <ChampLocalisationFormDialog ref="champDialogRef" @saved="onChampSaved" />
   </div>
@@ -111,7 +143,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Plus, Search, Edit, Delete, FolderOpened } from '@element-plus/icons-vue'
+import { Plus, Search, Edit, Delete } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import { useConservateurs, type StockageDto, type ChampLocalisationDto } from '@/composables/useConservateurs'
 
@@ -234,29 +266,26 @@ function onChampSaved() {
 </script>
 
 <style scoped>
-.stk__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
+.stk {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .stk__split {
   display: flex;
-  height: calc(100vh - 280px);
-  min-height: 400px;
-  border: 1px solid var(--cd-gray-200);
-  border-radius: 4px;
+  height: calc(100vh - 300px);
+  min-height: 360px;
+  border: 1px solid var(--cde-border);
+  border-radius: 6px;
   overflow: hidden;
 }
 
 .stk__sidebar {
-  width: 280px;
-  min-width: 220px;
-  max-width: 400px;
-  background: var(--cd-white);
-  border-right: 1px solid var(--cd-gray-200);
+  width: 260px;
+  min-width: 200px;
+  max-width: 380px;
+  background: var(--cde-bg);
+  border-right: 1px solid var(--cde-border);
   overflow-y: auto;
   flex-shrink: 0;
 }
@@ -266,90 +295,93 @@ function onChampSaved() {
 }
 
 .stk__sidebar-item {
-  padding: 10px 14px;
+  padding: 9px 12px;
   cursor: pointer;
-  border-left: 3px solid transparent;
-  transition: all 0.1s ease;
+  border-left: 2px solid transparent;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .stk__sidebar-item:hover {
-  background: var(--cd-gray-100);
+  background: var(--cd-gray-50);
 }
 
 .stk__sidebar-item.is-active {
-  background: var(--cd-primary-light-9);
-  border-left-color: var(--cd-primary);
+  background: var(--cd-gray-50);
+  border-left-color: var(--cde-accent);
 }
 
 .stk__sidebar-item-name {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--cd-gray-900);
 }
 
-.stk__sidebar-item-code {
-  font-size: 11px;
-  color: var(--cd-gray-500);
-}
-
+.stk__sidebar-item-code,
 .stk__sidebar-item-count {
   font-size: 11px;
-  color: var(--cd-gray-400);
+  color: var(--cde-muted);
+}
+
+.stk__sidebar-empty {
+  padding: 12px;
 }
 
 .stk__detail {
   flex: 1;
-  padding: 16px;
+  padding: 12px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  background: var(--cd-white);
+  gap: 8px;
+  background: var(--cde-bg);
+  min-width: 0;
 }
 
 .stk__empty-state {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 12px;
-  color: var(--cd-gray-400);
-  font-size: 13px;
 }
 
 .stk__detail-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--cd-gray-200);
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--cde-border);
 }
 
 .stk__detail-title {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--cd-gray-900);
 }
 
 .stk__detail-header-actions {
   display: flex;
-  gap: 4px;
+  gap: 2px;
 }
 
 .stk__champ-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  margin: 0;
 }
 
-.stk__champ-toolbar-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--cd-gray-700);
+@media (max-width: 760px) {
+  .stk__split {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .stk__sidebar {
+    width: 100%;
+    max-width: none;
+    border-right: 0;
+    border-bottom: 1px solid var(--cde-border);
+    max-height: 220px;
+  }
 }
 </style>

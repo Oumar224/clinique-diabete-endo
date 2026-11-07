@@ -442,20 +442,20 @@ watch(
   justify-content: center;
   min-height: 160px;
   padding: 24px;
-  border: 2px dashed var(--el-border-color);
-  border-radius: 8px;
-  background: var(--el-fill-color-lighter);
+  border: 2px dashed var(--cde-border);
+  border-radius: 6px;
+  background: var(--cde-surface-tint);
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover:not(&--disabled) {
-    border-color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
+    border-color: var(--cde-accent);
+    background: var(--cde-surface-tint);
   }
 
   &--active {
-    border-color: var(--el-color-primary) !important;
-    background: var(--el-color-primary-light-9) !important;
+    border-color: var(--cde-accent) !important;
+    background: var(--cde-accent-tint) !important;
     transform: scale(1.01);
   }
 
@@ -466,7 +466,7 @@ watch(
 }
 
 .import-dialog__dropzone-icon {
-  color: var(--el-color-primary);
+  color: var(--cde-accent);
   margin-bottom: 8px;
 }
 
@@ -501,8 +501,8 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--el-fill-color-darker, var(--el-fill-color));
-  border: 1px solid var(--el-border-color-lighter);
+  background: var(--cde-surface-tint);
+  border: 1px solid var(--cde-border-soft);
 }
 
 .import-dialog__file-thumbnail {

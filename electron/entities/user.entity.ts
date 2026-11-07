@@ -20,6 +20,8 @@ export class UserEntity {
   @SchemaField() date_debut_contrat?: string
   @SchemaField() date_fin_contrat?: string
   @SchemaField() type_contrat?: string
+  @SchemaField() temps_travail?: 'PLEIN' | 'PARTIEL'
+  @SchemaField() numero_securite_sociale?: string
   @SchemaField() statut_resiliation?: string
   @SchemaField() motif_resiliation?: string
   @SchemaField() date_resiliation?: string
@@ -46,6 +48,8 @@ export class UserEntity {
       date_debut_contrat: entity.date_debut_contrat,
       date_fin_contrat: entity.date_fin_contrat,
       type_contrat: entity.type_contrat,
+      temps_travail: entity.temps_travail ?? 'PLEIN',
+      numero_securite_sociale: entity.numero_securite_sociale ?? undefined,
       statut_resiliation: entity.statut_resiliation,
       motif_resiliation: entity.motif_resiliation,
       date_resiliation: entity.date_resiliation,
@@ -75,6 +79,8 @@ export class UserEntity {
     e.date_debut_contrat = dto.date_debut_contrat
     e.date_fin_contrat = dto.date_fin_contrat
     e.type_contrat = dto.type_contrat
+    e.temps_travail = dto.temps_travail
+    e.numero_securite_sociale = dto.numero_securite_sociale
     e.statut_resiliation = dto.statut_resiliation
     e.motif_resiliation = dto.motif_resiliation
     e.date_resiliation = dto.date_resiliation

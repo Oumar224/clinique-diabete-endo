@@ -1,44 +1,68 @@
 <template>
-  <div class="param-panel">
-    <div class="param-panel__header">
+  <section class="param-panel cde">
+    <div class="cde-section-head param-panel__header">
       <div class="param-panel__header-left">
-        <el-button text size="small" :icon="ArrowLeft" @click="$emit('close')" />
-        <span class="param-panel__title">Paramètres — {{ ownerLabel }}</span>
-        <el-tag v-if="parameters.length" size="small" type="info" effect="plain">{{ parameters.length }}</el-tag>
+        <el-button text size="small" :icon="ArrowLeft" title="Retour" @click="$emit('close')" />
+        <span class="cde-section-title">Paramètres — {{ ownerLabel }}</span>
+        <span v-if="parameters.length" class="cde-badge cde-badge--muted">{{ parameters.length }}</span>
       </div>
       <el-button type="primary" size="small" :icon="Plus" @click="openCreate">
         Nouveau paramètre
       </el-button>
     </div>
 
-    <el-table :data="parameters" size="small" v-loading="loading" border style="width: 100%">
-      <el-table-column label="Ordre" prop="sortOrder" width="70" align="center" />
-      <el-table-column label="Nom" prop="name" min-width="140" />
-      <el-table-column label="Unité" prop="unit" width="100" />
-      <el-table-column label="Type" width="120" align="center">
-        <template #default="{ row }">
-          <el-tag size="small" :type="inputTypeTagType(row.inputType)">{{ inputTypeLabel(row.inputType) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="Référence" min-width="180">
-        <template #default="{ row }">
-          <span class="param-panel__ref-text">{{ formatRefShort(row.referenceValues, row.inputType) }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="Actif" width="70" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.isActive ? 'success' : 'danger'" size="small">{{ row.isActive ? 'Oui' : 'Non' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="Actions" width="100" align="center">
-        <template #default="{ row }">
-          <el-button text type="primary" :icon="Edit" size="small" @click="openEdit(row)" />
-          <el-button text type="danger" :icon="Delete" size="small" @click="handleDelete(row)" />
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="cde-table-card">
+      <el-table
+        v-loading="loading"
+        :data="parameters"
+        size="small"
+        style="width: 100%"
+        empty-text=""
+      >
+        <el-table-column label="Ordre" prop="sortOrder" width="70" align="right">
+          <template #default="{ row }">
+            <span class="cde-num">{{ row.sortOrder }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Nom" prop="name" min-width="140" />
+        <el-table-column label="Unité" prop="unit" width="100">
+          <template #default="{ row }">
+            <span :class="{ 'cde-muted': !row.unit }">{{ row.unit || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Type" width="120" align="center">
+          <template #default="{ row }">
+            <span class="cde-badge cde-badge--muted">{{ inputTypeLabel(row.inputType) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Référence" min-width="180">
+          <template #default="{ row }">
+            <span class="cde-muted param-panel__ref-text">{{ formatRefShort(row.referenceValues, row.inputType) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Actif" width="70" align="center">
+          <template #default="{ row }">
+            <span class="cde-badge" :class="row.isActive ? 'cde-badge--success' : 'cde-badge--danger'">
+              {{ row.isActive ? 'Oui' : 'Non' }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Actions" width="100" align="center">
+          <template #default="{ row }">
+            <el-button text type="primary" size="small" :icon="Edit" title="Modifier" @click="openEdit(row)" />
+            <el-button text type="danger" size="small" :icon="Delete" title="Supprimer" @click="handleDelete(row)" />
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
-    <el-empty v-if="!loading && parameters.length === 0" description="Aucun paramètre configuré" :image-size="60" />
+    <div v-if="!loading && parameters.length === 0" class="cde-empty">
+      Aucun paramètre configuré.
+    </div>
+
+    <div class="cde-footer">
+      <span class="cde-muted">{{ parameters.length }} paramètre(s)</span>
+    </div>
 
     <ExamParameterForm
       v-model:visible="formVisible"
@@ -48,7 +72,7 @@
       :saving="formSaving"
       @submit="onFormSubmit"
     />
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -129,11 +153,6 @@ function inputTypeLabel(type?: string): string {
   return map[type ?? ''] ?? type ?? ''
 }
 
-function inputTypeTagType(type?: string): 'success' | 'warning' | 'info' | 'danger' {
-  const map: Record<string, 'success' | 'warning' | 'info' | 'danger'> = { numeric: 'success', text: 'info', select: 'warning', boolean: 'danger' }
-  return map[type ?? ''] ?? 'info'
-}
-
 function formatRefShort(refs: ExamParameterReferenceValues | undefined, inputType?: string): string {
   if (!refs) return '—'
   if (inputType === 'numeric') {
@@ -152,30 +171,23 @@ function formatRefShort(refs: ExamParameterReferenceValues | undefined, inputTyp
 
 <style scoped>
 .param-panel {
-  padding: 12px;
-  background: var(--cd-gray-50);
-  border: 1px solid var(--cd-primary-light-5);
-  border-radius: 6px;
-  margin-top: 12px;
+  margin-top: 10px;
+  padding: 0;
+  background: transparent;
+  border: 0;
 }
+
 .param-panel__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
+
 .param-panel__header-left {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.param-panel__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--cd-gray-900);
-}
+
 .param-panel__ref-text {
-  font-size: 12px;
-  color: var(--cd-gray-600);
+  font-size: 11px;
 }
 </style>

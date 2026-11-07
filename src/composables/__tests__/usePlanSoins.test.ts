@@ -5,7 +5,7 @@ import { ref, defineComponent, h, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import { ElMessageBox } from 'element-plus'
 import { provideVitalSigns } from '../useVitalSigns'
-import { usePlanSoins, getPlanSoins, getValidesPlanSoins, reprendreSoin, suspendrePrescription, reprendrePrescription, isInsulin, voieColor } from '../usePlanSoins'
+import { usePlanSoins, getPlanSoins, getPlanSoinsDates, getValidesPlanSoins, reprendreSoin, suspendrePrescription, reprendrePrescription, isInsulin, voieColor } from '../usePlanSoins'
 import { useAuth } from '@/composables/useAuth'
 import type { PlanSoinsContext } from '../usePlanSoins'
 import type { BlocHoraire, SoinItem } from '@/types/soins'
@@ -298,6 +298,14 @@ describe('standalone exported functions', () => {
     const result = await getPlanSoins(1, '2026-01-01')
     expect(mockIpcInvoke).toHaveBeenCalledWith('plan-soins:list', { patientId: 1, date: '2026-01-01' })
     expect(result).toBe(mockRecord)
+  })
+
+  it('getPlanSoinsDates calls ipcInvoke with correct params', async () => {
+    const mockDates = ['2026-07-03', '2026-07-01']
+    mockIpcInvoke.mockResolvedValueOnce(mockDates)
+    const result = await getPlanSoinsDates(1)
+    expect(mockIpcInvoke).toHaveBeenCalledWith('plan-soins:dates', { patientId: 1 })
+    expect(result).toBe(mockDates)
   })
 
   it('getValidesPlanSoins calls ipcInvoke with correct params', async () => {

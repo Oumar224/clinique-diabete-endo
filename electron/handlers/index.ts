@@ -29,6 +29,20 @@ import { registerExamResultHandlers } from './exam-result.handler'
 import { registerOrdonnanceLibreHandlers } from './ordonnance-libre.handler'
 import { registerSpecialtyHandlers } from './specialty.handler'
 import { registerSyncHandlers } from './sync.handler'
+import { registerMedicamentHandlers } from './medicament.handler'
+import { registerStockHandlers } from './stock.handler'
+import { registerFournisseurHandlers } from './fournisseur.handler'
+import { registerUniteStockHandlers } from './unite-stock.handler'
+import { registerLaboratoireHandlers } from './laboratoire.handler'
+import { registerLaboratoireStockHandlers } from './laboratoire-stock.handler'
+import { registerDispensationHandlers } from './dispensation.handler'
+import { registerDashboardHandlers } from './dashboard.handler'
+import { registerSalaireHandlers } from './salaire.handler'
+import { registerDepenseHandlers } from './depense.handler'
+import { registerCaisseHandlers } from './caisse.handler'
+import { registerIndicateursHandlers } from './indicateurs.handler'
+import { registerCommandeHandlers } from './commande.handler'
+import { registerApportHandlers } from './apport.handler'
 
 export function registerAllHandlers(): void {
   registerAuthHandlers()
@@ -61,5 +75,19 @@ export function registerAllHandlers(): void {
   registerExamResultHandlers()
   registerSpecialtyHandlers()
   registerOrdonnanceLibreHandlers()
+  registerMedicamentHandlers()
+  registerStockHandlers()
+  registerFournisseurHandlers()
+  registerUniteStockHandlers()
+  registerLaboratoireHandlers()
+  registerLaboratoireStockHandlers()
+  registerDispensationHandlers()
+  registerDashboardHandlers()
+  registerSalaireHandlers()
+  registerDepenseHandlers()
+  registerCaisseHandlers()
+  registerIndicateursHandlers()
+  registerCommandeHandlers()
+  registerApportHandlers()
   registerSyncHandlers()
 }

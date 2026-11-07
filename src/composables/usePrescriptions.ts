@@ -1,11 +1,13 @@
 import { ref } from 'vue'
 import { ipcInvoke } from '@/utils/ipc'
+import { normalizeVoie, VOIE_ERROR_MESSAGE } from '@/constants/voies'
+import type { VoieAdministration } from '@/types/soins'
 
 export interface PrescriptionInput {
   type: 'medicament' | 'soins'
   medicament: string
   dosage: string
-  voie: string
+  voie: VoieAdministration
   duree: number
   dureeType?: 'courte' | 'longue'
   frequence: string[]
@@ -82,9 +84,13 @@ export function usePrescriptions() {
     loading.value = true
     error.value = null
     try {
+      // Garde client pré-IPC : message lisible au lieu du 500 CHECK sqlite.
+      const voie = normalizeVoie(data.voie)
+      if (!voie) throw new Error(VOIE_ERROR_MESSAGE)
       return await ipcInvoke<PrescriptionCreateResult>('prescription:create', {
         patientId,
         ...data,
+        voie,
       })
     } catch (e) {
       error.value = (e as Error).message
@@ -101,9 +107,16 @@ export function usePrescriptions() {
     loading.value = true
     error.value = null
     try {
+      // Garde client pré-IPC : normalise (VO→PO, labels longs) ou rejette.
+      let voie: VoieAdministration | undefined
+      if (data.voie !== undefined) {
+        const normalized = normalizeVoie(data.voie)
+        if (!normalized) throw new Error(VOIE_ERROR_MESSAGE)
+        voie = normalized
+      }
       return await ipcInvoke<{ prescription: PrescriptionRecord; itemsGenerated: number }>(
         'prescription:update',
-        { id, ...data },
+        { id, ...data, ...(voie !== undefined ? { voie } : {}) },
       )
     } catch (e) {
       error.value = (e as Error).message

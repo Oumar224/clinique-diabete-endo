@@ -107,8 +107,13 @@ const autonomieLevel = computed(() => calculateAutonomieLevel(autonomieValues.va
 
 .dossier-section__scores-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 900px) {
+  .dossier-section__scores-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .score-card__body {

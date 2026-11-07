@@ -116,13 +116,13 @@ async function handleSubmit() {
 .forgot-password-form__title {
   font-size: 22px;
   font-weight: 700;
-  color: var(--cd-gray-900, #1a1a2e);
+  color: var(--cde-header-text);
   margin-bottom: 8px;
 }
 
 .forgot-password-form__subtitle {
   font-size: 14px;
-  color: var(--cd-gray-400, #8e8e9a);
+  color: var(--cde-muted);
   line-height: 1.5;
 }
 
@@ -157,13 +157,13 @@ async function handleSubmit() {
 .forgot-password-form__success-title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--cd-gray-900, #1a1a2e);
+  color: var(--cde-header-text);
   margin: 0;
 }
 
 .forgot-password-form__success-message {
   font-size: 14px;
-  color: var(--cd-gray-400, #8e8e9a);
+  color: var(--cde-muted);
   line-height: 1.5;
   max-width: 320px;
   margin: 0;

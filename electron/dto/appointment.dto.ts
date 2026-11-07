@@ -12,6 +12,7 @@ export interface AppointmentDto {
   care_unit_id?: number
   care_unit_name?: string
   notes?: string
+  patient_nom?: string
   created_at?: string
   updated_at?: string
 }

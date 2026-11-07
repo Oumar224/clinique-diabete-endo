@@ -1,39 +1,74 @@
 <template>
-  <div class="vtt">
-    <el-alert v-if="error" type="error" :title="error" show-icon closable style="margin-bottom: 12px" />
+  <div class="vtt cde">
+    <header class="cde-page-head">
+      <div>
+        <h1 class="cde-page-title">
+          Voies d'administration
+        </h1>
+        <p class="cde-page-sub">
+          Voies utilisées pour l'administration des traitements
+        </p>
+      </div>
+    </header>
 
-    <div class="vtt__toolbar">
-      <el-input
-        v-model="search"
-        placeholder="Rechercher..."
-        clearable
-        style="width: 260px"
-        @input="onSearch"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      <el-button type="primary" :icon="Plus" @click="openCreate">Nouvelle voie</el-button>
+    <el-alert
+      v-if="error"
+      class="cde-alert cde-alert--danger"
+      type="error"
+      :title="error"
+      :closable="true"
+      @close="error = null"
+    />
+
+    <div class="cde-toolbar">
+      <div class="cde-filters">
+        <div class="cde-filter cde-toolbar__search">
+          <span class="cde-filter__label">Recherche</span>
+          <el-input
+            v-model="search"
+            placeholder="Libellé…"
+            clearable
+            size="small"
+            @input="onSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+        </div>
+      </div>
+      <div class="cde-toolbar__actions">
+        <el-button type="primary" size="small" :icon="Plus" @click="openCreate">
+          Nouvelle voie
+        </el-button>
+      </div>
     </div>
 
-    <el-table
-      v-loading="loading"
-      :data="filteredTypes"
-      style="width: 100%"
-      border
-      row-key="id"
-    >
-      <template #empty>
-        <el-empty description="Aucune voie d'administration" />
-      </template>
-      <el-table-column prop="label" label="Voie d'administration" min-width="300" />
-      <el-table-column label="Actions" width="120" align="center">
-        <template #default="{ row }">
-          <el-button text type="danger" :icon="Delete" size="small" @click="handleDelete(row)" />
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="cde-table-card">
+      <el-table
+        v-loading="loading"
+        :data="filteredTypes"
+        style="width: 100%"
+        size="small"
+        row-key="id"
+        empty-text=""
+      >
+        <el-table-column prop="label" label="Voie d'administration" min-width="300" />
+        <el-table-column label="Actions" width="120" align="center">
+          <template #default="{ row }">
+            <el-button text type="danger" size="small" :icon="Delete" title="Supprimer" @click="handleDelete(row)" />
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+
+    <div v-if="!loading && filteredTypes.length === 0" class="cde-empty">
+      Aucune voie d'administration.
+    </div>
+
+    <div class="cde-footer">
+      <span class="cde-muted">{{ filteredTypes.length }} élément(s)</span>
+    </div>
 
     <!-- Create dialog -->
     <el-dialog v-model="showDialog" title="Nouvelle voie d'administration" width="420px" :close-on-click-modal="false" @closed="onDialogClosed">
@@ -133,13 +168,3 @@ function onDialogClosed() {
   formRef.value?.resetFields()
 }
 </script>
-
-<style scoped>
-.vtt__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-</style>

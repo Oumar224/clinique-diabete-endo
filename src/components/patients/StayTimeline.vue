@@ -3,11 +3,11 @@
     <!-- Status badges -->
     <div class="stay-timeline__status-bar">
       <span class="stay-timeline__status-label">Contact :</span>
-      <el-tag :type="contactStatus === 'active' ? 'success' : 'info'" size="small" effect="dark">
+      <el-tag :type="contactStatus === 'active' ? 'success' : 'info'" size="small" effect="plain">
         {{ contactStatus === 'active' ? 'En cours' : 'Clôturé' }}
       </el-tag>
       <span class="stay-timeline__status-label" style="margin-left:16px">Séjour :</span>
-      <el-tag :type="stayStatus === 'en_cours' ? 'success' : 'info'" size="small" effect="dark">
+      <el-tag :type="stayStatus === 'en_cours' ? 'success' : 'info'" size="small" effect="plain">
         {{ stayStatus === 'en_cours' ? 'En cours' : 'Clôturé' }}
       </el-tag>
     </div>
@@ -43,7 +43,7 @@
           <div v-if="mvt.from_service_name || mvt.to_service_name" class="stay-timeline__step-services">
             <template v-if="mvt.from_service_name"><el-tag size="small" type="info" effect="plain">{{ mvt.from_service_name }}</el-tag></template>
             <template v-if="mvt.from_service_name && mvt.to_service_name"><el-icon :size="14"><ArrowRight /></el-icon></template>
-            <template v-if="mvt.to_service_name"><el-tag size="small" type="primary" effect="plain">{{ mvt.to_service_name }}</el-tag></template>
+            <template v-if="mvt.to_service_name"><el-tag size="small" type="info" effect="plain">{{ mvt.to_service_name }}</el-tag></template>
           </div>
           <div v-if="mvt.notes" class="stay-timeline__step-notes">{{ mvt.notes }}</div>
         </div>
@@ -90,14 +90,14 @@ function formatTime(dateStr: string): string {
 }
 
 function dotColor(mvt: StayMovementDto, idx: number): string {
-  if (idx === currentIdx.value) return 'var(--el-color-success)'
+  if (idx === currentIdx.value) return 'var(--cd-primary)'
   const colors: Record<string, string> = {
-    admission: 'var(--el-color-danger)',
-    transfert_chambre: 'var(--el-color-warning)',
-    transfert_service: 'var(--el-color-primary)',
-    sortie: 'var(--el-color-info)',
+    admission: 'var(--cd-gray-500)',
+    transfert_chambre: 'var(--cd-warning)',
+    transfert_service: 'var(--cd-info-blue)',
+    sortie: 'var(--cd-gray-400)',
   }
-  return colors[mvt.movement_type] || 'var(--el-color-info)'
+  return colors[mvt.movement_type] || 'var(--cd-gray-400)'
 }
 </script>
 
@@ -112,12 +112,12 @@ function dotColor(mvt: StayMovementDto, idx: number): string {
   gap: 6px;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-bottom: 1px solid var(--cde-border);
 }
 
 .stay-timeline__status-label {
   font-size: 12px;
-  color: var(--cd-gray-500, #777);
+  color: var(--cde-muted);
 }
 
 .stay-timeline__loading {
@@ -132,7 +132,7 @@ function dotColor(mvt: StayMovementDto, idx: number): string {
 
 .stay-timeline__empty-text {
   font-size: 13px;
-  color: var(--cd-gray-400, #999);
+  color: var(--cde-muted);
   font-style: italic;
 }
 
@@ -171,25 +171,25 @@ function dotColor(mvt: StayMovementDto, idx: number): string {
   border-radius: 50%;
   flex-shrink: 0;
   z-index: 1;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px var(--cd-gray-300, #d0d0d0);
+  border: 2px solid var(--cde-surface);
+  box-shadow: 0 0 0 1px var(--cde-border);
 }
 
 .stay-timeline__step-dot--pulse {
   animation: pulse-dot 2s ease-in-out infinite;
-  box-shadow: 0 0 0 3px rgba(103, 194, 58, 0.3);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cde-accent) 22%, transparent);
 }
 
 @keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(103, 194, 58, 0.3); }
-  50% { box-shadow: 0 0 0 6px rgba(103, 194, 58, 0.1); }
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--cde-accent) 22%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--cde-accent) 8%, transparent); }
 }
 
 .stay-timeline__step-line {
   width: 2px;
   flex: 1;
   min-height: 16px;
-  background: var(--cd-gray-300, #d0d0d0);
+  background: var(--cde-border);
   margin: 2px 0;
 }
 
@@ -210,12 +210,12 @@ function dotColor(mvt: StayMovementDto, idx: number): string {
 
 .stay-timeline__step-label {
   font-weight: 600;
-  color: var(--cd-gray-900, #1a1a1a);
+  color: var(--cde-header-text);
   font-size: 13px;
 }
 
 .stay-timeline__step-time {
-  color: var(--cd-gray-400, #999);
+  color: var(--cde-muted);
   font-size: 11px;
   font-family: monospace;
 }
@@ -234,7 +234,7 @@ function dotColor(mvt: StayMovementDto, idx: number): string {
 
 .stay-timeline__step-notes {
   font-size: 11px;
-  color: var(--cd-gray-500, #777);
+  color: var(--cde-muted);
   font-style: italic;
 }
 </style>

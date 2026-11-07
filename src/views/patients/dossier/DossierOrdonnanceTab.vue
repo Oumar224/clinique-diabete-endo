@@ -1,46 +1,57 @@
 <template>
-  <div class="dossier-section">
+  <div class="dossier-section cde">
     <SectionHeader label="Ordonnances" level="secondary" collapsible :badge="ordonnances.length">
       <template #actions>
         <el-button size="small" :icon="Refresh" :loading="loading" @click="loadData">
           Rafraîchir
         </el-button>
       </template>
-      <el-table
-        v-if="ordonnances.length > 0"
-        :data="ordonnances"
-        style="width:100%"
-        size="small"
-        v-loading="loading"
-        element-loading-text="Chargement des ordonnances..."
-      >
-        <el-table-column label="Date" width="110">
-          <template #default="{ row }">
-            {{ formatDate(row.created_at) }}
+      <div class="cde-table-card">
+        <el-table
+          :data="ordonnances"
+          style="width:100%"
+          size="small"
+          v-loading="loading"
+          element-loading-text="Chargement des ordonnances..."
+        >
+          <el-table-column label="Date" width="110">
+            <template #default="{ row }">
+              {{ formatDate(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="Référence" width="100">
+            <template #default="{ row }">
+              <span class="cde-badge cde-badge--muted">#{{ row.id }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="Médicaments" min-width="200">
+            <template #default="{ row }">
+              <span v-if="getFormMeds(row).length > 0">
+                {{ getFormMeds(row).join(', ') }}
+              </span>
+              <span v-else class="cde-muted">—</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="Statut" width="100" align="center">
+            <template #default="{ row }">
+              <span
+                class="cde-badge"
+                :class="row.status === 'signed' ? 'cde-badge--success' : 'cde-badge--warning'"
+              >
+                {{ row.status === 'signed' ? 'Signé' : 'Brouillon' }}
+              </span>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <div class="cde-empty">
+              Aucune ordonnance.
+            </div>
           </template>
-        </el-table-column>
-        <el-table-column label="Référence" width="100">
-          <template #default="{ row }">
-            <el-tag size="small" effect="plain">#{{ row.id }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="Médicaments" min-width="200">
-          <template #default="{ row }">
-            <span v-if="getFormMeds(row).length > 0">
-              {{ getFormMeds(row).join(', ') }}
-            </span>
-            <span v-else class="dossier-section__empty">—</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="Statut" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'signed' ? 'success' : 'warning'" size="small" effect="plain">
-              {{ row.status === 'signed' ? 'Signé' : 'Brouillon' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-empty v-else description="Aucune ordonnance" :image-size="60" />
+        </el-table>
+      </div>
+      <div class="cde-footer">
+        <span class="cde-muted">{{ ordonnances.length }} ordonnance(s)</span>
+      </div>
     </SectionHeader>
   </div>
 </template>
@@ -96,9 +107,5 @@ watch(() => activePatient.value?.id, loadData)
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.dossier-section__empty {
-  color: var(--el-text-color-placeholder);
 }
 </style>
